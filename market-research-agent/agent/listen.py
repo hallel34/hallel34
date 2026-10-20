@@ -55,7 +55,10 @@ def appstore_reviews(app_id, app_name, app_url, store, max_stars=2, limit=25):
     d = C.fetch(f"https://itunes.apple.com/{store}/rss/customerreviews/page=1/id={app_id}/sortby=mostrecent/json",
                 as_json=True, label="Apple App Store reviews")
     out = []
-    for e in ((d or {}).get("feed") or {}).get("entry", [])[:limit]:
+    entries = ((d or {}).get("feed") or {}).get("entry", [])
+    if isinstance(entries, dict):  # Apple returns a bare object, not a list, when there is one review
+        entries = [entries]
+    for e in entries[:limit]:
         try:
             stars = int(e["im:rating"]["label"])
         except (KeyError, ValueError):

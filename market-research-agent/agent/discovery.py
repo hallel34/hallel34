@@ -7,7 +7,9 @@ from . import common as C
 from . import competitors, legal, listen, llm
 
 DEFAULT_TERMS = ["appointments booking", "rent apartment", "delivery", "parents children", "freelancers invoices",
-                 "small business accounting", "tutoring lessons", "car maintenance", "pets", "elderly care"]
+                 "small business accounting", "tutoring lessons", "car maintenance", "pets", "elderly care",
+                 "parking", "taxi", "public transport", "health clinic", "pharmacy", "insurance", "bank", "second hand",
+                 "jobs", "kindergarten", "fitness gym", "groceries", "home repair", "moving", "wedding", "pension"]
 GENERIC = set("""looking need anyone know wish service find found people thing things work works working want use using
 used time year years day days israel israeli ישראל ישראלי מחפש מחפשת מישהו מכיר יודע שירות לעבוד עובד רוצה זמן שנה יום
 אנשים דבר דברים בעיה פתרון please thanks thank help question אפשר צריכה יכול יכולה would get make made going
@@ -46,13 +48,22 @@ def regulations(ctx):
 
 
 def appstore_signals(ctx):
+    """Low-star App Store reviews per category. Local store first; the US store adds a global signal
+    when the local store has too few written reviews (common for Israel)."""
     out = []
     terms = [ctx["focus"]] if ctx["focus"] else DEFAULT_TERMS
+    store = ctx["country"][0]
     for t in terms:
-        found = [a for a in competitors.itunes(t, ctx["country"][0], ctx["market"], limit=5) if a.get("genre") != "Games"]
-        apps = sorted(found, key=lambda a: -a["rating_count"])[:2]
-        for a in apps:
-            out += [dict(q, complaint=True) for q in listen.appstore_reviews(a["id"], a["name"], a["url"], a["store"])]
+        local = []
+        for st, scope, n in ((store, ctx["market"], 3), ("us", "global", 2)):
+            if st == "us" and (store == "us" or len(local) >= 5):
+                break
+            found = [a for a in competitors.itunes(t, st, scope, limit=6) if a.get("genre") != "Games"]
+            for a in sorted(found, key=lambda a: -a["rating_count"])[:n]:
+                revs = [dict(q, complaint=True, scope=scope) for q in listen.appstore_reviews(a["id"], a["name"], a["url"], a["store"])]
+                if st == store:
+                    local += revs
+                out += revs
     return out
 
 
