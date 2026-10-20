@@ -19,7 +19,7 @@ function walk(dir) {
 function pwaPlugin() {
   let outDir = 'dist';
   return {
-    name: 'etr-pwa',
+    name: 'passivo-pwa',
     apply: 'build',
     configResolved(c) { outDir = c.build.outDir; },
     transformIndexHtml: {

@@ -1,5 +1,23 @@
 // localStorage wrapper that never throws (private mode, quota, disabled storage).
-const PREFIX = 'etr.';
+const PREFIX = 'passivo.';
+const LEGACY_PREFIX = 'etr.';
+
+/** One-time migration: move saves/prefs from the pre-rebrand key prefix. Never overwrites new keys. */
+export function migrateLegacyKeys() {
+  try {
+    const old = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith(LEGACY_PREFIX)) old.push(k);
+    }
+    for (const k of old) {
+      const nk = PREFIX + k.slice(LEGACY_PREFIX.length);
+      if (localStorage.getItem(nk) == null) localStorage.setItem(nk, localStorage.getItem(k));
+      localStorage.removeItem(k);
+    }
+  } catch { /* ignore */ }
+}
+migrateLegacyKeys();
 
 export function readJSON(key, fallback = null) {
   try {

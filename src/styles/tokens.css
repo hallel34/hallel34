@@ -1,4 +1,4 @@
-/* יוצאים מהמרוץ — design tokens. Direction v2: "Golden Hour" (dark-first).
+/* פסיבו (Passivo) — design tokens. Direction v2: "Golden Hour" (dark-first).
    Use ONLY these tokens in components. Logical properties only (RTL-safe).
    Token names are stable; v2 changed values and added the groups marked NEW. */
 :root {

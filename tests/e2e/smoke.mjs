@@ -198,7 +198,7 @@ async function main() {
   // a11y wiring: named progressbar, <main> + h1 landmarks, debug helpers off without the flag
   const a11y = await page.evaluate(() => ({
     bars: [...document.querySelectorAll('[role="progressbar"]')].map((b) => !!b.getAttribute('aria-label') && b.hasAttribute('aria-valuenow')),
-    main: document.querySelectorAll('main').length, h1: document.querySelectorAll('h1').length, debug: typeof window.__etrDebug,
+    main: document.querySelectorAll('main').length, h1: document.querySelectorAll('h1').length, debug: typeof window.__passivoDebug,
   }));
   check(a11y.bars.length > 0 && a11y.bars.every(Boolean), 'progressbar has aria-label and aria-valuenow');
   check(a11y.main === 1 && a11y.h1 >= 1, 'board has one <main> and an <h1>');

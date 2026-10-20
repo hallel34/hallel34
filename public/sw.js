@@ -1,7 +1,7 @@
 /* Service worker: precache the app shell at install, cache-first for assets, network-first for pages.
    The build rewrites the placeholders below (see vite.config.js). */
 const BUILD = '__BUILD_ID__';
-const CACHE = `etr-${BUILD}`;
+const CACHE = `passivo-${BUILD}`;
 const PRECACHE = /*__PRECACHE__*/[];
 
 self.addEventListener('install', (event) => {
@@ -15,7 +15,7 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys()
-      .then((keys) => Promise.all(keys.filter((k) => k.startsWith('etr-') && k !== CACHE).map((k) => caches.delete(k))))
+      .then((keys) => Promise.all(keys.filter((k) => (k.startsWith('passivo-') || k.startsWith('etr-')) && k !== CACHE).map((k) => caches.delete(k))))
       .then(() => self.clients.claim()),
   );
 });

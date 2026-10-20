@@ -1,6 +1,6 @@
-# יוצאים מהמרוץ (Exit the Race)
+# פסיבו (Passivo)
 
-A single-player financial board game. Start in the "rat race" with a salary and expenses, buy assets
+A single-player financial board game. Start in the daily grind ("השגרה") with a salary and expenses, buy assets
 that create passive income, and win when **passive income > total monthly expenses**.
 Hebrew (RTL) first, English-ready. Vite + vanilla JS, no backend, installable offline PWA.
 
@@ -112,7 +112,7 @@ Money formatting, card layout and the statement all adapt to the data.
 ## Debug helpers
 
 Open the app with `?debug=1` (for example `/?debug=1&seed=11`) to get two dev-only buttons on the board
-("ניצחון" / "הפסד") and `window.__etrDebug.forceWin()` / `forceLose()`. Without the flag nothing is created
+("ניצחון" / "הפסד") and `window.__passivoDebug.forceWin()` / `forceLose()`. Without the flag nothing is created
 and the helpers do not exist.
 
 ## Add a language
