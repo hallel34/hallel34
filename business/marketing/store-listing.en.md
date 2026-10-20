@@ -1,24 +1,24 @@
 # Store listing — English
 
-## Title (<=30)
+## Title (<=30) — 26 characters
 ```
-Exit the Race: Money Game
+Passivo – Money Board Game
 ```
 
-## Short description (<=80)
+## Short description (<=80) — 78 characters
 ```
-Buy assets, build passive income and escape the rat race. A money board game.
+Buy assets, build passive income, reach financial freedom. A money board game.
 ```
 
 ## Full description (<=4000)
 ```
-Salary, bills, loans... and how do you get out? Exit the Race is a single-player money board game that shows how passive income works. For adults, parents and kids 9+.
+Salary, bills, loans... and how do you make your money work for you? Passivo is a single-player money board game that shows how passive income works. For adults, parents and kids 9+.
 
 How you play
-• Pick a profession (teacher, engineer, nurse, driver and more) and start with a salary and monthly expenses, just like real life.
+• Pick a profession (teacher, engineer, nurse, driver and more) and start in the daily grind: a salary and monthly expenses, just like real life.
 • Roll the die and move around the board: opportunities, unexpected expenses, market events, a new baby, charity and payday.
 • Buy apartments and small businesses (and stocks in Full mode) to build passive income.
-• You win when your passive income is higher than your monthly expenses. You are out of the race!
+• You win when your passive income is higher than your monthly expenses. Welcome to financial freedom (in the game)!
 
 What you learn
 • How to read an income and expense statement, and what cash flow means
@@ -46,29 +46,32 @@ Rewarded ads are always optional.
 
 For teachers: an ad-free version for classrooms and schools, with a lesson plan and worksheet. Contact us for details.
 
-Exit the Race is an educational game, not investment or financial advice. All cards and scenarios are fictional.
+Passivo is an educational game, not investment or financial advice. All cards and scenarios are fictional, and results in the game are not a promise of results in real life.
 
-Download, roll the die and see how many turns it takes you to leave the race!
+Download, roll the die and see how many turns it takes you to reach financial freedom!
 ```
 
 ## Keywords
-- Primary: money board game, financial literacy game, passive income, investing game, family board game
+- Primary: money board game, financial literacy game, passive income, investing game, family board game, financial freedom
 - Secondary: cash flow game, game for kids about money, educational game, budgeting game, real estate game
-- App Store keyword field (<=100):
+- App Store keyword field (95 chars, no spaces, no repeats of name words):
 ```
-finance,budget,cashflow,kids,family,educational,stocks,real estate,loan,salary,learn,simulation
+financial literacy,passive income,investing,budget,cashflow,kids,family,educational,stocks,loan
 ```
 
 ## App Store
-- Name (<=30): `Exit the Race`
-- Subtitle (<=30): `Money board game for everyone`
+- Name (<=30): `Passivo – Money Board Game` (26)
+- Subtitle (<=30): `Learn how money works for you` (29)
+
+## Length check
+Counted by hand (no shell available in this run, no script executed): title 26, short 78, subtitle 29, keyword field 95, full description about 2,000 (well under 4,000). Run a quick `len()` check before upload.
 
 ## Category
 - Google Play: Games > Educational (alt: Board)
 - App Store: Games > Board (secondary: Education)
 
 ## Content rating notes
-Same as the Hebrew listing: no violence, no real-money gambling, no user-generated content or chat, no personal data collection, local save only. Contains ads and in-app purchases. Verify the Families policy (Google) and Kids rules (Apple) before marking the app as child-directed. Expected IARC: all ages.
+Same as the Hebrew listing: no violence, no real-money gambling, no user-generated content or chat, no personal data collection, local save only. Contains ads and in-app purchases. Verify the Families policy (Google) and Kids rules (Apple) before marking the app as child-directed. Expected IARC: all ages. Verify name availability for "Passivo" before submission (see trademark item in `launch-plan.md`).
 
 ## Note
 English markets are the second phase (after the Israeli launch). Pricing in $ copied from `business/sales/pricing.md`. The English UI needs the LTR build (i18n), planned for later.
