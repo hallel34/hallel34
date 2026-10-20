@@ -2,7 +2,8 @@ name: Deploy production
 
 on:
   push:
-    branches: [main]
+    branches: [main, ccr-1d500e6e-hred4o]
+  workflow_dispatch:
 
 permissions:
   contents: write
