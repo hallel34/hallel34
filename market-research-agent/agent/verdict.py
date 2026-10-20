@@ -17,7 +17,7 @@ MVP = {
 
 
 def run(quotes, comp_stats, legal, stats_rows, revenue):
-    q = len({x["url"] for x in quotes})
+    q = len({x["url"] for x in quotes if x.get("complaint")})  # only complaints/unmet needs count as evidence
     cq, comps, apps = comp_stats["weakness_quotes"], comp_stats["count"], comp_stats["apps"]
     worst = max([l["severity"] for l in legal], default=0)
     score = (2 if q >= 5 else 1 if q >= 2 else 0) + (1 if comps >= 1 else 0) + (1 if cq >= 2 else 0) \

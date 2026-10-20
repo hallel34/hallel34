@@ -10,7 +10,10 @@ DEFAULT_TERMS = ["appointments booking", "rent apartment", "delivery", "parents 
                  "small business accounting", "tutoring lessons", "car maintenance", "pets", "elderly care"]
 GENERIC = set("""looking need anyone know wish service find found people thing things work works working want use using
 used time year years day days israel israeli ישראל ישראלי מחפש מחפשת מישהו מכיר יודע שירות לעבוד עובד רוצה זמן שנה יום
-אנשים דבר דברים בעיה פתרון please thanks thank help question אפשר צריכה יכול יכולה would get make made going""".split())
+אנשים דבר דברים בעיה פתרון please thanks thank help question אפשר צריכה יכול יכולה would get make made going
+come now always never back good great bad best better well right still something anything everything nothing think
+say said know new old lot way best ever every other another here same sure because problem issue
+בבקשה תודה טוב רע הכי עכשיו תמיד אף פעם משהו כבר ככה אחרי לפני""".split())
 DIGITAL = re.compile(r"online|app|website|platform|software|digital|saas|אונליין|אתר|דיגיטל|פלטפורמה|תוכנה", re.I)
 
 
@@ -46,13 +49,14 @@ def appstore_signals(ctx):
     out = []
     terms = [ctx["focus"]] if ctx["focus"] else DEFAULT_TERMS
     for t in terms:
-        apps = sorted(competitors.itunes(t, ctx["country"][0], ctx["market"], limit=5), key=lambda a: -a["rating_count"])[:2]
+        found = [a for a in competitors.itunes(t, ctx["country"][0], ctx["market"], limit=5) if a.get("genre") != "Games"]
+        apps = sorted(found, key=lambda a: -a["rating_count"])[:2]
         for a in apps:
             out += [dict(q, complaint=True) for q in listen.appstore_reviews(a["id"], a["name"], a["url"], a["store"])]
     return out
 
 
-def cluster(quotes, n=10, min_support=2):
+def cluster(quotes, n=10, min_support=3):
     pool = [(q, set(C.tokens(q["text"])) - GENERIC) for q in quotes]
     themes = []
     while len(themes) < n:

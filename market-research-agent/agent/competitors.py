@@ -21,7 +21,7 @@ def itunes(term, store, scope, limit=6):
     for r in (d or {}).get("results", []):
         price = r.get("price")
         out.append({"name": r.get("trackName"), "type": "app", "market": scope, "url": r.get("trackViewUrl"),
-                    "id": r.get("trackId"), "store": store,
+                    "id": r.get("trackId"), "store": store, "genre": r.get("primaryGenreName"),
                     "price": "free to download" if not price else f"{price} {r.get('currency', '')}",
                     "price_num_usd": None,
                     "rating": r.get("averageUserRating"), "rating_count": r.get("userRatingCount") or 0,

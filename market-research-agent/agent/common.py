@@ -1,5 +1,6 @@
 """Shared helpers: logging, polite cached web access, source registry, budget."""
 import hashlib
+import html as htmlmod
 import json
 import re
 import sys
@@ -28,6 +29,8 @@ SOURCES = {}   # url -> dict(label, checked, status, kind)
 FAILURES = []
 HOST_FAILS = {}  # host -> consecutive connection failures
 MAX_HOST_FAILS = 2
+HOST_DELAY = {"itunes.apple.com": 4.0}  # Apple answers 403 to bursts (~20 calls/minute allowed)
+BLOCK_MARKERS = ("anomaly-modal", "challenge-form", "captcha")  # a bot-check page is not data
 
 
 def init(out_dir=None, delay=1.0, budget=50.0):
@@ -66,8 +69,9 @@ def add_source(url, label, status="ok", kind="live"):
 
 
 # ---------- web ----------
-def fetch(url, params=None, as_json=False, label="", headers=None, method="GET", data=None, ttl_hours=24):
-    """Return text/JSON or None. Never raises: failures are logged and recorded."""
+def fetch(url, params=None, as_json=False, label="", headers=None, method="GET", data=None, ttl_hours=24, check_block=False):
+    """Return text/JSON or None. Never raises: failures are logged and recorded.
+    check_block: treat a bot-check/captcha page as a failure instead of caching it as data."""
     key = hashlib.sha1(json.dumps([url, params, data, method], sort_keys=True, default=str).encode()).hexdigest()
     cache = state["out"] / "data" / "cache" / f"{key}.txt"
     if cache.exists() and time.time() - cache.stat().st_mtime < ttl_hours * 3600:
@@ -81,16 +85,18 @@ def fetch(url, params=None, as_json=False, label="", headers=None, method="GET",
     last = ""
     for attempt in range(2):
         try:
-            time.sleep(state["delay"])
+            time.sleep(max(state["delay"], HOST_DELAY.get(host, 0)) * (1 + 4 * attempt))
             r = requests.request(method, url, params=params, data=data, headers=h, timeout=25)
-            if r.status_code == 429:
-                time.sleep(5)
-                last = "rate limited (429)"
+            if r.status_code in (403, 429):  # often a rate limit: back off and try once more
+                last = f"HTTP {r.status_code}"
                 continue
             if r.status_code >= 400:
                 last = f"HTTP {r.status_code}"
                 break
             body = r.text
+            if check_block and any(m in body for m in BLOCK_MARKERS):
+                last = "blocked by the site's bot check (captcha page)"
+                continue
             payload = json.loads(body) if as_json else body
             cache.write_text(body, encoding="utf-8")
             HOST_FAILS[host] = 0
@@ -109,7 +115,7 @@ def fetch(url, params=None, as_json=False, label="", headers=None, method="GET",
 def web_search(query, region="us-en", max_results=8, label="DuckDuckGo search"):
     """Free web search via DuckDuckGo's HTML page. Returns [{title,url,snippet}]."""
     from bs4 import BeautifulSoup
-    html = fetch("https://html.duckduckgo.com/html/", params={"q": query, "kl": region}, label=label)
+    html = fetch("https://html.duckduckgo.com/html/", params={"q": query, "kl": region}, label=label, check_block=True)
     if not html:
         return []
     soup = BeautifulSoup(html, "lxml") if _has_lxml() else BeautifulSoup(html, "html.parser")
@@ -149,11 +155,12 @@ app apps אפליקציה אפליקציות""".split())
 
 
 def tokens(text):
-    return [t.lower() for t in re.findall(r"[A-Za-z֐-׿]{3,}", text or "") if t.lower() not in STOP]
+    text = re.sub(r"['’]", "", htmlmod.unescape(text or ""))  # don't -> dont (a stop word), not "don"
+    return [t.lower() for t in re.findall(r"[A-Za-z֐-׿]{3,}", text) if t.lower() not in STOP]
 
 
 def clean(text, n=300):
-    t = re.sub(r"<[^>]+>", " ", text or "")
+    t = htmlmod.unescape(re.sub(r"<[^>]+>", " ", text or ""))
     t = re.sub(r"\s+", " ", t).strip()
     return t if len(t) <= n else t[:n].rsplit(" ", 1)[0] + "…"
 
