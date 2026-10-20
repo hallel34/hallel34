@@ -2,98 +2,69 @@
 <html lang="he" dir="rtl">
 <head>
 <meta charset="utf-8">
-<title>לוח המשחק</title>
-<script src="./support.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="../../src/styles/fonts.css">
+<link rel="stylesheet" href="../../src/styles/tokens.css">
+<link rel="stylesheet" href="./v3.css">
+<title>פסיבו – לוח (v3: שני וריאנטים)</title>
 </head>
 <body>
-<x-dc>
-<helmet>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;900&display=swap" rel="stylesheet">
-<style>
-body{margin:0;font-family:'Rubik',system-ui,sans-serif}
-</style>
-</helmet>
-<div dir="rtl" style="position:relative;width:390px;height:844px;overflow:hidden;box-sizing:border-box;padding:18px 12px 20px;display:flex;flex-direction:column;gap:14px;font-family:'Rubik',system-ui,sans-serif;color:#FFFFFF;background:linear-gradient(180deg,#0E0830 0%,#1F0F52 55%,#46206F 100%)">
+<div><p class="cap">A. Night city (recommended) - skyline, lit windows, navy night board</p>
+<div class="frame" style="background:var(--grad-night)">
 
-<div style="display:flex;flex-direction:column;gap:12px;padding:14px 16px 16px;border-radius:24px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2)">
-<div style="display:flex;justify-content:space-between;align-items:center">
-<div style="display:flex;align-items:center;gap:10px">
-<div style="width:40px;height:40px;border-radius:20px;background:#FF8A5C;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:18px;color:#3A1A00">מ</div>
-<div style="display:flex;flex-direction:column">
-<span style="font-size:16px;font-weight:700">מורה לחינוך מיוחד</span>
-<span style="font-size:13px;color:#D8CCFF">תור 7 מתוך כ-20</span>
-</div>
-</div>
-<button type="button" aria-label="תפריט" style="width:48px;height:48px;border-radius:24px;border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;padding:0">
-<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
-</button>
-</div>
-<div style="display:flex;align-items:center;gap:10px">
-<svg aria-hidden="true" width="34" height="34" viewBox="0 0 64 64"><circle cx="32" cy="34" r="28" fill="#B87800"/><circle cx="32" cy="31" r="28" fill="#FFB300" stroke="#2B1B4D" stroke-width="3"/><circle cx="32" cy="31" r="20" fill="#FFC233" stroke="#B87800" stroke-width="2.500"/></svg>
-<span style="font-size:38px;line-height:1;font-weight:900;color:#FFD54A;font-variant-numeric:tabular-nums">₪14,250</span>
-<span style="margin-inline-start:auto;padding:4px 10px;border-radius:12px;background:rgba(61,220,151,.2);color:#6BF0B8;font-size:14px;font-weight:700;font-variant-numeric:tabular-nums">+₪1,350 לחודש</span>
-</div>
-<div style="display:flex;flex-direction:column;gap:6px">
-<div style="display:flex;justify-content:space-between;font-size:14px;font-weight:500;color:#EADFFF">
-<span>הכנסה פסיבית <b style="color:#6BF0B8;font-variant-numeric:tabular-nums">₪1,800</b></span>
-<span>הוצאות <b style="color:#FFB3A7;font-variant-numeric:tabular-nums">₪4,200</b></span>
-</div>
-<div style="height:16px;border-radius:8px;background:rgba(0,0,0,.35);overflow:hidden">
-<div style="width:43%;height:100%;border-radius:8px;background:linear-gradient(270deg,#3DDC97,#B8FF6B)"></div>
-</div>
-</div>
-</div>
+  <div class="glass" style="margin:12px 12px 0;padding:10px 14px 12px;display:flex;flex-direction:column;gap:8px">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div style="display:flex;align-items:center;gap:10px"><div style="width:40px;height:40px;border-radius:20px;background:var(--c-fox-500);color:#2A1700;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:18px">מ</div><div style="display:flex;flex-direction:column"><b style="font-size:15px">מורה לחינוך מיוחד</b><span style="font-size:13px;color:var(--text-muted)">תור 7 מתוך כ-20</span></div></div>
+      <button class="icon-btn" aria-label="דוח הכנסות"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"/></svg></button>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px"><img src="../../src/assets/coin-small.svg" width="30" height="30" alt=""><span class="num" style="font-size:30px;line-height:1;font-weight:900;color:var(--cash-color)">₪14,250</span><span class="num" style="margin-inline-start:auto;white-space:nowrap;padding:3px 8px;border-radius:12px;background:rgb(95 224 174/.18);color:var(--income);font-size:13px;font-weight:700">+₪1,350 לחודש</span></div>
+    <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--text-muted)"><span>הכנסה פסיבית <b class="num" style="color:var(--passive)">₪1,800</b></span><span>הוצאות <b class="num" style="color:var(--expense)">₪4,200</b></span></div>
+    <div style="position:relative;height:14px;border-radius:7px;background:var(--meter-track);overflow:hidden"><div style="width:43%;height:100%;border-radius:7px;background:var(--passive-fill)"></div></div>
+  </div>
 
-<div style="position:relative;display:grid;grid-template-columns:repeat(7,48px);grid-template-rows:repeat(7,48px);gap:5px;justify-content:center;padding:10px;border-radius:28px;background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.14)">
-<sc-for list="{{cells}}" as="c" hint-placeholder-count="24">
-<div style="{{c.style}}">
-<sc-if value="{{c.isPayday}}" hint-placeholder-val="{{ false }}"><svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#2B1B4D" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 8v8M9.5 10.5h4a1.5 1.5 0 0 1 0 3h-3a1.5 1.5 0 0 0 0 3h4"/></svg></sc-if>
-<sc-if value="{{c.isOpp}}" hint-placeholder-val="{{ false }}"><svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#2B1B4D" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-7 8 7v9H4z"/><path d="M10 20v-5h4v5"/></svg></sc-if>
-<sc-if value="{{c.isExp}}" hint-placeholder-val="{{ false }}"><svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M13 3L5 14h6l-1 7 8-11h-6z"/></svg></sc-if>
-<sc-if value="{{c.isMarket}}" hint-placeholder-val="{{ false }}"><svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16M7 16v-4M12 16V8M17 16V5"/></svg></sc-if>
-<sc-if value="{{c.isBaby}}" hint-placeholder-val="{{ false }}"><svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#2B1B4D" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M9 12.5v.1M15 12.5v.1M9.5 16.5q2.5 2 5 0M12 5q2-2 3 0"/></svg></sc-if>
-<sc-if value="{{c.isCharity}}" hint-placeholder-val="{{ false }}"><svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-8-5-8-11a4.5 4.5 0 0 1 8-2.5A4.5 4.5 0 0 1 20 9c0 6-8 11-8 11z"/></svg></sc-if>
-<sc-if value="{{c.hasPawn}}" hint-placeholder-val="{{ false }}"><svg aria-hidden="true" width="44" height="50" viewBox="0 0 64 72" style="position:absolute;top:-24px;filter:drop-shadow(0 6px 6px rgba(0,0,0,.5))"><ellipse cx="22" cy="65" rx="7" ry="4" fill="#FFFFFF" stroke="#2B1B4D" stroke-width="2.5"/><ellipse cx="42" cy="65" rx="7" ry="4" fill="#FFFFFF" stroke="#2B1B4D" stroke-width="2.5"/><rect x="16" y="40" width="32" height="24" rx="12" fill="#FF5A4E" stroke="#2B1B4D" stroke-width="3"/><circle cx="14" cy="16" r="10" fill="#CDBDFF" stroke="#2B1B4D" stroke-width="3"/><circle cx="50" cy="16" r="10" fill="#CDBDFF" stroke="#2B1B4D" stroke-width="3"/><circle cx="14" cy="16" r="5" fill="#FF7AB6"/><circle cx="50" cy="16" r="5" fill="#FF7AB6"/><ellipse cx="32" cy="30" rx="20" ry="18" fill="#E4DAFF" stroke="#2B1B4D" stroke-width="3"/><path d="M13 23 Q32 11 51 23" fill="none" stroke="#FFB300" stroke-width="5" stroke-linecap="round"/><circle cx="24" cy="30" r="3.400" fill="#2B1B4D"/><circle cx="40" cy="30" r="3.400" fill="#2B1B4D"/><ellipse cx="32" cy="36" rx="3.200" ry="2.400" fill="#FF7AB6" stroke="#2B1B4D" stroke-width="1.500"/></svg></sc-if>
-</div>
-</sc-for>
-<div style="grid-column:2 / 7;grid-row:2 / 7;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;border-radius:22px;background:radial-gradient(circle at 50% 35%,rgba(255,200,61,.22),rgba(255,255,255,.04) 70%)">
-<svg aria-hidden="true" width="84" height="84" viewBox="0 0 96 96" style="transform:rotate(-8deg);filter:drop-shadow(0 10px 10px rgba(0,0,0,.5))"><rect x="4" y="4" width="88" height="86" rx="20" fill="#FFF4E0" stroke="#2B1B4D" stroke-width="4"/><path d="M14 22 Q14 12 26 12 H52" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round"/><circle cx="28" cy="28" r="8" fill="#2B1B4D"/><circle cx="68" cy="28" r="8" fill="#2B1B4D"/><circle cx="48" cy="48" r="8" fill="#2B1B4D"/><circle cx="28" cy="68" r="8" fill="#2B1B4D"/><circle cx="68" cy="68" r="8" fill="#2B1B4D"/></svg>
-<span style="font-size:15px;font-weight:700;color:#FFE9D0;text-align:center;line-height:1.3;padding:0 8px">הטלתם 5 — אתם על<br>משבצת הזדמנות</span>
-</div>
-</div>
+  <div class="abs" style="inset-inline:12px;top:176px;height:344px;border-radius:26px;background:linear-gradient(180deg,#0A1533 0%,#12275A 100%);border:1px solid var(--glass-border);overflow:hidden">
+    <svg class="abs" style="inset-inline:0;bottom:0;pointer-events:none" width="336" height="110" viewBox="0 0 336 110" aria-hidden="true"><g fill="#091330" opacity=".9"><rect x="4" y="60" width="28" height="50"/><rect x="36" y="42" width="22" height="68"/><rect x="62" y="70" width="34" height="40"/><rect x="100" y="36" width="24" height="74"/><rect x="128" y="64" width="30" height="46"/><rect x="162" y="50" width="20" height="60"/><rect x="186" y="72" width="36" height="38"/><rect x="226" y="40" width="24" height="70"/><rect x="254" y="66" width="32" height="44"/><rect x="290" y="48" width="42" height="62"/></g><g fill="var(--skyline-window)" opacity=".85"><rect x="42" y="52" width="3" height="4"/><rect x="46" y="64" width="3" height="4"/><rect x="106" y="48" width="3" height="4"/><rect x="112" y="62" width="3" height="4"/><rect x="232" y="52" width="3" height="4"/><rect x="298" y="60" width="3" height="4"/><rect x="316" y="74" width="3" height="4"/></g></svg>
+    <div data-board style="position:absolute;inset:0;display:grid;grid-template-columns:repeat(7,42px);grid-template-rows:repeat(7,42px);gap:4px;justify-content:center;align-content:center"></div>
+    <div style="position:absolute;inset-inline:62px;top:62px;bottom:62px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border-radius:18px;background:radial-gradient(circle at 50% 35%,rgb(242 181 58/.2),rgb(255 255 255/.02) 70%)">
+      <img src="../../src/assets/die-4.svg" width="64" height="64" alt="" style="filter:drop-shadow(0 8px 6px rgb(0 0 0/.45));transform:rotate(-8deg)">
+      <span style="font-size:13px;font-weight:700;color:var(--text-soft)">תור 7 · משכורת בדרך</span>
+    </div>
+  </div>
+  <div class="pop" style="inset-inline-end:16px;top:530px;width:56px;height:56px"><img src="../../src/assets/fox/think.webp" alt=""></div>
+  <img class="abs bob" src="../../src/assets/fox/roll@2x.webp" alt="" style="height:128px;width:auto;inset-inline-start:14px;bottom:104px;filter:drop-shadow(0 10px 12px rgb(0 0 0/.45))">
+  <div class="abs" style="inset-inline-start:140px;inset-inline-end:84px;bottom:112px"><div class="glass" style="padding:10px 14px;border-radius:18px;font-size:14px;color:var(--text-soft);line-height:1.35">נחתתם על <b style="color:var(--asset)">הזדמנות</b>. מעניין מה מחכה שם.</div></div>
+  <div class="abs" style="inset-inline:16px;bottom:24px"><button class="btn btn-primary" style="width:100%;height:64px"><img src="../../src/assets/die-3.svg" width="30" height="30" alt=""><span>זרקו קוביה</span></button></div>
+</div></div>
+<div><p class="cap">B. Tabletop felt - blue-green baize, brass stitching, wood rim</p>
+<div class="frame" style="background:var(--bg)">
 
-<div style="display:flex;gap:12px;margin-top:auto">
-<button type="button" aria-label="דוח הכנסות והוצאות" style="flex:0 0 64px;height:64px;border-radius:22px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;padding:0">
-<svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="3"/><path d="M9 8h6M9 12h6M9 16h3"/></svg>
-</button>
-<button type="button" style="flex:1;height:64px;border-radius:32px;border:0;background:linear-gradient(180deg,#FFE27A 0%,#FFC83D 50%,#FF9F1C 100%);color:#3A1A00;font-family:inherit;font-size:22px;font-weight:900;box-shadow:0 6px 0 #B25E00,0 14px 24px rgba(0,0,0,.4),inset 0 2px 0 rgba(255,255,255,.7)">הטילו קוביה</button>
-</div>
-</div>
-</x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
-class Component extends DCLogic {
-renderVals() {
-const types = ['P','O','E','O','M','B','O','E','O','C','M','O','P','O','E','O','M','O','B','E','O','C','M','O'];
-const bg = { P:'#FFC83D', O:'#6BE3A8', E:'#FF5A4E', M:'#3D9BFF', B:'#FF8FC4', C:'#9B6BFF' };
-const pos = (i) => {
-if (i <= 6) return [i + 1, 1];
-if (i <= 12) return [7, i - 5];
-if (i <= 18) return [6 - (i - 13), 7];
-return [1, 7 - (i - 18)];
-};
-const cells = types.map((t, i) => {
-const [col, row] = pos(i);
-const here = i === 8;
-return {
-style: 'position:relative;grid-column:' + col + ';grid-row:' + row + ';display:flex;align-items:center;justify-content:center;border-radius:14px;background:' + bg[t] + ';box-shadow:0 3px 0 rgba(0,0,0,.35),inset 0 2px 0 rgba(255,255,255,.45);' + (here ? 'outline:3px solid #FFFFFF;outline-offset:2px;' : ''),
-isPayday: t === 'P', isOpp: t === 'O', isExp: t === 'E', isMarket: t === 'M', isBaby: t === 'B', isCharity: t === 'C',
-hasPawn: here
-};
-});
-return { cells };
-}
-}
+  <div class="glass" style="margin:12px 12px 0;padding:10px 14px 12px;display:flex;flex-direction:column;gap:8px">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div style="display:flex;align-items:center;gap:10px"><div style="width:40px;height:40px;border-radius:20px;background:var(--c-fox-500);color:#2A1700;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:18px">מ</div><div style="display:flex;flex-direction:column"><b style="font-size:15px">מורה לחינוך מיוחד</b><span style="font-size:13px;color:var(--text-muted)">תור 7 מתוך כ-20</span></div></div>
+      <button class="icon-btn" aria-label="דוח הכנסות"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"/></svg></button>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px"><img src="../../src/assets/coin-small.svg" width="30" height="30" alt=""><span class="num" style="font-size:30px;line-height:1;font-weight:900;color:var(--cash-color)">₪14,250</span><span class="num" style="margin-inline-start:auto;white-space:nowrap;padding:3px 8px;border-radius:12px;background:rgb(95 224 174/.18);color:var(--income);font-size:13px;font-weight:700">+₪1,350 לחודש</span></div>
+    <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--text-muted)"><span>הכנסה פסיבית <b class="num" style="color:var(--passive)">₪1,800</b></span><span>הוצאות <b class="num" style="color:var(--expense)">₪4,200</b></span></div>
+    <div style="position:relative;height:14px;border-radius:7px;background:var(--meter-track);overflow:hidden"><div style="width:43%;height:100%;border-radius:7px;background:var(--passive-fill)"></div></div>
+  </div>
+
+  <div class="abs" style="inset-inline:12px;top:176px;height:344px;border-radius:26px;background:var(--grad-felt);border:3px solid #7A5A2E;box-shadow:inset 0 0 0 3px rgb(0 0 0/.25),inset 0 0 40px rgb(0 0 0/.4);overflow:hidden">
+    <svg class="abs" style="inset:0;pointer-events:none" width="336" height="350" viewBox="0 0 336 350" aria-hidden="true"><rect x="6" y="6" width="318" height="338" rx="20" fill="none" stroke="#F2B53A" stroke-opacity=".5" stroke-width="2" stroke-dasharray="6 6"/></svg>
+    <div data-board style="position:absolute;inset:0;display:grid;grid-template-columns:repeat(7,42px);grid-template-rows:repeat(7,42px);gap:4px;justify-content:center;align-content:center"></div>
+    <div style="position:absolute;inset-inline:62px;top:62px;bottom:62px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border-radius:18px;background:radial-gradient(circle at 50% 35%,rgb(242 181 58/.2),rgb(255 255 255/.02) 70%)">
+      <img src="../../src/assets/die-4.svg" width="64" height="64" alt="" style="filter:drop-shadow(0 8px 6px rgb(0 0 0/.45));transform:rotate(-8deg)">
+      <span style="font-size:13px;font-weight:700;color:var(--text-soft)">תור 7 · משכורת בדרך</span>
+    </div>
+  </div>
+  <div class="pop" style="inset-inline-end:16px;top:530px;width:56px;height:56px"><img src="../../src/assets/fox/think.webp" alt=""></div>
+  <img class="abs bob" src="../../src/assets/fox/roll@2x.webp" alt="" style="height:128px;width:auto;inset-inline-start:14px;bottom:104px;filter:drop-shadow(0 10px 12px rgb(0 0 0/.45))">
+  <div class="abs" style="inset-inline-start:140px;inset-inline-end:84px;bottom:112px"><div class="glass" style="padding:10px 14px;border-radius:18px;font-size:14px;color:var(--text-soft);line-height:1.35">נחתתם על <b style="color:var(--asset)">הזדמנות</b>. מעניין מה מחכה שם.</div></div>
+  <div class="abs" style="inset-inline:16px;bottom:24px"><button class="btn btn-primary" style="width:100%;height:64px"><img src="../../src/assets/die-3.svg" width="30" height="30" alt=""><span>זרקו קוביה</span></button></div>
+</div></div>
+<script>
+const types=['payday', 'opportunity', 'expense', 'opportunity', 'market', 'baby', 'opportunity', 'charity', 'expense', 'opportunity', 'market', 'payday', 'opportunity', 'expense', 'baby', 'opportunity', 'market', 'opportunity', 'expense', 'charity', 'opportunity', 'market', 'baby', 'opportunity'];
+const cells=[];for(let c=0;c<7;c++)cells.push([0,c]);for(let r=1;r<7;r++)cells.push([r,6]);for(let c=5;c>=0;c--)cells.push([6,c]);for(let r=5;r>=1;r--)cells.push([r,0]);
+document.querySelectorAll('[data-board]').forEach(g=>{cells.forEach(([r,c],i)=>{const d=document.createElement('div');d.style.cssText=`grid-row:${r+1};grid-column:${c+1};position:relative;border-radius:10px;${i===7?'box-shadow:0 0 0 3px #fff,0 0 16px 2px rgb(242 181 58/.9);':''}`;d.innerHTML=`<img src="../../src/assets/square-${types[i]}.svg" width="42" height="42" alt="" style="display:block">`+(i===7?'<img src="../../src/assets/pawn.svg" width="36" height="40" alt="" style="position:absolute;inset-inline-start:3px;top:-16px;filter:drop-shadow(0 6px 5px rgb(0 0 0/.55))">':'');g.appendChild(d)})});
 </script>
 </body>
 </html>

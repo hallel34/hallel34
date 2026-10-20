@@ -1,50 +1,53 @@
 # Screen specs — 360x800, RTL (he), dark + light
 
-Global: safe-area padding; gutter `--gutter` (16px); primary button `--btn-primary-h` (56px) full-width in bottom 30% of screen; secondary actions >=48px; <=2 modal levels; one primary action per screen. Buttons: 3D edge (`box-shadow: 0 var(--edge-depth) 0 var(--btn-primary-edge)`), press = `scale(var(--press-scale))` + edge collapses to 1px, `--dur-press`. Copy: plural address ("בחרו", "לחצו"), 1-2 word button labels, light humour. Money via `.money` + `Intl.NumberFormat` ILS, wrapped in `<bdi>`. Reduced motion: fades only. Haptics (toggle in settings): roll 15ms tick, land 10ms, purchase [20,40,20], win [30,60,30,60,90], error 40ms.
+Global: safe-area padding; gutter `--gutter` (16px); primary button `--btn-primary-h` (64px) full-width in bottom 30% of screen; secondary actions >=48px; <=2 modal levels; one primary action per screen. Buttons: 3D edge (`box-shadow: 0 var(--edge-depth) 0 var(--btn-primary-edge)`), press = `scale(var(--press-scale))` + edge collapses to 1px, `--dur-press`. Copy: plural address ("בחרו", "לחצו"), 1-2 word button labels, light humour. Money via `.money` + `Intl.NumberFormat` ILS, wrapped in `<bdi>`. Reduced motion: fades only. Haptics (toggle in settings): roll 15ms tick, land 10ms, purchase [20,40,20], win [30,60,30,60,90], error 40ms.
 
-Assets: `src/assets/` (square-*.svg, pawn.svg, die-1..6.svg, card-*.svg, coin*.svg, app-icon-*).
+Assets: `src/assets/` (square-*.svg, pawn.svg = fox-head token, die-1..6.svg, card-*.svg, coin*.svg, wordmark.svg, fox/*.webp, app-icon-*.png). Look: `design/DIRECTION-v3.md` (Navy & Gold, Night-city board). Fox placement: `design/fox-usage.md`. Primary button is 64px (`--btn-primary-h`).
 
 ## 1. Start
-- Layout: top 40% mascot (pawn.svg scaled 3x) bobbing on a sun-ray background; title "יוצאים מהמרוץ" (Rubik 800, `--fs-2xl`) with tagline "ממירוץ העכברים לחופש כלכלי"; bottom stack: primary "משחק חדש", secondary "המשך משחק" (only if save exists), icon row (sound, vibration, theme, how-to) each 48px.
-- Motion: mascot idle bob 2s loop; coins drift up in the background (cheap CSS transforms). Button entrance stagger 60ms, `--ease-out`.
-- States: no save (continue hidden), save exists (continue shows turn number).
+- Layout: dusk-navy sky (`--grad-sky`) with a small skyline and lit windows; `wordmark.svg` (232px wide) at top 76; tagline "הכסף עובד בשבילך. אתם רק צריכים להתחיל."; tired fox (height 296) inside a gold halo with a speech bubble; bottom stack: mode chips (family/full, 72px tall, selected = gold outline), primary "התחילו משחק" (64px), "המשך משחק" secondary only if a save exists; settings icon 48px top inline-start corner, games-played chip top inline-end.
+- First launch: wave pose plays once, then crossfades to tired (see fox-usage.md).
+- Motion: fox bob 2400ms, entrance rise 400ms; button stagger 60ms `--ease-out`; stars twinkle (opacity only).
+- States: no save (continue hidden), save exists (continue shows turn number), reduced motion (no bob/twinkle).
+- Copy: warm, light self-irony about the daily grind ("עוד יום בשגרה... בואו נשנה את זה").
 
-## 2. Mode + profession pick (2 steps, one screen scroll-snap)
-- Step 1 mode: two big sticker cards side by side stacked vertically at 360: "משפחתי" (ages 9+, apartments and small businesses) and "מלא" (stocks, selling, loans). Selected = gold outline + glow `--shadow-glow-gold`, check badge.
-- Step 2 professions: 2-column grid of cards (>=48px tall each, ~150x120): avatar circle with profession glyph, name, salary in `.money`. Selected card expands into a bottom sheet preview: itemised salary, expenses, savings, the first goal "הכנסה פסיבית > הוצאות". Primary "יוצאים לדרך" pinned bottom.
-- Motion: cards pop in 40ms stagger; selection squash 1.06 -> 1 with `--ease-bounce`.
+## 2. Mode + profession pick (2 steps, one screen)
+- Step 1 mode: two cards stacked at 360: "משפחתי" (ages 9+, apartments and small businesses) and "מלא" (stocks, selling, loans). Selected = gold outline + `--shadow-glow-gold`, check badge.
+- Step 2 professions: 2-column grid (~156x112): avatar circle (fox-orange chip with the profession initial/glyph), name, salary in `.money`. Selecting opens a bottom preview sheet: salary, itemised expenses, savings, first goal "הכנסה פסיבית > הוצאות"; fox `ponder` circle (56) on the sheet's top inline-end corner. Primary "יוצאים לדרך" pinned bottom.
+- Motion: cards pop in 40ms stagger; selection squash 1.06 -> 1 `--ease-bounce`; haptic tick 10ms.
 
-## 3. Board (main)
-- Top HUD (height ~96): cash (`--fs-xl`, count-up `--dur-countup`), passive-income meter below it: track `--passive-track`, fill `--passive`, fills from inline-start, tick marks at 25/50/75% and a flag at "expenses" (the goal). Statement button (48px) at inline-end. Turn counter small at inline-start.
-- Board: 24-tile rounded loop fitting 328px wide: 7 tiles top row, 5 per side vertical, 7 bottom, tile ~40x40 (tap target exception: tiles are not interactive; tap-to-inspect uses the 48px-wide long-press-free tooltip on the pawn only). Tile = `square-*.svg` on `--sq-*` colour with outline; payday tile larger ("start"). Current tile glows.
-- Centre: die (die-N.svg, 72px) and a status line ("תור 7 - משכורת בדרך").
-- Bottom: primary full-width "זרקו קוביה" 56px. During movement it disables to "..." state.
-- Motion: die tumble with CSS 3D rotate for `--dur-die`, settle with `--ease-bounce`, haptic tick; pawn hops each tile `--dur-fast` (translate-Y arc `--hop-height`, squash on land 0.9/1.1); payday = glow sweep across the cash + floating "+₪" rising 40px and fading; passive meter pulses at 25/50/75%.
-- States: idle, rolling, moving, resolving card, charity bonus (2-dice badge with remaining turns), baby counter (0-3 icons beside cash).
+## 3. Board (main) — Night city
+- HUD (about 150px: profession chip + statement button 48px, cash `--cash-color` 30px with count-up `--dur-countup` and monthly delta chip, passive-vs-expenses line, 14px meter). Meter: `--passive-track`/`--passive-fill`, fills from inline-start, ticks at 25/50/75%, goal flag at the expenses mark.
+- Board: 24-tile loop in a 7x7 grid, tile 42px, gap 4px, panel 336x344 at top 176; navy night gradient with skyline + gold windows behind the bottom row. Tile = `square-*.svg`; tiles are not interactive (exempt from 48px). Start tile (payday) at the top inline-start corner. Active tile: white 3px ring + gold glow. Pawn: `pawn.svg` fox-head token 36x40, hovering ~16px above the tile top.
+- Centre: die (`die-N.svg` 64px) and status line "תור 7 · משכורת בדרך".
+- Roll zone: fox `roll` pose (height 128) at inline-start, status chip, primary "זרקו קוביה" full width 64px at bottom 24px. Reaction circle strip directly below the board (see fox-usage.md).
+- Motion: die tumble CSS 3D for `--dur-die`, settle `--ease-bounce`, haptic tick; pawn hop per tile `--dur-fast` (arc `--hop-height`, squash on land 0.9/1.1); payday glow sweep across cash + floating "+₪" rising 40px; passive meter pulses at 25/50/75%.
+- States: idle, rolling, moving (button disabled with spinner), resolving card, charity bonus (2-dice badge + turns left), baby counter (0-3 icons beside cash).
+- Variation B (tabletop felt) is specified in `directions.md`/mockups only; not built.
 
 ## 4. Card modal (opportunity / expense / market / baby / charity)
-- Centered sheet 328x~520, `--r-xl`, `--shadow-3`; header = `card-<type>.svg` (320x140) with type label chip; title (Rubik 700 `--fs-lg`); 2-3 lines of description (`--fs-md`); a key-numbers table (cost, down payment, monthly income/payment) with semantic colours; bottom actions: primary "קנו" (gold) + secondary "לא הפעם" (plum). Expense card: single danger-styled "שלמו"; if short on cash it transitions to the loan dialog (second modal level).
+- Sheet 328x~720 at 360x800, `--r-xl`, ring `--shadow-3` (gold 4px), header banner `card-<type>.svg` (320x140, `object-fit:cover`, 176px tall) with a navy type chip (gold text) at top inline-start; fox reaction circle (64) at the banner's bottom inline-end. Title 26px/900, description 15px `--card-muted`, key-numbers grid (down payment, monthly income in income-ink on mint tile, mortgage, monthly payment), navy "passive income will rise to" strip with coin, cash-after-purchase row, actions: secondary "לא הפעם" (104px, white) + primary "קונים!" (mint buy button). Expense card: single danger button "שלמו"; if short on cash it transitions to the loan dialog (second and last modal level).
 - Full mode market event: quantity stepper (48px +/- buttons, `.money` live total).
-- Motion: flip-in from deck (rotateY 90deg -> 0, `--dur-slow`, `--ease-out`); exit slides down `--ease-in`; on buy: coin burst (8-12 `coin-small.svg` flying toward the assets button at inline-end of the HUD, 500ms), cash count-up, haptic purchase.
+- Motion: flip-in from deck (rotateY 90deg to 0, `--dur-slow`, `--ease-out`); exit slides down `--ease-in`; on buy: coin burst (8-12 `coin-small.svg` flying to the statement button, 500ms), cash count-up, haptic purchase.
 - Tone: witty one-liners, never shaming.
 
 ## 5. Income statement (bottom sheet over board)
-- Sheet from bottom, 85dvh, drag handle (48px target), dim `--scrim`. Sections: income (salary, passive in `--income`), expenses (itemised, `--expense`), assets (`--asset`), liabilities (`--liability`), summary row: monthly cash flow and the passive-vs-expenses meter (large). Family mode shows simplified rows (no stocks, no loans).
-- Numbers right-aligned in logical `text-align: end`, tabular; negative with "-" inside `<bdi>`.
-- Motion: slide up `--dur-base` `--ease-out`; rows stagger 30ms; passive meter animates fill on open.
+- Sheet from bottom, 85dvh, drag handle (48px target), dim `--scrim`. Sections: income (salary, passive in `--income`), expenses (itemised, `--expense`), assets (`--asset`), liabilities (`--liability`), summary: monthly cash flow + large passive-vs-expenses meter. Family mode: simplified rows (no stocks, no loans). No fox here: numbers first.
+- Numbers aligned with `text-align: end`, tabular; negatives with "-" inside `<bdi>`.
+- Motion: slide up `--dur-base` `--ease-out`; rows stagger 30ms; meter animates on open.
 
 ## 6. Loan dialog
-- Triggered when cash is short or from statement (full mode). Small centered modal: title "צריך הלוואה?", stepper in NIS 1,000 multiples (48px buttons, big amount `--fs-2xl`), line "תשלום חודשי: 10%", live new monthly cash flow (turns coral if negative), limit bar showing used/max. Actions: primary "קחו הלוואה", secondary "ביטול". If limit reached and still short: shows the game-over path (button "לסיום").
-- Motion: bank-door slide/scale `--ease-bounce`; amount count-up on each step; error shake 6px x2 `--dur-fast` (opacity-only under reduced motion).
+- Centered modal when cash is short or from statement (full mode): "צריך הלוואה?", stepper in NIS 1,000 multiples (48px buttons, amount 36px count-up), "תשלום חודשי: 10%", live new monthly cash flow (coral if negative), limit bar used/max, fox `worried` circle on the corner. Actions: primary "קחו הלוואה", secondary "ביטול". At the limit and still short: button "לסיום" leading to game over.
+- Motion: scale-in `--ease-bounce`; error shake 6px x2 `--dur-fast` (opacity only under reduced motion).
 - Repay variant (full mode): same layout, mint primary "החזירו".
 
 ## 7. Win
-- Full screen: purple/gold sunburst, mascot jumping with a gold headband flag, "יצאתם מהמרוץ!" `--fs-2xl`, confetti (canvas or 30-40 CSS particles, `--dur-confetti`, GPU transforms only), stats card (turns, final passive income, assets owned, babies, charity given), buttons: primary "שחקו שוב", secondary "שתפו" (>=48px).
+- Full screen `--grad-sunburst` with gold rays (13% opacity), confetti in brand colours (30-40 CSS/SVG particles, `--dur-confetti`, transforms only), fox `hammock` (276 wide) in a gold halo, title "חופש כלכלי!" (46px gold gradient), line "ההכנסה הפסיבית עקפה את ההוצאות. הכסף עובד בשבילכם.", stats panel (passive vs expenses, turns, assets, kids) on `--glass-bg-strong`, primary "משחק חדש", secondary "שתפו את התוצאה" (secondary uses a navy 62% fill for contrast over the orange gradient).
 - Haptic win pattern; confetti suppressed under reduced motion (static sparkles + fade).
 
 ## 8. Game over
-- Calm dim-plum screen, mascot sitting with a deflated coin, title "המרוץ ממשיך..." (light, not punitive), short cause line ("אין מזומן, אין הלוואות, והתזרים שלילי"), stats card, primary "ננסה שוב", secondary "חזרה לתפריט". Tone: encouraging, tip of the day.
-- Motion: slow fade/slide `--dur-slow`; mascot gentle sway.
+- Calm dim-navy screen (`--grad-night`), fox `tired` (200) swaying slowly, title "עוד סיבוב ננסה" (supportive, not punitive), cause line ("אין מזומן, אין הלוואות, והתזרים שלילי"), tip of the day, stats card, primary "ננסה שוב", secondary "חזרה לתפריט".
+- Motion: slow fade/slide `--dur-slow`.
 
 ## Accessibility checklist
-Contrast AA via tokens (text on bg >=12:1; muted >=6:1), visible `:focus-visible`, icons paired with text/shape (never colour alone), `aria-live="polite"` for cash/turn changes, die result announced, decorative SVGs `aria-hidden`.
+Contrast AA via tokens (see DIRECTION-v3.md audit table: text on bg 16.9:1, muted 11.1:1 dark / 7.9:1 light), visible `:focus-visible` (gold on dark, navy on light), icons paired with text/shape (never colour alone; tile icons are navy for >=4.6:1 on red), `aria-live="polite"` for cash/turn changes, die result announced, decorative SVG/WebP `aria-hidden`/`alt=""`.

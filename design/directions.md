@@ -1,24 +1,21 @@
-# Art directions — יוצאים מהמרוץ
+# Art directions — פסיבו (Passivo)
 
-> ## DECISION: Direction A — "Tel Aviv Pop" (with the "Golden Hour" evening palette as the dark theme)
-> Implemented in `src/styles/tokens.css` and `src/assets/*.svg`. Developers use those tokens; do not invent colours.
+> ## DECISION: Direction "Navy & Gold", Night-city board (A)
+> The direction is fixed by the approved fox art. Full spec: `design/DIRECTION-v3.md`. Tokens: `src/styles/tokens.css`. Fox placement: `design/fox-usage.md`.
+> History: v1 "Tel Aviv Pop" (plum/sun, mouse mascot) and v2 "Golden Hour" (purple/magenta sunset) are superseded and must not be used.
 
-## A. Tel Aviv Pop (CHOSEN)
-- **Mood**: sunny, cheeky, sticker-like, family-friendly but not childish. Think warm beach-city afternoon, bold outlines, tactile "pressable" 3D buttons.
-- **Palette (roles)**: plum ink `#2B1B4D` (text, outlines), cream `#FFF4E0` (background), sun `#FFB300` (primary action, assets, coins), coral `#FF5A4E` (expenses), mint `#1FBF8F` (income/payday), sky `#2D9CFF` (market), violet `#7A4DFF` (passive-income meter, charity), pink `#FF7AB6` (baby).
-- **Typography**: Rubik 700/800 for display and money (rounded, excellent Hebrew), Assistant 400/500/700 for body. Money always tabular, smaller ₪.
-- **Illustration**: chunky 3px plum outline, flat fills + one white highlight stroke, offset hard shadow ("sticker"). Mascot: a cheeky mouse in a coral hoodie with a gold headband and a coin on its chest — the one who escapes the *rat race*. It is the pawn, the win-screen hero and the app icon.
-- **Board**: rounded rectangular loop of 24 candy-coloured tiles on a warm sand board, each tile = colour + icon (never colour alone). Centre holds die and status.
-- **Hero screen**: cream board with pale sun rays; top HUD with cash count-up and a violet passive-income meter racing toward the expense mark; the mouse stands on a mint payday tile; a full-width gold 3D "זרקו קוביה" button in the thumb zone.
-- **Why it works**: highest "top-chart casual" appeal, instantly readable at 360px, suits both adults and families, differentiates strongly from the grey/blue look of existing finance board games.
+## Direction: Navy & Gold
+- **Mood**: premium, warm, night-lit; a savvy friend, not a banker.
+- **Palette** (roles): navy `#0F1E46` background; gold `#F2B53A` reward/primary/assets; fox orange `#E8702A` character accent only; cream `#FFF6E3` cards; mint `#5FE0AE` income; coral `#FF9C8C` expense; teal-to-gold meter for passive income; lavender-grey for liabilities.
+- **Typography**: Rubik 900/700/500 (Hebrew + Latin); tabular numerals for money; gold-gradient hero titles with a navy hard shadow.
+- **Illustration**: painterly fox raster art + chunky navy-outlined vector UI (3px stroke, soft offset shadows), gold ring/halo motif.
+- **Sample hero screen** (start, 360x800): navy dusk sky fading to a fox-orange horizon, small skyline with lit gold windows; gold wordmark; the tired fox holding coffee, bobbing slowly inside a gold halo with a speech bubble "עוד יום בשגרה... בואו נשנה את זה"; two mode chips (family highlighted with a gold outline); full-width glossy gold "התחילו משחק" button in the thumb zone. Mockup: `design/mockups/Main.dc.html`.
 
-## B. Golden Hour Finance (not chosen; reused only as dark theme)
-- **Mood**: premium, calm, evening-lit; deep navy and warm gold, soft 3D coins, elegant cards.
-- **Palette**: navy `#0E1B3D`, midnight `#16264F`, gold `#E8B84A`, champagne `#F6E7C1`, teal `#2FB5A3`, rose `#D9576B`.
-- **Typography**: Heebo 700 display + Assistant body; thin gold hairlines.
-- **Illustration**: soft-gradient semi-realistic coins, subtle glow, minimal line icons, silhouette pawn.
-- **Hero screen**: navy board with gold-lit tiles, a glossy 3D gold die, serif-feeling numerals.
-- **Why not**: reads as a fintech app; lower fun/juice, weaker for ages 9+, harder to make distinctive and easy to look "cheaper" than top casual games.
+## Two variations of board + cards (same direction)
+### A. Night city (RECOMMENDED)
+Navy night board with a static skyline and lit windows, glowing gold active tile, fox-head pawn. Cream cards with a gold ring and halo. Mockups: `Board.dc.html`, `Card.dc.html` (left frame).
+### B. Tabletop felt
+Blue-green baize board with wood rim and dashed brass stitching; cards dealt from a two-card deck stack with stitched edge. Mockups: right frame of the same files.
 
-## Recommendation
-Choose **A**. Take B's dark-evening feel only for `[data-theme="dark"]` (plum night with sun-gold accents), so we get premium calm at night without losing the playful identity.
+## Recommendation: A
+It is the fox art's own world, so pawn, coins and gold ring read as one family; navy gives the six tile colours and the active-tile glow the strongest contrast at 42px tiles; it is cheaper to render than a textured felt (60fps on mid-range Android); and it keeps numbers visually quiet. Felt stays a candidate cosmetic board skin for later.

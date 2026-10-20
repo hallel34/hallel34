@@ -1,0 +1,22 @@
+/* Shared by the v3 'Navy & Gold' mockups. Plain CSS; real tokens come from ../../src/styles/tokens.css. */
+*{box-sizing:border-box}
+body{margin:0;font-family:'Rubik','Heebo',system-ui,sans-serif;background:#05070f;color:var(--text);display:flex;gap:32px;padding:24px;align-items:flex-start;justify-content:center;min-width:max-content;direction:ltr}
+
+.cap{font:500 13px/1.3 system-ui,sans-serif;color:#9fb0dc;margin:0 0 8px;text-align:center}
+.frame{direction:rtl;position:relative;width:360px;height:800px;overflow:hidden;border-radius:28px;background:var(--bg);color:var(--text);isolation:isolate}
+.abs{position:absolute}
+.num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1,"lnum" 1;unicode-bidi:isolate}
+.btn{display:flex;align-items:center;justify-content:center;gap:10px;border:0;font:inherit;cursor:pointer;touch-action:manipulation}
+.btn-primary{height:64px;border-radius:32px;background:var(--btn-primary-bg);color:var(--btn-primary-text);font-size:22px;font-weight:900;box-shadow:0 6px 0 var(--btn-primary-edge),0 14px 24px rgb(0 0 0/.4),inset 0 2px 0 rgb(255 255 255/.7)}
+.btn-buy{height:60px;border-radius:30px;background:var(--btn-buy-bg);color:var(--btn-buy-text);font-size:20px;font-weight:900;box-shadow:0 5px 0 var(--btn-buy-edge),0 12px 20px rgb(0 0 0/.25),inset 0 2px 0 rgb(255 255 255/.6)}
+.btn-sec{height:52px;border-radius:26px;border:2px solid var(--btn-secondary-border);background:var(--btn-secondary-bg);color:var(--btn-secondary-text);font-size:17px;font-weight:700}
+.glass{background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:24px}
+.icon-btn{width:48px;height:48px;border-radius:24px;border:1px solid var(--glass-border);background:var(--glass-bg);display:flex;align-items:center;justify-content:center;padding:0}
+.halo{background:var(--glow-fox);border-radius:50%}
+.bubble{position:absolute;background:#FFF6E3;color:#0F1E46;border-radius:18px;padding:10px 14px;font-size:15px;font-weight:700;line-height:1.3;box-shadow:0 6px 16px rgb(0 0 0/.35)}
+.pop{position:absolute;width:72px;height:72px;border-radius:50%;overflow:hidden;border:3px solid var(--c-gold-400);box-shadow:0 0 0 3px rgb(242 181 58/.25),0 8px 18px rgb(0 0 0/.45);background:#0F1E46}
+.pop img{width:100%;height:100%;object-fit:cover;display:block}
+.bob{animation:bob var(--dur-bob) ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(calc(var(--bob-height) * -1))}}
+@media (prefers-reduced-motion:reduce){.bob{animation:none}}
+.coin{display:inline-block;width:1em;height:1em;vertical-align:-.12em}

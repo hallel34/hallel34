@@ -1,117 +1,142 @@
-/* פסיבו (Passivo) — design tokens. Direction v2: "Golden Hour" (dark-first).
+/* פסיבו (Passivo) — design tokens. Direction v3: "Navy & Gold" (dark-first), derived from the fox art.
    Use ONLY these tokens in components. Logical properties only (RTL-safe).
-   Token names are stable; v2 changed values and added the groups marked NEW. */
+   Token names are stable since v2; v3 changed VALUES (legacy --c-plum-/--c-sun-/--c-mint... names kept as aliases)
+   and added the groups marked NEW. Contrast is audited by `python3 scripts/contrast-check.py`. */
 :root {
   /* ---- Brand palette (raw, theme-independent) ---- */
-  --c-plum-900: #0E0830;              /* night indigo */
-  --c-plum-800: #2B1B4D;              /* ink */
-  --c-plum-700: #2A1263;
-  --c-plum-500: #6B55A3;
+  --c-navy-950: #091330;              /* NEW night */
+  --c-navy-900: #0F1E46;              /* NEW brand navy (fox art background) */
+  --c-navy-800: #16295E;
+  --c-navy-700: #1D3573;
+  --c-navy-500: #4A5C94;
+  --c-navy-300: #8696C8;
+  --c-ice-100: #C4D0F0;               /* NEW muted text on navy */
+  --c-gold-300: #FFD479;
+  --c-gold-400: #F2B53A;              /* NEW brand gold */
+  --c-gold-500: #E3A020;
+  --c-gold-700: #A56A0A;              /* gold edge */
+  --c-gold-ink: #2A1700;              /* text on gold */
+  --c-gold-600: #E3A020;
+  --c-fox-300: #F59A5B;               /* NEW fox orange family */
+  --c-fox-500: #E8702A;
+  --c-fox-700: #B3501A;
   --c-cream-50: #FFFBF2;
-  --c-cream-100: #FFF8EC;
-  --c-cream-200: #EADFC8;
-  --c-sun-400: #FFC83D;               /* gold */
-  --c-sun-500: #FFB300;               /* coin */
-  --c-sun-700: #B25E00;               /* gold edge */
-  --c-coral-500: #FF5A4E;
+  --c-cream-100: #FFF6E3;
+  --c-cream-200: #EBDDBF;
+  --c-coral-500: #F0524A;
+  --c-coral-300: #FF9C8C;
   --c-coral-700: #B3261E;
-  --c-mint-500: #3DDC97;
-  --c-mint-300: #6BF0B8;
+  --c-mint-500: #4FD6A0;
+  --c-mint-300: #5FE0AE;
   --c-mint-700: #0B6B43;
-  --c-sky-500: #3D9BFF;
+  --c-teal-500: #35D6B0;              /* NEW passive */
+  --c-sky-500: #4DA3FF;
   --c-sky-700: #1A62B3;
-  --c-violet-500: #9B6BFF;
+  --c-violet-500: #9B7BFF;
   --c-violet-700: #5230C2;
-  --c-pink-500: #FF8FC4;
+  --c-pink-500: #FF9CCB;
   --c-pink-700: #C23B80;
-  --c-magenta-500: #8A2F7A;           /* NEW */
-  --c-sunset-500: #FF6A4D;            /* NEW */
-  --c-sunset-300: #FFB35C;            /* NEW */
-  --c-gold-300: #FFE27A;              /* NEW */
-  --c-gold-600: #FF9F1C;              /* NEW */
-  --c-gold-ink: #3A1A00;              /* NEW: text on gold */
+  /* legacy aliases (v1/v2 names -> v3 values) */
+  --c-plum-900: var(--c-navy-900);
+  --c-plum-800: var(--c-navy-900);
+  --c-plum-700: var(--c-navy-800);
+  --c-plum-500: var(--c-navy-500);
+  --c-sun-400: var(--c-gold-400);
+  --c-sun-500: var(--c-gold-400);
+  --c-sun-700: var(--c-gold-700);
+  --c-magenta-500: var(--c-fox-700);
+  --c-sunset-500: var(--c-fox-500);
+  --c-sunset-300: var(--c-fox-300);
 
-  /* ---- Semantic: dark theme (default, "Golden Hour") ---- */
-  --bg: var(--c-plum-900);
-  --bg-board: rgb(0 0 0 / .28);
-  --surface: #231247;
-  --surface-2: #2D1A5C;
-  --surface-sunken: #1A0F31;
-  --text: #FFFFFF;                    /* >=15:1 on bg */
-  --text-muted: #D8CCFF;              /* >=9:1 on bg */
-  --text-soft: #FFE9D0;
+  /* ---- Semantic: dark theme (default, "Navy & Gold") ---- */
+  --bg: var(--c-navy-900);
+  --bg-board: rgb(5 12 32 / .38);
+  --surface: var(--c-navy-800);
+  --surface-2: var(--c-navy-700);
+  --surface-sunken: #0A1533;
+  --text: #FFFFFF;                    /* 16.9:1 on bg */
+  --text-muted: var(--c-ice-100);     /* 11.1:1 on bg, 8.6:1 on surface */
+  --text-soft: #FFE6BD;
   --text-on-color: #FFFFFF;
   --border: rgb(255 255 255 / .22);
-  --outline: #0F0820;
+  --border-strong: var(--c-navy-300); /* NEW: 5.6:1 on bg, for input/outline boundaries */
+  --outline: #060E24;
   --focus-ring: var(--c-gold-300);
-  --scrim: rgb(10 5 25 / .72);
+  --scrim: rgb(5 10 28 / .74);
 
-  /* NEW: backgrounds + glass */
-  --grad-night: linear-gradient(180deg, #0E0830 0%, #1F0F52 55%, #46206F 100%);
-  --grad-sky: linear-gradient(180deg, #0E0830 0%, #2A1263 38%, #8A2F7A 66%, #FF6A4D 88%, #FFB35C 100%);
-  --grad-sunburst: linear-gradient(180deg, #2A1263 0%, #8A2F7A 45%, #FF6A4D 80%, #FFB35C 100%);
-  --grad-card-modal: linear-gradient(180deg, #0A0524 0%, #170B40 100%);
+  /* backgrounds + glass */
+  --grad-night: linear-gradient(180deg, #091330 0%, #0F1E46 55%, #1B3068 100%);
+  --grad-sky: linear-gradient(180deg, #091330 0%, #0F1E46 42%, #1D3573 72%, #5A3A4E 92%, #B5582A 100%);
+  --grad-sunburst: linear-gradient(180deg, #16295E 0%, #3A3A6B 45%, #B5582A 85%, #E8702A 100%);
+  --grad-card-modal: linear-gradient(180deg, #060E24 0%, #0F1E46 100%);
+  --grad-felt: radial-gradient(120% 90% at 50% 40%, #1C3F6B 0%, #12294F 60%, #0B1B3A 100%); /* NEW: tabletop variation */
   --glass-bg: rgb(255 255 255 / .10);
-  --glass-bg-strong: rgb(20 8 50 / .55);
+  --glass-bg-strong: rgb(8 16 40 / .55);
   --glass-border: rgb(255 255 255 / .20);
   --glass-chip: rgb(255 255 255 / .12);
-  --skyline: #1B0B3F;
-  --title-grad: linear-gradient(180deg, #FFF3B0 0%, #FFC83D 55%, #FF9A1F 100%);
-  --title-shadow: drop-shadow(0 4px 0 #7A2B00) drop-shadow(0 10px 18px rgb(0 0 0 / .4));
-  --cash-color: #FFD54A;
-  --meter-track: rgb(0 0 0 / .35);
+  --skyline: #0A1533;
+  --skyline-window: #F2B53A;          /* NEW: lit windows in the night-city board */
+  --glow-fox: radial-gradient(closest-side, rgb(242 181 58 / .30), rgb(242 181 58 / 0)); /* NEW: gold halo behind the fox */
+  --title-grad: linear-gradient(180deg, #FFE9A8 0%, #F2B53A 55%, #E3A020 100%);
+  --title-shadow: drop-shadow(0 3px 0 #0A1533) drop-shadow(0 10px 18px rgb(0 0 0 / .45));
+  --cash-color: #F6C453;              /* 10.5:1 on bg */
+  --meter-track: rgb(0 0 0 / .38);
 
-  /* NEW: cream card (opportunity/expense/... modal) */
+  /* cream card (opportunity/expense/... modal) */
   --card-bg: var(--c-cream-100);
-  --card-text: var(--c-plum-800);     /* >=12:1 on cream */
-  --card-muted: #5A4A7A;              /* >=7:1 on cream */
+  --card-text: var(--c-navy-900);     /* 16:1 on cream */
+  --card-muted: #46527E;              /* 7.3:1 on cream */
   --card-border: var(--c-cream-200);
-  --card-ring: var(--c-sun-400);
+  --card-ring: var(--c-gold-400);
   --card-tile-bg: #FFFFFF;
-  --card-income-bg: #E3FBEF;
+  --card-income-bg: #E1F8EC;
   --card-income-border: #9DE8C4;
+  --card-felt: #0F1E46;               /* NEW: felt-variation card back colour */
 
   /* Money semantics: same meaning everywhere */
   --income: var(--c-mint-300);
   --income-fill: var(--c-mint-500);
   --income-ink: var(--c-mint-700);    /* on cream/white */
-  --expense: #FFB3A7;
+  --expense: var(--c-coral-300);
   --expense-fill: var(--c-coral-500);
   --expense-ink: var(--c-coral-700);  /* on cream/white */
-  --asset: var(--c-sun-400);
-  --asset-fill: var(--c-sun-500);
-  --liability: #D8CCFF;
-  --liability-fill: #9A8AB8;
-  --passive: var(--c-mint-500);       /* signature win-meter colour */
-  --passive-fill: linear-gradient(270deg, #3DDC97, #B8FF6B);
+  --asset: var(--c-gold-400);
+  --asset-fill: var(--c-gold-400);
+  --liability: #C3BDF0;
+  --liability-fill: #8C86C0;
+  --passive: var(--c-teal-500);       /* signature win-meter colour */
+  --passive-fill: linear-gradient(270deg, #2FD3A5, #F2D36B);
   --passive-track: var(--meter-track);
+  --fox: var(--c-fox-500);            /* NEW: mascot accent (never a money meaning) */
+  --fox-ink: var(--c-fox-700);        /* NEW: orange text on light, 5.0:1 on cream */
 
   /* Buttons */
-  --btn-primary-bg: linear-gradient(180deg, #FFE27A 0%, #FFC83D 50%, #FF9F1C 100%);
-  --btn-primary-text: var(--c-gold-ink);   /* >=9:1 on gold */
-  --btn-primary-edge: #B25E00;
-  --btn-buy-bg: linear-gradient(180deg, #6BF0B8 0%, #2BC97E 100%);
-  --btn-buy-text: #04301D;
-  --btn-buy-edge: #138A56;
+  --btn-primary-bg: linear-gradient(180deg, #FFD479 0%, #F2B53A 52%, #E3A020 100%);
+  --btn-primary-text: var(--c-gold-ink);   /* >=8:1 on every gold stop */
+  --btn-primary-edge: #A56A0A;
+  --btn-buy-bg: linear-gradient(180deg, #7AE8C0 0%, #2FB885 100%);
+  --btn-buy-text: #032A1A;
+  --btn-buy-edge: #167A58;
   --btn-secondary-bg: var(--glass-bg);
   --btn-secondary-text: #FFFFFF;
   --btn-secondary-edge: transparent;
   --btn-secondary-border: rgb(255 255 255 / .4);
-  --btn-danger-bg: linear-gradient(180deg, #FF8A7E 0%, #FF5A4E 100%);
+  --btn-danger-bg: linear-gradient(180deg, #FFA595 0%, #F0645A 100%);
   --btn-danger-text: #2E0502;
   --btn-danger-edge: #A8261B;
-  --btn-disabled-bg: #3D2F5E;
-  --btn-disabled-text: #B9ABD8;
+  --btn-disabled-bg: #2A3A6B;
+  --btn-disabled-text: #B4C0E4;
 
-  /* Square types (board tiles) */
-  --sq-payday: #FFC83D;
-  --sq-opportunity: #6BE3A8;
-  --sq-expense: #FF5A4E;
-  --sq-market: #3D9BFF;
-  --sq-baby: #FF8FC4;
-  --sq-charity: #9B6BFF;
+  /* Square types (board tiles). Each tile also carries a unique icon; tiles keep a navy outline in both themes. */
+  --sq-payday: #F2B53A;
+  --sq-opportunity: #4FD6A0;
+  --sq-expense: #F0524A;
+  --sq-market: #4DA3FF;
+  --sq-baby: #FF9CCB;
+  --sq-charity: #9B7BFF;
+  --sq-icon-dark: #0F1E46;            /* NEW: icon ink on every tile (>=4.2:1 on all six) */
 
-  /* ---- Typography ---- */
+/* ---- Typography ---- */
   --font-display: "Rubik", "Heebo", system-ui, sans-serif;
   --font-body: "Rubik", "Heebo", system-ui, sans-serif;
   --fs-xs: 0.75rem;    /* 12 */
@@ -144,7 +169,7 @@
   --shadow-1: 0 2px 0 rgb(0 0 0 / .30), 0 4px 10px rgb(0 0 0 / .28);
   --shadow-2: 0 4px 0 rgb(0 0 0 / .35), 0 10px 24px rgb(0 0 0 / .4);
   --shadow-3: 0 0 0 4px var(--card-ring), 0 24px 50px rgb(0 0 0 / .6);
-  --shadow-glow-gold: 0 0 0 3px rgb(255 200 61 / .45), 0 0 28px rgb(255 200 61 / .5);
+  --shadow-glow-gold: 0 0 0 3px rgb(242 181 58 / .5), 0 0 28px rgb(242 181 58 / .5);
   --edge-depth: 6px;                  /* glossy button 3D edge */
 
   /* ---- Layers ---- */
@@ -159,61 +184,71 @@
   --dur-die: 1100ms;      /* die tumble total */
   --dur-countup: 700ms;
   --dur-confetti: 2800ms;
+  --dur-bob: 2400ms;      /* NEW: fox idle bob loop */
+  --dur-pop: 320ms;       /* NEW: fox reaction pop-up enter */
+  --dur-toast: 2200ms;    /* NEW: reaction pop-up visible time */
   --ease-out: cubic-bezier(.16, 1, .3, 1);
   --ease-in: cubic-bezier(.7, 0, .84, 0);
   --ease-inout: cubic-bezier(.65, 0, .35, 1);
   --ease-bounce: cubic-bezier(.34, 1.56, .64, 1);
   --press-scale: .97;
   --hop-height: 14px;
+  --bob-height: 6px;      /* NEW */
 
   /* Writing-direction helper for transform-origin (1 = ltr, -1 = rtl) */
   --dir: 1;
 }
 :root[dir="rtl"] { --dir: -1; }
 
-/* ---- Light theme: daytime Tel Aviv, same structure ---- */
+/* ---- Light theme: warm paper + navy ink, same structure ---- */
 :root[data-theme="light"] {
-  --bg: #FFF1D6;
-  --bg-board: rgb(43 27 77 / .10);
+  --bg: #FBF3E1;
+  --bg-board: rgb(15 30 70 / .08);
   --surface: #FFFFFF;
-  --surface-2: #FFFBF2;
-  --surface-sunken: #F7E6C8;
-  --text: #2B1B4D;                    /* >=12:1 on bg */
-  --text-muted: #4F3E78;              /* >=7:1 */
-  --text-soft: #4A2E5E;
-  --border: rgb(43 27 77 / .22);
-  --outline: #2B1B4D;
-  --focus-ring: #5230C2;
-  --scrim: rgb(30 18 56 / .55);
+  --surface-2: #FFF9EC;
+  --surface-sunken: #F1E5C8;
+  --text: #0F1E46;                    /* 15.6:1 on bg */
+  --text-muted: #3F4C78;              /* 7.9:1 on bg, 6.6:1 on sunken */
+  --text-soft: #5A3A12;
+  --border: rgb(15 30 70 / .22);
+  --border-strong: #6F7899;           /* 3.9:1 on bg */
+  --outline: #0F1E46;
+  --focus-ring: #0F1E46;
+  --scrim: rgb(9 19 48 / .55);
 
-  --grad-night: linear-gradient(180deg, #FFE9BF 0%, #FFD9A0 55%, #FFC48A 100%);
-  --grad-sky: linear-gradient(180deg, #FFF1D6 0%, #FFD9A0 40%, #FFB38A 72%, #FF9E7A 100%);
-  --grad-sunburst: linear-gradient(180deg, #FFE9BF 0%, #FFC48A 50%, #FF9E7A 100%);
-  --grad-card-modal: linear-gradient(180deg, #FFE9BF 0%, #FFC48A 100%);
+  --grad-night: linear-gradient(180deg, #FFF3D6 0%, #FBE2B0 55%, #F6CF8A 100%);
+  --grad-sky: linear-gradient(180deg, #FBF3E1 0%, #FFE6B8 45%, #FFD08A 80%, #F8B160 100%);
+  --grad-sunburst: linear-gradient(180deg, #FFF3D6 0%, #FFD9A0 50%, #F8B160 100%);
+  --grad-card-modal: linear-gradient(180deg, #FFF3D6 0%, #F6CF8A 100%);
+  --grad-felt: radial-gradient(120% 90% at 50% 40%, #BFE3D0 0%, #9DCDB8 60%, #86BCA6 100%);
   --glass-bg: rgb(255 255 255 / .72);
-  --glass-bg-strong: rgb(255 255 255 / .82);
-  --glass-border: rgb(43 27 77 / .16);
-  --glass-chip: rgb(43 27 77 / .08);
-  --skyline: #3B2470;
-  --title-grad: linear-gradient(180deg, #7A3DFF 0%, #4A1FB8 60%, #2B1B4D 100%);
-  --title-shadow: drop-shadow(0 3px 0 rgb(255 200 61 / .9)) drop-shadow(0 8px 14px rgb(43 27 77 / .25));
-  --cash-color: #7A4A00;
-  --meter-track: rgb(43 27 77 / .16);
+  --glass-bg-strong: rgb(255 255 255 / .86);
+  --glass-border: rgb(15 30 70 / .16);
+  --glass-chip: rgb(15 30 70 / .08);
+  --skyline: #2A3C74;
+  --skyline-window: #FFD479;
+  --glow-fox: radial-gradient(closest-side, rgb(242 181 58 / .38), rgb(242 181 58 / 0));
+  --title-grad: linear-gradient(180deg, #2A4AA0 0%, #0F1E46 100%);
+  --title-shadow: drop-shadow(0 3px 0 #F2B53A) drop-shadow(0 8px 14px rgb(15 30 70 / .25));
+  --cash-color: #7A4A00;              /* 6.4:1 on bg */
+  --meter-track: rgb(15 30 70 / .14);
 
   --income: var(--c-mint-700);
   --expense: var(--c-coral-700);
-  --asset: #8A5200;
-  --liability: #5A4A7A;
+  --asset: #8A5200;                   /* 5.8:1 on bg */
+  --liability: #55508A;
+  --passive: #0A7560;
+  --passive-fill: linear-gradient(270deg, #087F66, #C98A12);
   --passive-track: var(--meter-track);
 
   --btn-secondary-bg: #FFFFFF;
-  --btn-secondary-text: #2B1B4D;
-  --btn-secondary-border: rgb(43 27 77 / .35);
+  --btn-secondary-text: #0F1E46;
+  --btn-secondary-border: rgb(15 30 70 / .35);
   --btn-disabled-bg: #E6DCC6;
-  --btn-disabled-text: #5F5440;
-  --shadow-1: 0 2px 0 rgb(43 27 77 / .14), 0 4px 10px rgb(43 27 77 / .10);
-  --shadow-2: 0 4px 0 rgb(43 27 77 / .16), 0 10px 24px rgb(43 27 77 / .18);
-  --shadow-3: 0 0 0 4px var(--card-ring), 0 24px 50px rgb(43 27 77 / .45);
+  --btn-disabled-text: #4F4A3C;
+  --shadow-1: 0 2px 0 rgb(15 30 70 / .14), 0 4px 10px rgb(15 30 70 / .10);
+  --shadow-2: 0 4px 0 rgb(15 30 70 / .16), 0 10px 24px rgb(15 30 70 / .18);
+  --shadow-3: 0 0 0 4px var(--card-ring), 0 24px 50px rgb(15 30 70 / .45);
 }
 
 /* ---- Reduced motion: fades only (also forced via Settings: data-motion="reduced") ---- */
@@ -221,12 +256,14 @@
   :root {
     --dur-press: 1ms; --dur-fast: 1ms; --dur-base: 120ms; --dur-slow: 120ms;
     --dur-die: 120ms; --dur-countup: 1ms; --dur-confetti: 1ms;
+    --dur-bob: 1ms; --dur-pop: 120ms; --bob-height: 0px;
     --press-scale: 1; --hop-height: 0px;
   }
 }
 :root[data-motion="reduced"] {
   --dur-press: 1ms; --dur-fast: 1ms; --dur-base: 120ms; --dur-slow: 120ms;
   --dur-die: 120ms; --dur-countup: 1ms; --dur-confetti: 1ms;
+  --dur-bob: 1ms; --dur-pop: 120ms; --bob-height: 0px;
   --press-scale: 1; --hop-height: 0px;
 }
 
