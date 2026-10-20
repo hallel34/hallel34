@@ -1,7 +1,5 @@
 // Bots used by the balance simulation (and handy for QA / demo mode).
-import {
-  maxLoan, monthlyCashFlow, totalExpenses, passiveIncome,
-} from './selectors.js';
+import { maxLoan, monthlyCashFlow, totalExpenses } from './selectors.js';
 import { LOAN_STEP, LOAN_PAYMENT_RATE } from './config.js';
 
 // reserveMonths: cash buffer (in months of expenses) kept after a purchase.
@@ -55,7 +53,7 @@ export function step(engine, s, bot) {
     let n = s;
     if (s.cash - c.downPayment < reserve) {
       if (!cfg.borrow) return engine.pass(s);
-      const need = c.downPayment + reserve * 0 - s.cash;
+      const need = c.downPayment - s.cash;
       if (need > 0) {
         const loanNeeded = Math.ceil(need / LOAN_STEP) * LOAN_STEP;
         // only borrow if the deal still improves cash flow after the loan payment
@@ -87,6 +85,3 @@ export function playGame(engine, state, bot, maxTurns = 200) {
   }
   return s;
 }
-
-export function chooseAction() { /* reserved for UI "auto" hints */ }
-export { passiveIncome };

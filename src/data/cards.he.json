@@ -12,7 +12,7 @@
     "price": 450000,
     "downPayment": 20000,
     "mortgage": 430000,
-    "monthlyCashFlow": 2000
+    "monthlyCashFlow": 2300
   },
   {
     "id": "opp-apt-002",
@@ -27,7 +27,7 @@
     "price": 950000,
     "downPayment": 40500,
     "mortgage": 909500,
-    "monthlyCashFlow": 4000
+    "monthlyCashFlow": 4600
   },
   {
     "id": "opp-apt-003",
@@ -42,7 +42,7 @@
     "price": 700000,
     "downPayment": 29500,
     "mortgage": 670500,
-    "monthlyCashFlow": 3000
+    "monthlyCashFlow": 3450
   },
   {
     "id": "opp-apt-004",
@@ -57,7 +57,7 @@
     "price": 350000,
     "downPayment": 13500,
     "mortgage": 336500,
-    "monthlyCashFlow": 1600
+    "monthlyCashFlow": 1850
   },
   {
     "id": "opp-apt-005",
@@ -72,7 +72,7 @@
     "price": 1050000,
     "downPayment": 45000,
     "mortgage": 1005000,
-    "monthlyCashFlow": 4600
+    "monthlyCashFlow": 5300
   },
   {
     "id": "opp-apt-006",
@@ -86,7 +86,7 @@
     "price": 1300000,
     "downPayment": 54000,
     "mortgage": 1246000,
-    "monthlyCashFlow": 5600
+    "monthlyCashFlow": 6450
   },
   {
     "id": "opp-apt-007",
@@ -100,7 +100,7 @@
     "price": 2100000,
     "downPayment": 90000,
     "mortgage": 2010000,
-    "monthlyCashFlow": 10000
+    "monthlyCashFlow": 11500
   },
   {
     "id": "opp-biz-001",
@@ -115,7 +115,7 @@
     "price": 60000,
     "downPayment": 27000,
     "mortgage": 33000,
-    "monthlyCashFlow": 3600
+    "monthlyCashFlow": 4150
   },
   {
     "id": "opp-biz-002",
@@ -130,7 +130,7 @@
     "price": 30000,
     "downPayment": 13500,
     "mortgage": 16500,
-    "monthlyCashFlow": 1800
+    "monthlyCashFlow": 2050
   },
   {
     "id": "opp-biz-003",
@@ -145,7 +145,7 @@
     "price": 40000,
     "downPayment": 18000,
     "mortgage": 22000,
-    "monthlyCashFlow": 2400
+    "monthlyCashFlow": 2750
   },
   {
     "id": "opp-biz-004",
@@ -160,7 +160,7 @@
     "price": 24000,
     "downPayment": 11000,
     "mortgage": 13000,
-    "monthlyCashFlow": 1400
+    "monthlyCashFlow": 1600
   },
   {
     "id": "opp-biz-005",
@@ -175,7 +175,7 @@
     "price": 80000,
     "downPayment": 36000,
     "mortgage": 44000,
-    "monthlyCashFlow": 4600
+    "monthlyCashFlow": 5300
   },
   {
     "id": "opp-biz-006",
@@ -190,7 +190,7 @@
     "price": 12000,
     "downPayment": 5500,
     "mortgage": 6500,
-    "monthlyCashFlow": 700
+    "monthlyCashFlow": 800
   },
   {
     "id": "opp-biz-007",
@@ -205,7 +205,7 @@
     "price": 70000,
     "downPayment": 31500,
     "mortgage": 38500,
-    "monthlyCashFlow": 4000
+    "monthlyCashFlow": 4600
   },
   {
     "id": "opp-biz-008",
@@ -219,7 +219,7 @@
     "price": 120000,
     "downPayment": 54000,
     "mortgage": 66000,
-    "monthlyCashFlow": 7000
+    "monthlyCashFlow": 8050
   },
   {
     "id": "opp-apt-008",
@@ -234,7 +234,7 @@
     "price": 800000,
     "downPayment": 36000,
     "mortgage": 764000,
-    "monthlyCashFlow": 300
+    "monthlyCashFlow": 350
   },
   {
     "id": "opp-apt-009",
@@ -249,7 +249,7 @@
     "price": 500000,
     "downPayment": 27000,
     "mortgage": 473000,
-    "monthlyCashFlow": -2200
+    "monthlyCashFlow": -2550
   },
   {
     "id": "opp-biz-009",
@@ -264,7 +264,7 @@
     "price": 90000,
     "downPayment": 40500,
     "mortgage": 49500,
-    "monthlyCashFlow": 600
+    "monthlyCashFlow": 700
   },
   {
     "id": "opp-biz-010",
@@ -279,7 +279,7 @@
     "price": 50000,
     "downPayment": 22500,
     "mortgage": 27500,
-    "monthlyCashFlow": -2800
+    "monthlyCashFlow": -3200
   },
   {
     "id": "opp-apt-010",
@@ -294,7 +294,7 @@
     "price": 600000,
     "downPayment": 31500,
     "mortgage": 568500,
-    "monthlyCashFlow": -2000
+    "monthlyCashFlow": -2300
   },
   {
     "id": "opp-biz-011",
@@ -309,7 +309,7 @@
     "price": 100000,
     "downPayment": 45000,
     "mortgage": 55000,
-    "monthlyCashFlow": -3200
+    "monthlyCashFlow": -3700
   },
   {
     "id": "opp-stk-001",
