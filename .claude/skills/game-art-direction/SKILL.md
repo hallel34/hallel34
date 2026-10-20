@@ -10,13 +10,18 @@ depth, characterful illustration, and motion that rewards every tap.
 Avoid: flat Bootstrap look, default blue buttons, emoji as icons,
 generic gradients, text-heavy screens.
 
-## Direction exploration
-Propose two contrasting directions, e.g.:
-- **"Tel Aviv Pop"** — bold warm palette, chunky rounded shapes,
-  playful isometric city board, sticker-style cards.
-- **"Golden Hour Finance"** — deep navy + warm gold, soft 3D coins,
-  elegant cards, calmer and more premium.
-Each: 5–7 core colors with roles, type pairing, icon style, board look.
+## Direction (decided)
+The mascot art in `/design/character/` sets the direction: **deep navy
++ warm gold + fox orange**, soft glow, painterly-but-clean
+illustration, premium and warm. Build everything around it:
+- Board, cards, buttons and coins share the navy/gold language and the
+  gold ring/glow motif from the mascot art.
+- Explore 2 variations of the *board and cards* within this direction
+  (e.g. night-city board vs. tabletop-felt board), not new directions.
+- The fox appears on: start screen, profession pick (beside each card),
+  card reactions, tips (family mode), payday, win, game over (supportive,
+  not mocking). Small reaction pop-ups, never covering numbers.
+Define 5–7 core colors with roles, type pairing, icon style, board look.
 
 ## Palette rules
 - Semantic tokens: `--income` (green family), `--expense` (red/coral),

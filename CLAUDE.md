@@ -65,6 +65,27 @@ as a log (date, decision, why).
   player's start phase "השגרה" / "the daily grind" and the goal
   "חופש כלכלי" / "financial freedom".
 
+## Character — פסיבו השועל
+Reference art in `/design/character/` (hero, 4 expressions, icon sizes).
+This is the approved look; the designer extends it, never redesigns it.
+- Look: orange fox, cream muzzle/chest, black sunglasses with gold
+  frame + star glint, navy jacket with gold piping and high collar.
+- Personality: confident, smart and warm — a savvy friend, never a
+  con artist. Smile, not smirk, in family mode and tips.
+- Expressions (have): thinking with coin, celebrating with coin rain,
+  worried with red card (eyes peek over glasses), pondering.
+  Needed next: rolling dice, tired "daily grind" start (coffee, glasses
+  pushed up), relaxed win pose, waving hello, tip-giver pointing.
+- Brand palette derived from the art: navy `#0F1E46`-ish background,
+  gold `#F2B53A`-ish accents, fox orange `#E8702A`-ish. Designer
+  finalizes exact tokens and checks AA contrast.
+- Assets are raster (illustrations): deliver as WebP with transparent
+  background, @1x/@2x, plus the 512px app icon and adaptive icon
+  foreground. UI icons stay SVG.
+- All new poses must match the reference: same proportions, glasses,
+  jacket, line weight, lighting. Keep the source tool's prompt/seed
+  notes in `/design/character/README.md`.
+
 ## Product
 Single-player financial board game. The player starts stuck in the
 daily grind with a salary and expenses, buys assets that create passive
