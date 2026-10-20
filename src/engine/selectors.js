@@ -1,6 +1,6 @@
 // Derived values. Never stored in state.
 import {
-  LOAN_STEP, LOAN_PAYMENT_RATE, LOAN_LIMIT_SALARY_PCT, SELL_FACTOR,
+  LOAN_STEP, LOAN_PAYMENT_RATE, LOAN_LIMIT_SALARY_PCT, SELL_FACTOR, PAYDAY_MONTHS, PAYBACK_OK_YEARS, PAYBACK_SLOW_YEARS,
 } from './config.js';
 
 const sum = (arr, f) => arr.reduce((a, x) => a + f(x), 0);
@@ -35,6 +35,28 @@ export function maxLoan(s) {
   const room = monthlyCashFlow(s) - floor; // payment budget
   const steps = Math.floor(room / (LOAN_STEP * LOAN_PAYMENT_RATE));
   return Math.max(0, steps * LOAN_STEP);
+}
+
+/**
+ * What taking a loan of `amount` does to the next payday (which settles PAYDAY_MONTHS of cash flow).
+ * `spend` is what the loan is taken to pay right away (a card's price, an expense).
+ * `risky` is true when the cash after that payday would be negative (an unaffordable settlement).
+ */
+export function loanPaydayImpact(s, amount, spend = 0) {
+  const flow = monthlyCashFlow(s) - amount * LOAN_PAYMENT_RATE;
+  const payday = flow * PAYDAY_MONTHS;
+  const cashAfter = s.cash + amount - spend + payday; // `spend`: cash the loan is about to pay for
+  return { flow, payday, cashAfter, risky: cashAfter < 0 };
+}
+
+/** Payback of a down payment in years of cash flow; Infinity when the deal does not pay. */
+export function paybackYears(downPayment, monthlyCashFlow) {
+  return monthlyCashFlow > 0 ? downPayment / (monthlyCashFlow * 12) : Infinity;
+}
+
+/** 'ok' (<= 8 years), 'slow' (<= 14), 'bad' (longer or never). */
+export function paybackTier(years) {
+  return years <= PAYBACK_OK_YEARS ? 'ok' : years <= PAYBACK_SLOW_YEARS ? 'slow' : 'bad';
 }
 
 export const stockPrice = (s, symbol, fallback) =>

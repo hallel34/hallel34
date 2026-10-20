@@ -154,3 +154,14 @@ describe('full games with real data', () => {
     expect(Object.keys(BOTS)).toContain('alwaysPass');
   });
 });
+
+describe('card text matches mechanics', () => {
+  it('no card promises a balloon payment (the engine has none)', () => {
+    for (const c of data.cards) expect(c.text).not.toMatch(/בלון/);
+  });
+  it('opp-apt-007 text agrees with its positive cash flow', () => {
+    const c = data.cards.find((x) => x.id === 'opp-apt-007');
+    expect(c.monthlyCashFlow).toBeGreaterThan(0);
+    expect(c.text).not.toMatch(/כמעט משלמת/);
+  });
+});

@@ -1,6 +1,6 @@
 ---
 name: marketing
-description: Marketing lead for יוצאים מהמרוץ. Use for positioning, target audiences, Google Play / App Store listing copy and ASO keywords, screenshot plan, and a low-budget launch plan for Israel then English markets.
+description: Marketing lead for פסיבו (Passivo). Use for positioning, target audiences, Google Play / App Store listing copy and ASO keywords, screenshot plan, and a low-budget launch plan for Israel then English markets.
 tools: Read, Write, Edit, Glob, Grep, WebSearch, WebFetch
 skills: store-listing-aso
 model: inherit

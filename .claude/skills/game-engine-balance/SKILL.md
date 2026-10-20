@@ -1,6 +1,6 @@
 ---
 name: game-engine-balance
-description: Game engine architecture, rules model, card data schema and balance simulation for יוצאים מהמרוץ. Use when building engine code, writing cards, testing rules, or checking that games last 15–25 turns.
+description: Game engine architecture, rules model, card data schema and balance simulation for פסיבו (Passivo). Use when building engine code, writing cards, testing rules, or checking that games last 15–25 turns.
 ---
 # Engine & balance
 

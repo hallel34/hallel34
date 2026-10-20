@@ -39,7 +39,7 @@ export function createPlay({ engine, state: initial, nav, store, professionIds =
   avatar.style.background = avatarColor(state.profession.id, professionIds);
   const turnEl = h('span', { class: 'hud-sub', 'aria-live': 'polite' });
   const babies = h('span', { class: 'hud-babies', role: 'img', 'aria-label': t('game.kids', { n: 0 }) });
-  const charityChip = h('span', { class: 'chip chip-charity', hidden: true });
+  const charityChip = h('span', { class: 'chip chip-charity', 'data-active': 'false' });
   const cash = cashDisplay(state.cash);
   const flowChip = h('span', { class: 'flow-chip' });
   const passiveVal = h('b', { class: 'tone-income' });
@@ -51,12 +51,12 @@ export function createPlay({ engine, state: initial, nav, store, professionIds =
     h('div', { class: 'hud-top' },
       avatar,
       h('div', { class: 'hud-id' }, h('span', { class: 'hud-prof' }, state.profession.title), turnEl),
-      h('div', { class: 'hud-badges' }, babies, charityChip),
+      h('div', { class: 'hud-badges' }, babies),
       settingsBtn),
     h('div', { class: 'hud-cash' },
       h('img', { class: 'hud-coin', src: coinUrl, alt: '', width: 34, height: 34 }),
-      h('span', { class: 'cash-wrap', 'aria-label': t('game.cash') }, cash.el),
-      flowChip),
+      h('span', { class: 'cash-wrap', 'aria-label': t('game.cash') }, cash.el)),
+    h('div', { class: 'hud-chips' }, flowChip, charityChip),
     h('div', { class: 'hud-meter' },
       h('div', { class: 'meter-labels' },
         h('span', null, t('game.passive'), ' ', passiveVal),
@@ -116,8 +116,10 @@ export function createPlay({ engine, state: initial, nav, store, professionIds =
     babies.replaceChildren(...Array.from({ length: state.kids }, () => icon('baby', { size: 20, width: 2.2 })));
     babies.setAttribute('aria-label', t('game.kids', { n: state.kids }));
     babies.hidden = state.kids === 0;
-    charityChip.hidden = state.charityTurns <= 0;
-    charityChip.replaceChildren(icon('charity', { size: 16, width: 2.6 }), ` ${t('game.charityBoost', { turns: state.charityTurns })}`);
+    // The chip keeps its slot (visibility, not display) so the HUD never changes height.
+    charityChip.dataset.active = String(state.charityTurns > 0);
+    charityChip.setAttribute('aria-hidden', String(state.charityTurns <= 0));
+    if (state.charityTurns > 0) charityChip.replaceChildren(icon('charity', { size: 16, width: 2.6 }), ` ${t('game.charityBoost', { turns: state.charityTurns })}`);
     el.dataset.turn = String(state.turn);
     el.dataset.cash = String(state.cash);
     el.dataset.phase = state.phase;
@@ -193,7 +195,8 @@ export function createPlay({ engine, state: initial, nav, store, professionIds =
   async function paydayFx(amount, months) {
     haptic('land'); sound('payday');
     pushLog(t('game.logPayday', { amount: moneyText(amount, { sign: true }), months: t('game.paydayMonths', { months }) }), amount >= 0 ? 'good' : 'bad');
-    floatText(cash.el, money(amount, { sign: true }), amount >= 0 ? 'income' : 'expense');
+    setStatus(t('game.statusPayday', { months, amount: moneyText(amount, { sign: true }) }));
+    floatText(cash.el, h('div', { class: 'float-stack' }, money(amount, { sign: true }), h('span', { class: 'float-sub' }, t('game.paydayFloatLabel', { months }))), amount >= 0 ? 'income' : 'expense');
     pulse(el.querySelector('.hud-cash'), 1.04);
     await cash.to(cash.value + amount, 450);
   }

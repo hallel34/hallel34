@@ -1,6 +1,6 @@
 ---
 name: qa-tester
-description: Independent QA tester for יוצאים מהמרוץ. Use after every build to verify functionality, mobile layout at 360x800, RTL, accessibility, performance, game balance and content originality. Produces the quality gate report.
+description: Independent QA tester for פסיבו (Passivo). Use after every build to verify functionality, mobile layout at 360x800, RTL, accessibility, performance, game balance and content originality. Produces the quality gate report.
 tools: Read, Write, Edit, Glob, Grep, Bash
 skills: mobile-qa, hebrew-rtl-mobile, game-engine-balance
 model: inherit

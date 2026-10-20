@@ -14,6 +14,12 @@ const rays = () => html(`<svg class="rays" aria-hidden="true" focusable="false" 
 
 const statBox = (value, label) => h('div', { class: 'win-stat' }, h('span', { class: 'win-stat-num' }, numberText(value)), h('span', { class: 'win-stat-label' }, label));
 
+/** Tile grid sized to its count (2 or 4 tiles -> 2 columns, otherwise one row) so no tile is orphaned. */
+function winStats(tiles) {
+  const list = tiles.filter(Boolean);
+  return h('div', { class: 'win-stats', 'data-count': String(list.length) }, list);
+}
+
 export function createWin({ state, onAgain }) {
   const st = statement(state);
   const m = meter({ large: true });
@@ -38,9 +44,10 @@ export function createWin({ state, onAgain }) {
         h('div', null, h('span', { class: 'stat-label' }, t('win.passive')), h('div', { class: 'win-big tone-income' }, money(st.passiveIncome))),
         h('div', { class: 'align-end' }, h('span', { class: 'stat-label' }, t('win.expenses')), h('div', { class: 'win-mid tone-expense' }, money(st.totalExpenses)))),
       m.el,
-      h('div', { class: 'win-stats' },
+      winStats([
         statBox(state.turn, t('win.turns')), statBox(state.assets.length, t('win.assets')), statBox(state.kids, t('win.kids')),
-        state.stats.donations ? statBox(state.stats.donations, t('win.donations')) : null)),
+        state.stats.donations ? statBox(state.stats.donations, t('win.donations')) : null,
+      ])),
     h('div', { class: 'end-actions' },
       button(t('win.again'), { variant: 'primary', size: 'lg', 'data-action': 'again', 'data-autofocus': '', onClick: onAgain }),
       button(t('win.share'), { variant: 'secondary', 'data-action': 'share', onClick: share })));
@@ -62,8 +69,9 @@ export function createOver({ state, onRetry, onMenu }) {
       h('h1', { class: 'title title-over' }, t('gameOver.title')),
       h('p', { class: 'tagline' }, t('gameOver.text'))),
     h('div', { class: 'glass glass-strong end-card' },
-      h('div', { class: 'win-stats' },
-        statBox(state.turn, t('stats.turns')), statBox(state.stats.paydays, t('stats.paydays')), statBox(state.stats.dealsBought, t('stats.dealsBought'))),
+      winStats([
+        statBox(state.turn, t('stats.turns')), statBox(state.stats.paydays, t('stats.paydays')), statBox(state.stats.dealsBought, t('stats.dealsBought')),
+      ]),
       h('div', { class: 'win-compare' },
         h('div', null, h('span', { class: 'stat-label' }, t('stats.peakPassive')), h('div', { class: 'win-mid tone-income' }, money(state.stats.peakPassive))),
         h('div', { class: 'align-end' }, h('span', { class: 'stat-label' }, t('statement.monthlyCashFlow')), h('div', { class: 'win-mid tone-expense' }, money(st.monthlyCashFlow, { sign: true })))),

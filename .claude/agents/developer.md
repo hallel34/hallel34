@@ -1,6 +1,6 @@
 ---
 name: developer
-description: Lead developer for יוצאים מהמרוץ. Use for all code — game engine, UI implementation from design specs, data files, PWA, tests, build and GitHub Actions (including PR preview deploys).
+description: Lead developer for פסיבו (Passivo). Use for all code — game engine, UI implementation from design specs, data files, PWA, tests, build and GitHub Actions (including PR preview deploys).
 tools: Read, Write, Edit, Glob, Grep, Bash
 skills: game-engine-balance, hebrew-rtl-mobile, pr-preview-pages
 model: inherit

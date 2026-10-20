@@ -1,6 +1,6 @@
 ---
 name: sales
-description: Sales and monetization lead for יוצאים מהמרוץ. Use for the revenue model design (ads, in-app purchases, premium), pricing per market, and B2B channels such as schools, youth programs and financial-education organizations.
+description: Sales and monetization lead for פסיבו (Passivo). Use for the revenue model design (ads, in-app purchases, premium), pricing per market, and B2B channels such as schools, youth programs and financial-education organizations.
 tools: Read, Write, Edit, Glob, Grep, WebSearch, WebFetch
 skills: monetization-playbook
 model: inherit

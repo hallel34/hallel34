@@ -1,6 +1,6 @@
 ---
 name: pr-preview-pages
-description: Set up GitHub Actions so every pull request deploys a live preview to GitHub Pages and main deploys production. Use when configuring CI/CD or Vite base paths for יוצאים מהמרוץ.
+description: Set up GitHub Actions so every pull request deploys a live preview to GitHub Pages and main deploys production. Use when configuring CI/CD or Vite base paths for פסיבו (Passivo).
 ---
 # PR previews on GitHub Pages
 

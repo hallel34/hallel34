@@ -1,6 +1,6 @@
 ---
 name: mobile-qa
-description: QA procedure for a mobile-first web game — Playwright E2E at 360x800, overflow and touch-target checks, Lighthouse, accessibility and bug reporting format. Use for every QA round of יוצאים מהמרוץ.
+description: QA procedure for a mobile-first web game — Playwright E2E at 360x800, overflow and touch-target checks, Lighthouse, accessibility and bug reporting format. Use for every QA round of פסיבו (Passivo).
 ---
 # Mobile QA
 

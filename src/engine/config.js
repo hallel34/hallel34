@@ -22,3 +22,7 @@ export const MAX_STOCK_QTY = 10000;
 // A payday square settles this many months of cash flow (one board lap is
 // ~a year of life, compressed). The single biggest pacing knob.
 export const PAYDAY_MONTHS = 24;
+
+// Payback badge thresholds (years of cash flow to earn back the down payment).
+export const PAYBACK_OK_YEARS = 8;
+export const PAYBACK_SLOW_YEARS = 14;

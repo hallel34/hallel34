@@ -1,6 +1,6 @@
 ---
 name: finance
-description: Finance lead for יוצאים מהמרוץ. Use for the business model spreadsheet — costs, revenue projections from ads and IAP, break-even, scenarios — and to sanity-check that the in-game ₪ numbers are realistic for Israel.
+description: Finance lead for פסיבו (Passivo). Use for the business model spreadsheet — costs, revenue projections from ads and IAP, break-even, scenarios — and to sanity-check that the in-game ₪ numbers are realistic for Israel.
 tools: Read, Write, Edit, Glob, Grep, Bash, WebSearch
 skills: unit-economics, game-engine-balance
 model: inherit

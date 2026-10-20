@@ -1,6 +1,6 @@
 ---
 name: designer
-description: Art director and UI/UX designer for יוצאים מהמרוץ. Use for art direction, design system, screen specs, original SVG illustrations, motion and visual polish reviews. Must run before UI code is written.
+description: Art director and UI/UX designer for פסיבו (Passivo). Use for art direction, design system, screen specs, original SVG illustrations, motion and visual polish reviews. Must run before UI code is written.
 tools: Read, Write, Edit, Glob, Grep, Bash
 skills: game-art-direction, hebrew-rtl-mobile
 model: inherit

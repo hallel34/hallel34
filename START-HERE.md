@@ -1,4 +1,4 @@
-# ערכת פתיחה — יוצאים מהמרוץ
+# ערכת פתיחה — פסיבו (Passivo)
 
 ## מה יש כאן
 - `CLAUDE.md` — המנכ"ל: הבריף המלא, סדר העבודה ורף העיצוב. Claude Code
@@ -17,7 +17,7 @@
 | finance | unit-economics, game-engine-balance |
 
 ## איך מתחילים
-1. צור repo ריק ב-GitHub (למשל `yotzim-mehamerotz`).
+1. צור repo ריק ב-GitHub (למשל `passivo`).
 2. העתק את כל התוכן של התיקייה הזו לשורש ה-repo (כולל `.claude` המוסתרת).
 3. ב-`CLAUDE.md` החלף את `<OWNER/REPO>` בשם ה-repo.
 4. פתח Claude Code בתיקייה והדבק:

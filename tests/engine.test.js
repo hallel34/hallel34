@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   createEngine, EngineError, BOARD, serialize, deserialize, SCHEMA_VERSION,
-  PAYDAY_MONTHS, monthlyCashFlow, passiveIncome, totalExpenses, totalIncome, maxLoan, statement,
+  PAYDAY_MONTHS, loanPaydayImpact, paybackYears, paybackTier, monthlyCashFlow, passiveIncome, totalExpenses, totalIncome, maxLoan, statement,
 } from '../src/engine/index.js';
 
 const profession = {
@@ -332,6 +332,22 @@ describe('bank loans', () => {
     expect(maxLoan(s)).toBe(0);
     expect(() => e.takeLoan(s, 1000)).toThrow(/limit/);
   });
+  it('reports the payday impact of a loan and flags an unaffordable settlement', () => {
+    const small = loanPaydayImpact(s0, 3000);
+    expect(small.flow).toBe(4700);
+    expect(small.payday).toBe(4700 * PAYDAY_MONTHS);
+    expect(small.risky).toBe(false);
+    const max = loanPaydayImpact(s0, maxLoan(s0));
+    expect(max.flow).toBe(-2000);
+    expect(max.payday).toBe(-2000 * PAYDAY_MONTHS);
+    expect(max.cashAfter).toBe(s0.cash + 70000 - 2000 * PAYDAY_MONTHS);
+    expect(loanPaydayImpact(withState(s0, { cash: 0 }), 1000).risky).toBe(false);
+    expect(loanPaydayImpact(withState(s0, { cash: 0 }), 70000).risky).toBe(false); // the money is still in hand
+    // the loan pays for a purchase: cash after = cash + loan - spend, then the (negative) payday lands
+    const bought = loanPaydayImpact(withState(s0, { cash: 0 }), 70000, 70000);
+    expect(bought.cashAfter).toBe(-2000 * PAYDAY_MONTHS);
+    expect(bought.risky).toBe(true);
+  });
   it('can be repaid in full mode and the payment shrinks', () => {
     let s = e.takeLoan(s0, 4000);
     const id = s.liabilities.find((l) => l.kind === 'loan').id;
@@ -431,5 +447,18 @@ describe('save / load', () => {
     expect(deserialize('not json')).toBeNull();
     expect(deserialize('{}')).toBeNull();
     expect(deserialize(JSON.stringify({ schemaVersion: SCHEMA_VERSION + 1 }))).toBeNull();
+  });
+});
+
+describe('payback helpers', () => {
+  it('computes years and tiers', () => {
+    expect(paybackYears(12000, 1000)).toBe(1);
+    expect(paybackYears(12000, 0)).toBe(Infinity);
+    expect(paybackYears(12000, -5)).toBe(Infinity);
+    expect(paybackTier(8)).toBe('ok');
+    expect(paybackTier(8.1)).toBe('slow');
+    expect(paybackTier(14)).toBe('slow');
+    expect(paybackTier(14.1)).toBe('bad');
+    expect(paybackTier(Infinity)).toBe('bad');
   });
 });

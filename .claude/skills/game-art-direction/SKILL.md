@@ -1,6 +1,6 @@
 ---
 name: game-art-direction
-description: Art direction and "game feel" for a premium casual mobile board game — palette, typography, illustration, motion and juice. Use when designing or reviewing any screen of יוצאים מהמרוץ.
+description: Art direction and "game feel" for a premium casual mobile board game — palette, typography, illustration, motion and juice. Use when designing or reviewing any screen of פסיבו (Passivo).
 ---
 # Game art direction
 

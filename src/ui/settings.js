@@ -5,6 +5,7 @@ import { openLayer, closeButton } from './modal.js';
 import { getPrefs, setPref } from './prefs.js';
 import { button } from './widgets.js';
 import { haptic, sound } from './fx.js';
+import { PAYDAY_MONTHS } from '../engine/index.js';
 
 function toggleRow(label, key) {
   const input = h('input', { type: 'checkbox', role: 'switch', class: 'switch-input', id: `pref-${key}` });
@@ -53,7 +54,7 @@ export function openHowTo() {
   let layer;
   const content = h('div', { class: 'dialog' },
     h('div', { class: 'dialog-head' }, h('h2', { class: 'dialog-title' }, t('howto.title')), closeButton(() => layer.close())),
-    h('ol', { class: 'howto' }, [1, 2, 3, 4].map((n) => h('li', null, t(`howto.step${n}`)))),
+    h('ol', { class: 'howto' }, [1, 2, 3, 4].map((n) => h('li', null, t(`howto.step${n}`, { months: PAYDAY_MONTHS })))),
     h('div', { class: 'dialog-actions' }, button(t('card.ok'), { variant: 'primary', 'data-autofocus': '', onClick: () => layer.close() })));
   layer = openLayer(content, { kind: 'modal', label: t('howto.title'), cls: 'layer-dialog' });
   return layer.closed;

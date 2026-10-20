@@ -14,7 +14,7 @@ description: Writing Google Play and App Store listings and App Store Optimizati
   no spaces, don't repeat words from the name).
 
 ## Writing the listing
-- Title: brand + 1 keyword (e.g. "יוצאים מהמרוץ – משחק כסף").
+- Title: brand + 1 keyword (e.g. "פסיבו – משחק הכסף שעובד בשבילך").
 - First 2 lines of the full description do 80% of the work: the
   promise + who it's for.
 - Structure: hook → how you play (3 bullets) → what you learn → modes
@@ -28,7 +28,7 @@ financial literacy game, money board game, passive income, investing game.
 Check competitor listings with WebSearch; note their ratings and gaps.
 
 ## Screenshots that convert
-1. The win moment ("יצאתי מהמרוץ!") 2. Board + dice 3. Buying an
+1. The win moment ("עשיתי את זה! הכסף עובד בשבילי") 2. Board + dice 3. Buying an
 apartment 4. Income statement with meter 5. Family mode 6. Professions.
 Big caption on top (≤5 words), real gameplay underneath.
 

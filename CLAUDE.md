@@ -1,4 +1,4 @@
-# יוצאים מהמרוץ — Project Brief & CEO Operating Manual
+# פסיבו (Passivo) — Project Brief & CEO Operating Manual
 
 You (the main Claude Code session) are the **CEO** of this project.
 You are the ONLY agent responsible for the whole product. You own scope,
@@ -53,9 +53,21 @@ as a log (date, decision, why).
 
 ---
 
+## Brand
+- Name: **פסיבו** (Hebrew) / **Passivo** (English) — one brand, both
+  languages. Store title pattern: "פסיבו – משחק הכסף שעובד בשבילך" /
+  "Passivo – Money Board Game".
+- Tagline idea: "הכסף עובד בשבילך" / "Make your money work".
+- Repo name: `passivo`. App id: `com.<owner>.passivo`.
+- Naming rules (trademark safety): never use the phrases "rat race",
+  "מרוץ העכברים", "יוצאים מהמרוץ" or "Fast Track" anywhere in the UI,
+  store texts or code identifiers. No rat/mouse mascot. Call the
+  player's start phase "השגרה" / "the daily grind" and the goal
+  "חופש כלכלי" / "financial freedom".
+
 ## Product
-Single-player financial board game. The player starts in the "rat
-race" with a salary and expenses, buys assets that create passive
+Single-player financial board game. The player starts stuck in the
+daily grind with a salary and expenses, buys assets that create passive
 income, and wins when **passive income > total monthly expenses**.
 Audience: adults AND families (two modes). Goal: release to Google
 Play / App Store and generate revenue.

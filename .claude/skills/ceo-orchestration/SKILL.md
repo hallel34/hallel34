@@ -1,6 +1,6 @@
 ---
 name: ceo-orchestration
-description: How the CEO session runs the יוצאים מהמרוץ team — delegating to subagents, review gates, decision log and shipping the PR. Use at the start of every session and before delegating.
+description: How the CEO session runs the פסיבו (Passivo) team — delegating to subagents, review gates, decision log and shipping the PR. Use at the start of every session and before delegating.
 ---
 # CEO orchestration
 

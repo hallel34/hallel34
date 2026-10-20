@@ -4,11 +4,12 @@ import { h } from './dom.js';
 import { t } from '../i18n/index.js';
 import { openLayer, closeButton } from './modal.js';
 import { icon, cardArt } from './icons.js';
-import { money, moneyText, tn } from './format.js';
+import { money, moneyText, tn, numberText } from './format.js';
 import { button, stepper, statTile } from './widgets.js';
 import { haptic, countUp } from './fx.js';
 import {
-  monthlyCashFlow, passiveIncome, maxLoan, saleValue, canSell,
+  monthlyCashFlow, passiveIncome, maxLoan, saleValue, canSell, loanPaydayImpact,
+  paybackYears, paybackTier, PAYDAY_MONTHS,
 } from '../engine/index.js';
 import { LOAN_STEP, LOAN_PAYMENT_RATE } from '../engine/index.js';
 
@@ -36,6 +37,12 @@ function cardShell({ type, art, chip, title, text, body = [], actions, flip = fa
 
 const limitBanner = () => h('div', { class: 'banner banner-warn', role: 'status' }, icon('bank', { size: 24 }), h('span', null, t('loan.limitHint')));
 const grid = (...tiles) => h('div', { class: 'stat-grid' }, tiles);
+function paybackBadge(years, tier) {
+  const label = Number.isFinite(years)
+    ? t('card.payback', { years: numberText(Math.max(1, Math.round(years))) })
+    : t('card.paybackNever');
+  return h('div', { class: `payback payback-${tier}`, 'data-payback-tier': tier }, icon(tier === 'ok' ? 'check' : 'expense', { size: 20 }), h('span', null, label));
+}
 const banner = (node, tone = 'info') => h('div', { class: `banner banner-${tone}` }, icon('star', { size: 26 }), h('span', null, node));
 
 // ---------- opportunity ----------
@@ -73,10 +80,13 @@ export function opportunityModal(state, { flip = true } = {}) {
   }
 
   const afford = state.cash >= c.downPayment;
+  const years = paybackYears(c.downPayment, c.monthlyCashFlow);
+  const tier = paybackTier(years);
   const body = [
+    paybackBadge(years, tier),
     grid(
       statTile(t('card.downPayment'), money(c.downPayment), { big: true }),
-      statTile(t('card.monthlyCashFlow'), money(c.monthlyCashFlow, { sign: true }), { tone: c.monthlyCashFlow < 0 ? 'expense' : 'income', big: true }),
+      statTile(t('card.monthlyCashFlow'), money(c.monthlyCashFlow, { sign: true }), { tone: c.monthlyCashFlow <= 0 || tier === 'bad' ? 'expense' : (tier === 'slow' ? 'slow' : 'income'), big: true }),
       statTile(t(c.type === 'business' ? 'card.businessLoan' : 'card.mortgage'), money(c.mortgage)),
       statTile(t('card.price'), money(c.price)),
     ),
@@ -234,6 +244,7 @@ export function loanDialog(state, { required = 0 } = {}) {
   const cf = monthlyCashFlow(state);
   const start = max === 0 ? 0 : Math.min(max, Math.max(LOAN_STEP, Math.ceil(required / LOAN_STEP) * LOAN_STEP));
   const voluntary = required <= 0;
+  const spend = voluntary ? 0 : state.cash + required; // what the loan is about to pay for
 
   const amountOut = h('bdi', { class: 'big-amount money', dir: 'ltr' });
   const payOut = h('bdi', { class: 'money', dir: 'ltr' });
@@ -241,6 +252,11 @@ export function loanDialog(state, { required = 0 } = {}) {
   const barFill = h('div', { class: 'limit-fill' });
   const usedLabel = h('span', { class: 'limit-label' });
   const flowRow = h('div', { class: 'kv' }, h('span', null, t('loan.newFlow')), flowOut);
+  const paydayOut = h('bdi', { class: 'money', dir: 'ltr' });
+  const paydayRow = h('div', { class: 'kv' }, h('span', null, tn('loan.paydayNext', { months: PAYDAY_MONTHS, amount: paydayOut })));
+  const warnText = h('span');
+  const warn = h('div', { class: 'banner banner-warn', role: 'status', 'data-risky': 'false', hidden: true }, icon('expense', { size: 24 }), warnText);
+  let takeBtn = null;
   let shown = start;
 
   const update = (from, to) => {
@@ -250,6 +266,17 @@ export function loanDialog(state, { required = 0 } = {}) {
     const nf = cf - pay;
     flowOut.textContent = moneyText(nf, { sign: true });
     flowRow.classList.toggle('is-negative', nf < 0);
+    const imp = loanPaydayImpact(state, to, spend);
+    paydayOut.textContent = moneyText(imp.payday, { sign: true });
+    paydayRow.classList.toggle('is-negative', imp.payday < 0);
+    warn.hidden = !imp.risky;
+    warn.dataset.risky = String(imp.risky);
+    warnText.textContent = imp.risky ? t('loan.paydayWarn', { amount: moneyText(-imp.cashAfter) }) : '';
+    if (takeBtn) {
+      takeBtn.textContent = imp.risky ? t('loan.takeAnyway') : t('loan.take');
+      takeBtn.classList.toggle('btn-danger', imp.risky);
+      takeBtn.classList.toggle('btn-primary', !imp.risky);
+    }
     barFill.style.setProperty('--fill', String(max ? to / max : 0));
     usedLabel.textContent = t('loan.limitUsed', { amount: moneyText(to), max: moneyText(max) });
   };
@@ -268,6 +295,8 @@ export function loanDialog(state, { required = 0 } = {}) {
       st.el,
       h('div', { class: 'kv' }, h('span', null, tn('loan.monthlyPayment', { amount: payOut }))),
       flowRow,
+      paydayRow,
+      warn,
       h('div', { class: 'limit' }, h('div', { class: 'limit-bar', 'aria-hidden': 'true' }, barFill), h('div', { class: 'limit-row' }, h('span', null, t('loan.limit')), usedLabel)),
     ];
   const d = dialogShell({
@@ -280,6 +309,8 @@ export function loanDialog(state, { required = 0 } = {}) {
     ],
     label: t('loan.title'),
   });
+  takeBtn = d.bar.querySelector('[data-action="take"]');
+  if (st) update(start, start);
   return d.promise.then((v) => (typeof v === 'number' ? v : null));
 }
 

@@ -3,11 +3,11 @@ import { h } from './dom.js';
 import { t } from '../i18n/index.js';
 import { openLayer } from './modal.js';
 import { icon } from './icons.js';
-import { money, moneyText } from './format.js';
+import { money, moneyText, tn } from './format.js';
 import { button, meter } from './widgets.js';
 import { animate } from './fx.js';
 import { motionOK } from './prefs.js';
-import { statement, maxLoan } from '../engine/index.js';
+import { statement, maxLoan, PAYDAY_MONTHS } from '../engine/index.js';
 
 export function openStatement({ getState, ops }) {
   let layer;
@@ -37,6 +37,7 @@ export function openStatement({ getState, ops }) {
       h('div', { class: 'meter-labels' },
         h('span', null, t('game.passive'), ' ', h('b', { class: 'tone-income' }, money(st.passiveIncome))),
         h('span', null, t('game.expenses'), ' ', h('b', { class: 'tone-expense' }, money(st.totalExpenses)))),
+      h('p', { class: 'st-goal st-payday' }, tn('statement.paydayLine', { months: PAYDAY_MONTHS, amount: money(st.monthlyCashFlow * PAYDAY_MONTHS, { sign: true }) })),
       h('p', { class: 'st-goal' }, t('statement.goalLine'))));
 
     body.append(section(t('statement.income'), 'income',
