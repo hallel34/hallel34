@@ -1,4 +1,6 @@
 """Builds REPORT.md and sources.md in plain language (Hebrew or English)."""
+from urllib.parse import urlparse
+
 from . import common as C
 
 VERDICT_HE = {"GO": "GO (כדאי להתקדם)", "CONDITIONAL GO": "CONDITIONAL GO (להתקדם בתנאים)", "NO-GO": "NO-GO (לא להתקדם כרגע)"}
@@ -17,6 +19,7 @@ def build(res):
     w = L.append
     ctx = res["ctx"]
     live = sum(1 for s in C.SOURCES.values() if s["kind"] == "live")
+    bad_hosts = len({urlparse(f["url"]).netloc for f in res["failures"]})
     discovery = res["mode"] == "discovery"
 
     w(t("# Market research report", "# דוח מחקר שוק") + f" - {ctx['market']}")
@@ -24,8 +27,8 @@ def build(res):
       f"{t('Discovery (find opportunities)', 'גילוי (חיפוש הזדמנויות)') if discovery else t('Validation of one idea', 'בדיקת רעיון אחד')}"
       f" | {t('Focus', 'תחום')}: {ctx['focus'] or t('anything', 'כל תחום')} | {t('Paid spend', 'הוצאה בתשלום')}: ${res['spent']:.2f}")
     w("\n## " + t("How much to trust this report", "עד כמה לסמוך על הדוח"))
-    w(t(f"- Live sources that answered: **{live}**. Unreachable sources (skipped): **{len(res['failures'])}** (list in sources.md).",
-        f"- מקורות חיים שענו: **{live}**. מקורות שלא היו זמינים (דולגו): **{len(res['failures'])}** (הרשימה ב-sources.md)."))
+    w(t(f"- Live sources that answered: **{live}**. Unreachable sources (skipped): **{bad_hosts}** sites (list in sources.md).",
+        f"- מקורות חיים שענו: **{live}**. מקורות שלא היו זמינים (דולגו): **{bad_hosts}** אתרים (הרשימה ב-sources.md)."))
     if live == 0:
         w(t("\n> **WARNING: no live data source could be reached in this run, so there is NO market evidence below.** "
             "Everything marked 'unknown' means exactly that. Run the tool again from a computer with normal internet access.",

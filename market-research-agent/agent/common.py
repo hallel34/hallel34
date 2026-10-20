@@ -26,12 +26,15 @@ COUNTRIES = {  # name -> (iTunes storefront, World Bank ISO3, DuckDuckGo region)
 state = {"out": ROOT, "delay": 1.0, "spent": 0.0, "budget": 50.0}
 SOURCES = {}   # url -> dict(label, checked, status, kind)
 FAILURES = []
+HOST_FAILS = {}  # host -> consecutive connection failures
+MAX_HOST_FAILS = 2
 
 
 def init(out_dir=None, delay=1.0, budget=50.0):
     state.update(out=Path(out_dir) if out_dir else ROOT, delay=delay, budget=float(budget), spent=0.0)
     SOURCES.clear()
     FAILURES.clear()
+    HOST_FAILS.clear()
     (state["out"] / "data" / "cache").mkdir(parents=True, exist_ok=True)
 
 
@@ -70,6 +73,9 @@ def fetch(url, params=None, as_json=False, label="", headers=None, method="GET",
     if cache.exists() and time.time() - cache.stat().st_mtime < ttl_hours * 3600:
         body = cache.read_text(encoding="utf-8")
         return json.loads(body) if as_json else body
+    host = urlparse(url).netloc
+    if HOST_FAILS.get(host, 0) >= MAX_HOST_FAILS:
+        return None  # this site kept failing - do not waste time on it again
     h = {"User-Agent": UA, "Accept-Language": "he,en;q=0.8"}
     h.update(headers or {})
     last = ""
@@ -87,14 +93,16 @@ def fetch(url, params=None, as_json=False, label="", headers=None, method="GET",
             body = r.text
             payload = json.loads(body) if as_json else body
             cache.write_text(body, encoding="utf-8")
+            HOST_FAILS[host] = 0
             full = r.url
             add_source(full, label or urlparse(url).netloc)
             return payload
         except Exception as e:  # noqa: BLE001 - we must never crash on a source
             last = type(e).__name__ + ": " + str(e)[:80]
-    host = urlparse(url).netloc
+    HOST_FAILS[host] = HOST_FAILS.get(host, 0) + 1
     FAILURES.append({"url": url, "reason": last, "label": label})
-    log(f"Could not reach {host} ({last}). Skipping this source.", "WARN")
+    note = " Giving up on this site for the rest of the run." if HOST_FAILS[host] >= MAX_HOST_FAILS else ""
+    log(f"Could not reach {host} ({last}). Skipping this source.{note}", "WARN")
     return None
 
 
