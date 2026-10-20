@@ -36,17 +36,19 @@ function cardShell({ type, art, chip, title, text, body = [], actions, flip = fa
       cornerPop(CARD_REACTION[type] || 'think', { size: 64, delay: (flip ? 400 : 0) + 150 })),
     h('div', { class: 'card-body' },
       h('div', { class: 'card-titles' }, h('h2', { class: 'card-title' }, title), text ? h('p', { class: 'card-text' }, text) : null),
-      body,
-      bar));
+      body),
+    bar);
   layer = openLayer(content, { kind: 'modal', label: label || title, dismissable: false, cardFlip: flip, cls: 'layer-card' });
   return layer.closed;
 }
 
 const limitBanner = () => h('div', { class: 'banner banner-warn', role: 'status' }, icon('bank', { size: 24 }), h('span', null, t('loan.limitHint')));
 const grid = (...tiles) => h('div', { class: 'stat-grid' }, tiles);
+/** Whole years, rounded UP, so the shown number always agrees with the tier (8.33y is '9', amber; 8.0y is '8', neutral). */
+export const paybackYearsShown = (years) => Math.max(1, Math.ceil(years - 1e-9));
 function paybackBadge(years, tier) {
   const label = Number.isFinite(years)
-    ? t('card.payback', { years: numberText(Math.max(1, Math.round(years))) })
+    ? t('card.payback', { years: numberText(paybackYearsShown(years)) })
     : t('card.paybackNever');
   return h('div', { class: `payback payback-${tier}`, 'data-payback-tier': tier }, icon(tier === 'ok' ? 'check' : 'expense', { size: 20 }), h('span', null, label));
 }

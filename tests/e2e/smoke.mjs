@@ -71,6 +71,22 @@ async function reactionStripClear(page) {
   check(r.host && !r.hud && !r.board && !r.roll && !r.dice, `reaction pop-up strip never covers the HUD, board, die or roll button (${JSON.stringify(r)})`);
 }
 
+/** Every given selector's box must lie fully inside the viewport (nothing below the fold, nothing cut off). */
+async function insideViewport(page, selectors, label) {
+  const r = await page.evaluate((sels) => sels.map((s) => {
+    const e = document.querySelector(s);
+    if (!e) return { s, missing: true };
+    const b = e.getBoundingClientRect();
+    return { s, top: Math.round(b.top), bottom: Math.round(b.bottom), ih: innerHeight, ok: b.top >= 0 && b.bottom <= innerHeight + 0.5 && b.left >= 0 && b.right <= innerWidth + 0.5 };
+  }), selectors);
+  check(r.every((x) => x.ok), `${label} fully inside the ${r[0]?.ih}px viewport${r.some((x) => !x.ok) ? ` ${JSON.stringify(r.filter((x) => !x.ok))}` : ''}`);
+}
+
+async function noVScroll(page, label) {
+  const r = await page.evaluate(() => ({ sh: document.documentElement.scrollHeight, ih: innerHeight }));
+  check(r.sh <= r.ih, `no vertical page scroll on ${label} (${r.sh}/${r.ih})`);
+}
+
 /** Decides the next UI action with a simple "sensible" policy. Returns a selector to click, or null. */
 function decide(policy) {
   const q = (s, r = document) => r.querySelector(s);
@@ -135,6 +151,8 @@ async function playGame(page, tag, budgetMs = Number(process.env.SMOKE_GAME_MS |
       await page.screenshot({ path: `${OUT}/${d.shot}.png` });
       await noHScroll(page, d.shot);
       await tapTargets(page, d.shot);
+      // P1: the card's sticky action bar (buy/pass etc.) must never sit below the fold, at any supported height
+      if (d.shot.startsWith('card-')) await insideViewport(page, ['#modal-root .layer:last-child .card-actions', '#modal-root .layer:last-child .card-actions .btn'], `${d.shot} action bar`);
     }
     if (d.click) {
       if (d.click === '[data-action="roll"]') {
@@ -162,6 +180,8 @@ async function testResume(page) {
   await page.waitForSelector('[data-screen="start"]');
   const resume = page.locator('[data-action="resume"]');
   check(await resume.count() === 1, 'resume button shown after reload');
+  await noVScroll(page, 'start with resume');
+  await insideViewport(page, ['[data-action="start"]', '[data-action="resume"]', '.mode-grid'], 'start CTA + resume button');
   await resume.click();
   await page.waitForSelector('[data-screen="board"]');
   const after = await page.evaluate(() => ({ turn: document.querySelector('.screen-board')?.dataset.turn, cash: document.querySelector('.screen-board')?.dataset.cash }));
@@ -201,6 +221,8 @@ async function main() {
   await page.reload();
   await page.waitForSelector('[data-screen="start"]');
   check(await page.locator('img.pose-wave').count() === 0, 'wave pose does not replay after the first launch');
+  await noVScroll(page, 'start (returning user)');
+  await insideViewport(page, ['[data-action="start"]', '.mode-grid'], 'start CTA');
 
   // font check
   const fontOk = await page.evaluate(async () => { await document.fonts.ready; return document.fonts.check('700 16px Rubik', 'שלום'); });
@@ -261,13 +283,17 @@ async function main() {
 
   // Play games until one is won (new seed each retry).
   let won = false;
+  let profBeforeWin = '';
   for (let g = 1; g <= 8 && !won; g++) {
+    profBeforeWin = await page.evaluate(() => document.querySelector('.hud-prof')?.textContent);
     const r = await playGame(page, `game ${g}`);
     console.log(`game ${g}: ${r.result} after ${r.rolls} rolls`);
     if (r.result === 'won') {
       await page.waitForTimeout(500);
       await noHScroll(page, 'win');
       await page.screenshot({ path: `${OUT}/07-win.png` });
+      await insideViewport(page, ['[data-screen="win"] [data-action="again"]', '[data-screen="win"] [data-action="menu"]', '[data-screen="win"] [data-action="share"]'], 'win actions');
+      check(await page.locator('[data-action="again"].btn-primary').count() === 1 && await page.locator('[data-action="menu"].btn-secondary').count() === 1, 'win: play again is primary, change mode is secondary');
       won = true;
     } else if (r.result === 'over') {
       await noHScroll(page, 'game over');
@@ -282,6 +308,13 @@ async function main() {
 
   if (won) {
     await page.locator('[data-action="again"]').click();
+    await page.waitForSelector('[data-screen="board"]');
+    const fresh = await page.evaluate(() => ({ turn: document.querySelector('.screen-board')?.dataset.turn, cash: document.querySelector('.screen-board')?.dataset.cash, prof: document.querySelector('.hud-prof')?.textContent }));
+    check(fresh.turn === '0' || fresh.turn === '1', `play again from the win screen reaches a fresh board at turn 1 (data-turn ${fresh.turn})`);
+    check(fresh.prof === profBeforeWin, `play again keeps the profession (${profBeforeWin} -> ${fresh.prof})`);
+    // a finished game leaves no save: drop the one the fresh game just wrote, then the start screen has no resume button
+    await page.evaluate(() => localStorage.removeItem('passivo.save'));
+    await page.reload();
     await page.waitForSelector('[data-screen="start"]');
     check(await page.locator('[data-action="resume"]').count() === 0, 'no resume button after a finished game');
   }

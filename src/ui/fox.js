@@ -12,11 +12,11 @@ const url = (name) => FILES[`../assets/fox/${name}.webp`];
 
 /** Intrinsic @1x size per pose. `crop` poses are square circle crops (no @2x). */
 export const POSES = {
-  tired: { w: 276, h: 450, x2: true },
-  wave: { w: 262, h: 450, x2: true },
-  roll: { w: 431, h: 450, x2: true },
-  hammock: { w: 450, h: 408, x2: true },
-  tip: { w: 281, h: 450, x2: true },
+  tired: { w: 184, h: 300, x2: true },
+  wave: { w: 175, h: 300, x2: true },
+  roll: { w: 123, h: 128, x2: true },
+  hammock: { w: 287, h: 260, x2: true },
+  tip: { w: 94, h: 150, x2: true },
   think: { w: 512, h: 512, crop: true },
   celebrate: { w: 512, h: 512, crop: true },
   worried: { w: 512, h: 512, crop: true },

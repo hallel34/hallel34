@@ -5,6 +5,27 @@ import { t } from '../i18n/index.js';
 import { moneyText, money } from './format.js';
 import { countUp, haptic, shake, pulse } from './fx.js';
 
+/**
+ * Shrink-to-fit: scales the element's font-size down (never up) so its content never crosses its box.
+ * Re-fits when the content or the box changes. The element must be nowrap with overflow hidden (see .stat-value).
+ */
+export function fitText(el, { minScale = 0.6 } = {}) {
+  const fit = () => {
+    if (!el.isConnected) return;
+    el.style.fontSize = '';
+    const avail = el.clientWidth;
+    const need = el.scrollWidth;
+    if (avail > 0 && need > avail) {
+      const base = parseFloat(getComputedStyle(el).fontSize);
+      el.style.fontSize = `${Math.max(base * minScale, Math.floor(base * (avail / need) * 100) / 100)}px`;
+    }
+  };
+  if (typeof ResizeObserver !== 'undefined') new ResizeObserver(fit).observe(el);
+  if (typeof MutationObserver !== 'undefined') new MutationObserver(fit).observe(el, { childList: true, subtree: true, characterData: true });
+  requestAnimationFrame(fit);
+  return el;
+}
+
 export function button(label, { variant = 'primary', onClick, disabled = false, cls = '', size = '', ...attrs } = {}) {
   return h('button', {
     type: 'button', class: `btn btn-${variant} ${size ? `btn-${size}` : ''} ${cls}`.trim(), disabled, onClick, ...attrs,
@@ -24,6 +45,7 @@ export function stepper({ min, max, step = 1, value, render, onChange, decLabel,
   const dec = h('button', { type: 'button', class: 'step-btn', 'aria-label': decLabel || t('card.decrease'), onClick: () => set(prevValue(v)) }, icon('minus', { size: 26, width: 3 }));
   const inc = h('button', { type: 'button', class: 'step-btn', 'aria-label': incLabel || t('card.increase'), onClick: () => set(nextValue(v)) }, icon('plus', { size: 26, width: 3 }));
   const el = h('div', { class: 'stepper', dir: 'ltr' }, dec, out, inc);
+  fitText(out);
   const prevValue = (x) => Math.max(min, x - step);
   const nextValue = (x) => Math.min(max, x + step);
 
@@ -57,6 +79,7 @@ export function meter({ large = false } = {}) {
     set(passive, expenses, { animate: anim = true } = {}) {
       const p = expenses > 0 ? Math.max(0, Math.min(1, passive / expenses)) : 0;
       fill.style.setProperty('--fill', String(p));
+      track.dataset.reached = String(p >= 0.9);
       track.setAttribute('aria-valuenow', String(Math.round(p * 100)));
       track.setAttribute('aria-valuetext', t('a11y.passiveMeterValue', { pct: Math.round(p * 100), passive: moneyText(passive), expenses: moneyText(expenses) }));
       for (const mark of [0.25, 0.5, 0.75]) {
@@ -69,7 +92,7 @@ export function meter({ large = false } = {}) {
 
 export function statTile(label, valueNode, { tone = '', big = false } = {}) {
   return h('div', { class: `stat-tile${tone ? ` stat-${tone}` : ''}${big ? ' stat-big' : ''}` },
-    h('span', { class: 'stat-label' }, label), h('span', { class: 'stat-value' }, valueNode));
+    h('span', { class: 'stat-label' }, label), fitText(h('span', { class: 'stat-value' }, valueNode)));
 }
 
 /** A money <output> that can count up to new values. */

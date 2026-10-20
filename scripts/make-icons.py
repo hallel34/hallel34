@@ -5,7 +5,7 @@ Outputs: public/icons/{icon-192,icon-512,icon-maskable-512,apple-touch-icon,favi
          src/assets/{app-icon-512,app-icon-foreground,app-icon-background}.png
 Run    : npm run icons   (wraps this script; needs python3 + Pillow: pip install pillow)
 Adaptive icon: foreground = fox disc on transparent, fully inside the central 66% (Android safe zone);
-background = solid brand navy #0F1E46. Maskable PNG = hero scaled to 82% on a feathered navy field so
+background = solid brand navy #0F1E46. Maskable PNG = hero scaled to 66% (ear tips at 0.58 of the hero width from the centre -> 0.38 of the icon, inside the 40% safe circle) on a feathered navy field so
 every launcher mask (circle/squircle/teardrop) keeps the ring + ears.
 """
 from pathlib import Path
@@ -33,7 +33,7 @@ save(hero.resize((512, 512), Image.LANCZOS), ASSETS / 'app-icon-512.png')
 # 2) favicon: tighter crop (ears to chin) so the face survives at 32px
 save(hero.crop((60, 20, 1200, 1160)).resize((32, 32), Image.LANCZOS), ICONS / 'favicon-32.png')
 
-# 3) maskable: hero at 82% over a navy field, edges feathered into the field
+# 3) maskable: hero at 66% over a navy field, edges feathered into the field
 def feathered(img, scale, size, feather=0.09):
     inner = int(size * scale)
     art = img.resize((inner, inner), Image.LANCZOS)
@@ -47,7 +47,7 @@ def feathered(img, scale, size, feather=0.09):
     m = m.filter(ImageFilter.GaussianBlur(f / 2))
     canvas.paste(art, ((size - inner) // 2, (size - inner) // 2), m)
     return canvas
-save(feathered(hero, 0.82, 512), ICONS / 'icon-maskable-512.png')
+save(feathered(hero, 0.66, 512), ICONS / 'icon-maskable-512.png')
 
 # 4) adaptive foreground: fox disc, transparent outside, diameter = 66% of the canvas
 FG = 1024

@@ -98,7 +98,11 @@ export function createApp(host) {
   async function goWin(s) {
     store.clear();
     countGame();
-    const win = createWin({ state: s, onAgain: () => goStart() });
+    const win = createWin({
+      state: s,
+      onAgain: () => startNew(s.mode || last.mode, s.profession?.id || last.professionId),
+      onMenu: () => goStart(),
+    });
     mount({ el: win.el }, { start: () => win.start() });
     showInterstitial('win');
   }

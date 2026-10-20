@@ -66,7 +66,7 @@
 
   /* backgrounds + glass */
   --grad-night: linear-gradient(180deg, #091330 0%, #0F1E46 55%, #1B3068 100%);
-  --grad-sky: linear-gradient(180deg, #091330 0%, #0F1E46 42%, #1D3573 72%, #5A3A4E 92%, #B5582A 100%);
+  --grad-sky: linear-gradient(180deg, #091330 0%, #0F1E46 42%, #1D3573 76%, #2C3F82 100%);
   --grad-sunburst: linear-gradient(180deg, #16295E 0%, #3A3A6B 45%, #B5582A 85%, #E8702A 100%);
   --grad-card-modal: linear-gradient(180deg, #060E24 0%, #0F1E46 100%);
   --grad-felt: radial-gradient(120% 90% at 50% 40%, #1C3F6B 0%, #12294F 60%, #0B1B3A 100%); /* NEW: tabletop variation */

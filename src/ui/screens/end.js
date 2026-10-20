@@ -31,7 +31,7 @@ function dropIn(img) {
     }, () => {});
 }
 
-export function createWin({ state, onAgain }) {
+export function createWin({ state, onAgain, onMenu }) {
   const st = statement(state);
   const m = meter({ large: true });
   m.set(st.passiveIncome, st.totalExpenses, { animate: false });
@@ -63,7 +63,8 @@ export function createWin({ state, onAgain }) {
       ])),
     h('div', { class: 'end-actions' },
       button(t('win.again'), { variant: 'primary', size: 'lg', 'data-action': 'again', 'data-autofocus': '', onClick: onAgain }),
-      button(t('win.share'), { variant: 'secondary', 'data-action': 'share', onClick: share })));
+      button(t('win.change'), { variant: 'secondary', 'data-action': 'menu', onClick: onMenu }),
+      button(t('win.share'), { variant: 'text', cls: 'btn-share', 'data-action': 'share', onClick: share })));
   return {
     el,
     start() {

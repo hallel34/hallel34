@@ -83,11 +83,21 @@
   padding: 6px 14px; border-radius: 16px; background: var(--c-navy-900); color: var(--c-gold-300);
   font-size: var(--fs-sm); font-weight: var(--fw-bold);
 }
-.card-body { flex: 1; display: flex; flex-direction: column; gap: 14px; padding: 18px 22px 22px; overflow-y: auto; min-block-size: 0; overscroll-behavior: contain; }
+.card-body {
+  flex: 1; display: flex; flex-direction: column; gap: 14px; padding: 18px 22px 14px; overflow-y: auto; min-block-size: 0; overscroll-behavior: contain;
+  /* scroll hint: soft shadow at an edge only while there is more content in that direction (no JS) */
+  background:
+    linear-gradient(var(--card-bg) 30%, rgb(255 255 255 / 0)) 0 0 / 100% 22px no-repeat local,
+    linear-gradient(rgb(255 255 255 / 0), var(--card-bg) 70%) 0 100% / 100% 22px no-repeat local,
+    radial-gradient(farthest-side at 50% 0, rgb(14 26 58 / .22), rgb(14 26 58 / 0)) 0 0 / 100% 10px no-repeat scroll,
+    radial-gradient(farthest-side at 50% 100%, rgb(14 26 58 / .22), rgb(14 26 58 / 0)) 0 100% / 100% 10px no-repeat scroll;
+  background-color: var(--card-bg);
+}
 .card-titles { display: flex; flex-direction: column; gap: 6px; }
 .card-title { font-size: 1.625rem; line-height: var(--lh-tight); font-weight: var(--fw-black); }
 .card-text { font-size: var(--fs-md); line-height: var(--lh-body); color: var(--card-muted); }
-.card-actions { display: flex; gap: 12px; margin-block-start: auto; padding-block-start: 4px; }
+/* sticky action bar: lives outside the scrolling .card-body, so the primary buttons are always inside the viewport */
+.card-actions { flex: none; display: flex; gap: 12px; padding: 10px 22px max(14px, env(safe-area-inset-bottom)); background: var(--card-bg); position: relative; z-index: 1; }
 .card-actions .btn { flex: 1; min-block-size: 60px; font-size: 1.25rem; white-space: nowrap; }
 .card-actions .btn-secondary { flex: 0 0 auto; min-inline-size: 112px; --btn-secondary-bg: var(--card-tile-bg); --btn-secondary-text: var(--card-text); --btn-secondary-border: var(--border-strong); box-shadow: inset 0 0 0 2px var(--border-strong); backdrop-filter: none; }
 .card-actions.single .btn { flex: 1; }
@@ -95,7 +105,7 @@
 .stat-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .stat-tile { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-radius: 18px; background: var(--card-tile-bg); border: 2px solid var(--card-border); min-inline-size: 0; }
 .stat-label { font-size: var(--fs-xs); font-size: 0.8125rem; font-weight: var(--fw-medium); color: var(--card-muted); }
-.stat-value { font-weight: var(--fw-bold); font-size: 1.25rem; font-variant-numeric: tabular-nums; }
+.stat-value { display: block; font-weight: var(--fw-bold); font-size: 1.25rem; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; } /* fitText() scales long values down */
 .stat-big .stat-value { font-size: 1.5rem; font-weight: var(--fw-black); }
 .stat-income { background: var(--card-income-bg); border-color: var(--card-income-border); }
 .stat-income .stat-label, .stat-income .stat-value { color: var(--income-ink); }
@@ -114,7 +124,8 @@
 .stepper-wrap { display: flex; flex-direction: column; gap: 6px; }
 .qty-quick { display: flex; gap: 8px; flex-wrap: wrap; }
 .stepper { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); }
-.stepper-value { flex: 1; text-align: center; font-weight: var(--fw-black); font-size: 1.75rem; font-variant-numeric: tabular-nums; min-inline-size: 0; }
+.stepper-value { flex: 1; text-align: center; font-weight: var(--fw-black); font-size: 1.75rem; font-variant-numeric: tabular-nums; min-inline-size: 0; white-space: nowrap; overflow: hidden; }
+.stepper-value .big-amount { font-size: inherit; }
 .step-btn {
   inline-size: 56px; block-size: 56px; border-radius: 50%; border: 0; display: grid; place-items: center; padding: 0; flex: none;
   background: var(--c-navy-900); color: var(--c-gold-300);
@@ -133,12 +144,12 @@
 }
 .dialog .stat-label { color: var(--text-muted); }
 .dialog .stepper-value { font-size: 1.75rem; }
-.dialog.has-fox { padding-block-start: 36px; } /* keeps the close button clear of the fox crop on the corner */
+.dialog.has-fox { padding-block-start: 36px; max-block-size: calc(100dvh - 88px); } /* leaves room above the frame for the fox crop (-24px) so it is never clipped */ /* keeps the close button clear of the fox crop on the corner */
 .dialog-frame { position: relative; display: flex; flex-direction: column; min-block-size: 0; }
 .dialog-head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); }
 .dialog-title { font-size: var(--fs-lg); font-weight: var(--fw-black); line-height: var(--lh-tight); }
 .dialog-text { color: var(--text-muted); font-size: 0.9375rem; }
-.dialog-actions { display: flex; gap: var(--sp-3); }
+.dialog-actions { display: flex; gap: var(--sp-3); position: sticky; inset-block-end: calc(var(--sp-5) * -1 + 4px); padding-block: 8px 4px; margin-block-end: -4px; background: var(--surface); z-index: 1; }
 .dialog-actions .btn { flex: 1; white-space: nowrap; padding-inline: var(--sp-4); }
 .dialog-actions .btn-secondary { flex: 0 0 auto; min-inline-size: 96px; }
 .dialog-actions.col { flex-direction: column; }
@@ -206,7 +217,9 @@
 .meter-track.meter-large { block-size: 20px; border-radius: 10px; }
 .meter-fill { position: absolute; inset: 0; border-radius: inherit; background: var(--passive-fill); transform: scaleX(var(--fill, 0)); transform-origin: calc(50% - 50% * var(--dir)) 50%; transition: transform var(--dur-slow) var(--ease-out); }
 .meter-track .tick { position: absolute; inset-block: 0; inset-inline-start: var(--p); inline-size: 2px; background: rgb(255 255 255 / .35); }
-.meter-flag { position: absolute; inset-block: 0; inset-inline-end: 3px; display: grid; place-items: center; color: var(--c-gold-ink); opacity: .9; }
+.meter-flag { position: absolute; inset-block: 0; inset-inline-end: 3px; display: grid; place-items: center; color: var(--c-gold-400); }
+.meter-track[data-reached="true"] .meter-flag { color: var(--c-gold-ink); opacity: .9; } /* over the gold fill only */
+:root[data-theme="light"] .meter-flag { color: #B25E00; }
 .meter-labels { display: flex; justify-content: space-between; gap: var(--sp-3); font-size: var(--fs-sm); font-weight: var(--fw-medium); color: var(--text-muted); flex-wrap: wrap; }
 .meter-labels b { font-variant-numeric: tabular-nums; }
 

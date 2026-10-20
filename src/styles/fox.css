@@ -66,7 +66,7 @@
 
 /* ===== Win / game over ===== */
 .win-fox, .over-fox { position: relative; display: grid; place-items: center; z-index: 1; }
-.win-fox .hammock { position: relative; block-size: clamp(150px, 31dvh, 250px); inline-size: auto; z-index: 1; }
+.win-fox .hammock { position: relative; block-size: clamp(140px, 27dvh, 250px); inline-size: auto; z-index: 1; }
 .over-fox .fox { position: relative; block-size: min(200px, 25dvh); inline-size: auto; z-index: 1; }
 .glint { position: absolute; inset-inline-start: 24%; inset-block-end: 16%; inline-size: 34px; block-size: 34px; z-index: 2; pointer-events: none;
   background: radial-gradient(circle, #fff 0 12%, rgb(255 226 122 / .85) 22%, rgb(255 226 122 / 0) 68%); opacity: 0; animation: glint 1400ms 900ms ease-out 1 both; }
