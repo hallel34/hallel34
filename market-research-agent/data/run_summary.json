@@ -1,0 +1,246 @@
+{
+  "failures": [
+    {
+      "url": "https://www.reddit.com/search.json",
+      "reason": "ProxyError: HTTPSConnectionPool(host='www.reddit.com', port=443): Max retries exceeded with ",
+      "label": "Reddit search"
+    },
+    {
+      "url": "https://hn.algolia.com/api/v1/search",
+      "reason": "ProxyError: HTTPSConnectionPool(host='hn.algolia.com', port=443): Max retries exceeded with ",
+      "label": "Hacker News (Algolia)"
+    },
+    {
+      "url": "https://html.duckduckgo.com/html/",
+      "reason": "ProxyError: HTTPSConnectionPool(host='html.duckduckgo.com', port=443): Max retries exceeded ",
+      "label": "Web search (forums)"
+    },
+    {
+      "url": "https://html.duckduckgo.com/html/",
+      "reason": "ProxyError: HTTPSConnectionPool(host='html.duckduckgo.com', port=443): Max retries exceeded ",
+      "label": "Web search (forums)"
+    },
+    {
+      "url": "https://html.duckduckgo.com/html/",
+      "reason": "ProxyError: HTTPSConnectionPool(host='html.duckduckgo.com', port=443): Max retries exceeded ",
+      "label": "Web search (forums)"
+    },
+    {
+      "url": "https://html.duckduckgo.com/html/",
+      "reason": "ProxyError: HTTPSConnectionPool(host='html.duckduckgo.com', port=443): Max retries exceeded ",
+      "label": "Web search (forums)"
+    },
+    {
+      "url": "https://www.reddit.com/search.json",
+      "reason": "ProxyError: HTTPSConnectionPool(host='www.reddit.com', port=443): Max retries exceeded with ",
+      "label": "Reddit search"
+    },
+    {
+      "url": "https://hn.algolia.com/api/v1/search",
+      "reason": "ProxyError: HTTPSConnectionPool(host='hn.algolia.com', port=443): Max retries exceeded with ",
+      "label": "Hacker News (Algolia)"
+    },
+    {
+      "url": "https://html.duckduckgo.com/html/",
+      "reason": "ProxyError: HTTPSConnectionPool(host='html.duckduckgo.com', port=443): Max retries exceeded ",
+      "label": "Web search (forums)"
+    },
+    {
+      "url": "https://html.duckduckgo.com/html/",
+      "reason": "ProxyError: HTTPSConnectionPool(host='html.duckduckgo.com', port=443): Max retries exceeded ",
+      "label": "Web search (forums)"
+    },
+    {
+      "url": "https://html.duckduckgo.com/html/",
+      "reason": "ProxyError: HTTPSConnectionPool(host='html.duckduckgo.com', port=443): Max retries exceeded ",
+      "label": "Web search (forums)"
+    },
+    {
+      "url": "https://html.duckduckgo.com/html/",
+      "reason": "ProxyError: HTTPSConnectionPool(host='html.duckduckgo.com', port=443): Max retries exceeded ",
+      "label": "Web search (forums)"
+    },
+    {
+      "url": "https://www.reddit.com/search.json",
+      "reason": "ProxyError: HTTPSConnectionPool(host='www.reddit.com', port=443): Max retries exceeded with ",
+      "label": "Reddit search"
+    },
+    {
+      "url": "https://hn.algolia.com/api/v1/search",
+      "reason": "ProxyError: HTTPSConnectionPool(host='hn.algolia.com', port=443): Max retries exceeded with ",
+      "label": "Hacker News (Algolia)"
+    },
+    {
+      "url": "https://html.duckduckgo.com/html/",
+      "reason": "ProxyError: HTTPSConnectionPool(host='html.duckduckgo.com', port=443): Max retries exceeded ",
+      "label": "Web search (forums)"
+    },
+    {
+      "url": "https://html.duckduckgo.com/html/",
+      "reason": "ProxyError: HTTPSConnectionPool(host='html.duckduckgo.com', port=443): Max retries exceeded ",
+      "label": "Web search (forums)"
+    },
+    {
+      "url": "https://html.duckduckgo.com/html/",
+      "reason": "ProxyError: HTTPSConnectionPool(host='html.duckduckgo.com', port=443): Max retries exceeded ",
+      "label": "Web search (forums)"
+    },
+    {
+      "url": "https://html.duckduckgo.com/html/",
+      "reason": "ProxyError: HTTPSConnectionPool(host='html.duckduckgo.com', port=443): Max retries exceeded ",
+      "label": "Web search (forums)"
+    },
+    {
+      "url": "https://www.reddit.com/search.json",
+      "reason": "ProxyError: HTTPSConnectionPool(host='www.reddit.com', port=443): Max retries exceeded with ",
+      "label": "Reddit search"
+    },
+    {
+      "url": "https://hn.algolia.com/api/v1/search",
+      "reason": "ProxyError: HTTPSConnectionPool(host='hn.algolia.com', port=443): Max retries exceeded with ",
+      "label": "Hacker News (Algolia)"
+    },
+    {
+      "url": "https://html.duckduckgo.com/html/",
+      "reason": "ProxyError: HTTPSConnectionPool(host='html.duckduckgo.com', port=443): Max retries exceeded ",
+      "label": "Web search (forums)"
+    },
+    {
+      "url": "https://html.duckduckgo.com/html/",
+      "reason": "ProxyError: HTTPSConnectionPool(host='html.duckduckgo.com', port=443): Max retries exceeded ",
+      "label": "Web search (forums)"
+    },
+    {
+      "url": "https://html.duckduckgo.com/html/",
+      "reason": "ProxyError: HTTPSConnectionPool(host='html.duckduckgo.com', port=443): Max retries exceeded ",
+      "label": "Web search (forums)"
+    },
+    {
+      "url": "https://html.duckduckgo.com/html/",
+      "reason": "ProxyError: HTTPSConnectionPool(host='html.duckduckgo.com', port=443): Max retries exceeded ",
+      "label": "Web search (forums)"
+    },
+    {
+      "url": "https://www.reddit.com/search.json",
+      "reason": "ProxyError: HTTPSConnectionPool(host='www.reddit.com', port=443): Max retries exceeded with ",
+      "label": "Reddit search"
+    },
+    {
+      "url": "https://hn.algolia.com/api/v1/search",
+      "reason": "ProxyError: HTTPSConnectionPool(host='hn.algolia.com', port=443): Max retries exceeded with ",
+      "label": "Hacker News (Algolia)"
+    },
+    {
+      "url": "https://html.duckduckgo.com/html/",
+      "reason": "ProxyError: HTTPSConnectionPool(host='html.duckduckgo.com', port=443): Max retries exceeded ",
+      "label": "Web search (forums)"
+    },
+    {
+      "url": "https://html.duckduckgo.com/html/",
+      "reason": "ProxyError: HTTPSConnectionPool(host='html.duckduckgo.com', port=443): Max retries exceeded ",
+      "label": "Web search (forums)"
+    },
+    {
+      "url": "https://html.duckduckgo.com/html/",
+      "reason": "ProxyError: HTTPSConnectionPool(host='html.duckduckgo.com', port=443): Max retries exceeded ",
+      "label": "Web search (forums)"
+    },
+    {
+      "url": "https://html.duckduckgo.com/html/",
+      "reason": "ProxyError: HTTPSConnectionPool(host='html.duckduckgo.com', port=443): Max retries exceeded ",
+      "label": "Web search (forums)"
+    },
+    {
+      "url": "https://www.reddit.com/search.json",
+      "reason": "ProxyError: HTTPSConnectionPool(host='www.reddit.com', port=443): Max retries exceeded with ",
+      "label": "Reddit search"
+    },
+    {
+      "url": "https://hn.algolia.com/api/v1/search",
+      "reason": "ProxyError: HTTPSConnectionPool(host='hn.algolia.com', port=443): Max retries exceeded with ",
+      "label": "Hacker News (Algolia)"
+    },
+    {
+      "url": "https://html.duckduckgo.com/html/",
+      "reason": "ProxyError: HTTPSConnectionPool(host='html.duckduckgo.com', port=443): Max retries exceeded ",
+      "label": "Web search (forums)"
+    },
+    {
+      "url": "https://html.duckduckgo.com/html/",
+      "reason": "ProxyError: HTTPSConnectionPool(host='html.duckduckgo.com', port=443): Max retries exceeded ",
+      "label": "Web search (forums)"
+    },
+    {
+      "url": "https://html.duckduckgo.com/html/",
+      "reason": "ProxyError: HTTPSConnectionPool(host='html.duckduckgo.com', port=443): Max retries exceeded ",
+      "label": "Web search (forums)"
+    },
+    {
+      "url": "https://html.duckduckgo.com/html/",
+      "reason": "ProxyError: HTTPSConnectionPool(host='html.duckduckgo.com', port=443): Max retries exceeded ",
+      "label": "Web search (forums)"
+    },
+    {
+      "url": "https://itunes.apple.com/search",
+      "reason": "ProxyError: HTTPSConnectionPool(host='itunes.apple.com', port=443): Max retries exceeded wit",
+      "label": "Apple App Store search (il)"
+    },
+    {
+      "url": "https://itunes.apple.com/search",
+      "reason": "ProxyError: HTTPSConnectionPool(host='itunes.apple.com', port=443): Max retries exceeded wit",
+      "label": "Apple App Store search (il)"
+    },
+    {
+      "url": "https://itunes.apple.com/search",
+      "reason": "ProxyError: HTTPSConnectionPool(host='itunes.apple.com', port=443): Max retries exceeded wit",
+      "label": "Apple App Store search (il)"
+    },
+    {
+      "url": "https://itunes.apple.com/search",
+      "reason": "ProxyError: HTTPSConnectionPool(host='itunes.apple.com', port=443): Max retries exceeded wit",
+      "label": "Apple App Store search (il)"
+    },
+    {
+      "url": "https://itunes.apple.com/search",
+      "reason": "ProxyError: HTTPSConnectionPool(host='itunes.apple.com', port=443): Max retries exceeded wit",
+      "label": "Apple App Store search (il)"
+    },
+    {
+      "url": "https://itunes.apple.com/search",
+      "reason": "ProxyError: HTTPSConnectionPool(host='itunes.apple.com', port=443): Max retries exceeded wit",
+      "label": "Apple App Store search (il)"
+    },
+    {
+      "url": "https://itunes.apple.com/search",
+      "reason": "ProxyError: HTTPSConnectionPool(host='itunes.apple.com', port=443): Max retries exceeded wit",
+      "label": "Apple App Store search (il)"
+    },
+    {
+      "url": "https://itunes.apple.com/search",
+      "reason": "ProxyError: HTTPSConnectionPool(host='itunes.apple.com', port=443): Max retries exceeded wit",
+      "label": "Apple App Store search (il)"
+    },
+    {
+      "url": "https://itunes.apple.com/search",
+      "reason": "ProxyError: HTTPSConnectionPool(host='itunes.apple.com', port=443): Max retries exceeded wit",
+      "label": "Apple App Store search (il)"
+    },
+    {
+      "url": "https://itunes.apple.com/search",
+      "reason": "ProxyError: HTTPSConnectionPool(host='itunes.apple.com', port=443): Max retries exceeded wit",
+      "label": "Apple App Store search (il)"
+    },
+    {
+      "url": "https://trends.google.com/trending/rss",
+      "reason": "ProxyError: HTTPSConnectionPool(host='trends.google.com', port=443): Max retries exceeded wi",
+      "label": "Google Trends trending-now RSS"
+    },
+    {
+      "url": "https://html.duckduckgo.com/html/",
+      "reason": "ProxyError: HTTPSConnectionPool(host='html.duckduckgo.com', port=443): Max retries exceeded ",
+      "label": "Web search (new regulations)"
+    }
+  ],
+  "sources": {},
+  "spent_usd": 0.0
+}
