@@ -1,0 +1,699 @@
+[
+  {
+    "id": "opp-apt-001",
+    "deck": "opportunity",
+    "type": "apartment",
+    "modes": [
+      "family",
+      "full"
+    ],
+    "title": "סטודיו בבאר שבע",
+    "text": "סטודנטים שמחפשים מקום קרוב לאוניברסיטה, ומזגן שעובד גם בחורף. השוכרים מבטיחים לא לצייר על הקירות.",
+    "price": 450000,
+    "downPayment": 20000,
+    "mortgage": 430000,
+    "monthlyCashFlow": 2000
+  },
+  {
+    "id": "opp-apt-002",
+    "deck": "opportunity",
+    "type": "apartment",
+    "modes": [
+      "family",
+      "full"
+    ],
+    "title": "שלושה חדרים בפתח תקווה",
+    "text": "דירה שקטה ליד הפארק. השכן מלמעלה מתאמן על חצוצרה, אבל רק בימי שלישי.",
+    "price": 950000,
+    "downPayment": 40500,
+    "mortgage": 909500,
+    "monthlyCashFlow": 4000
+  },
+  {
+    "id": "opp-apt-003",
+    "deck": "opportunity",
+    "type": "apartment",
+    "modes": [
+      "family",
+      "full"
+    ],
+    "title": "דירה ליד הטכניון",
+    "text": "חיפה, עלייה תלולה, תשואה יפה. שוכרים תמיד יש, מי שמגיע עד הדלת בלי להתנשף מקבל הנחה.",
+    "price": 700000,
+    "downPayment": 29500,
+    "mortgage": 670500,
+    "monthlyCashFlow": 3000
+  },
+  {
+    "id": "opp-apt-004",
+    "deck": "opportunity",
+    "type": "apartment",
+    "modes": [
+      "family",
+      "full"
+    ],
+    "title": "דירה בקריית שמונה",
+    "text": "מחיר נמוך, נוף להרים, תשואה מצוינת. רק תזכרו להביא מעיל.",
+    "price": 350000,
+    "downPayment": 13500,
+    "mortgage": 336500,
+    "monthlyCashFlow": 1600
+  },
+  {
+    "id": "opp-apt-005",
+    "deck": "opportunity",
+    "type": "apartment",
+    "modes": [
+      "family",
+      "full"
+    ],
+    "title": "ארבעה חדרים בראשון לציון",
+    "text": "חניה כלולה! בעיר שבה חניה שווה יותר מכליה.",
+    "price": 1050000,
+    "downPayment": 45000,
+    "mortgage": 1005000,
+    "monthlyCashFlow": 4600
+  },
+  {
+    "id": "opp-apt-006",
+    "deck": "opportunity",
+    "type": "apartment",
+    "modes": [
+      "full"
+    ],
+    "title": "דירה עם מרפסת בנתניה",
+    "text": "שלושים שניות מהים. השוכרים מבקשים רק שלא תתקשרו בשבת בבוקר.",
+    "price": 1300000,
+    "downPayment": 54000,
+    "mortgage": 1246000,
+    "monthlyCashFlow": 5600
+  },
+  {
+    "id": "opp-apt-007",
+    "deck": "opportunity",
+    "type": "apartment",
+    "modes": [
+      "full"
+    ],
+    "title": "דירת גג בתל אביב",
+    "text": "מחיר שגורם לכולם לשתות מים. השכירות כמעט משלמת את המשכנתא ואת הקפה של השוכרים.",
+    "price": 2100000,
+    "downPayment": 90000,
+    "mortgage": 2010000,
+    "monthlyCashFlow": 10000
+  },
+  {
+    "id": "opp-biz-001",
+    "deck": "opportunity",
+    "type": "business",
+    "modes": [
+      "family",
+      "full"
+    ],
+    "title": "דוכן פלאפל בשוק",
+    "text": "הצ׳יפס מסתיים לפני הצהריים, וגם התור. מישהו צריך לעמוד מאחורי הדלפק.",
+    "price": 60000,
+    "downPayment": 27000,
+    "mortgage": 33000,
+    "monthlyCashFlow": 3600
+  },
+  {
+    "id": "opp-biz-002",
+    "deck": "opportunity",
+    "type": "business",
+    "modes": [
+      "family",
+      "full"
+    ],
+    "title": "עגלת קפה ברכבת",
+    "text": "נוסעים עם עיניים חצי פקוחות ושקל בכיס. מי יכול לסרב.",
+    "price": 30000,
+    "downPayment": 13500,
+    "mortgage": 16500,
+    "monthlyCashFlow": 1800
+  },
+  {
+    "id": "opp-biz-003",
+    "deck": "opportunity",
+    "type": "business",
+    "modes": [
+      "family",
+      "full"
+    ],
+    "title": "משאית גלידה",
+    "text": "בקיץ זה זהב, בחורף זה חדר אחסון. בישראל יש בעיקר קיץ.",
+    "price": 40000,
+    "downPayment": 18000,
+    "mortgage": 22000,
+    "monthlyCashFlow": 2400
+  },
+  {
+    "id": "opp-biz-004",
+    "deck": "opportunity",
+    "type": "business",
+    "modes": [
+      "family",
+      "full"
+    ],
+    "title": "שירות ניקיון לבתים",
+    "text": "הלקוחות שואלים אם הניקיון כולל גם את המגירה ההיא. לא כולל.",
+    "price": 24000,
+    "downPayment": 11000,
+    "mortgage": 13000,
+    "monthlyCashFlow": 1400
+  },
+  {
+    "id": "opp-biz-005",
+    "deck": "opportunity",
+    "type": "business",
+    "modes": [
+      "family",
+      "full"
+    ],
+    "title": "סטודיו ליוגה",
+    "text": "כולם רוצים שלווה, ושניים מהם אפילו משלמים עליה כל חודש. שותף מביא חצי מההשקעה.",
+    "price": 80000,
+    "downPayment": 36000,
+    "mortgage": 44000,
+    "monthlyCashFlow": 4600
+  },
+  {
+    "id": "opp-biz-006",
+    "deck": "opportunity",
+    "type": "business",
+    "modes": [
+      "family",
+      "full"
+    ],
+    "title": "עגלת פופקורן ליד בית ספר",
+    "text": "ההפסקה הגדולה היא שעת השיא. ההצלחה תלויה בצלצול.",
+    "price": 12000,
+    "downPayment": 5500,
+    "mortgage": 6500,
+    "monthlyCashFlow": 700
+  },
+  {
+    "id": "opp-biz-007",
+    "deck": "opportunity",
+    "type": "business",
+    "modes": [
+      "family",
+      "full"
+    ],
+    "title": "מכבסה שכונתית",
+    "text": "מכונות עובדות לבד, הלקוחות מחכים בנחת ואתם בבית. כמעט פאסיבי.",
+    "price": 70000,
+    "downPayment": 31500,
+    "mortgage": 38500,
+    "monthlyCashFlow": 4000
+  },
+  {
+    "id": "opp-biz-008",
+    "deck": "opportunity",
+    "type": "business",
+    "modes": [
+      "full"
+    ],
+    "title": "חנות ספרים ופינת קפה",
+    "text": "עסק רגוע עם הרבה ריח של נייר. הרווח מגיע מהקפה, מה שלא מפתיע אף אחד.",
+    "price": 120000,
+    "downPayment": 54000,
+    "mortgage": 66000,
+    "monthlyCashFlow": 7000
+  },
+  {
+    "id": "opp-apt-008",
+    "deck": "opportunity",
+    "type": "apartment",
+    "modes": [
+      "family",
+      "full"
+    ],
+    "title": "דירה בקומה תשיעית בלי מעלית",
+    "text": "המחיר מפתה, השוכרים פחות. כל פעם שהם עולים עם הקניות הם מתקשרים לספר לכם על זה.",
+    "price": 800000,
+    "downPayment": 36000,
+    "mortgage": 764000,
+    "monthlyCashFlow": 300
+  },
+  {
+    "id": "opp-apt-009",
+    "deck": "opportunity",
+    "type": "apartment",
+    "modes": [
+      "family",
+      "full"
+    ],
+    "title": "דירה עם \"פוטנציאל\"",
+    "text": "המתווך אמר \"פוטנציאל\" שבע פעמים. במציאות, זו דירה עם שיפוץ ענק בדרך.",
+    "price": 500000,
+    "downPayment": 27000,
+    "mortgage": 473000,
+    "monthlyCashFlow": -2200
+  },
+  {
+    "id": "opp-biz-009",
+    "deck": "opportunity",
+    "type": "business",
+    "modes": [
+      "family",
+      "full"
+    ],
+    "title": "בית קפה במרכז מסחרי שומם",
+    "text": "הקפה מצוין, הלקוחות פחות. הרבה שולחנות ריקים וגם אפקט הד.",
+    "price": 90000,
+    "downPayment": 40500,
+    "mortgage": 49500,
+    "monthlyCashFlow": 600
+  },
+  {
+    "id": "opp-biz-010",
+    "deck": "opportunity",
+    "type": "business",
+    "modes": [
+      "family",
+      "full"
+    ],
+    "title": "קיוסק על כביש שנסגר",
+    "text": "העירייה הודיעה שהכביש ייסגר לשיפוצים, בעוד כמה חודשים. או שנים.",
+    "price": 50000,
+    "downPayment": 22500,
+    "mortgage": 27500,
+    "monthlyCashFlow": -2800
+  },
+  {
+    "id": "opp-apt-010",
+    "deck": "opportunity",
+    "type": "apartment",
+    "modes": [
+      "family",
+      "full"
+    ],
+    "title": "דירה מול המפעל",
+    "text": "המחיר מצחיק, הריח פחות. כולם מבטיחים שמתרגלים תוך שבוע. אף אחד לא נשאר שבוע.",
+    "price": 600000,
+    "downPayment": 31500,
+    "mortgage": 568500,
+    "monthlyCashFlow": -2000
+  },
+  {
+    "id": "opp-biz-011",
+    "deck": "opportunity",
+    "type": "business",
+    "modes": [
+      "family",
+      "full"
+    ],
+    "title": "מועדון בולינג לא פופולרי",
+    "text": "מגרשי הבולינג ריקים, התשלומים על המכונות מלאים. כבר מנגנים ל\"אולי\".",
+    "price": 100000,
+    "downPayment": 45000,
+    "mortgage": 55000,
+    "monthlyCashFlow": -3200
+  },
+  {
+    "id": "opp-stk-001",
+    "deck": "opportunity",
+    "type": "stock",
+    "modes": [
+      "full"
+    ],
+    "title": "מניית חם-קר מזגנים",
+    "text": "חברת מזגנים שמרוויחה כל קיץ מחדש, ובקיץ שאחריו עוד יותר. מחיר למניה כתוב כאן, כמה לקחת?",
+    "symbol": "ELM",
+    "price": 40,
+    "dividend": 1.8,
+    "maxQty": 500
+  },
+  {
+    "id": "opp-stk-002",
+    "deck": "opportunity",
+    "type": "stock",
+    "modes": [
+      "full"
+    ],
+    "title": "מניית מי-אביב",
+    "text": "חברת מים מינרליים. יציבה, משעממת ולעיתים קרובות שקופה.",
+    "symbol": "MAV",
+    "price": 20,
+    "dividend": 0.9,
+    "maxQty": 1000
+  },
+  {
+    "id": "opp-stk-003",
+    "deck": "opportunity",
+    "type": "stock",
+    "modes": [
+      "full"
+    ],
+    "title": "מניית שמש-נגב אנרגיה",
+    "text": "שדות סולאריים במדבר. יש הרבה שמש, ואף אחד לא מתלונן על הנוף.",
+    "symbol": "SOL",
+    "price": 100,
+    "dividend": 4.5,
+    "maxQty": 200
+  },
+  {
+    "id": "exp-001",
+    "deck": "expense",
+    "modes": [
+      "family",
+      "full"
+    ],
+    "title": "מכונת הכביסה התפוצצה",
+    "text": "משהו נשמע כמו מסוק מעל המרפסת, ואז באה הצפה. מכונה חדשה כבר בדרך.",
+    "amount": 4500
+  },
+  {
+    "id": "exp-002",
+    "deck": "expense",
+    "modes": [
+      "family",
+      "full"
+    ],
+    "title": "הרכב ביקש טיפול גדול",
+    "text": "המוסכניק אמר: \"תראה, זה לא נורא\", וזו היתה הפעם הראשונה שהוא שיקר.",
+    "amount": 7500
+  },
+  {
+    "id": "exp-003",
+    "deck": "expense",
+    "modes": [
+      "family",
+      "full"
+    ],
+    "title": "חתונה של בן דוד שלישי",
+    "text": "אתם לא בטוחים שפגשתם אותו אי פעם, אבל המעטפה צריכה להיות מכובדת.",
+    "amount": 3600
+  },
+  {
+    "id": "exp-004",
+    "deck": "expense",
+    "modes": [
+      "family",
+      "full"
+    ],
+    "title": "נזילה מתחת לכיור",
+    "text": "האינסטלטור הגיע אחרי יומיים. \"זה חתיכה קטנה\", הוא אמר, וחתיכה קטנה עלתה כסף גדול.",
+    "amount": 3000
+  },
+  {
+    "id": "exp-005",
+    "deck": "expense",
+    "modes": [
+      "family",
+      "full"
+    ],
+    "title": "כאב שיניים ביום שישי",
+    "text": "הרופא פתאום זמין, אבל רק בתשלום מלא.",
+    "amount": 6000
+  },
+  {
+    "id": "exp-006",
+    "deck": "expense",
+    "modes": [
+      "family",
+      "full"
+    ],
+    "title": "הטלפון נפל לים",
+    "text": "אמרתם \"סתם צילום אחרון עם הגלים\". הגלים ענו.",
+    "amount": 6600
+  },
+  {
+    "id": "exp-007",
+    "deck": "expense",
+    "modes": [
+      "family",
+      "full"
+    ],
+    "title": "בר מצווה במשפחה",
+    "text": "המתנה, הבגדים, ודוד אחד שמתעקש על קייטרינג של פעם.",
+    "amount": 4500
+  },
+  {
+    "id": "exp-008",
+    "deck": "expense",
+    "modes": [
+      "family",
+      "full"
+    ],
+    "title": "חשבון חשמל של הקיץ",
+    "text": "המזגן עבד בהתנדבות מלאה, אבל החברה לא התנדבה.",
+    "amount": 2700
+  },
+  {
+    "id": "exp-009",
+    "deck": "expense",
+    "modes": [
+      "family",
+      "full"
+    ],
+    "title": "קנס חניה",
+    "text": "שלט קטן, אותיות קטנות, קנס גדול.",
+    "amount": 1500
+  },
+  {
+    "id": "exp-010",
+    "deck": "expense",
+    "modes": [
+      "family",
+      "full"
+    ],
+    "title": "המחשב נתקע לגמרי",
+    "text": "עיגול טעינה סובב וסובב וסובב, ולבסוף נכנע. מחשב חדש מתקבל בברכה.",
+    "amount": 6000
+  },
+  {
+    "id": "exp-011",
+    "deck": "expense",
+    "modes": [
+      "family",
+      "full"
+    ],
+    "title": "גג דולף אחרי הגשם הראשון",
+    "text": "השכנים צוחקים: \"תמיד בגשם הראשון\". אתם לא צוחקים.",
+    "amount": 5400
+  },
+  {
+    "id": "exp-012",
+    "deck": "expense",
+    "modes": [
+      "family",
+      "full"
+    ],
+    "title": "טיסה לא מתוכננת לדודה",
+    "text": "כרטיס ברגע האחרון, מחיר ברגע האחרון, אהבה שאין לה מחיר.",
+    "amount": 4500
+  },
+  {
+    "id": "exp-013",
+    "deck": "expense",
+    "modes": [
+      "family",
+      "full"
+    ],
+    "title": "משקפיים חדשים לילד",
+    "text": "הוא שבר אותם בכדורגל, בפעם השלישית השנה. הפעם בחרו מסגרת עם נעילה.",
+    "amount": 1800
+  },
+  {
+    "id": "exp-014",
+    "deck": "expense",
+    "modes": [
+      "family",
+      "full"
+    ],
+    "title": "ציוד לבית ספר",
+    "text": "רשימה של שש עמודים וצבעים שלא קיימים בטבע. נזכרתם שזה רק ספטמבר.",
+    "amount": 1500
+  },
+  {
+    "id": "exp-015",
+    "deck": "expense",
+    "modes": [
+      "full"
+    ],
+    "title": "החתול שבר את מזגן הסלון",
+    "text": "נראה לכם סביר? גם לוטרינר, גם טכנאי.",
+    "amount": 3000
+  },
+  {
+    "id": "mkt-001",
+    "deck": "market",
+    "modes": [
+      "full"
+    ],
+    "effect": "offer",
+    "title": "זוג צעיר מחפש דירה",
+    "text": "הם אוהבים את השכונה, את השמש ואת תנאי המשכנתא. הם מציעים הרבה יותר מהמחיר.",
+    "targetType": "apartment",
+    "offerPct": 1.25
+  },
+  {
+    "id": "mkt-002",
+    "deck": "market",
+    "modes": [
+      "full"
+    ],
+    "effect": "offer",
+    "title": "משקיע מחו״ל",
+    "text": "הוא רוצה לקנות דירה בישראל, ולא מתעניין בפרטים. כמה מוזר.",
+    "targetType": "apartment",
+    "offerPct": 1.4
+  },
+  {
+    "id": "mkt-003",
+    "deck": "market",
+    "modes": [
+      "full"
+    ],
+    "effect": "offer",
+    "title": "שכן שרוצה להרחיב",
+    "text": "הוא משלם מעל המחיר, ובתמורה מבקש רק שלא תספרו לאשתו כמה זה עלה.",
+    "targetType": "apartment",
+    "offerPct": 1.15
+  },
+  {
+    "id": "mkt-004",
+    "deck": "market",
+    "modes": [
+      "full"
+    ],
+    "effect": "offer",
+    "title": "רשת מזון שרוצה סניף",
+    "text": "הם יקנו את העסק שלכם, כולל השם, כולל הלקוחות, כולל הקפה.",
+    "targetType": "business",
+    "offerPct": 1.3
+  },
+  {
+    "id": "mkt-005",
+    "deck": "market",
+    "modes": [
+      "full"
+    ],
+    "effect": "offer",
+    "title": "שותף לשעבר חוזר",
+    "text": "הוא מבטיח שהפעם זה אחרת, ומציע מחיר טוב כדי להוכיח את זה.",
+    "targetType": "business",
+    "offerPct": 1.2
+  },
+  {
+    "id": "mkt-006",
+    "deck": "market",
+    "modes": [
+      "full"
+    ],
+    "effect": "stockPrice",
+    "title": "קיץ חם במיוחד",
+    "text": "כל המזגנים נמכרו עד האחרון. מניית חם-קר מזנקת.",
+    "symbol": "ELM",
+    "newPrice": 55
+  },
+  {
+    "id": "mkt-007",
+    "deck": "market",
+    "modes": [
+      "full"
+    ],
+    "effect": "stockPrice",
+    "title": "דו״ח רבעוני מאכזב",
+    "text": "מי-אביב דיווחה שהמים היו רטובים פחות מהצפוי. המניה יורדת.",
+    "symbol": "MAV",
+    "newPrice": 14
+  },
+  {
+    "id": "mkt-008",
+    "deck": "market",
+    "modes": [
+      "full"
+    ],
+    "effect": "stockPrice",
+    "title": "שדה סולארי חדש בנגב",
+    "text": "שמש-נגב מודיעה על חוזה חדש. התגובה בבורסה: כן!",
+    "symbol": "SOL",
+    "newPrice": 130
+  },
+  {
+    "id": "mkt-009",
+    "deck": "market",
+    "modes": [
+      "full"
+    ],
+    "effect": "stockPrice",
+    "title": "חורף גשום",
+    "text": "דרישה נמוכה למזגנים, מניית חם-קר חוזרת לקרקע.",
+    "symbol": "ELM",
+    "newPrice": 32
+  },
+  {
+    "id": "mkt-010",
+    "deck": "market",
+    "modes": [
+      "family",
+      "full"
+    ],
+    "effect": "cash",
+    "title": "בונוס חג",
+    "text": "המנהל נזכר שיש עובדים. תודה, ראש השנה!",
+    "amount": 1500
+  },
+  {
+    "id": "mkt-011",
+    "deck": "market",
+    "modes": [
+      "family",
+      "full"
+    ],
+    "effect": "cash",
+    "title": "החזר מס",
+    "text": "פקיד המס כתב לכם מכתב נחמד עם מספר חיובי. בפעם הראשונה.",
+    "amount": 2000
+  },
+  {
+    "id": "mkt-012",
+    "deck": "market",
+    "modes": [
+      "family",
+      "full"
+    ],
+    "effect": "cash",
+    "title": "פיצוי על טיסה שבוטלה",
+    "text": "חכמתם לבקש את הפיצוי בכתב. החברה נאנחה והעבירה.",
+    "amount": 1200
+  },
+  {
+    "id": "mkt-013",
+    "deck": "market",
+    "modes": [
+      "family",
+      "full"
+    ],
+    "effect": "cash",
+    "title": "התייקרות בסופר",
+    "text": "החומוס עלה, השמן עלה, ומי שלא עלה הוא המשכורת. מוציאים עוד קצת.",
+    "amount": -800
+  },
+  {
+    "id": "mkt-014",
+    "deck": "market",
+    "modes": [
+      "family",
+      "full"
+    ],
+    "effect": "cash",
+    "title": "מתנה מהסבתא",
+    "text": "במעטפה יש שטר ופתק: \"תקנו משהו חכם\". קנו משהו חכם.",
+    "amount": 1000
+  },
+  {
+    "id": "mkt-015",
+    "deck": "market",
+    "modes": [
+      "full"
+    ],
+    "effect": "cash",
+    "title": "ריבית עולה",
+    "text": "הבנק הודיע שיש \"שינוי קל\", והשינוי היה בעיקר אצלכם בכיס.",
+    "amount": -600
+  }
+]

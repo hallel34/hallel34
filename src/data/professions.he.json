@@ -1,0 +1,362 @@
+[
+  {
+    "id": "teacher",
+    "title": "מורה",
+    "salary": 8800,
+    "savings": 9000,
+    "perChild": 450,
+    "expenses": [
+      {
+        "id": "tax",
+        "label": "מסים וביטוח לאומי",
+        "amount": 900
+      },
+      {
+        "id": "housing",
+        "label": "שכר דירה",
+        "amount": 3000
+      },
+      {
+        "id": "food",
+        "label": "סופר ואוכל",
+        "amount": 1300
+      },
+      {
+        "id": "transport",
+        "label": "תחבורה",
+        "amount": 500
+      },
+      {
+        "id": "other",
+        "label": "חוגים, פלאפון ושונות",
+        "amount": 600
+      }
+    ],
+    "liabilities": [
+      {
+        "id": "car",
+        "label": "הלוואת רכב",
+        "principal": 18000,
+        "monthlyPayment": 450
+      },
+      {
+        "id": "card",
+        "label": "חוב בכרטיס אשראי",
+        "principal": 5000,
+        "monthlyPayment": 150
+      }
+    ]
+  },
+  {
+    "id": "engineer",
+    "title": "מהנדס/ת",
+    "salary": 11500,
+    "savings": 14000,
+    "perChild": 600,
+    "expenses": [
+      {
+        "id": "tax",
+        "label": "מסים וביטוח לאומי",
+        "amount": 1700
+      },
+      {
+        "id": "housing",
+        "label": "שכר דירה",
+        "amount": 3300
+      },
+      {
+        "id": "food",
+        "label": "סופר ואוכל",
+        "amount": 1500
+      },
+      {
+        "id": "transport",
+        "label": "תחבורה",
+        "amount": 700
+      },
+      {
+        "id": "other",
+        "label": "כושר, בילויים ושונות",
+        "amount": 800
+      }
+    ],
+    "liabilities": [
+      {
+        "id": "car",
+        "label": "הלוואת רכב",
+        "principal": 40000,
+        "monthlyPayment": 900
+      },
+      {
+        "id": "student",
+        "label": "הלוואת סטודנט",
+        "principal": 20000,
+        "monthlyPayment": 300
+      }
+    ]
+  },
+  {
+    "id": "driver",
+    "title": "נהג/ת מונית",
+    "salary": 8200,
+    "savings": 6000,
+    "perChild": 400,
+    "expenses": [
+      {
+        "id": "tax",
+        "label": "מסים וביטוח לאומי",
+        "amount": 800
+      },
+      {
+        "id": "housing",
+        "label": "שכר דירה",
+        "amount": 2700
+      },
+      {
+        "id": "food",
+        "label": "סופר ואוכל",
+        "amount": 1300
+      },
+      {
+        "id": "transport",
+        "label": "דלק וטיפולים",
+        "amount": 800
+      },
+      {
+        "id": "other",
+        "label": "פלאפון ושונות",
+        "amount": 500
+      }
+    ],
+    "liabilities": [
+      {
+        "id": "car",
+        "label": "הלוואת רכב",
+        "principal": 30000,
+        "monthlyPayment": 600
+      }
+    ]
+  },
+  {
+    "id": "nurse",
+    "title": "אח/ות",
+    "salary": 9800,
+    "savings": 8000,
+    "perChild": 500,
+    "expenses": [
+      {
+        "id": "tax",
+        "label": "מסים וביטוח לאומי",
+        "amount": 1100
+      },
+      {
+        "id": "housing",
+        "label": "שכר דירה",
+        "amount": 3450
+      },
+      {
+        "id": "food",
+        "label": "סופר ואוכל",
+        "amount": 1300
+      },
+      {
+        "id": "transport",
+        "label": "תחבורה",
+        "amount": 600
+      },
+      {
+        "id": "other",
+        "label": "קפה של אחרי משמרת ושונות",
+        "amount": 600
+      }
+    ],
+    "liabilities": [
+      {
+        "id": "car",
+        "label": "הלוואת רכב",
+        "principal": 20000,
+        "monthlyPayment": 500
+      },
+      {
+        "id": "student",
+        "label": "הלוואת לימודים",
+        "principal": 12000,
+        "monthlyPayment": 250
+      }
+    ]
+  },
+  {
+    "id": "programmer",
+    "title": "מפתח/ת תוכנה",
+    "salary": 12000,
+    "savings": 16000,
+    "perChild": 600,
+    "expenses": [
+      {
+        "id": "tax",
+        "label": "מסים וביטוח לאומי",
+        "amount": 2000
+      },
+      {
+        "id": "housing",
+        "label": "שכר דירה",
+        "amount": 4550
+      },
+      {
+        "id": "food",
+        "label": "סופר ומשלוחים",
+        "amount": 1700
+      },
+      {
+        "id": "transport",
+        "label": "תחבורה",
+        "amount": 600
+      },
+      {
+        "id": "other",
+        "label": "מנויים וקפה",
+        "amount": 900
+      }
+    ],
+    "liabilities": [
+      {
+        "id": "card",
+        "label": "חוב בכרטיס אשראי",
+        "principal": 8000,
+        "monthlyPayment": 250
+      }
+    ]
+  },
+  {
+    "id": "police",
+    "title": "שוטר/ת",
+    "salary": 9300,
+    "savings": 7000,
+    "perChild": 450,
+    "expenses": [
+      {
+        "id": "tax",
+        "label": "מסים וביטוח לאומי",
+        "amount": 1000
+      },
+      {
+        "id": "housing",
+        "label": "שכר דירה",
+        "amount": 3250
+      },
+      {
+        "id": "food",
+        "label": "סופר ואוכל",
+        "amount": 1300
+      },
+      {
+        "id": "transport",
+        "label": "תחבורה",
+        "amount": 600
+      },
+      {
+        "id": "other",
+        "label": "שונות",
+        "amount": 600
+      }
+    ],
+    "liabilities": [
+      {
+        "id": "car",
+        "label": "הלוואת רכב",
+        "principal": 22000,
+        "monthlyPayment": 550
+      }
+    ]
+  },
+  {
+    "id": "cook",
+    "title": "טבח/ית",
+    "salary": 7800,
+    "savings": 5000,
+    "perChild": 400,
+    "expenses": [
+      {
+        "id": "tax",
+        "label": "מסים וביטוח לאומי",
+        "amount": 700
+      },
+      {
+        "id": "housing",
+        "label": "שכר דירה",
+        "amount": 3300
+      },
+      {
+        "id": "food",
+        "label": "סופר (אוכלים במטבח...)",
+        "amount": 1000
+      },
+      {
+        "id": "transport",
+        "label": "תחבורה",
+        "amount": 500
+      },
+      {
+        "id": "other",
+        "label": "שונות",
+        "amount": 500
+      }
+    ],
+    "liabilities": [
+      {
+        "id": "card",
+        "label": "חוב בכרטיס אשראי",
+        "principal": 6000,
+        "monthlyPayment": 200
+      }
+    ]
+  },
+  {
+    "id": "lawyer",
+    "title": "עורך/ת דין",
+    "salary": 12500,
+    "savings": 15000,
+    "perChild": 600,
+    "expenses": [
+      {
+        "id": "tax",
+        "label": "מסים וביטוח לאומי",
+        "amount": 2400
+      },
+      {
+        "id": "housing",
+        "label": "שכר דירה",
+        "amount": 3550
+      },
+      {
+        "id": "food",
+        "label": "סופר ואוכל",
+        "amount": 1700
+      },
+      {
+        "id": "transport",
+        "label": "תחבורה וחניה",
+        "amount": 900
+      },
+      {
+        "id": "other",
+        "label": "חליפות ושונות",
+        "amount": 900
+      }
+    ],
+    "liabilities": [
+      {
+        "id": "car",
+        "label": "הלוואת רכב",
+        "principal": 45000,
+        "monthlyPayment": 1000
+      },
+      {
+        "id": "student",
+        "label": "הלוואת לימודים",
+        "principal": 25000,
+        "monthlyPayment": 350
+      }
+    ]
+  }
+]
