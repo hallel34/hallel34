@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="../../src/styles/fonts.css">
+<link rel="stylesheet" href="../../src/styles/tokens.css">
+<link rel="stylesheet" href="./v3.css">
+<title>פסיבו – לוח (v3: שני וריאנטים)</title>
+</head>
+<body>
+<div><p class="cap">A. Night city (recommended) - skyline, lit windows, navy night board</p>
+<div class="frame" style="background:var(--grad-night)">
+
+  <div class="glass" style="margin:12px 12px 0;padding:10px 14px 12px;display:flex;flex-direction:column;gap:8px">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div style="display:flex;align-items:center;gap:10px"><div style="width:40px;height:40px;border-radius:20px;background:var(--c-fox-500);color:#2A1700;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:18px">מ</div><div style="display:flex;flex-direction:column"><b style="font-size:15px">מורה לחינוך מיוחד</b><span style="font-size:13px;color:var(--text-muted)">תור 7 מתוך כ-20</span></div></div>
+      <button class="icon-btn" aria-label="דוח הכנסות"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"/></svg></button>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px"><img src="../../src/assets/coin-small.svg" width="30" height="30" alt=""><span class="num" style="font-size:30px;line-height:1;font-weight:900;color:var(--cash-color)">₪14,250</span><span class="num" style="margin-inline-start:auto;white-space:nowrap;padding:3px 8px;border-radius:12px;background:rgb(95 224 174/.18);color:var(--income);font-size:13px;font-weight:700">+₪1,350 לחודש</span></div>
+    <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--text-muted)"><span>הכנסה פסיבית <b class="num" style="color:var(--passive)">₪1,800</b></span><span>הוצאות <b class="num" style="color:var(--expense)">₪4,200</b></span></div>
+    <div style="position:relative;height:14px;border-radius:7px;background:var(--meter-track);overflow:hidden"><div style="width:43%;height:100%;border-radius:7px;background:var(--passive-fill)"></div></div>
+  </div>
+
+  <div class="abs" style="inset-inline:12px;top:176px;height:344px;border-radius:26px;background:linear-gradient(180deg,#0A1533 0%,#12275A 100%);border:1px solid var(--glass-border);overflow:hidden">
+    <svg class="abs" style="inset-inline:0;bottom:0;pointer-events:none" width="336" height="110" viewBox="0 0 336 110" aria-hidden="true"><g fill="#091330" opacity=".9"><rect x="4" y="60" width="28" height="50"/><rect x="36" y="42" width="22" height="68"/><rect x="62" y="70" width="34" height="40"/><rect x="100" y="36" width="24" height="74"/><rect x="128" y="64" width="30" height="46"/><rect x="162" y="50" width="20" height="60"/><rect x="186" y="72" width="36" height="38"/><rect x="226" y="40" width="24" height="70"/><rect x="254" y="66" width="32" height="44"/><rect x="290" y="48" width="42" height="62"/></g><g fill="var(--skyline-window)" opacity=".85"><rect x="42" y="52" width="3" height="4"/><rect x="46" y="64" width="3" height="4"/><rect x="106" y="48" width="3" height="4"/><rect x="112" y="62" width="3" height="4"/><rect x="232" y="52" width="3" height="4"/><rect x="298" y="60" width="3" height="4"/><rect x="316" y="74" width="3" height="4"/></g></svg>
+    <div data-board style="position:absolute;inset:0;display:grid;grid-template-columns:repeat(7,42px);grid-template-rows:repeat(7,42px);gap:4px;justify-content:center;align-content:center"></div>
+    <div style="position:absolute;inset-inline:62px;top:62px;bottom:62px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border-radius:18px;background:radial-gradient(circle at 50% 35%,rgb(242 181 58/.2),rgb(255 255 255/.02) 70%)">
+      <img src="../../src/assets/die-4.svg" width="64" height="64" alt="" style="filter:drop-shadow(0 8px 6px rgb(0 0 0/.45));transform:rotate(-8deg)">
+      <span style="font-size:13px;font-weight:700;color:var(--text-soft)">תור 7 · משכורת בדרך</span>
+    </div>
+  </div>
+  <div class="pop" style="inset-inline-end:16px;top:530px;width:56px;height:56px"><img src="../../src/assets/fox/think.webp" alt=""></div>
+  <img class="abs bob" src="../../src/assets/fox/roll@2x.webp" alt="" style="height:128px;width:auto;inset-inline-start:14px;bottom:104px;filter:drop-shadow(0 10px 12px rgb(0 0 0/.45))">
+  <div class="abs" style="inset-inline-start:140px;inset-inline-end:84px;bottom:112px"><div class="glass" style="padding:10px 14px;border-radius:18px;font-size:14px;color:var(--text-soft);line-height:1.35">נחתתם על <b style="color:var(--asset)">הזדמנות</b>. מעניין מה מחכה שם.</div></div>
+  <div class="abs" style="inset-inline:16px;bottom:24px"><button class="btn btn-primary" style="width:100%;height:64px"><img src="../../src/assets/die-3.svg" width="30" height="30" alt=""><span>זרקו קוביה</span></button></div>
+</div></div>
+<div><p class="cap">B. Tabletop felt - blue-green baize, brass stitching, wood rim</p>
+<div class="frame" style="background:var(--bg)">
+
+  <div class="glass" style="margin:12px 12px 0;padding:10px 14px 12px;display:flex;flex-direction:column;gap:8px">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div style="display:flex;align-items:center;gap:10px"><div style="width:40px;height:40px;border-radius:20px;background:var(--c-fox-500);color:#2A1700;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:18px">מ</div><div style="display:flex;flex-direction:column"><b style="font-size:15px">מורה לחינוך מיוחד</b><span style="font-size:13px;color:var(--text-muted)">תור 7 מתוך כ-20</span></div></div>
+      <button class="icon-btn" aria-label="דוח הכנסות"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"/></svg></button>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px"><img src="../../src/assets/coin-small.svg" width="30" height="30" alt=""><span class="num" style="font-size:30px;line-height:1;font-weight:900;color:var(--cash-color)">₪14,250</span><span class="num" style="margin-inline-start:auto;white-space:nowrap;padding:3px 8px;border-radius:12px;background:rgb(95 224 174/.18);color:var(--income);font-size:13px;font-weight:700">+₪1,350 לחודש</span></div>
+    <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--text-muted)"><span>הכנסה פסיבית <b class="num" style="color:var(--passive)">₪1,800</b></span><span>הוצאות <b class="num" style="color:var(--expense)">₪4,200</b></span></div>
+    <div style="position:relative;height:14px;border-radius:7px;background:var(--meter-track);overflow:hidden"><div style="width:43%;height:100%;border-radius:7px;background:var(--passive-fill)"></div></div>
+  </div>
+
+  <div class="abs" style="inset-inline:12px;top:176px;height:344px;border-radius:26px;background:var(--grad-felt);border:3px solid #7A5A2E;box-shadow:inset 0 0 0 3px rgb(0 0 0/.25),inset 0 0 40px rgb(0 0 0/.4);overflow:hidden">
+    <svg class="abs" style="inset:0;pointer-events:none" width="336" height="350" viewBox="0 0 336 350" aria-hidden="true"><rect x="6" y="6" width="318" height="338" rx="20" fill="none" stroke="#F2B53A" stroke-opacity=".5" stroke-width="2" stroke-dasharray="6 6"/></svg>
+    <div data-board style="position:absolute;inset:0;display:grid;grid-template-columns:repeat(7,42px);grid-template-rows:repeat(7,42px);gap:4px;justify-content:center;align-content:center"></div>
+    <div style="position:absolute;inset-inline:62px;top:62px;bottom:62px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border-radius:18px;background:radial-gradient(circle at 50% 35%,rgb(242 181 58/.2),rgb(255 255 255/.02) 70%)">
+      <img src="../../src/assets/die-4.svg" width="64" height="64" alt="" style="filter:drop-shadow(0 8px 6px rgb(0 0 0/.45));transform:rotate(-8deg)">
+      <span style="font-size:13px;font-weight:700;color:var(--text-soft)">תור 7 · משכורת בדרך</span>
+    </div>
+  </div>
+  <div class="pop" style="inset-inline-end:16px;top:530px;width:56px;height:56px"><img src="../../src/assets/fox/think.webp" alt=""></div>
+  <img class="abs bob" src="../../src/assets/fox/roll@2x.webp" alt="" style="height:128px;width:auto;inset-inline-start:14px;bottom:104px;filter:drop-shadow(0 10px 12px rgb(0 0 0/.45))">
+  <div class="abs" style="inset-inline-start:140px;inset-inline-end:84px;bottom:112px"><div class="glass" style="padding:10px 14px;border-radius:18px;font-size:14px;color:var(--text-soft);line-height:1.35">נחתתם על <b style="color:var(--asset)">הזדמנות</b>. מעניין מה מחכה שם.</div></div>
+  <div class="abs" style="inset-inline:16px;bottom:24px"><button class="btn btn-primary" style="width:100%;height:64px"><img src="../../src/assets/die-3.svg" width="30" height="30" alt=""><span>זרקו קוביה</span></button></div>
+</div></div>
+<script>
+const types=['payday', 'opportunity', 'expense', 'opportunity', 'market', 'baby', 'opportunity', 'charity', 'expense', 'opportunity', 'market', 'payday', 'opportunity', 'expense', 'baby', 'opportunity', 'market', 'opportunity', 'expense', 'charity', 'opportunity', 'market', 'baby', 'opportunity'];
+const cells=[];for(let c=0;c<7;c++)cells.push([0,c]);for(let r=1;r<7;r++)cells.push([r,6]);for(let c=5;c>=0;c--)cells.push([6,c]);for(let r=5;r>=1;r--)cells.push([r,0]);
+document.querySelectorAll('[data-board]').forEach(g=>{cells.forEach(([r,c],i)=>{const d=document.createElement('div');d.style.cssText=`grid-row:${r+1};grid-column:${c+1};position:relative;border-radius:10px;${i===7?'box-shadow:0 0 0 3px #fff,0 0 16px 2px rgb(242 181 58/.9);':''}`;d.innerHTML=`<img src="../../src/assets/square-${types[i]}.svg" width="42" height="42" alt="" style="display:block">`+(i===7?'<img src="../../src/assets/pawn.svg" width="36" height="40" alt="" style="position:absolute;inset-inline-start:3px;top:-16px;filter:drop-shadow(0 6px 5px rgb(0 0 0/.55))">':'');g.appendChild(d)})});
+</script>
+</body>
+</html>

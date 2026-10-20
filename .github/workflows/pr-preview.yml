@@ -1,0 +1,55 @@
+name: PR preview
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, closed]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency: preview-${{ github.ref }}
+
+jobs:
+  verify:
+    if: github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Unit tests
+        run: npm test
+      - name: Build
+        run: npm run build
+      - name: Install Chromium for the smoke test
+        run: npx playwright install --with-deps chromium
+      - name: Full-flow smoke test (360x800, start to win)
+        run: npm run smoke
+
+  preview:
+    needs: [verify]
+    if: always() && (github.event.action == 'closed' || needs.verify.result == 'success')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        if: github.event.action != 'closed'
+        with:
+          node-version: 22
+          cache: npm
+      - name: Build for the preview path
+        if: github.event.action != 'closed'
+        run: |
+          npm ci
+          npm run build
+        env:
+          # Vite base: service worker scope, assets and manifest all resolve under this path.
+          BASE_PATH: /${{ github.event.repository.name }}/pr-preview/pr-${{ github.event.number }}/
+      - name: Deploy / remove preview
+        uses: rossjrw/pr-preview-action@v1
+        with:
+          source-dir: ./dist

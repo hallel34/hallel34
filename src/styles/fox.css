@@ -1,0 +1,75 @@
+/* Passivo the fox (design/fox-usage.md). Cutouts keep their aspect ratio (height drives size, width:auto);
+   reaction crops are always circles with a 3px gold ring. The fox never takes pointer events (except the start tap-squash). */
+.fox { display: block; max-inline-size: none; pointer-events: none; user-select: none; -webkit-user-drag: none;
+  filter: drop-shadow(0 12px 16px rgb(0 0 0 / .45)); }
+.fox-pop {
+  position: relative; box-sizing: border-box; inline-size: var(--pop, 56px); block-size: var(--pop, 56px); border-radius: 50%; overflow: hidden;
+  border: 3px solid var(--c-gold-400); background: var(--c-navy-900);
+  box-shadow: 0 0 0 3px rgb(242 181 58 / .25), 0 8px 18px rgb(0 0 0 / .45); pointer-events: none; z-index: 2;
+}
+.fox-pop .fox { inline-size: 100%; block-size: 100%; object-fit: cover; filter: none; }
+.fox-corner { position: absolute; inset-inline-end: 12px; inset-block-end: 10px; }
+.fox-dialog { inset-inline-end: 16px; inset-block: -24px auto; }
+.fox-sheet { position: absolute; inset-inline-end: 20px; inset-block-start: -28px; }
+
+/* Gold halo behind hero poses */
+.fox-halo { position: absolute; background: var(--glow-fox); border-radius: 50%; pointer-events: none; z-index: 0; }
+.fox-stage .fox-halo { inset-block: -6%; inset-inline: -16px 0; }
+.fox-halo-win { inset: -14% -22%; }
+.fox-halo-muted { inset: -14% -40%; background: radial-gradient(closest-side, rgb(134 150 200 / .24), rgb(134 150 200 / 0)); }
+
+/* Idle motion (tokens collapse to nothing under reduced motion; the animation is also removed outright) */
+.bob { animation: fox-bob var(--dur-bob) ease-in-out infinite; will-change: transform; }
+@keyframes fox-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(calc(var(--bob-height) * -1)); } }
+.sway { animation: fox-sway 3200ms ease-in-out infinite; transform-origin: 50% 100%; }
+@keyframes fox-sway { 0%, 100% { transform: rotate(-2deg); } 50% { transform: rotate(2deg); } }
+@media (prefers-reduced-motion: reduce) { .bob, .sway { animation: none !important; } }
+:root[data-motion="reduced"] .bob, :root[data-motion="reduced"] .sway { animation: none !important; }
+
+/* ===== Start: fox stage (tired / wave) ===== */
+.fox-stage { position: relative; align-self: stretch; flex: 0 1 296px; min-block-size: 150px; margin-block-start: 2px; }
+.fox-slot { position: absolute; inset-block: 0; inset-inline-start: 14px; aspect-ratio: 276 / 450; pointer-events: auto; z-index: 1; }
+.fox-slot .fox { position: absolute; inset: 0; inline-size: 100%; block-size: 100%; object-fit: contain; pointer-events: none; }
+.bubble {
+  position: absolute; inset-inline-end: 0; inset-block-start: 38px; inline-size: 116px; z-index: 2;
+  padding: 10px 14px; border-radius: 18px; border-end-end-radius: 4px; text-align: start;
+  background: var(--c-cream-100); color: var(--c-navy-900); font-size: .875rem; font-weight: var(--fw-bold); line-height: 1.3;
+  box-shadow: 0 6px 16px rgb(0 0 0 / .35);
+}
+
+/* ===== Board: roll zone (roll pose, status chip, family tip, reaction strip) ===== */
+.roll-zone { position: relative; flex: 1 1 0; min-block-size: 0; }
+.react-host { position: absolute; inset-block-start: calc(6px - var(--board-gap, 10px)); inset-inline-end: 4px; inline-size: 56px; block-size: 56px; pointer-events: none; z-index: 3; }
+.react-host .fox-pop { position: absolute; inset: 0; }
+.fox-roll {
+  position: absolute; inset-inline-start: 2px; inset-block-end: 0; block-size: var(--fox-roll-h, 128px); aspect-ratio: 431 / 450; pointer-events: none;
+  opacity: 0; transition: opacity 180ms var(--ease-in);
+}
+.fox-roll .fox { block-size: 100%; inline-size: auto; filter: drop-shadow(0 10px 12px rgb(0 0 0 / .45)); }
+.roll-zone[data-pose="roll"] .fox-roll { opacity: 1; transition: opacity var(--dur-base) var(--ease-out); }
+.status-chip {
+  position: absolute; inset-inline: calc(var(--fox-roll-h, 128px) * .958 + 12px) 72px; inset-block-end: 8px; max-block-size: 100%;
+  padding: 10px 14px; border-radius: 18px; font-size: .875rem; line-height: 1.35; color: var(--text-soft); overflow: hidden;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4; line-clamp: 4;
+}
+.status-chip[data-tone="good"] { border-inline-start: 4px solid var(--income); }
+.status-chip[data-tone="bad"] { border-inline-start: 4px solid var(--expense); }
+.fox-tip { display: none; position: absolute; inset-inline-start: 2px; inset-block-end: 0; align-items: flex-end; gap: 8px; z-index: 2; pointer-events: none; }
+.fox-tip > .fox { block-size: var(--fox-tip-h, 150px); inline-size: auto; }
+.roll-zone[data-pose="tip"] .fox-tip { display: flex; }
+.roll-zone[data-pose="tip"] .status-chip { display: none; }
+.tip-bubble {
+  position: relative; max-inline-size: 200px; margin-block-end: 10px; padding: 10px 14px; border-radius: 18px; border-end-start-radius: 4px;
+  background: var(--c-cream-100); color: var(--c-navy-900); font-size: .875rem; font-weight: var(--fw-bold); line-height: 1.35;
+  box-shadow: 0 6px 16px rgb(0 0 0 / .35);
+}
+
+/* ===== Win / game over ===== */
+.win-fox, .over-fox { position: relative; display: grid; place-items: center; z-index: 1; }
+.win-fox .hammock { position: relative; block-size: clamp(140px, 27dvh, 250px); inline-size: auto; z-index: 1; }
+.over-fox .fox { position: relative; block-size: min(200px, 25dvh); inline-size: auto; z-index: 1; }
+.glint { position: absolute; inset-inline-start: 24%; inset-block-end: 16%; inline-size: 34px; block-size: 34px; z-index: 2; pointer-events: none;
+  background: radial-gradient(circle, #fff 0 12%, rgb(255 226 122 / .85) 22%, rgb(255 226 122 / 0) 68%); opacity: 0; animation: glint 1400ms 900ms ease-out 1 both; }
+@keyframes glint { 0% { opacity: 0; transform: scale(.4); } 45% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(1.2); } }
+@media (prefers-reduced-motion: reduce) { .glint { animation: none; } }
+:root[data-motion="reduced"] .glint { animation: none; }
