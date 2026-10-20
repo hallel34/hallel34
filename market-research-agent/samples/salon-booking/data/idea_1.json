@@ -1,0 +1,388 @@
+{
+  "idea": "app for booking appointments at hair salons and barbers",
+  "keywords": [
+    "booking",
+    "appointments",
+    "hair",
+    "salons",
+    "barbers"
+  ],
+  "quotes": [],
+  "competitors": [
+    {
+      "name": "OverTor: Appointment Booking",
+      "type": "app",
+      "market": "Israel",
+      "url": "https://apps.apple.com/il/app/overtor-appointment-booking/id6756577439?uo=4",
+      "id": 6756577439,
+      "store": "il",
+      "genre": "Business",
+      "price": "free to download",
+      "price_num_usd": null,
+      "rating": 5,
+      "rating_count": 1,
+      "positioning": "Customers book on their own, 24/7, and your calendar fills up with no calls and no messages.",
+      "weakness_quotes": [],
+      "confidence": "medium"
+    },
+    {
+      "name": "Apple Store",
+      "type": "app",
+      "market": "Israel",
+      "url": "https://apps.apple.com/il/app/apple-store/id375380948?uo=4",
+      "id": 375380948,
+      "store": "il",
+      "genre": "Shopping",
+      "price": "free to download",
+      "price_num_usd": null,
+      "rating": 3.32488,
+      "rating_count": 1025,
+      "positioning": "The Apple Store app is the best and most seamless way to browse, learn about and shop the latest Apple products, no matter where you are.",
+      "weakness_quotes": [
+        {
+          "text": "Useless app. This is probably a virus, I can’t delete this app DONT DOWNLOAD",
+          "url": "https://apps.apple.com/il/app/apple-store/id375380948?uo=4",
+          "source": "App Store review of Apple Store",
+          "date": "2026-07-12",
+          "scope": "market",
+          "rating": 1
+        },
+        {
+          "text": "No store in Israel. About time to open the online store to Israel.",
+          "url": "https://apps.apple.com/il/app/apple-store/id375380948?uo=4",
+          "source": "App Store review of Apple Store",
+          "date": "2025-09-10",
+          "scope": "market",
+          "rating": 1
+        }
+      ],
+      "confidence": "medium"
+    },
+    {
+      "name": "Apple Support",
+      "type": "app",
+      "market": "Israel",
+      "url": "https://apps.apple.com/il/app/apple-support/id1130498044?uo=4",
+      "id": 1130498044,
+      "store": "il",
+      "genre": "Utilities",
+      "price": "free to download",
+      "price_num_usd": null,
+      "rating": 3.91538,
+      "rating_count": 260,
+      "positioning": "Need help?",
+      "weakness_quotes": [],
+      "confidence": "medium"
+    },
+    {
+      "name": "Schedulista Appointments",
+      "type": "app",
+      "market": "Israel",
+      "url": "https://apps.apple.com/il/app/schedulista-appointments/id579198489?uo=4",
+      "id": 579198489,
+      "store": "il",
+      "genre": "Business",
+      "price": "free to download",
+      "price_num_usd": null,
+      "rating": 5,
+      "rating_count": 1,
+      "positioning": "Schedulista provides easy appointment booking and online scheduling with automated text message and email appointment reminders, so your clients don't miss…",
+      "weakness_quotes": [],
+      "confidence": "medium"
+    },
+    {
+      "name": "Glambook: Beauty Booking App",
+      "type": "app",
+      "market": "Israel",
+      "url": "https://apps.apple.com/il/app/glambook-beauty-booking-app/id1525712977?uo=4",
+      "id": 1525712977,
+      "store": "il",
+      "genre": "Lifestyle",
+      "price": "free to download",
+      "price_num_usd": null,
+      "rating": 0,
+      "rating_count": 0,
+      "positioning": "Book beauty and salon appointments near you with Glambook.",
+      "weakness_quotes": [],
+      "confidence": "medium"
+    },
+    {
+      "name": "AppointMe - Booking App",
+      "type": "app",
+      "market": "Israel",
+      "url": "https://apps.apple.com/il/app/appointme-booking-app/id6737212910?uo=4",
+      "id": 6737212910,
+      "store": "il",
+      "genre": "Lifestyle",
+      "price": "free to download",
+      "price_num_usd": null,
+      "rating": 4.42856,
+      "rating_count": 7,
+      "positioning": "AppointMe makes booking your next self-care appointment a breeze.",
+      "weakness_quotes": [],
+      "confidence": "medium"
+    },
+    {
+      "name": "Square Appointments: Scheduler",
+      "type": "app",
+      "market": "global",
+      "url": "https://apps.apple.com/us/app/square-appointments-scheduler/id1023050786?uo=4",
+      "id": 1023050786,
+      "store": "us",
+      "genre": "Business",
+      "price": "free to download",
+      "price_num_usd": null,
+      "rating": 4.87845,
+      "rating_count": 195308,
+      "positioning": "Square Appointments is an all-in-one solution for booking and scheduling appointments, sending reminders, and accepting payments.",
+      "weakness_quotes": [],
+      "confidence": "medium"
+    },
+    {
+      "name": "Supercuts Hair Salon Check-in",
+      "type": "app",
+      "market": "global",
+      "url": "https://apps.apple.com/us/app/supercuts-hair-salon-check-in/id529129647?uo=4",
+      "id": 529129647,
+      "store": "us",
+      "genre": "Lifestyle",
+      "price": "free to download",
+      "price_num_usd": null,
+      "rating": 4.73447,
+      "rating_count": 83891,
+      "positioning": "Waiting is a drag.",
+      "weakness_quotes": [],
+      "confidence": "medium"
+    },
+    {
+      "name": "Hair Cuttery",
+      "type": "app",
+      "market": "global",
+      "url": "https://apps.apple.com/us/app/hair-cuttery/id532250946?uo=4",
+      "id": 532250946,
+      "store": "us",
+      "genre": "Lifestyle",
+      "price": "free to download",
+      "price_num_usd": null,
+      "rating": 4.85057,
+      "rating_count": 28623,
+      "positioning": "Your exceptional hair experience and a confidence boost • Browse & book appointments, check out special deals & promotions.",
+      "weakness_quotes": [],
+      "confidence": "medium"
+    },
+    {
+      "name": "SmartStyle Hair Salons",
+      "type": "app",
+      "market": "global",
+      "url": "https://apps.apple.com/us/app/smartstyle-hair-salons/id980388028?uo=4",
+      "id": 980388028,
+      "store": "us",
+      "genre": "Lifestyle",
+      "price": "free to download",
+      "price_num_usd": null,
+      "rating": 4.76152,
+      "rating_count": 4378,
+      "positioning": "Say hello to hassle-free hair with the SmartStyle app!",
+      "weakness_quotes": [],
+      "confidence": "medium"
+    }
+  ],
+  "competitor_stats": {
+    "count": 10,
+    "apps": 10,
+    "total_ratings": 313494,
+    "weakness_quotes": 2
+  },
+  "stats": {
+    "rows": [
+      {
+        "metric": "Population",
+        "value": "10,122,800",
+        "period": "2025",
+        "url": "https://api.worldbank.org/v2/country/ISR/indicator/SP.POP.TOTL?format=json&mrnev=1",
+        "checked": "2026-10-20",
+        "confidence": "high"
+      },
+      {
+        "metric": "Internet users (% of population)",
+        "value": "88.2",
+        "period": "2024",
+        "url": "https://api.worldbank.org/v2/country/ISR/indicator/IT.NET.USER.ZS?format=json&mrnev=1",
+        "checked": "2026-10-20",
+        "confidence": "high"
+      },
+      {
+        "metric": "GDP per person (current US$)",
+        "value": "60,336.8",
+        "period": "2025",
+        "url": "https://api.worldbank.org/v2/country/ISR/indicator/NY.GDP.PCAP.CD?format=json&mrnev=1",
+        "checked": "2026-10-20",
+        "confidence": "high"
+      },
+      {
+        "metric": "Official dataset: ספר סיווג טובין ביבוא - Israel Customs Book for import",
+        "value": "published by רשות המסים בישראל; modified 2026-10-20",
+        "period": "",
+        "url": "https://data.gov.il/dataset/customsbook",
+        "checked": "2026-10-20",
+        "confidence": "medium"
+      },
+      {
+        "metric": "Official dataset: ספר סיווג טובין ביצוא - Israel Customs Book for export",
+        "value": "published by רשות המסים בישראל; modified 2026-06-25",
+        "period": "",
+        "url": "https://data.gov.il/dataset/customsbookexport",
+        "checked": "2026-10-20",
+        "confidence": "medium"
+      },
+      {
+        "metric": "Demand proxy: total App Store ratings across the top competing apps found",
+        "value": "313,494 ratings over 10 apps",
+        "period": "now",
+        "url": "https://itunes.apple.com/search",
+        "checked": "2026-10-20",
+        "confidence": "medium"
+      }
+    ],
+    "unknown": [
+      {
+        "metric": "Market size (revenue per year) for this exact niche",
+        "value": "unknown",
+        "verify": "CBS household expenditure survey for the matching category, or an industry report; alternative: bottom-up = number of potential customers x price x realistic share."
+      },
+      {
+        "metric": "Number of potential customers in the target market",
+        "value": "unknown",
+        "verify": "CBS population tables filtered to the audience (age, region, business type), cross-checked with data.gov.il registries."
+      }
+    ]
+  },
+  "legal": [
+    {
+      "id": "copyright",
+      "severity": 3,
+      "en": "Copyright and scraping",
+      "he": "זכויות יוצרים וסריקת אתרים",
+      "why_en": "Using other people's content, images, music or scraped data without a licence can breach the Copyright Law (2007) and sites' terms of use.",
+      "why_he": "שימוש בתוכן, תמונות, מוזיקה או נתונים שנסרקו ללא רישיון עלול להפר את חוק זכות יוצרים (2007) ותנאי שימוש של אתרים.",
+      "url": "https://www.nevo.co.il/",
+      "confidence": "medium"
+    },
+    {
+      "id": "privacy",
+      "severity": 3,
+      "en": "Privacy Protection Law, 1981 incl. Amendment 13",
+      "he": "חוק הגנת הפרטיות, התשמ\"א-1981, כולל תיקון 13",
+      "why_en": "Any product that stores personal data must register/declare databases where required, name responsibilities, secure data, and honour access/deletion rights. Amendment 13 (in force from August 2025, as I know it - verify) widened definitions, duties and fines.",
+      "why_he": "כל מוצר ששומר מידע אישי חייב לעמוד בחובות רישום/דיווח על מאגרים (היכן שנדרש), אבטחת מידע וכיבוד זכויות עיון ומחיקה. תיקון 13 (בתוקף מאוגוסט 2025 לפי מיטב ידיעתי - יש לאמת) הרחיב הגדרות, חובות וקנסות.",
+      "url": "https://www.gov.il/en/departments/the_privacy_protection_authority",
+      "confidence": "medium"
+    },
+    {
+      "id": "consumer",
+      "severity": 2,
+      "en": "Consumer Protection Law, 1981 (distance sales, cancellation, clear pricing)",
+      "he": "חוק הגנת הצרכן, התשמ\"א-1981 (מכר מרחוק, ביטול עסקה, שקיפות מחירים)",
+      "why_en": "Online sales to consumers need clear price and terms, a right to cancel within the legal period, and a no-misleading-claims policy.",
+      "why_he": "מכירה מקוונת לצרכנים מחייבת מחיר ותנאים ברורים, זכות ביטול בתוך התקופה הקבועה בחוק, והימנעות מהטעיה.",
+      "url": "https://www.gov.il/en/departments/the_consumer_protection_and_fair_trade_authority",
+      "confidence": "medium"
+    },
+    {
+      "id": "spam",
+      "severity": 2,
+      "en": "Anti-spam rule (Communications Law, section 30A)",
+      "he": "איסור דואר זבל (חוק התקשורת, סעיף 30א)",
+      "why_en": "Marketing messages by email/SMS/automated call need prior opt-in consent and an easy opt-out.",
+      "why_he": "הודעות שיווק באימייל/SMS/חיוג אוטומטי דורשות הסכמה מראש ואפשרות הסרה פשוטה.",
+      "url": "https://www.nevo.co.il/",
+      "confidence": "medium"
+    }
+  ],
+  "revenue": {
+    "ranked": [
+      {
+        "id": "b2b",
+        "revenue": 5,
+        "effort": 4,
+        "risk": 3,
+        "score": 3,
+        "en": "B2B licence / per-seat pricing",
+        "he": "רישיון עסקי / תמחור לפי משתמש"
+      },
+      {
+        "id": "subscription",
+        "revenue": 4,
+        "effort": 3,
+        "risk": 3,
+        "score": 2,
+        "en": "Monthly subscription",
+        "he": "מנוי חודשי"
+      },
+      {
+        "id": "service_first",
+        "revenue": 2,
+        "effort": 1,
+        "risk": 1,
+        "score": 2,
+        "en": "Done-for-you service first, software later",
+        "he": "שירות בעבודת יד קודם, תוכנה אחר כך"
+      },
+      {
+        "id": "one_time",
+        "revenue": 2,
+        "effort": 2,
+        "risk": 2,
+        "score": 0,
+        "en": "One-time paid product / info product",
+        "he": "מוצר חד-פעמי בתשלום / מוצר מידע"
+      },
+      {
+        "id": "leadgen",
+        "revenue": 3,
+        "effort": 3,
+        "risk": 3,
+        "score": 0,
+        "en": "Lead generation / referral fees",
+        "he": "דמי הפניה / מכירת לידים"
+      }
+    ],
+    "unit": {
+      "model": "b2b",
+      "price_usd": 10.0,
+      "price_source": "PLACEHOLDER assumption - no competitor price found; replace it in config.json",
+      "variable_cost_usd": 3,
+      "acquisition_cost_usd": 15,
+      "fixed_costs_month_usd": 300,
+      "contribution_per_customer": 7.0,
+      "break_even_customers": 43,
+      "cac_payback_months": 2.1,
+      "note": "Cost figures are ASSUMPTIONS to be replaced with real quotes; they are not research findings."
+    }
+  },
+  "verdict": {
+    "verdict": "CONDITIONAL GO",
+    "score": 3,
+    "thin": false,
+    "quotes": 0,
+    "competitors": 10,
+    "weakness_quotes": 2,
+    "worst_legal": {
+      "id": "copyright",
+      "severity": 3,
+      "en": "Copyright and scraping",
+      "he": "זכויות יוצרים וסריקת אתרים",
+      "why_en": "Using other people's content, images, music or scraped data without a licence can breach the Copyright Law (2007) and sites' terms of use.",
+      "why_he": "שימוש בתוכן, תמונות, מוזיקה או נתונים שנסרקו ללא רישיון עלול להפר את חוק זכות יוצרים (2007) ותנאי שימוש של אתרים.",
+      "url": "https://www.nevo.co.il/",
+      "confidence": "medium"
+    },
+    "worst_severity": 3,
+    "total_ratings": 313494,
+    "mvp": [
+      "Interview 15 business owners, then offer a paid 30-day pilot to 3; goal: 1 signed pilot.",
+      "ראיון עם 15 בעלי עסקים, ואז הצעת פיילוט בתשלום ל-3; יעד: פיילוט חתום אחד."
+    ],
+    "top_model": "b2b"
+  }
+}
