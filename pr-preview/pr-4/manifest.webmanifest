@@ -1,0 +1,20 @@
+{
+  "name": "פסיבו – משחק הכסף שעובד בשבילך",
+  "short_name": "פסיבו",
+  "description": "משחק לוח פיננסי: בונים הכנסה פסיבית ומגיעים לחופש כלכלי. הכסף עובד בשבילך",
+  "lang": "he",
+  "dir": "rtl",
+  "start_url": "./",
+  "scope": "./",
+  "id": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0F1E46",
+  "theme_color": "#0F1E46",
+  "categories": ["games", "education", "finance"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
