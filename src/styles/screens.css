@@ -156,9 +156,10 @@
 
 /* Short screens (640px tall): tighten the board */
 @media (max-height: 700px) {
-  .screen-board { gap: 10px; }
+  .screen-board { gap: 8px; padding-block-start: max(10px, env(safe-area-inset-top)); }
+  .hud-coin { inline-size: 28px; block-size: 28px; }
   .hud { padding: 8px 12px 10px; gap: 6px; }
-  .hud-chips { min-block-size: 26px; }
+  .hud-chips { min-block-size: 24px; }
   .flow-chip { padding-block: 2px; }
   .dice { min-block-size: 84px; --die: 60px; --die-half: 30px; }
   .dice-two { --die: 50px; --die-half: 25px; }
