@@ -4,7 +4,7 @@ A single-player financial board game. Start in the daily grind ("השגרה") wi
 that create passive income, and win when **passive income > total monthly expenses**.
 Hebrew (RTL) first, English-ready. Vite + vanilla JS, no backend, installable offline PWA.
 
-Look and feel: "Golden Hour" dark-first (see `design/DIRECTION-v2.md` and `design/mockups/`), with a light theme.
+Look and feel: "Navy & Gold" dark-first with the fox character Passivo (see `design/DIRECTION-v3.md`, `design/fox-usage.md` and `design/mockups/`), plus a light theme. The board is the "night city" variation.
 
 ## Run
 
@@ -30,6 +30,7 @@ the service worker serves the app offline. Screenshots land in `test-results/`.
 
 Run `npm run build` first. It uses the Chromium that Playwright finds; set `CHROMIUM_PATH` to use another binary
 (the sandbox default is `/opt/pw-browsers/chromium-1194/chrome-linux/chrome`). Options (env): `SMOKE_MODE=family|full`,
+`SMOKE_H=800|640` (viewport height; both must pass),
 `SMOKE_MOTION=full` (default is reduced motion for speed), `SMOKE_SEED`, `SMOKE_URL` (test a deployed URL).
 In CI run `npx playwright install --with-deps chromium` once.
 
@@ -39,10 +40,10 @@ In CI run `npx playwright install --with-deps chromium` once.
 src/engine/     pure game rules (no DOM): state, dice, movement, cards, loans, cash flow, win/lose, save/load
 src/data/       cards.<locale>.json, professions.<locale>.json (+ index.js that validates them at load)
 src/i18n/       <locale>.json UI strings (+ index.js: t(), setLocale)
-src/ui/         screens, modals, widgets, effects (die, pawn hop, count-up, coin burst, confetti)
+src/ui/         screens, modals, widgets, effects (die, pawn hop, count-up, coin burst, confetti), fox.js (fox poses + reactions)
 src/styles/     tokens.css (design tokens, dark + light), fonts.css (self-hosted Rubik), base/components/screens.css
 src/services/   ads.js (stub), storage.js, pwa.js
-src/assets/     SVG art (mascot pieces, dice, coins, icons, app icon)
+src/assets/     SVG art (dice, coins, tiles, pawn, wordmark, icons) + fox/*.webp poses (@1x/@2x) + app icon
 public/         manifest.webmanifest, sw.js (service worker), icons/ (PWA PNGs)
 tests/          Vitest unit tests; tests/e2e/smoke.mjs is the Playwright flow
 ```
@@ -108,6 +109,24 @@ Money formatting, card layout and the statement all adapt to the data.
 - Pacing knob: `PAYDAY_MONTHS` in `src/engine/config.js`. A payday square settles that many months of cash flow
   (the board lap stands for a stretch of years), so deal sizes and pace can be tuned without touching the cards' payback.
   `BOARD` in the same file sets how often each square type appears.
+
+## The fox (Passivo)
+
+Poses live in `src/assets/fox/` as transparent WebP (`tired`, `wave`, `roll`, `hammock`, `tip` with `@2x`) plus four
+512px circle crops (`think`, `celebrate`, `worried`, `ponder`). `src/ui/fox.js` is the only place that builds fox images
+(`<img srcset>` 1x/2x, width/height attributes, `decoding=async`, lazy when off-screen, alt text from `fox.alt.*` in
+`he.json` or `alt=""` when decorative). Where each pose goes and how it moves: `design/fox-usage.md`; the rules that
+are not DOM (which crop for which square, when family tips show) are in `src/ui/fox-rules.js` and unit-tested.
+
+- Start: `tired` (idle bob), `wave` once on first launch (flag `passivo.seenIntro` in localStorage).
+- Board: `roll` pose above the roll button, a reaction crop in the strip under the board (never over the HUD, tiles
+  or die), `tip` in family mode on turns 1-3 and every 5th turn.
+- Win: `hammock`. Game over: `tired`. Cards, loan dialog and the profession preview carry one reaction crop.
+- Everything honours `prefers-reduced-motion` and the "less animation" setting (fades only, no bob or sway).
+- `hero.webp` is store/splash art only: it is intentionally not bundled.
+
+To add a pose: drop `name.webp` (+ `name@2x.webp`) in that folder, add it to `POSES` in `src/ui/fox.js`
+(intrinsic size; `tests/fox.test.js` checks it against the file) and use `foxImg('name', { height })`.
 
 ## Debug helpers
 

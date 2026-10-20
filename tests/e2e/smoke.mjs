@@ -13,6 +13,7 @@ const PORT = Number(process.env.SMOKE_PORT || 4179);
 const URL_BASE = process.env.SMOKE_URL || `http://localhost:${PORT}/`;
 const OUT = process.env.SMOKE_OUT || new URL('../../test-results/', import.meta.url).pathname;
 const MODE = process.env.SMOKE_MODE || 'family';
+const HEIGHT = Number(process.env.SMOKE_H || 800); // 800 or 640
 const exe = process.env.CHROMIUM_PATH
   || ['/opt/pw-browsers/chromium-1194/chrome-linux/chrome', '/opt/pw-browsers/chromium/chrome-linux/chrome'].find(existsSync);
 mkdirSync(OUT, { recursive: true });
@@ -42,6 +43,32 @@ async function tapTargets(page, label) {
     .map((el) => { const r = el.getBoundingClientRect(); return { cls: el.className, w: Math.round(r.width), h: Math.round(r.height), vis: r.width > 0 && r.height > 0 }; })
     .filter((x) => x.vis && (x.w < 47.5 || x.h < 47.5)));
   check(small.length === 0, `touch targets >= 48px on ${label}${small.length ? ` (too small: ${JSON.stringify(small.slice(0, 3))})` : ''}`);
+}
+
+/** Fox images: sized (width/height), async-decoded, decorative ones have alt="", and nothing mouse-related is shown. */
+async function foxChecks(page, label) {
+  await page.waitForFunction(() => [...document.querySelectorAll('img.fox')].every((i) => i.loading === 'lazy' || (i.complete && i.naturalWidth > 0)), null, { timeout: 4000 }).catch(() => {});
+  const r = await page.evaluate(() => [...document.querySelectorAll('img.fox')].map((i) => ({
+    pose: i.className, w: i.getAttribute('width'), h: i.getAttribute('height'), dec: i.getAttribute('decoding'), alt: i.getAttribute('alt'), hidden: i.getAttribute('aria-hidden'),
+    ok: i.loading === 'lazy' || (i.complete && i.naturalWidth > 0),
+  })));
+  check(r.length > 0, `fox image present on ${label}`);
+  check(r.every((x) => x.w && x.h && x.dec === 'async'), `fox images have width/height + decoding=async on ${label}`);
+  check(r.every((x) => x.alt !== null && (x.alt !== '' || x.hidden === 'true')), `fox images have alt (or are aria-hidden decorative) on ${label}`);
+  check(r.every((x) => x.ok), `fox images decoded on ${label}${r.some((x) => !x.ok) ? ` (${JSON.stringify(r.filter((x) => !x.ok))})` : ''}`);
+  const mouse = await page.evaluate(() => /mouse|עכבר/i.test(document.documentElement.outerHTML));
+  check(!mouse, `no mouse mascot anywhere in the DOM on ${label}`);
+}
+
+/** The reaction strip (under the board) must never overlap the HUD, the board, the die or the roll button. */
+async function reactionStripClear(page) {
+  const r = await page.evaluate(() => {
+    const box = (s) => { const e = document.querySelector(s); if (!e) return null; const b = e.getBoundingClientRect(); return { l: b.left, t: b.top, r: b.right, b: b.bottom }; };
+    const hit = (a, b) => a && b && a.l < b.r && a.r > b.l && a.t < b.b && a.b > b.t;
+    const host = box('.react-host');
+    return { host: !!host, hud: hit(host, box('.hud')), board: hit(host, box('.board')), roll: hit(host, box('.btn-roll')), dice: hit(host, box('.dice')) };
+  });
+  check(r.host && !r.hud && !r.board && !r.roll && !r.dice, `reaction pop-up strip never covers the HUD, board, die or roll button (${JSON.stringify(r)})`);
 }
 
 /** Decides the next UI action with a simple "sensible" policy. Returns a selector to click, or null. */
@@ -145,7 +172,7 @@ async function main() {
   await startServer();
   const browser = await chromium.launch({ executablePath: exe, args: ['--no-sandbox'] });
   const ctx = await browser.newContext({
-    viewport: { width: 360, height: 800 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true,
+    viewport: { width: 360, height: HEIGHT }, deviceScaleFactor: 2, isMobile: true, hasTouch: true,
     locale: 'he-IL', reducedMotion: process.env.SMOKE_MOTION === 'full' ? 'no-preference' : 'reduce',
   });
   const page = await ctx.newPage();
@@ -161,7 +188,19 @@ async function main() {
   check(html.lang === 'he' && html.dir === 'rtl', 'html lang=he dir=rtl');
   await noHScroll(page, 'start');
   await tapTargets(page, 'start');
+  await page.screenshot({ path: `${OUT}/01-start-first-launch.png` });
+  // First launch: the fox waves once, then settles into the tired pose; the flag keeps the intro from replaying.
+  check(await page.locator('img.pose-wave').count() === 1, 'first launch shows the wave pose');
+  await page.waitForFunction(() => localStorage.getItem('passivo.seenIntro') === '1');
+  await page.waitForTimeout(2800);
+  check(await page.evaluate(() => getComputedStyle(document.querySelector('img.pose-tired')).opacity) === '1', 'fox crossfaded from wave to tired');
+  const h1 = await page.evaluate(() => ({ n: document.querySelectorAll('h1').length, text: document.querySelector('h1')?.textContent.trim(), wm: !!document.querySelector('h1 img[src*="wordmark"]') }));
+  check(h1.n === 1 && h1.text === 'פסיבו' && h1.wm, 'start has one accessible h1 "פסיבו" with the wordmark');
+  await foxChecks(page, 'start');
   await page.screenshot({ path: `${OUT}/01-start.png` });
+  await page.reload();
+  await page.waitForSelector('[data-screen="start"]');
+  check(await page.locator('img.pose-wave').count() === 0, 'wave pose does not replay after the first launch');
 
   // font check
   const fontOk = await page.evaluate(async () => { await document.fonts.ready; return document.fonts.check('700 16px Rubik', 'שלום'); });
@@ -194,6 +233,12 @@ async function main() {
   await tapTargets(page, 'board');
   await page.waitForTimeout(300);
   await page.screenshot({ path: `${OUT}/05-board.png` });
+  await foxChecks(page, 'board');
+  await reactionStripClear(page);
+  const pose = await page.evaluate(() => document.querySelector('.roll-zone')?.dataset.pose);
+  check(pose === (MODE === 'family' ? 'tip' : 'roll'), `roll zone shows the ${MODE === 'family' ? 'family tip' : 'roll pose'} at the start (got ${pose})`);
+  const theme = await page.evaluate(() => document.querySelector('meta[name="theme-color"]').content);
+  check(theme.toLowerCase() === '#0f1e46', 'theme-color is navy');
 
   // a11y wiring: named progressbar, <main> + h1 landmarks, debug helpers off without the flag
   const a11y = await page.evaluate(() => ({
@@ -259,6 +304,8 @@ async function main() {
     await ctx.setOffline(true);
     await page.reload();
     await page.waitForSelector('[data-screen="start"]', { timeout: 5000 }).then(() => check(true, 'app loads offline'), () => check(false, 'app loads offline'));
+    await page.waitForTimeout(600);
+    check(await page.evaluate(() => [...document.querySelectorAll('img.fox')].every((i) => i.complete && i.naturalWidth > 0)), 'fox art renders offline (precached)');
     await ctx.setOffline(false);
   }
 

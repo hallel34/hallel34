@@ -27,6 +27,6 @@ export function applyPrefs() {
   root.dataset.theme = theme;
   if (prefs.reduceMotion) root.dataset.motion = 'reduced'; else delete root.dataset.motion;
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute('content', theme === 'light' ? '#FFF1D6' : '#0E0830');
+  if (meta) meta.setAttribute('content', theme === 'light' ? '#FBF3E1' : '#0F1E46');
 }
 mq?.addEventListener?.('change', () => { if (prefs.theme === 'auto') applyPrefs(); });

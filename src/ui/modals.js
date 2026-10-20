@@ -3,7 +3,9 @@
 import { h } from './dom.js';
 import { t } from '../i18n/index.js';
 import { openLayer, closeButton } from './modal.js';
-import { icon, cardArt } from './icons.js';
+import { icon } from './icons.js';
+import { cornerPop } from './fox.js';
+import { CARD_REACTION } from './fox-rules.js';
 import { money, moneyText, tn, numberText } from './format.js';
 import { button, stepper, statTile } from './widgets.js';
 import { haptic, countUp } from './fx.js';
@@ -12,6 +14,9 @@ import {
   paybackYears, paybackTier, PAYDAY_MONTHS,
 } from '../engine/index.js';
 import { LOAN_STEP, LOAN_PAYMENT_RATE } from '../engine/index.js';
+
+const BANNERS = import.meta.glob('../assets/card-*.svg', { eager: true, query: '?url', import: 'default' });
+const bannerUrl = (type) => BANNERS[`../assets/card-${type}.svg`] || BANNERS['../assets/card-opportunity.svg'];
 
 // ---------- generic cream card ----------
 function cardShell({ type, art, chip, title, text, body = [], actions, flip = false, label, data = {} }) {
@@ -25,8 +30,10 @@ function cardShell({ type, art, chip, title, text, body = [], actions, flip = fa
     })));
   const content = h('div', { class: 'card', 'data-card': type, ...Object.fromEntries(Object.entries(data).map(([k, v]) => [`data-${k}`, v])) },
     h('div', { class: `card-head card-head--${type}` },
-      art ? cardArt(art, 120) : null,
-      h('span', { class: 'card-chip' }, chip)),
+      h('img', { class: 'card-banner', src: bannerUrl(type), alt: '', width: 320, height: 140, decoding: 'async', draggable: 'false' }),
+      h('span', { class: 'card-chip' }, chip),
+      // The fox reacts once the flip has landed (+150ms); never over the title or the numbers grid.
+      cornerPop(CARD_REACTION[type] || 'think', { size: 64, delay: (flip ? 400 : 0) + 150 })),
     h('div', { class: 'card-body' },
       h('div', { class: 'card-titles' }, h('h2', { class: 'card-title' }, title), text ? h('p', { class: 'card-text' }, text) : null),
       body,
@@ -224,16 +231,18 @@ export function babyModal(state, { max, extra, flip = true }) {
 }
 
 // ---------- dialogs (second level) ----------
-function dialogShell({ title, text, body, actions, label }) {
+function dialogShell({ title, text, body, actions, label, fox = '' }) {
   let layer;
   const bar = h('div', { class: 'dialog-actions' }, actions.map((a) => button(a.label, {
     variant: a.variant, disabled: a.disabled, 'data-action': a.id, 'data-autofocus': a.autofocus ? '' : null,
     onClick: () => { haptic('tap'); layer.close(a.getValue ? a.getValue() : a.value); },
   })));
-  const content = h('div', { class: 'dialog' },
+  const dialog = h('div', { class: `dialog${fox ? ' has-fox' : ''}` },
     h('div', { class: 'dialog-head' }, h('h2', { class: 'dialog-title' }, title), closeButton(() => layer.close(null))),
     text ? h('p', { class: 'dialog-text' }, text) : null,
     body, bar);
+  // Fox crop on the top inline-end corner, overlapping the edge by 50% (so it lives outside the scrolling .dialog).
+  const content = h('div', { class: 'dialog-frame' }, dialog, fox ? cornerPop(fox, { size: 56, delay: 150, cls: 'fox-dialog' }) : null);
   layer = openLayer(content, { kind: 'modal', label: label || title, dismissable: true, cls: 'layer-dialog' });
   return { layer, promise: layer.closed.then((v) => (v === undefined ? null : v)), bar };
 }
@@ -308,6 +317,7 @@ export function loanDialog(state, { required = 0 } = {}) {
       ...(max > 0 ? [{ id: 'take', label: t('loan.take'), variant: 'primary', getValue: () => shown, autofocus: true }] : []),
     ],
     label: t('loan.title'),
+    fox: 'worried',
   });
   takeBtn = d.bar.querySelector('[data-action="take"]');
   if (st) update(start, start);
@@ -352,6 +362,7 @@ export function repayDialog(state, liability) {
       { id: 'cancel', label: t('loan.cancel'), variant: 'secondary', value: null },
       { id: 'repay', label: t('loan.repay'), variant: 'buy', disabled: affordable.length === 0, getValue: () => affordable[idx], autofocus: true },
     ],
+    fox: 'think',
   });
   return d.promise.then((v) => (typeof v === 'number' ? v : null));
 }

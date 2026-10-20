@@ -74,17 +74,20 @@ export function statTile(label, valueNode, { tone = '', big = false } = {}) {
 
 /** A money <output> that can count up to new values. */
 export function cashDisplay(initial, { sign = false } = {}) {
-  const el = h('span', { class: 'money cash-num', dir: 'ltr' }, moneyText(initial, { sign }));
+  const el = h('span', { class: 'money cash-num', dir: 'ltr' });
+  // data-len lets CSS step the font size down for long amounts so the HUD row never overflows.
+  const paint = (x) => { const text = moneyText(x, { sign }); el.textContent = text; el.dataset.len = String(text.length); };
+  paint(initial);
   let shown = initial;
   return {
     el,
     get value() { return shown; },
-    set(v) { shown = v; el.textContent = moneyText(v, { sign }); },
+    set(v) { shown = v; paint(v); },
     async to(v, dur) {
       const from = shown;
       shown = v;
-      await countUp(from, v, (x) => { el.textContent = moneyText(x, { sign }); }, dur);
-      el.textContent = moneyText(v, { sign });
+      await countUp(from, v, paint, dur);
+      paint(v);
     },
   };
 }

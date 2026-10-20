@@ -27,7 +27,17 @@ function pwaPlugin() {
       handler(html, ctx) {
         const fonts = Object.keys(ctx.bundle || {}).filter((f) => /rubik-(hebrew|latin)-(700|900)-normal.*\.woff2$/.test(f));
         const tags = fonts.map((f) => `<link rel="preload" as="font" type="font/woff2" crossorigin href="${base.endsWith('/') ? base : `${base}/`}${f}">`).join('\n  ');
-        return html.replace('</head>', `  ${tags}\n</head>`);
+        // LCP image: the start screen shows `wave` on first launch (flag passivo.seenIntro unset), otherwise `tired`.
+        // A tiny inline script preloads the right one (with @1x/@2x srcset) so the browser does not fetch both.
+        const prefix = base.endsWith('/') ? base : `${base}/`;
+        const files = Object.keys(ctx.bundle || {});
+        const pick = (name) => ['', '@2x'].map((d) => files.find((f) => new RegExp(`(^|/)${name}${d}-[\\w-]+\\.webp$`).test(f))).map((f) => (f ? `${prefix}${f}` : null));
+        const [wave1, wave2] = pick('wave');
+        const [tired1, tired2] = pick('tired');
+        const lcp = wave1 && tired1
+          ? `<script>try{var w=!localStorage.getItem('passivo.seenIntro'),u=w?['${wave1}','${wave2}']:['${tired1}','${tired2}'],l=document.createElement('link');l.rel='preload';l.as='image';l.href=u[0];l.setAttribute('imagesrcset',u[0]+' 1x, '+u[1]+' 2x');l.setAttribute('fetchpriority','high');document.head.appendChild(l)}catch(e){}</script>`
+          : '';
+        return html.replace('</head>', `  ${tags}\n  ${lcp}\n</head>`);
       },
     },
     closeBundle() {

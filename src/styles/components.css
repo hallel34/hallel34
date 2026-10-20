@@ -73,21 +73,14 @@
 }
 .card-head {
   position: relative; flex: none;
-  block-size: clamp(110px, 24dvh, 190px);
-  display: grid; place-items: center; overflow: hidden;
-  background: linear-gradient(135deg, #FFD35C 0%, #FF9F1C 100%);
+  block-size: clamp(110px, 22dvh, 176px);
+  display: block; overflow: hidden;
+  background: linear-gradient(135deg, #FFD479 0%, #F2B53A 55%, #E8702A 130%);
 }
-.card-head::before, .card-head::after { content: ""; position: absolute; border-radius: 50%; background: #fff; opacity: .15; }
-.card-head::before { inline-size: 180px; block-size: 180px; inset-block-start: -90px; inset-inline-start: -30px; }
-.card-head::after { inline-size: 220px; block-size: 220px; inset-block-end: -120px; inset-inline-end: -50px; }
-.card-head--expense { background: linear-gradient(135deg, #FF9A8F 0%, #FF5A4E 100%); }
-.card-head--market { background: linear-gradient(135deg, #8EC9FF 0%, #3D9BFF 100%); }
-.card-head--charity { background: linear-gradient(135deg, #C2A8FF 0%, #7A4DFF 100%); }
-.card-head--baby { background: linear-gradient(135deg, #FFC2E0 0%, #FF8FC4 100%); }
-.card-art { position: relative; inline-size: auto; block-size: 80%; max-block-size: 132px; aspect-ratio: 1; filter: drop-shadow(0 8px 0 rgb(122 43 0 / .35)); }
+.card-banner { position: absolute; inset: 0; inline-size: 100%; block-size: 100%; max-inline-size: none; object-fit: cover; pointer-events: none; }
 .card-chip {
   position: absolute; inset-block-start: 14px; inset-inline-start: 16px;
-  padding: 6px 14px; border-radius: 16px; background: var(--c-plum-800); color: var(--c-gold-300);
+  padding: 6px 14px; border-radius: 16px; background: var(--c-navy-900); color: var(--c-gold-300);
   font-size: var(--fs-sm); font-weight: var(--fw-bold);
 }
 .card-body { flex: 1; display: flex; flex-direction: column; gap: 14px; padding: 18px 22px 22px; overflow-y: auto; min-block-size: 0; overscroll-behavior: contain; }
@@ -96,7 +89,7 @@
 .card-text { font-size: var(--fs-md); line-height: var(--lh-body); color: var(--card-muted); }
 .card-actions { display: flex; gap: 12px; margin-block-start: auto; padding-block-start: 4px; }
 .card-actions .btn { flex: 1; min-block-size: 60px; font-size: 1.25rem; white-space: nowrap; }
-.card-actions .btn-secondary { flex: 0 0 auto; min-inline-size: 112px; --btn-secondary-bg: var(--card-tile-bg); --btn-secondary-text: var(--card-text); --btn-secondary-border: #CDBDFF; box-shadow: inset 0 0 0 2px #CDBDFF; backdrop-filter: none; }
+.card-actions .btn-secondary { flex: 0 0 auto; min-inline-size: 112px; --btn-secondary-bg: var(--card-tile-bg); --btn-secondary-text: var(--card-text); --btn-secondary-border: var(--border-strong); box-shadow: inset 0 0 0 2px var(--border-strong); backdrop-filter: none; }
 .card-actions.single .btn { flex: 1; }
 
 .stat-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
@@ -109,14 +102,14 @@
 .stat-expense .stat-value { color: var(--expense-ink); }
 .card .stat-label { color: var(--card-muted); }
 
-.banner { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 18px; background: var(--c-plum-800); color: #fff; font-size: 0.9375rem; line-height: 1.35; }
+.banner { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 18px; background: var(--c-navy-900); color: #fff; font-size: 0.9375rem; line-height: 1.35; }
 .banner > .icon { flex: none; color: var(--c-gold-300); }
 .banner b, .banner .money { color: var(--c-gold-300); }
 .banner-warn { background: #FFE9E5; color: #7A1810; border: 2px solid #FFB3A7; }
 .banner-warn > .icon { color: var(--expense-ink); }
 .banner-warn b, .banner-warn .money { color: inherit; font-weight: var(--fw-bold); }
 .banner-warn .btn-mini { margin-inline-start: auto; }
-.banner-info { background: var(--c-plum-800); }
+.banner-info { background: var(--c-navy-900); }
 
 .stepper-wrap { display: flex; flex-direction: column; gap: 6px; }
 .qty-quick { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -124,7 +117,7 @@
 .stepper-value { flex: 1; text-align: center; font-weight: var(--fw-black); font-size: 1.75rem; font-variant-numeric: tabular-nums; min-inline-size: 0; }
 .step-btn {
   inline-size: 56px; block-size: 56px; border-radius: 50%; border: 0; display: grid; place-items: center; padding: 0; flex: none;
-  background: var(--c-plum-800); color: var(--c-gold-300);
+  background: var(--c-navy-900); color: var(--c-gold-300);
   box-shadow: 0 3px 0 rgb(0 0 0 / .35), inset 0 2px 0 rgb(255 255 255 / .2);
 }
 .step-btn:active:not(:disabled) { transform: translateY(2px) scale(var(--press-scale)); }
@@ -140,6 +133,8 @@
 }
 .dialog .stat-label { color: var(--text-muted); }
 .dialog .stepper-value { font-size: 1.75rem; }
+.dialog.has-fox { padding-block-start: 36px; } /* keeps the close button clear of the fox crop on the corner */
+.dialog-frame { position: relative; display: flex; flex-direction: column; min-block-size: 0; }
 .dialog-head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); }
 .dialog-title { font-size: var(--fs-lg); font-weight: var(--fw-black); line-height: var(--lh-tight); }
 .dialog-text { color: var(--text-muted); font-size: 0.9375rem; }
@@ -177,6 +172,8 @@
 .statement-body, .sheet-scroll { overflow-y: auto; padding: var(--sp-2) var(--sp-5) var(--sp-5); display: flex; flex-direction: column; gap: var(--sp-4); min-block-size: 0; overscroll-behavior: contain; flex: 1; }
 .sheet-cta { padding: var(--sp-3) var(--sp-5) var(--sp-4); display: flex; flex-direction: column; border-block-start: 1px solid var(--glass-border); }
 .sheet-cta .btn { inline-size: 100%; }
+.st-toggle { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); min-block-size: var(--tap-min); padding-inline: var(--sp-4); border-radius: var(--r-md); border: 1px solid var(--glass-border); background: var(--glass-chip); color: var(--text); font-weight: var(--fw-bold); font-size: var(--fs-sm); }
+.st-rows { display: flex; flex-direction: column; }
 .pick-head { display: flex; gap: var(--sp-4); align-items: center; }
 
 .st-hero { display: flex; flex-direction: column; gap: 10px; padding: var(--sp-4); border-radius: var(--r-lg); background: var(--glass-bg); border: 1px solid var(--glass-border); }
@@ -234,6 +231,7 @@
 .avatar-lg { inline-size: 56px; block-size: 56px; font-size: 1.5rem; }
 
 /* ===== Die ===== */
+.dice, .dice * { pointer-events: none; } /* edge-on 3D faces (rotate 90deg) otherwise hit-test over the whole screen and swallow taps on the roll button */
 .dice { display: flex; gap: 14px; justify-content: center; align-items: center; perspective: 520px; --die: 72px; --die-half: 36px; min-block-size: 96px; }
 .dice-two { --die: 58px; --die-half: 29px; gap: 18px; }
 .die { position: relative; inline-size: var(--die); block-size: var(--die); }

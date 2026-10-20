@@ -3,6 +3,7 @@ import './styles/tokens.css';
 import './styles/base.css';
 import './styles/components.css';
 import './styles/screens.css';
+import './styles/fox.css';
 import { setLocale, t } from './i18n/index.js';
 import { applyPrefs, getPrefs, setPref } from './ui/prefs.js';
 import { createApp } from './ui/app.js';

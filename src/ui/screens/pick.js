@@ -7,7 +7,9 @@ import { button, iconButton } from '../widgets.js';
 import { openLayer } from '../modal.js';
 import { avatarColor } from '../layout.js';
 import { statement } from '../../engine/index.js';
-import { haptic, pulse } from '../fx.js';
+import { haptic, pulse, animate } from '../fx.js';
+import { foxImg } from '../fox.js';
+import { motionOK } from '../prefs.js';
 
 export function createPick({ engine, mode, onBack, onGo }) {
   const professions = engine.data.professions;
@@ -18,7 +20,24 @@ export function createPick({ engine, mode, onBack, onGo }) {
     const st = statement(s);
     let layer;
     const row = (l, v, tone = '') => h('div', { class: `st-row${tone ? ` st-${tone}` : ''}` }, h('span', { class: 'st-label' }, l), h('span', { class: 'st-value' }, v));
+    // Expenses are itemised behind a toggle; the fox ponders, and swaps to "think" when the list is opened.
+    const expenseRows = h('div', { class: 'st-rows', id: 'pick-expense-rows', hidden: true },
+      ...p.expenses.map((e) => row(e.label, money(e.amount))));
+    const foxPop = h('div', { class: 'fox-pop fox-sheet', 'aria-hidden': 'true' }, foxImg('ponder', { size: 56 }));
+    foxPop.style.setProperty('--pop', '56px');
+    const toggle = h('button', { type: 'button', class: 'st-toggle', 'aria-expanded': 'false', 'aria-controls': 'pick-expense-rows' },
+      h('span', null, t('pick.showExpenses')), icon('plus', { size: 20, width: 3 }));
+    toggle.addEventListener('click', () => {
+      const open = toggle.getAttribute('aria-expanded') !== 'true';
+      toggle.setAttribute('aria-expanded', String(open));
+      toggle.firstChild.textContent = open ? t('pick.hideExpenses') : t('pick.showExpenses');
+      toggle.lastChild.replaceWith(icon(open ? 'minus' : 'plus', { size: 20, width: 3 }));
+      expenseRows.hidden = !open;
+      foxPop.replaceChildren(foxImg(open ? 'think' : 'ponder', { size: 56 }));
+      if (motionOK()) animate(foxPop, [{ transform: 'scale(.85)' }, { transform: 'scale(1)' }], { duration: 320, easing: 'cubic-bezier(.34,1.56,.64,1)' });
+    });
     const content = h('div', { class: 'sheet pick-sheet' },
+      foxPop,
       h('button', { type: 'button', class: 'sheet-handle', 'aria-label': t('a11y.sheetHandle'), onClick: () => layer.close() }, h('i')),
       h('div', { class: 'sheet-scroll', tabindex: '0', role: 'region', 'aria-label': t('pick.previewTitle', { profession: p.title }) },
         h('div', { class: 'pick-head' },
@@ -29,7 +48,7 @@ export function createPick({ engine, mode, onBack, onGo }) {
           row(t('pick.savings'), money(p.savings))),
         h('section', { class: 'st-section st-sec-expense' },
           h('h3', { class: 'st-title' }, t('pick.expenses')),
-          ...p.expenses.map((e) => row(e.label, money(e.amount))),
+          toggle, expenseRows,
           row(t('statement.totalExpenses'), money(st.totalExpenses), 'total')),
         p.liabilities.length ? h('section', { class: 'st-section st-sec-liability' },
           h('h3', { class: 'st-title' }, t('pick.liabilities')),
@@ -37,6 +56,8 @@ export function createPick({ engine, mode, onBack, onGo }) {
         row(t('pick.cashflow'), money(st.monthlyCashFlow, { sign: true }), 'total'),
         h('div', { class: 'banner banner-info' }, icon('star', { size: 24 }), h('span', null, t('pick.goal')))),
       h('div', { class: 'sheet-cta' }, button(t('pick.go'), { variant: 'primary', size: 'lg', 'data-action': 'go', 'data-autofocus': '', onClick: () => { layer.close(); onGo(p.id); } })));
+    // Pop-in when the sheet opens (the sheet itself slides up over --dur-base).
+    animate(foxPop, motionOK() ? [{ opacity: 0, transform: 'scale(.5)' }, { opacity: 1, transform: 'scale(1)' }] : [{ opacity: 0 }, { opacity: 1 }], { duration: 320, delay: motionOK() ? 200 : 0, easing: 'cubic-bezier(.34,1.56,.64,1)' });
     layer = openLayer(content, { kind: 'sheet', label: p.title });
   }
 

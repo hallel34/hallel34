@@ -1,6 +1,6 @@
 // Board screen + game flow controller. The engine is the source of truth; this file only
 // presents engine events (die, hops, cash) and applies the player's choices through the engine.
-import { h } from './dom.js';
+import { h, html } from './dom.js';
 import { t } from '../i18n/index.js';
 import { BOARD, EngineError, statement, monthlyCashFlow } from '../engine/index.js';
 import { icon } from './icons.js';
@@ -20,8 +20,21 @@ import { openSettings } from './settings.js';
 import { ringPos, avatarColor } from './layout.js';
 import { closeAllLayers } from './modal.js';
 import { debugEnabled, mountDebugTools } from './debug.js';
+import { foxImg, createReactor, warmFox, dirSign } from './fox.js';
+import { REACTIONS, LAND_REACTION, tipIndexForTurn } from './fox-rules.js';
 import coinUrl from '../assets/coin.svg?url';
 import pawnUrl from '../assets/pawn.svg?url';
+import dieUrl from '../assets/die-3.svg?url';
+
+const SQUARES = import.meta.glob('../assets/square-*.svg', { eager: true, query: '?url', import: 'default' });
+const squareUrl = (sq) => SQUARES[`../assets/square-${sq}.svg`];
+
+// Variation A "night city": static skyline with lit windows behind the bottom row (design/mockups/Board.dc.html).
+const SKYLINE = `<svg class="board-skyline" aria-hidden="true" focusable="false" viewBox="0 0 336 110" preserveAspectRatio="xMidYMax slice">
+<g class="sk-b" opacity=".9"><rect x="4" y="60" width="28" height="50"/><rect x="36" y="42" width="22" height="68"/><rect x="62" y="70" width="34" height="40"/><rect x="100" y="36" width="24" height="74"/><rect x="128" y="64" width="30" height="46"/><rect x="162" y="50" width="20" height="60"/><rect x="186" y="72" width="36" height="38"/><rect x="226" y="40" width="24" height="70"/><rect x="254" y="66" width="32" height="44"/><rect x="290" y="48" width="42" height="62"/></g>
+<g class="sk-w" opacity=".85"><rect x="42" y="52" width="3" height="4"/><rect x="46" y="64" width="3" height="4"/><rect x="106" y="48" width="3" height="4"/><rect x="112" y="62" width="3" height="4"/><rect x="232" y="52" width="3" height="4"/><rect x="298" y="60" width="3" height="4"/><rect x="316" y="74" width="3" height="4"/></g>
+</svg>`;
+
 
 /**
  * @param engine createEngine(...) result
@@ -37,7 +50,7 @@ export function createPlay({ engine, state: initial, nav, store, professionIds =
   // ---------- HUD ----------
   const avatar = h('div', { class: 'avatar', 'aria-hidden': 'true' }, state.profession.title.trim()[0]);
   avatar.style.background = avatarColor(state.profession.id, professionIds);
-  const turnEl = h('span', { class: 'hud-sub', 'aria-live': 'polite' });
+  const turnEl = h('span', { 'aria-live': 'polite' });
   const babies = h('span', { class: 'hud-babies', role: 'img', 'aria-label': t('game.kids', { n: 0 }) });
   const charityChip = h('span', { class: 'chip chip-charity', 'data-active': 'false' });
   const cash = cashDisplay(state.cash);
@@ -46,55 +59,83 @@ export function createPlay({ engine, state: initial, nav, store, professionIds =
   const expenseVal = h('b', { class: 'tone-expense' });
   const m = meter();
   const settingsBtn = iconButton('gear', t('game.settings'), () => openSettings({ onQuit: () => nav.menu(), version: __APP_VERSION__ }), 'icon-btn-glass');
+  const stmtBtn = iconButton('statement', t('game.statement'), () => openStmt(), 'icon-btn-glass');
+  stmtBtn.dataset.action = 'statement';
 
   const hud = h('header', { class: 'hud glass' },
     h('div', { class: 'hud-top' },
       avatar,
-      h('div', { class: 'hud-id' }, h('span', { class: 'hud-prof' }, state.profession.title), turnEl),
-      h('div', { class: 'hud-badges' }, babies),
-      settingsBtn),
+      h('div', { class: 'hud-id' }, h('span', { class: 'hud-prof' }, state.profession.title), h('span', { class: 'hud-sub' }, turnEl, babies)),
+      h('div', { class: 'hud-btns' }, stmtBtn, settingsBtn)),
     h('div', { class: 'hud-cash' },
-      h('img', { class: 'hud-coin', src: coinUrl, alt: '', width: 34, height: 34 }),
-      h('span', { class: 'cash-wrap', 'aria-label': t('game.cash') }, cash.el)),
-    h('div', { class: 'hud-chips' }, flowChip, charityChip),
-    h('div', { class: 'hud-meter' },
-      h('div', { class: 'meter-labels' },
-        h('span', null, t('game.passive'), ' ', passiveVal),
-        h('span', null, t('game.expenses'), ' ', expenseVal)),
-      m.el));
+      h('img', { class: 'hud-coin', src: coinUrl, alt: '', width: 30, height: 30 }),
+      h('span', { class: 'cash-wrap', 'aria-label': t('game.cash') }, cash.el),
+      flowChip),
+    h('div', { class: 'meter-labels' },
+      h('span', null, t('game.passive'), ' ', passiveVal),
+      h('span', null, t('game.expenses'), ' ', expenseVal)),
+    m.el);
 
-  // ---------- Board ----------
+  // ---------- Board (variation A: night city) ----------
   const tiles = BOARD.map((sq, i) => {
     const [col, row] = ringPos(i);
-    return h('div', { class: `tile tile-${sq}`, 'aria-hidden': 'true', 'data-i': i, vars: { '--c': col, '--r': row } }, icon(sq, { size: 24, width: 2.6 }));
+    return h('div', { class: `tile tile-${sq}`, 'aria-hidden': 'true', 'data-i': i, vars: { '--c': col, '--r': row } },
+      h('img', { src: squareUrl(sq), alt: '', width: 42, height: 42, draggable: 'false' }));
   });
   const pawn = h('img', { class: 'pawn', src: pawnUrl, alt: '', width: 36, height: 40, draggable: 'false' });
   const dice = createDice();
   dice.setValues(state.lastRoll?.dice || [1]);
   const status = h('p', { class: 'board-status', 'aria-live': 'polite' }, t('game.statusStart'));
-  const center = h('div', { class: 'board-center' }, dice.el, status);
-  const board = h('div', { class: 'board', role: 'group' }, ...tiles, center);
+  const center = h('div', { class: 'board-center' }, dice.el, status, charityChip);
+  const board = h('div', { class: 'board', role: 'group' }, html(SKYLINE), ...tiles, center);
   let currentTile = null;
 
-  const rollBtn = button(t('game.roll'), { variant: 'primary', cls: 'btn-roll', 'data-action': 'roll', onClick: () => turn() });
-  const stmtBtn = h('button', { type: 'button', class: 'btn-square', 'aria-label': t('game.statement'), 'data-action': 'statement', onClick: () => openStmt() }, icon('statement', { size: 28, width: 2.2 }));
-  const actions = h('div', { class: 'board-actions' }, stmtBtn, rollBtn);
+  const rollLabel = h('span', null, t('game.roll'));
+  const rollBtn = button([h('img', { src: dieUrl, alt: '', width: 30, height: 30, class: 'btn-die' }), rollLabel], { variant: 'primary', cls: 'btn-roll', 'data-action': 'roll', onClick: () => turn() });
+  const actions = h('div', { class: 'board-actions' }, rollBtn);
 
-  // Recent-events strip: fills the space between the board and the roll button.
-  const logList = h('ol', { class: 'log-list' });
-  const logEl = h('section', { class: 'board-log', 'aria-label': t('game.lastEvents') },
-    h('h2', { class: 'log-title' }, t('game.lastEvents')), logList);
-  const logItems = [];
+  // Roll zone (above the roll button): fox roll pose + latest-event chip; family tips replace them.
+  const rollFoxImg = foxImg('roll', { height: 128, cls: 'bob' });
+  const rollFox = h('div', { class: 'fox-roll' }, rollFoxImg);
+  const chip = h('div', { class: 'status-chip glass' }, t('game.noEvents'));
+  const tipBubble = h('div', { class: 'tip-bubble', role: 'note' });
+  const tipFox = h('div', { class: 'fox-tip' }, foxImg('tip', { height: 150, lazy: true }), tipBubble);
+  const reactHost = h('div', { class: 'react-host', 'aria-hidden': 'true' });
+  const zone = h('div', { class: 'roll-zone', 'data-pose': 'roll' }, reactHost, rollFox, chip, tipFox);
+  const reactor = createReactor(reactHost, { size: 56 });
+  /** Brief fox reaction in the strip under the board (never over the HUD, tiles, die or numbers). */
+  const react = (pose) => reactor.show(pose);
+  const setPose = (p) => { zone.dataset.pose = p; };
+
   function pushLog(text, tone = '') {
     if (!text) return;
-    logItems.unshift({ text, tone });
-    logItems.length = Math.min(logItems.length, 4);
-    logList.replaceChildren(...logItems.map((x, i) => h('li', { class: `log-item${x.tone ? ` log-${x.tone}` : ''}${i === 0 ? ' is-new' : ''}` }, x.text)));
+    chip.textContent = text;
+    chip.dataset.tone = tone;
+    if (motionOK()) animate(chip, [{ transform: 'scale(.94)', opacity: 0.4 }, { transform: 'scale(1)', opacity: 1 }], { duration: 220, easing: 'cubic-bezier(.34,1.56,.64,1)' });
   }
-  logList.append(h('li', { class: 'log-item log-empty' }, t('game.noEvents')));
 
   const el = h('section', { class: 'screen screen-board', 'data-screen': 'board' },
-    h('h1', { class: 'vh' }, `${t('app.title')} · ${t('game.boardTitle')}`), hud, board, logEl, actions);
+    h('h1', { class: 'vh' }, `${t('app.title')} · ${t('game.boardTitle')}`), hud, board, zone, actions);
+
+  // ---- family tips ----
+  let tipTimer = 0;
+  function hideTip() {
+    clearTimeout(tipTimer);
+    if (zone.dataset.pose !== 'tip') return;
+    setPose(busy ? 'none' : 'roll');
+  }
+  function maybeTip() {
+    if (destroyed || busy || state.mode !== 'family' || state.status !== 'playing' || state.phase !== 'roll') return;
+    const idx = tipIndexForTurn(state.turn + 1);
+    if (idx < 0) return;
+    tipBubble.textContent = t(`fox.tip${idx + 1}`);
+    setPose('tip');
+    if (motionOK()) animate(tipFox, [{ opacity: 0, transform: `translateX(${dirSign() * -24}px)` }, { opacity: 1, transform: 'translateX(0)' }], { duration: 300, easing: 'cubic-bezier(.16,1,.3,1)' });
+    clearTimeout(tipTimer);
+    tipTimer = setTimeout(hideTip, 6000);
+  }
+  // Tap anywhere dismisses the tip (the roll button still works on the same tap).
+  el.addEventListener('pointerdown', () => hideTip());
 
   function place(idx) {
     currentTile?.classList.remove('is-current');
@@ -105,6 +146,7 @@ export function createPlay({ engine, state: initial, nav, store, professionIds =
   }
   place(state.position);
 
+  let lastPct = 0;
   function refreshHud() {
     const st = statement(state);
     turnEl.textContent = state.turn ? t('game.turn', { turn: state.turn }) : t('game.yourTurn');
@@ -113,10 +155,10 @@ export function createPlay({ engine, state: initial, nav, store, professionIds =
     passiveVal.replaceChildren(money(st.passiveIncome));
     expenseVal.replaceChildren(money(st.totalExpenses));
     m.set(st.passiveIncome, st.totalExpenses);
-    babies.replaceChildren(...Array.from({ length: state.kids }, () => icon('baby', { size: 20, width: 2.2 })));
+    babies.replaceChildren(...Array.from({ length: state.kids }, () => icon('baby', { size: 18, width: 2.2 })));
     babies.setAttribute('aria-label', t('game.kids', { n: state.kids }));
     babies.hidden = state.kids === 0;
-    // The chip keeps its slot (visibility, not display) so the HUD never changes height.
+    // The chip keeps its slot (visibility, not display) so the board centre never changes height.
     charityChip.dataset.active = String(state.charityTurns > 0);
     charityChip.setAttribute('aria-hidden', String(state.charityTurns <= 0));
     if (state.charityTurns > 0) charityChip.replaceChildren(icon('charity', { size: 16, width: 2.6 }), ` ${t('game.charityBoost', { turns: state.charityTurns })}`);
@@ -128,13 +170,28 @@ export function createPlay({ engine, state: initial, nav, store, professionIds =
     el.dataset.position = String(state.position);
   }
   refreshHud();
+  lastPct = (() => { const st = statement(state); return st.totalExpenses > 0 ? st.passiveIncome / st.totalExpenses : 0; })();
 
   const setStatus = (text) => { status.textContent = text; };
   function setBusy(b) {
+    const was = busy;
     busy = b;
     rollBtn.disabled = b;
-    rollBtn.textContent = b ? t('game.rolling') : t('game.roll');
+    rollLabel.textContent = b ? t('game.rolling') : t('game.roll');
     el.classList.toggle('is-busy', b);
+    if (b) {
+      clearTimeout(tipTimer);
+      if (!was) rollLeaves();
+      setPose('none');
+    } else {
+      // The fox returns 250ms after the button re-enables (or the tip shows instead).
+      setTimeout(() => { if (!destroyed && !busy) { setPose('roll'); maybeTip(); } }, motionOK() ? 250 : 0);
+    }
+  }
+  /** On tap: tilt -6deg to 4deg over 200ms and nudge 8px toward the board centre, then fade out (CSS). */
+  function rollLeaves() {
+    if (!motionOK()) return;
+    animate(rollFox, [{ transform: 'translateX(0) rotate(0deg)' }, { transform: 'translateX(0) rotate(-6deg)', offset: 0.4 }, { transform: `translateX(${dirSign() * 8}px) rotate(4deg)` }], { duration: 200, easing: 'ease-out', fill: 'none' });
   }
 
   const cardTitle = (id) => engine.data.cards.find((c) => c.id === id)?.title ?? '';
@@ -159,10 +216,12 @@ export function createPlay({ engine, state: initial, nav, store, professionIds =
         pushLog(t('game.logBought', { title: cardTitle(ev.cardId) }), 'good');
         haptic('purchase'); sound('coin');
         coinBurst(center, stmtBtn, 10);
+        react('celebrate');
       } else if (ev.type === 'sold' || ev.type === 'loan') {
         pushLog(ev.type === 'loan' ? t('game.logLoan', { amount: moneyText(ev.amount) }) : t('game.logSold', { amount: moneyText(ev.proceeds) }), ev.type === 'loan' ? 'bad' : 'good');
         haptic('purchase'); sound('coin');
         coinBurst(ev.type === 'loan' ? rollBtn : stmtBtn, cash.el, 6);
+        if (ev.type === 'loan') react('worried');
       } else if (ev.type === 'passed') {
         pushLog(t('game.logPassed'));
       } else if (ev.type === 'donated') {
@@ -171,6 +230,12 @@ export function createPlay({ engine, state: initial, nav, store, professionIds =
       }
     }
     syncCash();
+    // Passive-income milestones (25/50/75% of expenses): celebrate once per crossing.
+    const st = statement(state);
+    const pct = st.totalExpenses > 0 ? st.passiveIncome / st.totalExpenses : 0;
+    const crossed = [0.25, 0.5, 0.75].find((mark) => lastPct < mark && pct >= mark && pct < 1);
+    lastPct = pct;
+    if (crossed) { pushLog(t('game.milestone', { pct: Math.round(crossed * 100) }), 'good'); react('celebrate'); }
     return true;
   }
 
@@ -198,6 +263,7 @@ export function createPlay({ engine, state: initial, nav, store, professionIds =
     setStatus(t('game.statusPayday', { months, amount: moneyText(amount, { sign: true }) }));
     floatText(cash.el, h('div', { class: 'float-stack' }, money(amount, { sign: true }), h('span', { class: 'float-sub' }, t('game.paydayFloatLabel', { months }))), amount >= 0 ? 'income' : 'expense');
     pulse(el.querySelector('.hud-cash'), 1.04);
+    if (amount > 0) react('celebrate');
     await cash.to(cash.value + amount, 450);
   }
 
@@ -223,6 +289,13 @@ export function createPlay({ engine, state: initial, nav, store, professionIds =
     state = next;
     store.save(state);
     refreshHud();
+    // The fox reacts to the square first, then the card (which carries its own reaction) opens.
+    const landed = LAND_REACTION[BOARD[move.to]];
+    if (landed && (next.pending || next.events.some((e) => e.type === 'baby' || e.type === 'expensePaid' || e.type === 'market'))) {
+      react(landed);
+      await pause(420);
+      reactor.hide();
+    }
     await handleEvents(next);
     await resolvePending();
     setBusy(false);
@@ -353,7 +426,9 @@ export function createPlay({ engine, state: initial, nav, store, professionIds =
     el,
     /** Called once the screen is mounted. Resumes a pending decision if the save had one. */
     async start() {
+      warmFox(REACTIONS);
       if (state.status !== 'playing') return;
+      if (!state.pending) maybeTip();
       if (state.pending) {
         setBusy(true);
         await resolvePending();
@@ -361,7 +436,7 @@ export function createPlay({ engine, state: initial, nav, store, professionIds =
         await finishIfOver();
       }
     },
-    destroy() { destroyed = true; debugTools?.remove(); },
+    destroy() { destroyed = true; clearTimeout(tipTimer); reactor.hide(); debugTools?.remove(); },
     get state() { return state; },
     monthlyCashFlow: () => monthlyCashFlow(state),
   };

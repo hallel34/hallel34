@@ -30,21 +30,3 @@ export function icon(name, { size = 24, width = 2.4, cls = '' } = {}) {
   el.setAttribute('class', classes);
   return el;
 }
-
-/** Large illustrations for the card header (64x64, ink outlines, flat fills). */
-const ART = {
-  apartment: '<path d="M6 30L32 8l26 22v26H6z" fill="#FFF8EC"/><path d="M6 30L32 8l26 22" fill="#FF5A4E"/><rect x="26" y="38" width="12" height="18" rx="2" fill="#6BE3A8"/><rect x="11" y="34" width="10" height="10" rx="2" fill="#9BD3FF"/><rect x="43" y="34" width="10" height="10" rx="2" fill="#9BD3FF"/>',
-  business: '<path d="M8 26h48v30H8z" fill="#FFF8EC"/><path d="M6 26l4-14h44l4 14z" fill="#FF5A4E"/><path d="M14 26v4a4 4 0 0 0 8 0v-4M22 26v4a4 4 0 0 0 8 0v-4M30 26v4a4 4 0 0 0 8 0v-4M38 26v4a4 4 0 0 0 8 0v-4M46 26v4a4 4 0 0 0 4 4" fill="#FFC83D"/><rect x="24" y="38" width="16" height="18" rx="2" fill="#6BE3A8"/>',
-  stock: '<rect x="8" y="8" width="48" height="48" rx="8" fill="#FFF8EC"/><path d="M14 44l12-12 8 8 16-20" fill="none" stroke="#3DDC97" stroke-width="5"/><path d="M42 20h8v8" fill="none" stroke="#3DDC97" stroke-width="5"/>',
-  expense: '<path d="M36 4L12 36h16l-4 24 28-34H34z" fill="#FFC83D"/>',
-  market: '<rect x="8" y="40" width="10" height="16" rx="2" fill="#FFF8EC"/><rect x="27" y="26" width="10" height="30" rx="2" fill="#FFF8EC"/><rect x="46" y="10" width="10" height="46" rx="2" fill="#6BF0B8"/>',
-  charity: '<path d="M32 56S6 40 6 22a13 13 0 0 1 26-5 13 13 0 0 1 26 5c0 18-26 34-26 34z" fill="#FF8FC4"/>',
-  baby: '<circle cx="32" cy="34" r="22" fill="#FFF8EC"/><circle cx="24" cy="32" r="3" fill="#2B1B4D"/><circle cx="40" cy="32" r="3" fill="#2B1B4D"/><path d="M25 42q7 6 14 0" fill="none"/><path d="M30 12q4-8 10-2" fill="none"/><circle cx="19" cy="40" r="3" fill="#FF8FC4" stroke="none"/><circle cx="45" cy="40" r="3" fill="#FF8FC4" stroke="none"/>',
-};
-export function cardArt(kind, size = 132) {
-  const el = html(
-    `<svg aria-hidden="true" focusable="false" width="${size}" height="${size}" viewBox="0 0 64 64" fill="none" stroke="#2B1B4D" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">${ART[kind] || ART.apartment}</svg>`,
-  );
-  el.setAttribute('class', 'card-art');
-  return el;
-}

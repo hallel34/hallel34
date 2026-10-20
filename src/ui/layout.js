@@ -8,5 +8,5 @@ export function ringPos(i) {
   return [1, 7 - (i - 18)];
 }
 
-const AVATAR_COLORS = ['#FF8A5C', '#6BE3A8', '#3D9BFF', '#FF8FC4', '#9B6BFF', '#FFC83D', '#FF5A4E', '#6BF0B8'];
-export const avatarColor = (id, list = []) => AVATAR_COLORS[Math.max(0, list.indexOf(id)) % AVATAR_COLORS.length];
+/** Profession avatar chip: always the fox orange (the initial tells professions apart; orange carries no money meaning). */
+export const avatarColor = () => 'var(--fox)';

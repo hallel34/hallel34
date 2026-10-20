@@ -128,7 +128,7 @@ export function coinBurst(fromEl, toEl, count = 10) {
   return Promise.all(jobs);
 }
 
-const CONFETTI_COLORS = ['#FFC83D', '#6BF0B8', '#FF8FC4', '#3D9BFF', '#FF5A4E', '#FFFFFF', '#9B6BFF'];
+const CONFETTI_COLORS = ['#F2B53A', '#FFD479', '#E8702A', '#4FD6A0', '#FF9CCB', '#4DA3FF', '#F0524A', '#FFFFFF'];
 /** 40 DOM confetti pieces animated with transforms only. Static sparkles under reduced motion. */
 export function confetti(container, count = 40) {
   const layer = h('div', { class: 'confetti', 'aria-hidden': 'true' });

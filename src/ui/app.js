@@ -60,14 +60,19 @@ export function createApp(host) {
     over: (s) => goOver(s),
   };
 
+  const gamesPlayed = () => Math.max(0, parseInt(readRaw('gamesPlayed') || '0', 10) || 0);
+  const countGame = () => writeRaw('gamesPlayed', String(gamesPlayed() + 1));
+
   function goStart() {
-    mount({ el: createStart({
+    const start = createStart({
       save: loadSave(),
       mode,
+      gamesPlayed: gamesPlayed(),
       onMode: (m) => { mode = m; writeRaw('mode', m); },
       onPlay: (m) => { mode = m; writeRaw('mode', m); goPick(); },
       onResume: () => { const s = loadSave(); if (s) goPlay(s); },
-    }) });
+    });
+    mount(start, { start: () => start.start() });
   }
 
   function goPick() {
@@ -92,6 +97,7 @@ export function createApp(host) {
 
   async function goWin(s) {
     store.clear();
+    countGame();
     const win = createWin({ state: s, onAgain: () => goStart() });
     mount({ el: win.el }, { start: () => win.start() });
     showInterstitial('win');
@@ -99,6 +105,7 @@ export function createApp(host) {
 
   function goOver(s) {
     store.clear();
+    countGame();
     const over = createOver({
       state: s,
       onRetry: () => startNew(s.mode, s.profession.id),
