@@ -1,0 +1,192 @@
+/* יוצאים מהמרוץ — design tokens. Direction: "Tel Aviv Pop".
+   Use ONLY these tokens in components. Logical properties only (RTL-safe). */
+:root {
+  /* ---- Brand palette (raw, theme-independent) ---- */
+  --c-plum-900: #1E1238;
+  --c-plum-800: #2B1B4D;
+  --c-plum-700: #3D2A6B;
+  --c-plum-500: #6B55A3;
+  --c-cream-50: #FFFBF2;
+  --c-cream-100: #FFF4E0;
+  --c-cream-200: #F7E6C8;
+  --c-sun-400: #FFC233;
+  --c-sun-500: #FFB300;
+  --c-sun-700: #B87800;
+  --c-coral-500: #FF5A4E;
+  --c-coral-700: #C7352B;
+  --c-mint-500: #1FBF8F;
+  --c-mint-700: #0E7F5E;
+  --c-sky-500: #2D9CFF;
+  --c-sky-700: #1A62B3;
+  --c-violet-500: #7A4DFF;
+  --c-violet-700: #5230C2;
+  --c-pink-500: #FF7AB6;
+  --c-pink-700: #C23B80;
+
+  /* ---- Semantic (light theme default) ---- */
+  --bg: var(--c-cream-100);
+  --bg-board: #FFE9BF;
+  --surface: #FFFFFF;
+  --surface-2: var(--c-cream-50);
+  --surface-sunken: var(--c-cream-200);
+  --text: var(--c-plum-800);          /* AA on bg/surface (>=12:1) */
+  --text-muted: #5A4A7A;              /* >=6:1 on surface */
+  --text-on-color: #FFFFFF;
+  --border: #E8D5AE;
+  --outline: var(--c-plum-800);       /* chunky sticker outline */
+  --focus-ring: var(--c-violet-500);
+  --scrim: rgb(30 18 56 / .55);
+
+  /* Money semantics: same meaning everywhere */
+  --income: var(--c-mint-700);        /* text/icons on light; AA */
+  --income-fill: var(--c-mint-500);
+  --expense: var(--c-coral-700);
+  --expense-fill: var(--c-coral-500);
+  --asset: var(--c-sun-700);
+  --asset-fill: var(--c-sun-500);
+  --liability: #6B5B8C;
+  --liability-fill: #9A8AB8;
+  --passive: var(--c-violet-500);     /* signature win-meter colour */
+  --passive-track: #E5DBFF;
+
+  /* Buttons */
+  --btn-primary-bg: var(--c-sun-500);
+  --btn-primary-text: var(--c-plum-900);   /* 9:1 on sun */
+  --btn-primary-edge: var(--c-sun-700);    /* 3D bottom edge */
+  --btn-secondary-bg: var(--c-plum-800);
+  --btn-secondary-text: #FFFFFF;
+  --btn-secondary-edge: var(--c-plum-900);
+  --btn-danger-bg: var(--c-coral-700);
+  --btn-danger-text: #FFFFFF;
+  --btn-danger-edge: #8E2018;
+  --btn-disabled-bg: #D9CDB4;
+  --btn-disabled-text: #6F6450;
+
+  /* Square types (board tiles) — pair with src/assets/square-*.svg */
+  --sq-payday: var(--c-mint-500);
+  --sq-opportunity: var(--c-sun-500);
+  --sq-expense: var(--c-coral-500);
+  --sq-market: var(--c-sky-500);
+  --sq-baby: var(--c-pink-500);
+  --sq-charity: var(--c-violet-500);
+
+  /* ---- Typography ---- */
+  --font-display: "Rubik", "Heebo", system-ui, sans-serif;
+  --font-body: "Assistant", "Heebo", system-ui, sans-serif;
+  --fs-xs: 0.75rem;    /* 12 */
+  --fs-sm: 0.875rem;   /* 14 */
+  --fs-md: 1rem;       /* 16 */
+  --fs-lg: 1.25rem;    /* 20 */
+  --fs-xl: 1.625rem;   /* 26 */
+  --fs-2xl: 2.25rem;   /* 36 */
+  --fs-3xl: 3.25rem;   /* 52, hero / money count-up */
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-bold: 700;
+  --fw-black: 800;
+  --lh-tight: 1.15;
+  --lh-body: 1.45;
+  --num-features: "tnum" 1, "lnum" 1; /* use: font-feature-settings + font-variant-numeric: tabular-nums */
+
+  /* ---- Spacing (4px base) ---- */
+  --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px; --sp-4: 16px;
+  --sp-5: 20px; --sp-6: 24px; --sp-8: 32px; --sp-10: 40px; --sp-12: 48px;
+  --gutter: 16px;
+  --tap-min: 48px;
+  --btn-primary-h: 56px;
+
+  /* ---- Radii ---- */
+  --r-sm: 8px; --r-md: 14px; --r-lg: 22px; --r-xl: 28px; --r-pill: 999px;
+
+  /* ---- Sticker outline + elevation ---- */
+  --stroke: 3px;
+  --shadow-1: 0 2px 0 rgb(43 27 77 / .14), 0 4px 10px rgb(43 27 77 / .10);
+  --shadow-2: 0 4px 0 rgb(43 27 77 / .16), 0 10px 24px rgb(43 27 77 / .18);
+  --shadow-3: 0 8px 0 rgb(43 27 77 / .18), 0 20px 44px rgb(43 27 77 / .28);
+  --shadow-glow-gold: 0 0 0 4px rgb(255 179 0 / .35), 0 0 28px rgb(255 179 0 / .55);
+  --edge-depth: 4px;                  /* button 3D edge: box-shadow 0 var(--edge-depth) 0 var(--btn-*-edge) */
+
+  /* ---- Layers ---- */
+  --z-board: 1; --z-pawn: 5; --z-hud: 10; --z-sheet: 20; --z-modal: 30; --z-toast: 40; --z-fx: 50;
+
+  /* ---- Motion ---- */
+  --dur-instant: 80ms;
+  --dur-press: 120ms;
+  --dur-fast: 180ms;      /* pawn hop per square */
+  --dur-base: 250ms;
+  --dur-slow: 400ms;
+  --dur-die: 1100ms;      /* die tumble total */
+  --dur-countup: 700ms;
+  --dur-confetti: 2800ms;
+  --ease-out: cubic-bezier(.16, 1, .3, 1);
+  --ease-in: cubic-bezier(.7, 0, .84, 0);
+  --ease-inout: cubic-bezier(.65, 0, .35, 1);
+  --ease-bounce: cubic-bezier(.34, 1.56, .64, 1);   /* settle / squash */
+  --press-scale: .96;
+  --hop-height: 14px;
+}
+
+/* ---- Dark theme: "Golden Hour" evening Tel Aviv ---- */
+:root[data-theme="dark"] {
+  --bg: var(--c-plum-900);
+  --bg-board: #2A1A4F;
+  --surface: var(--c-plum-800);
+  --surface-2: #33225C;
+  --surface-sunken: #1A0F31;
+  --text: #FFF4E0;
+  --text-muted: #CBBEE6;              /* >=8:1 on surface */
+  --border: #4A3680;
+  --outline: #0F0820;
+  --focus-ring: var(--c-sun-400);
+  --scrim: rgb(10 5 25 / .7);
+
+  --income: #4FE0B4;
+  --expense: #FF8A80;
+  --asset: var(--c-sun-400);
+  --liability: #B9A8DA;
+  --passive: #A58BFF;
+  --passive-track: #3D2A6B;
+
+  --btn-secondary-bg: #4A3680;
+  --btn-secondary-edge: #2A1A4F;
+  --btn-disabled-bg: #3D2F5E;
+  --btn-disabled-text: #A89BC8;
+
+  --shadow-1: 0 2px 0 rgb(0 0 0 / .35), 0 4px 10px rgb(0 0 0 / .30);
+  --shadow-2: 0 4px 0 rgb(0 0 0 / .4), 0 10px 24px rgb(0 0 0 / .4);
+  --shadow-3: 0 8px 0 rgb(0 0 0 / .45), 0 20px 44px rgb(0 0 0 / .55);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: var(--c-plum-900); --bg-board: #2A1A4F; --surface: var(--c-plum-800);
+    --surface-2: #33225C; --surface-sunken: #1A0F31; --text: #FFF4E0;
+    --text-muted: #CBBEE6; --border: #4A3680; --outline: #0F0820;
+    --focus-ring: var(--c-sun-400); --scrim: rgb(10 5 25 / .7);
+    --income: #4FE0B4; --expense: #FF8A80; --asset: var(--c-sun-400);
+    --liability: #B9A8DA; --passive: #A58BFF; --passive-track: #3D2A6B;
+    --btn-secondary-bg: #4A3680; --btn-secondary-edge: #2A1A4F;
+    --btn-disabled-bg: #3D2F5E; --btn-disabled-text: #A89BC8;
+    --shadow-1: 0 2px 0 rgb(0 0 0 / .35), 0 4px 10px rgb(0 0 0 / .30);
+    --shadow-2: 0 4px 0 rgb(0 0 0 / .4), 0 10px 24px rgb(0 0 0 / .4);
+    --shadow-3: 0 8px 0 rgb(0 0 0 / .45), 0 20px 44px rgb(0 0 0 / .55);
+  }
+}
+
+/* ---- Reduced motion: fades only ---- */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-press: 1ms; --dur-fast: 1ms; --dur-base: 120ms; --dur-slow: 120ms;
+    --dur-die: 120ms; --dur-countup: 1ms; --dur-confetti: 1ms;
+    --press-scale: 1; --hop-height: 0px;
+  }
+}
+
+/* ---- Base helpers ---- */
+.money { font-family: var(--font-display); font-weight: var(--fw-bold);
+  font-variant-numeric: tabular-nums; font-feature-settings: var(--num-features);
+  unicode-bidi: isolate; }
+.money .cur { font-size: .6em; font-weight: var(--fw-medium); margin-inline-end: .12em; }
+.icon-dir { }
+[dir="rtl"] .icon-dir { transform: scaleX(-1); }
+button, [role="button"] { touch-action: manipulation; min-block-size: var(--tap-min); min-inline-size: var(--tap-min); }
+:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 2px; }
