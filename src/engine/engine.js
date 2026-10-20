@@ -110,7 +110,7 @@ export function createEngine(data, { validate = true } = {}) {
     if (d.pending?.kind === 'expense' && d.cash >= d.pending.amount) {
       payFromCash(d, d.pending.amount);
       d.stats.expensesPaid += 1;
-      d.events.push({ type: 'expensePaid', amount: d.pending.amount });
+      d.events.push({ type: 'expensePaid', amount: d.pending.amount, card: d.pending.card });
       d.pending = null;
     }
     if (d.pending?.kind === 'shortfall' && d.cash >= 0) d.pending = null;
