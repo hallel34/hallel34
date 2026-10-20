@@ -3,7 +3,7 @@
 // The input state is never mutated. All randomness comes from state.rngState.
 import {
   BOARD, SCHEMA_VERSION, MAX_KIDS, CHARITY_PCT, CHARITY_TURNS, LOAN_STEP,
-  LOAN_PAYMENT_RATE, MAX_STOCK_QTY,
+  LOAN_PAYMENT_RATE, MAX_STOCK_QTY, PAYDAY_MONTHS,
 } from './config.js';
 import { validateData } from './validate.js';
 import {
@@ -141,10 +141,10 @@ export function createEngine(data, { validate = true } = {}) {
 
   // ---------- roll & movement ----------
   function payday(d) {
-    const amount = monthlyCashFlow(d);
+    const amount = monthlyCashFlow(d) * PAYDAY_MONTHS;
     d.cash += amount;
     d.stats.paydays += 1;
-    d.events.push({ type: 'payday', amount });
+    d.events.push({ type: 'payday', amount, months: PAYDAY_MONTHS });
   }
 
   function roll(state, forcedDice) {
@@ -377,8 +377,20 @@ export function createEngine(data, { validate = true } = {}) {
     return d;
   }
 
+  /** Dev/QA only (the UI calls it solely behind ?debug=1). Ends the game as won or lost. */
+  function debugForce(state, outcome) {
+    if (outcome !== 'win' && outcome !== 'lose') fail(`unknown outcome ${outcome}`);
+    const d = begin(state);
+    d.pending = null;
+    d.status = outcome === 'win' ? 'won' : 'lost';
+    d.phase = 'ended';
+    if (outcome === 'win') d.winTurn = d.turn;
+    d.events.push({ type: outcome === 'win' ? 'win' : 'gameOver' });
+    return d;
+  }
+
   return {
-    data, newGame, roll, buy, pass, acceptOffer, declineOffer, donate,
+    data, newGame, debugForce, roll, buy, pass, acceptOffer, declineOffer, donate,
     declineCharity, takeLoan, repayLoan, sellAsset,
   };
 }

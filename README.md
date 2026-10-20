@@ -80,11 +80,11 @@ errors are listed with the card id. Required fields:
 // Opportunity: apartment | business  (price must equal downPayment + mortgage)
 { "id": "opp-apt-099", "deck": "opportunity", "type": "apartment", "modes": ["family", "full"],
   "title": "...", "text": "...",
-  "price": 450000, "downPayment": 20000, "mortgage": 430000, "monthlyCashFlow": 2300 }
+  "price": 1800000, "downPayment": 200000, "mortgage": 1600000, "monthlyCashFlow": 4000 }
 
 // Opportunity: stock (full mode)
 { "id": "opp-stk-099", "deck": "opportunity", "type": "stock", "modes": ["full"],
-  "title": "...", "text": "...", "symbol": "ABC", "price": 40, "dividend": 1.8, "maxQty": 500 }
+  "title": "...", "text": "...", "symbol": "ABC", "price": 500, "dividend": 3, "maxQty": 400 }
 
 // Unexpected expense
 { "id": "exp-099", "deck": "expense", "modes": ["family", "full"], "title": "...", "text": "...", "amount": 4500 }
@@ -92,12 +92,28 @@ errors are listed with the card id. Required fields:
 // Market event: offer on one of your assets | stock price change | cash gain or loss
 { "id": "mkt-099", "deck": "market", "modes": ["full"], "effect": "offer", "title": "...", "text": "...", "targetType": "apartment", "offerPct": 1.25 }
 { "id": "mkt-098", "deck": "market", "modes": ["full"], "effect": "stockPrice", "title": "...", "text": "...", "symbol": "ABC", "newPrice": 55 }
-{ "id": "mkt-097", "deck": "market", "modes": ["family", "full"], "effect": "cash", "title": "...", "text": "...", "amount": -800 }
+{ "id": "mkt-097", "deck": "market", "modes": ["family", "full"], "effect": "cash", "title": "...", "text": "...", "amount": -1000 }
 ```
 
 Professions live in `src/data/professions.he.json` (salary, savings, perChild, itemised expenses, starting liabilities).
 After changing numbers run `npm run simulate` to check balance (targets: median 15-25 turns to win).
 Money formatting, card layout and the statement all adapt to the data.
+
+**Balance rules of thumb** (enforced by `tests/data.test.js`):
+- Payback = `downPayment / monthlyCashFlow / 12` years. Good deals: 3-6 years (small), 7-12 (down payment >= 150,000).
+- About 35-40% of the opportunity cards per mode are traps: obvious ones (negative cash flow) and subtle ones
+  (positive but payback over 14 years: high fees, balloon payments, over-priced). Traps need no code, just numbers.
+- Family-mode cards use round numbers (prices in 1,000s; down payment, loan and cash flow in 500s).
+- Stocks pay a 0.4-0.8% monthly dividend; give each a different volatility through its `stockPrice` market cards.
+- Pacing knob: `PAYDAY_MONTHS` in `src/engine/config.js`. A payday square settles that many months of cash flow
+  (the board lap stands for a stretch of years), so deal sizes and pace can be tuned without touching the cards' payback.
+  `BOARD` in the same file sets how often each square type appears.
+
+## Debug helpers
+
+Open the app with `?debug=1` (for example `/?debug=1&seed=11`) to get two dev-only buttons on the board
+("ניצחון" / "הפסד") and `window.__etrDebug.forceWin()` / `forceLose()`. Without the flag nothing is created
+and the helpers do not exist.
 
 ## Add a language
 

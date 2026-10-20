@@ -11,7 +11,7 @@ import { statement, maxLoan } from '../engine/index.js';
 
 export function openStatement({ getState, ops }) {
   let layer;
-  const body = h('div', { class: 'statement-body' });
+  const body = h('div', { class: 'statement-body', tabindex: '0', role: 'region', 'aria-label': t('statement.title') });
 
   const row = (label, value, tone = '', extra = null) =>
     h('div', { class: `st-row${tone ? ` st-${tone}` : ''}` }, h('span', { class: 'st-label' }, label), h('span', { class: 'st-value' }, value), extra);
@@ -70,7 +70,13 @@ export function openStatement({ getState, ops }) {
 
     if (actionable) {
       const tools = h('div', { class: 'st-tools' });
-      if (maxLoan(s) > 0) tools.append(button(t('statement.takeLoan'), { variant: 'secondary', 'data-action': 'loan', onClick: async () => { await ops.takeLoan(); render(); } }));
+      const atLimit = maxLoan(s) === 0;
+      tools.append(button(atLimit ? t('statement.takeLoanLimit') : t('statement.takeLoan'), {
+        variant: 'secondary', 'data-action': 'loan', disabled: atLimit,
+        'aria-describedby': atLimit ? 'loan-limit-hint' : null,
+        onClick: async () => { await ops.takeLoan(); render(); },
+      }));
+      if (atLimit) tools.append(h('p', { class: 'st-empty', id: 'loan-limit-hint' }, t('loan.limitHint')));
       if (s.assets.length) tools.append(button(t('sell.title'), { variant: 'secondary', 'data-action': 'sell', onClick: async () => { await ops.sell(); render(); } }));
       if (tools.children.length) body.append(tools);
     }
@@ -84,6 +90,11 @@ export function openStatement({ getState, ops }) {
     if (motionOK()) {
       [...body.querySelectorAll('.st-row')].slice(0, 14).forEach((r, i) => animate(r, [{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { duration: 250, delay: 60 + i * 30, easing: 'cubic-bezier(.16,1,.3,1)' }));
     }
+    // Re-rendering drops the focused button; keep keyboard focus inside the sheet.
+    queueMicrotask(() => {
+      const a = document.activeElement;
+      if (layer && !layer.done && (!a || a === document.body || !a.isConnected)) layer.panel.focus({ preventScroll: true });
+    });
   }
   render();
 

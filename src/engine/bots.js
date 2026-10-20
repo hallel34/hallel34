@@ -6,8 +6,8 @@ import { LOAN_STEP, LOAN_PAYMENT_RATE } from './config.js';
 // maxPayback: reject deals whose down payment takes longer than this many months of cash flow.
 export const BOTS = {
   alwaysBuy: { reserveMonths: 0, maxPayback: Infinity, borrow: true, charity: true, acceptOffers: false },
-  sensible: { reserveMonths: 0.5, maxPayback: 30, borrow: true, charity: true, acceptOffers: 1.2 },
-  cautious: { reserveMonths: 2, maxPayback: 20, borrow: false, charity: true, acceptOffers: 1.15 },
+  sensible: { reserveMonths: 0.5, maxPayback: 130, borrow: true, charity: true, acceptOffers: 1.2 },
+  cautious: { reserveMonths: 2, maxPayback: 80, borrow: false, charity: true, acceptOffers: 1.15 },
   alwaysPass: { reserveMonths: 0, maxPayback: -1, borrow: false, charity: false, acceptOffers: false },
 };
 
@@ -46,7 +46,8 @@ export function step(engine, s, bot) {
     if (c.type === 'stock') {
       const afford = Math.floor((s.cash - reserve) / c.price);
       const qty = Math.min(afford, c.maxQty ?? 1000);
-      return qty >= 1 && cfg.maxPayback > 0 ? engine.buy(s, qty) : engine.pass(s);
+      const stockPayback = c.dividend > 0 ? c.price / c.dividend : Infinity; // months
+      return qty >= 1 && stockPayback <= cfg.maxPayback ? engine.buy(s, qty) : engine.pass(s);
     }
     const payback = c.monthlyCashFlow > 0 ? c.downPayment / c.monthlyCashFlow : Infinity;
     if (payback > cfg.maxPayback) return engine.pass(s);

@@ -106,3 +106,25 @@ describe('engine events used by the UI', () => {
     expect(found).toBe(true);
   });
 });
+
+describe('accessibility wiring', () => {
+  it('every progressbar has an accessible name and value text from i18n', () => {
+    const src = readFileSync(new URL('../src/ui/widgets.js', import.meta.url), 'utf8');
+    expect(src).toMatch(/role: 'progressbar', 'aria-label': t\('a11y\.passiveMeter'\)/);
+    expect(src).toContain("t('a11y.passiveMeterValue'");
+    expect(lookup('a11y.passiveMeter')).toMatch(/[֐-׿]/);
+    expect(lookup('a11y.passiveMeterValue')).toContain('{pct}');
+    const others = jsFiles.filter((f) => !f.endsWith('widgets.js') && /role: 'progressbar'/.test(readFileSync(f, 'utf8')));
+    expect(others).toEqual([]);
+  });
+  it('debug helpers are gated behind ?debug=1', async () => {
+    const { debugEnabled } = await import('../src/ui/debug.js');
+    globalThis.location = { search: '' };
+    expect(debugEnabled()).toBe(false);
+    globalThis.location = { search: '?debug=1' };
+    expect(debugEnabled()).toBe(true);
+    globalThis.location = { search: '?debug=0' };
+    expect(debugEnabled()).toBe(false);
+    delete globalThis.location;
+  });
+});

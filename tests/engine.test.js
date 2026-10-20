@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   createEngine, EngineError, BOARD, serialize, deserialize, SCHEMA_VERSION,
-  monthlyCashFlow, passiveIncome, totalExpenses, totalIncome, maxLoan, statement,
+  PAYDAY_MONTHS, monthlyCashFlow, passiveIncome, totalExpenses, totalIncome, maxLoan, statement,
 } from '../src/engine/index.js';
 
 const profession = {
@@ -90,19 +90,19 @@ describe('payday', () => {
 
   it('pays monthly cash flow when landing on payday', () => {
     const s = e.roll(at(s0, payday1 - 3), [3]);
-    expect(s.cash).toBe(5000 + 5000);
+    expect(s.cash).toBe(5000 + 5000 * PAYDAY_MONTHS);
     expect(s.stats.paydays).toBe(1);
   });
   it('pays when passing a payday square', () => {
     const s = e.roll(at(s0, payday1 - 1), [3]);
-    expect(s.cash).toBe(5000 + 5000);
+    expect(s.cash).toBe(5000 + 5000 * PAYDAY_MONTHS);
   });
   it('pays once per payday square crossed and wraps around the board', () => {
     const s = e.roll(at(s0, 22), [4]); // passes 22->23,0(payday),1,2
     expect(s.stats.paydays).toBe(1);
     const s2 = e.roll(at(s0, 3), [5]); // 4 (payday) .. 7 (payday) -> two paydays
     expect(s2.stats.paydays).toBe(2);
-    expect(s2.cash).toBe(5000 + 2 * 5000 - 0);
+    expect(s2.cash).toBe(5000 + 2 * 5000 * PAYDAY_MONTHS);
   });
   it('does not pay when not crossing a payday', () => {
     const s = e.roll(at(s0, 1), [1]); // lands on expense square 2
@@ -114,7 +114,28 @@ describe('payday', () => {
     s = withState(s, { liabilities: [{ id: 'l', kind: 'loan', principal: 2000, monthlyPayment: 200 }] });
     expect(monthlyCashFlow(s)).toBe(10000 + 700 - 5000 - 200);
     const r = e.roll(s, [1]);
-    expect(r.cash).toBe(5000 + 5500);
+    expect(r.cash).toBe(5000 + 5500 * PAYDAY_MONTHS);
+  });
+});
+
+describe('payday scale and debug helper', () => {
+  const e = mk(BASE);
+  const s0 = e.newGame({ mode: 'full', professionId: 'test' });
+  it('a payday settles PAYDAY_MONTHS months of cash flow and reports it', () => {
+    const s = e.roll(at(s0, idx('payday', 1) - 1), [1]);
+    const ev = s.events.find((x) => x.type === 'payday');
+    expect(ev.months).toBe(PAYDAY_MONTHS);
+    expect(ev.amount).toBe(5000 * PAYDAY_MONTHS);
+  });
+  it('debugForce ends the game as won or lost without mutating the input', () => {
+    const frozen = JSON.stringify(s0);
+    const w = e.debugForce(s0, 'win');
+    expect(w.status).toBe('won');
+    expect(w.phase).toBe('ended');
+    expect(e.debugForce(s0, 'lose').status).toBe('lost');
+    expect(JSON.stringify(s0)).toBe(frozen);
+    expect(() => e.debugForce(w, 'win')).toThrow(); // game already over
+    expect(() => e.debugForce(s0, 'nope')).toThrow(/unknown outcome/);
   });
 });
 

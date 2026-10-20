@@ -14,7 +14,7 @@
       {
         "id": "housing",
         "label": "שכר דירה",
-        "amount": 3000
+        "amount": 3500
       },
       {
         "id": "food",
@@ -50,7 +50,7 @@
   {
     "id": "engineer",
     "title": "מהנדס/ת",
-    "salary": 11500,
+    "salary": 12500,
     "savings": 14000,
     "perChild": 600,
     "expenses": [
@@ -62,7 +62,7 @@
       {
         "id": "housing",
         "label": "שכר דירה",
-        "amount": 3300
+        "amount": 4500
       },
       {
         "id": "food",
@@ -110,7 +110,7 @@
       {
         "id": "housing",
         "label": "שכר דירה",
-        "amount": 2700
+        "amount": 3200
       },
       {
         "id": "food",
@@ -152,7 +152,7 @@
       {
         "id": "housing",
         "label": "שכר דירה",
-        "amount": 3450
+        "amount": 3600
       },
       {
         "id": "food",
@@ -188,7 +188,7 @@
   {
     "id": "programmer",
     "title": "מפתח/ת תוכנה",
-    "salary": 12000,
+    "salary": 13500,
     "savings": 16000,
     "perChild": 600,
     "expenses": [
@@ -200,7 +200,7 @@
       {
         "id": "housing",
         "label": "שכר דירה",
-        "amount": 4550
+        "amount": 5200
       },
       {
         "id": "food",
@@ -216,6 +216,11 @@
         "id": "other",
         "label": "מנויים וקפה",
         "amount": 900
+      },
+      {
+        "id": "pension",
+        "label": "פנסיה והשתלמות",
+        "amount": 700
       }
     ],
     "liabilities": [
@@ -242,7 +247,7 @@
       {
         "id": "housing",
         "label": "שכר דירה",
-        "amount": 3250
+        "amount": 3400
       },
       {
         "id": "food",
@@ -284,7 +289,7 @@
       {
         "id": "housing",
         "label": "שכר דירה",
-        "amount": 3300
+        "amount": 3000
       },
       {
         "id": "food",
@@ -314,7 +319,7 @@
   {
     "id": "lawyer",
     "title": "עורך/ת דין",
-    "salary": 12500,
+    "salary": 14500,
     "savings": 15000,
     "perChild": 600,
     "expenses": [
@@ -326,7 +331,7 @@
       {
         "id": "housing",
         "label": "שכר דירה",
-        "amount": 3550
+        "amount": 5000
       },
       {
         "id": "food",

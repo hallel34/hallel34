@@ -49,7 +49,7 @@ export function stepper({ min, max, step = 1, value, render, onChange, decLabel,
 export function meter({ large = false } = {}) {
   const fill = h('div', { class: 'meter-fill' });
   const flag = h('span', { class: 'meter-flag', 'aria-hidden': 'true' }, icon('star', { size: 14, width: 2.6 }));
-  const track = h('div', { class: `meter-track${large ? ' meter-large' : ''}`, role: 'progressbar', 'aria-valuemin': '0', 'aria-valuemax': '100', 'aria-valuenow': '0' },
+  const track = h('div', { class: `meter-track${large ? ' meter-large' : ''}`, role: 'progressbar', 'aria-label': t('a11y.passiveMeter'), 'aria-valuemin': '0', 'aria-valuemax': '100', 'aria-valuenow': '0' },
     fill, h('i', { class: 'tick', vars: { '--p': '25%' } }), h('i', { class: 'tick', vars: { '--p': '50%' } }), h('i', { class: 'tick', vars: { '--p': '75%' } }), flag);
   let last = 0;
   return {
@@ -58,6 +58,7 @@ export function meter({ large = false } = {}) {
       const p = expenses > 0 ? Math.max(0, Math.min(1, passive / expenses)) : 0;
       fill.style.setProperty('--fill', String(p));
       track.setAttribute('aria-valuenow', String(Math.round(p * 100)));
+      track.setAttribute('aria-valuetext', t('a11y.passiveMeterValue', { pct: Math.round(p * 100), passive: moneyText(passive), expenses: moneyText(expenses) }));
       for (const mark of [0.25, 0.5, 0.75]) {
         if (anim && last < mark && p >= mark) { pulse(track, 1.04); haptic('tap'); }
       }

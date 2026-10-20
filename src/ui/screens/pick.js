@@ -20,7 +20,7 @@ export function createPick({ engine, mode, onBack, onGo }) {
     const row = (l, v, tone = '') => h('div', { class: `st-row${tone ? ` st-${tone}` : ''}` }, h('span', { class: 'st-label' }, l), h('span', { class: 'st-value' }, v));
     const content = h('div', { class: 'sheet pick-sheet' },
       h('button', { type: 'button', class: 'sheet-handle', 'aria-label': t('a11y.sheetHandle'), onClick: () => layer.close() }, h('i')),
-      h('div', { class: 'sheet-scroll' },
+      h('div', { class: 'sheet-scroll', tabindex: '0', role: 'region', 'aria-label': t('pick.previewTitle', { profession: p.title }) },
         h('div', { class: 'pick-head' },
           h('div', { class: 'avatar avatar-lg', style: `background:${avatarColor(p.id, ids)}`, 'aria-hidden': 'true' }, p.title.trim()[0]),
           h('div', null, h('h2', { class: 'dialog-title' }, p.title), h('p', { class: 'muted' }, tn('pick.perMonth', { amount: money(p.salary) })))),

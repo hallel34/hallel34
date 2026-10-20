@@ -45,7 +45,9 @@ export function openLayer(content, { kind = 'modal', label = '', dismissable = t
       animate(scrim, [{ opacity: 1 }, { opacity: 0 }], { duration: d });
       await animate(panel, motionOK() || kind !== 'sheet' ? out : [{ opacity: 1 }, { opacity: 0 }], { duration: d, easing: 'cubic-bezier(.7,0,.84,0)' }).finished.catch(() => {});
       el.remove();
-      try { prevFocus?.focus?.({ preventScroll: true }); } catch { /* ignore */ }
+      // Restore focus; if the opener was re-rendered away, fall back to the layer underneath.
+      const back = prevFocus?.isConnected ? prevFocus : stack[stack.length - 1]?.panel;
+      try { back?.focus?.({ preventScroll: true }); } catch { /* ignore */ }
       resolve(result);
     },
   };
@@ -87,3 +89,6 @@ export const closeButton = (onClick, cls = '') =>
   h('button', { type: 'button', class: `icon-btn ${cls}`, 'aria-label': t('common.close'), onClick }, icon('close', { size: 22 }));
 
 export const layerDepth = () => stack.length;
+
+/** Closes every open layer (used by the ?debug=1 helpers). */
+export const closeAllLayers = () => [...stack].reverse().forEach((l) => l.close(undefined));

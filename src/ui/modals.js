@@ -34,6 +34,7 @@ function cardShell({ type, art, chip, title, text, body = [], actions, flip = fa
   return layer.closed;
 }
 
+const limitBanner = () => h('div', { class: 'banner banner-warn', role: 'status' }, icon('bank', { size: 24 }), h('span', null, t('loan.limitHint')));
 const grid = (...tiles) => h('div', { class: 'stat-grid' }, tiles);
 const banner = (node, tone = 'info') => h('div', { class: `banner banner-${tone}` }, icon('star', { size: 26 }), h('span', null, node));
 
@@ -76,7 +77,7 @@ export function opportunityModal(state, { flip = true } = {}) {
     grid(
       statTile(t('card.downPayment'), money(c.downPayment), { big: true }),
       statTile(t('card.monthlyCashFlow'), money(c.monthlyCashFlow, { sign: true }), { tone: c.monthlyCashFlow < 0 ? 'expense' : 'income', big: true }),
-      statTile(t('card.mortgage'), money(c.mortgage)),
+      statTile(t(c.type === 'business' ? 'card.businessLoan' : 'card.mortgage'), money(c.mortgage)),
       statTile(t('card.price'), money(c.price)),
     ),
     c.monthlyCashFlow < 0
@@ -124,8 +125,9 @@ export function expenseModal(state, { card, amount, paid, flip = true }) {
     ? [{ id: 'pay', label: t('card.pay'), variant: 'danger', value: { action: 'ok' }, autofocus: true }]
     : [
       ...(canSell(state) ? [{ id: 'sell', label: t('card.sellAsset'), variant: 'secondary', value: { action: 'sell' } }] : []),
-      { id: 'loan', label: t('card.getLoan'), variant: 'primary', value: { action: 'loan' }, autofocus: true },
+      { id: 'loan', label: t('card.getLoan'), variant: 'primary', value: { action: 'loan' }, disabled: maxLoan(state) === 0, autofocus: maxLoan(state) > 0 },
     ];
+  if (!paid && maxLoan(state) === 0) body.push(limitBanner());
   return cardShell({ type: 'expense', art: 'expense', chip: t('square.expense'), title: card.title, text: card.text, body, actions, flip });
 }
 
@@ -137,8 +139,9 @@ export function shortfallModal(state, { flip = true } = {}) {
   ];
   const actions = [
     ...(canSell(state) ? [{ id: 'sell', label: t('card.sellAsset'), variant: 'secondary', value: { action: 'sell' } }] : []),
-    { id: 'loan', label: t('card.getLoan'), variant: 'primary', value: { action: 'loan' }, autofocus: true },
+    { id: 'loan', label: t('card.getLoan'), variant: 'primary', value: { action: 'loan' }, disabled: maxLoan(state) === 0, autofocus: maxLoan(state) > 0 },
   ];
+  if (maxLoan(state) === 0) body.push(limitBanner());
   return cardShell({ type: 'expense', art: 'expense', chip: t('square.expense'), title: t('card.shortfallTitle'), text: '', body, actions, flip });
 }
 

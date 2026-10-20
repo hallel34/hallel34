@@ -67,7 +67,7 @@ function decide(policy) {
         const afford = card.dataset.afford === 'true';
         const payback = Number(card.dataset.payback);
         const cost = Number(card.dataset.cost);
-        const good = policy === 'reckless' ? true : card.dataset.kind !== 'stock' && payback <= 30 && cash - cost >= expenses * 0.5;
+        const good = policy === 'reckless' ? true : card.dataset.kind !== 'stock' && payback <= 130 && cash - cost >= expenses * 0.5;
         if (afford && good && btn('buy')) return out({ click: '#modal-root .layer:last-child [data-action="buy"]' });
         return out({ click: '#modal-root .layer:last-child [data-action="pass"]' });
       }
@@ -194,6 +194,15 @@ async function main() {
   await tapTargets(page, 'board');
   await page.waitForTimeout(300);
   await page.screenshot({ path: `${OUT}/05-board.png` });
+
+  // a11y wiring: named progressbar, <main> + h1 landmarks, debug helpers off without the flag
+  const a11y = await page.evaluate(() => ({
+    bars: [...document.querySelectorAll('[role="progressbar"]')].map((b) => !!b.getAttribute('aria-label') && b.hasAttribute('aria-valuenow')),
+    main: document.querySelectorAll('main').length, h1: document.querySelectorAll('h1').length, debug: typeof window.__etrDebug,
+  }));
+  check(a11y.bars.length > 0 && a11y.bars.every(Boolean), 'progressbar has aria-label and aria-valuenow');
+  check(a11y.main === 1 && a11y.h1 >= 1, 'board has one <main> and an <h1>');
+  check(a11y.debug === 'undefined', 'debug helpers are absent without ?debug=1');
 
   // statement sheet
   await page.locator('[data-action="statement"]').click();

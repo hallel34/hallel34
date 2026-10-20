@@ -114,6 +114,7 @@
 .banner b, .banner .money { color: var(--c-gold-300); }
 .banner-warn { background: #FFE9E5; color: #7A1810; border: 2px solid #FFB3A7; }
 .banner-warn > .icon { color: var(--expense-ink); }
+.banner-warn b, .banner-warn .money { color: inherit; font-weight: var(--fw-bold); }
 .banner-warn .btn-mini { margin-inline-start: auto; }
 .banner-info { background: var(--c-plum-800); }
 
