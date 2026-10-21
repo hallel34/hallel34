@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "notes": {
     "resolve": "Pick lines[group][mode]; if missing use lines[group].all; if still missing use the family list. Choose one line at random but never the same line twice in a row for a group.",
     "slots": {
@@ -10,10 +10,12 @@
       "loss": "absolute value of a negative monthly cash flow, formatted with currency",
       "amount": "money amount, formatted with currency",
       "cashLeft": "cash after the payment, formatted",
-      "rate": "annual interest rate with percent sign. Value comes from config (pending decision N1). Never hard-coded here",
-      "monthlyPayment": "monthly loan payment, formatted",
-      "total": "total repaid on the loan until it is paid off, formatted (N1 loan window uses the same number)",
-      "saved": "monthly payment that disappears after a repayment, formatted",
+      "loanAmount": "principal of THIS loan (a multiple of LOAN_STEP), formatted. For expense.loan it can be larger than {amount}, which is the expense",
+      "rate": "LOAN_APR_NOMINAL with percent sign, e.g. '12%': the NOMINAL yearly rate (monthly rate x 12), not the effective rate. Derived from config, never typed. Not used in family lists",
+      "monthlyPayment": "loanTerms(loanAmount).monthly: what this loan adds to the monthly payments (interest only, loanAmount x LOAN_PAYMENT_RATE), formatted",
+      "interest": "loanTerms(loanAmount).perPayday = monthlyPayment x PAYDAY_MONTHS: the interest charged at each summary (24 months) while the loan stays open, formatted. Same number as the loan window row 'ריבית עד הסיכום הבא'",
+      "total": "loanTerms(loanAmount).totalAtPayday = loanAmount + interest, formatted. It is the sum to hand back ONLY if the loan is repaid at the next summary (principal stays owed until repaid, interest continues every month). Texts must always say 'אם תפרעו/מחזירים בסיכום הקרוב' next to it. It is NOT a total until the loan ends (there is no end date). Same number as the loan window row 'סך הכול להחזיר'",
+      "saved": "monthly payment that disappears after a repayment (loanMonthlyPayment of the repaid amount), formatted",
       "qty": "number of shares",
       "symbol": "stock name as shown on the card",
       "price": "new share price, formatted",
@@ -122,29 +124,34 @@
     },
     "loan.sensible": {
       "family": [
-        "הלוואה של {amount} כדי לכסות הוצאה היא החלטה הגיונית. נסו להחזיר אותה כשיהיה מזומן.",
-        "לקחתם {amount} והתשלום החודשי הוא {monthlyPayment}. התזרים עדיין חיובי, יפה.",
-        "הלוואה קטנה לעסקה טובה או לצורך חשוב היא כלי עבודה. שימו לב לתשלום של {monthlyPayment} בחודש."
+        "לקחתם {amount}. התשלום הוא {monthlyPayment} בחודש, והתזרים עדיין חיובי. יפה!",
+        "כל חודש משלמים {monthlyPayment} ריבית, והחוב נשאר עד שמחזירים אותו. כשיהיה מזומן אפשר להחזיר.",
+        "הלוואה קטנה שמשאירה תזרים חיובי היא כלי עבודה. שימו לב: {interest} ריבית בכל סיכום שנתיים."
       ],
       "full": [
-        "ריבית של {rate} בשנה: הלוואה של {amount} עולה בסך הכול {total}. כשהתזרים נשאר חיובי זו החלטה סבירה.",
-        "הלוואה של {amount} עם תשלום של {monthlyPayment} בחודש. התזרים מחזיק, וכשיהיה מזומן אפשר להחזיר.",
-        "הלוואה צריכה להיות קטנה ולשרת החלטה טובה. כאן היא עולה {total} בסך הכול, והתזרים נשאר חיובי."
+        "ריבית של {rate} בשנה: {monthlyPayment} בחודש, ו-{interest} עד הסיכום הבא. אם תפרעו אז, תחזירו {total}. התשלום קטן ביחס לתזרים, החלטה סבירה.",
+        "הלוואה של {amount} עולה {monthlyPayment} בחודש, והחוב נשאר עד שתחזירו אותו. התזרים מחזיק, וכשיהיה מזומן כדאי לפרוע.",
+        "הלוואה צריכה להיות קטנה ולשרת החלטה טובה. כאן הריבית היא {interest} בכל סיכום שנתיים, והתזרים נשאר חיובי."
       ]
     },
     "loan.costly": {
       "family": [
-        "ההלוואה הזו כבדה: התשלום של {monthlyPayment} בחודש אוכל הרבה מהתזרים. כדאי להחזיר אותה מהר.",
-        "הלוואה של {amount} עולה כסף! בסוף תחזירו {total}. אפשר לנסות לקחת פחות.",
-        "כל הלוואה עולה ריבית. כאן המחיר הוא {total}, ושווה לבדוק אם צריך את כולה."
+        "התשלום של {monthlyPayment} בחודש אוכל הרבה מהתזרים. כדאי לקחת פחות או להחזיר מהר.",
+        "ההלוואה עולה {interest} ריבית בכל סיכום שנתיים. אם תחזירו אותה בסיכום הקרוב, תחזירו {total}: את {amount} ועוד הריבית.",
+        "כל הלוואה עולה ריבית, וכאן התשלום החודשי גדול ביחס לתזרים. שווה לבדוק אם צריך את כולה."
       ],
       "full": [
-        "ריבית של {rate} בשנה: ההלוואה עולה {total}, והתשלום של {monthlyPayment} בחודש כבד על התזרים.",
-        "הלוואה יקרה: {amount} היום, {total} בסוף. כשאפשר, לקחת פחות או להחזיר מהר.",
-        "התשלום החודשי של {monthlyPayment} מקטין מאוד את התזרים. הלוואה כזו מומלץ להחזיר ברגע שיש מזומן."
+        "ריבית של {rate} בשנה: {monthlyPayment} בחודש, ו-{interest} עד הסיכום הבא. התשלום כבד ביחס לתזרים.",
+        "הלוואה יקרה ביחס לתזרים: אם תפרעו {amount} בסיכום הקרוב תחזירו {total}, ועד אז התזרים קטן ב-{monthlyPayment} בכל חודש.",
+        "התשלום של {monthlyPayment} בחודש מקטין מאוד את התזרים. כל עוד ההלוואה פתוחה הריבית ממשיכה, ולכן כדאי לפרוע אותה כשיש מזומן."
       ]
     },
     "loan.repaid": {
+      "family": [
+        "החזרתם {amount} מההלוואה. התשלום החודשי ירד ב-{saved}, והתזרים גדל.",
+        "פחות חוב, פחות ריבית: התשלום החודשי קטן ב-{saved}.",
+        "החזר מקטין את הריבית שתשלמו. {saved} בחודש חוזרים לתזרים."
+      ],
       "full": [
         "החזרתם {amount} מההלוואה. התשלום החודשי ירד ב-{saved}, והתזרים גדל.",
         "פחות חוב, פחות ריבית: התשלום החודשי קטן ב-{saved}.",
@@ -166,13 +173,13 @@
     "expense.loan": {
       "family": [
         "לא היה מספיק מזומן, אז לקחתם הלוואה. קורה! כרית ביטחון גדולה יותר תחסוך את זה בפעם הבאה.",
-        "ההוצאה של {amount} דרשה הלוואה. טיפ: כשיש מזומן בצד אין צורך בהלוואה.",
-        "שילמתם דרך הלוואה, ועכשיו יש תשלום חודשי. כך הוצאה אחת הופכת לחוב."
+        "ההוצאה של {amount} דרשה הלוואה, ועכשיו יש תשלום חודשי של {monthlyPayment}. כשיש מזומן בצד אין צורך בהלוואה.",
+        "שילמתם דרך הלוואה: החוב נשאר עד שמחזירים, ועוד {interest} ריבית בכל סיכום שנתיים. כך הוצאה אחת הופכת לחוב."
       ],
       "full": [
-        "ההוצאה של {amount} מומנה בהלוואה בריבית של {rate} בשנה. בסוף היא תעלה {total}.",
-        "אין מזומן, אז הלוואה: התשלום החודשי הוא {monthlyPayment}. מזומן בצד היה חוסך ריבית.",
-        "הלוואה לכיסוי הוצאה עולה יותר מההוצאה עצמה: {amount} היום, {total} בסוף."
+        "ההוצאה של {amount} מומנה בהלוואה של {loanAmount} בריבית של {rate} בשנה: {monthlyPayment} בחודש.",
+        "אין מזומן, אז הלוואה: {interest} ריבית בכל סיכום שנתיים עד שמחזירים. מזומן בצד היה חוסך את זה.",
+        "הלוואה לכיסוי הוצאה עולה יותר מההוצאה עצמה: אם תפרעו בסיכום הקרוב תחזירו {total} על הלוואה של {loanAmount}."
       ]
     },
     "expense.forcedSale": {

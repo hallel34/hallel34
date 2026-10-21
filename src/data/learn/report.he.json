@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "title": "מה למדתי",
   "subtitle": {
     "win": "הגעתם לחופש כלכלי במשחק. הנה מה שעבד לכם",
@@ -18,8 +18,8 @@
       "all": "total concepts available in this mode (13 in full mode, 10 in family mode; read from glossary level)",
       "list": "comma-separated concept terms"
     },
-    "pick": "Best deal = purchased asset with the shortest payback; worst = longest payback or negative cash flow. If one deal was bought show only best. A deal counts as worst only if its tier is slow/bad or negative.",
-    "green": "A decision is rated green when: a purchase has green payback; a pass on a red/negative deal; an expense paid from cash; a loan that stays 'sensible'. Rated total = all rated decisions in the game. See spec.md."
+    "pick": "Best deal = purchased apartment/business with the shortest payback; worst = longest payback or negative cash flow. Stocks are NOT included (no payback light for stocks, see spec section 5.1). If one deal was bought show only best. A deal counts as worst only if its tier is slow/bad or negative.",
+    "green": "A decision is rated green when: a purchase of an apartment/business has green payback; a pass on a red/negative deal; an expense paid from cash; a loan rated 'sensible' (spec section 2, LOAN_COSTLY_PAYMENT_SHARE). Stock buys and passes are not rated. Rated total = all rated decisions in the game. See spec.md."
   },
   "sections": {
     "bestDeal": {
@@ -35,9 +35,10 @@
     },
     "interest": {
       "title": "ריבית ששילמתם",
-      "template": "שילמתם {amount} ריבית על הלוואות. זה כסף שהיה יכול להישאר אצלכם.",
-      "zero": "לא שילמתם ריבית בכלל. בלי הלוואות, כל הכסף נשאר אצלכם.",
-      "hiddenIfUnavailable": true
+      "template": "שילמתם {amount} ריבית על הלוואות מהבנק. זה כסף שהיה יכול להישאר אצלכם.",
+      "zero": "לא שילמתם ריבית על הלוואות מהבנק. כל הכסף נשאר אצלכם.",
+      "hiddenIfUnavailable": true,
+      "source": "stats.interestPaid (engine: sum of bank-loan monthly payments x PAYDAY_MONTHS at each summary). Starting debts (car, card, student) are installments and are not counted here. Show `zero` only when no bank loan was ever taken; the field exists in v2 saves, so hide the section only for old saves without it."
     },
     "greenDecisions": {
       "title": "החלטות ירוקות",
@@ -64,7 +65,7 @@
   "nextStep": {
     "title": "הצעד הבא",
     "tips": {
-      "highInterest": "ההלוואות עלו לכם ריבית. בפעם הבאה נסו להחזיק מזומן בצד כדי לא להזדקק להן.",
+      "highInterest": "ההלוואות עלו לכם ריבית. בפעם הבאה נסו להחזיק מזומן בצד כדי לא להזדקק להן, או להחזיר הלוואה ברגע שיש מזומן.",
       "noCushion": "נתקעתם בלי מזומן כשהגיעה הוצאה. בפעם הבאה השאירו כרית ביטחון לפני שקונים.",
       "manyRed": "קניתם כמה עסקאות איטיות. בפעם הבאה בדקו את שנות ההחזר לפני כל קנייה.",
       "noDiversify": "כל הכסף היה במקום אחד. בפעם הבאה נסו לשלב כמה סוגי נכסים.",

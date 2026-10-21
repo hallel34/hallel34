@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "notes": {
     "slots": {
       "yield": "annual yield with percent sign, e.g. '24%'",
@@ -71,7 +71,18 @@
       "אין החזר השקעה, כי כל חודש יוצא כסף במקום להיכנס."
     ]
   },
-  "stockNote": "במניה הדיבידנד לא מובטח והמחיר זז, ולכן הרמזור הוא רק חלק מהתמונה.",
+  "stock": {
+    "decision": "Stocks get NO payback traffic light and NO 'עסקה טובה?' guess (spec section 5.1). The stock card shows this explainer instead of the lights.",
+    "title": "מה כדאי לדעת על מניה",
+    "dividendLine": "דיבידנד: {dividend} למניה בחודש, כלומר {dividendYield} ממחיר המניה בשנה",
+    "volatility": "המחיר זז: הוא יכול לעלות ולרדת, ולפעמים בבת אחת. בכרטיס מתואר כמה המניה תנודתית.",
+    "notGuaranteed": "במשחק הדיבידנד קבוע. בעולם האמיתי הוא לא מובטח.",
+    "noLight": "למניות אין רמזור, כי הרווח או ההפסד שלהן תלוי גם בשינויי מחיר ולא רק בדיבידנד.",
+    "slots": {
+      "dividend": "card dividend, formatted money (ELM 2, MAV 2, SOL 3 in the current cards)",
+      "dividendYield": "dividend x 12 / price, one decimal at most, with percent sign (ELM 4.8%, MAV 8%, SOL 3.6% in the current cards). Always called 'דיבידנד' or 'ממחיר המניה', never 'תשואה' or 'החזר'"
+    }
+  },
   "guessResult": {
     "correct": [
       "ניחוש נכון!",
