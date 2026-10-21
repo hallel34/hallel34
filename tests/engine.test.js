@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import {
   createEngine, EngineError, BOARD, serialize, deserialize, SCHEMA_VERSION, newMatch, act, currentState, canEndTurn,
   PAYDAY_MONTHS, loanPaydayImpact, paybackYears, paybackTier, monthlyCashFlow, passiveIncome, totalExpenses, totalIncome, maxLoan, statement,
+  loanTerms, loanMonthlyPayment, balanceSheet, netWorth, liabilityReport, LOAN_PAYMENT_RATE, LOAN_APR_NOMINAL, LOAN_CAP_SALARIES,
+  MORTGAGE_PAYMENT_RATE, BUSINESS_LOAN_PAYMENT_RATE, assetLoanPayment,
 } from '../src/engine/index.js';
 
 const profession = {
@@ -299,20 +301,23 @@ describe('market events', () => {
     s = e.sellAsset(s, 'a1');
     expect(s.cash).toBe(before + 250);
   });
-  it('family mode: no offers, selling or repayment', () => {
+  it('family mode: no offers or selling, but loans can be repaid', () => {
     const e = mk([apt, expense, offerEvt, famCash]);
     const s0 = e.newGame({ mode: 'family', professionId: 'test' });
     const owned = { id: 'a1', type: 'apartment', price: 100, mortgage: 0, monthlyCashFlow: 1 };
     expect(() => e.sellAsset(withState(s0, { assets: [owned] }), 'a1')).toThrow(/full/);
-    const l = withState(s0, { liabilities: [{ id: 'x', kind: 'loan', principal: 1000, monthlyPayment: 100 }] });
-    expect(() => e.repayLoan(l, 'x', 1000)).toThrow(/full/);
+    const l = withState(s0, { liabilities: [{ id: 'x', kind: 'loan', principal: 1000, monthlyPayment: 10 }] });
+    const r = e.repayLoan(l, 'x', 1000);
+    expect(r.liabilities).toHaveLength(0);
+    expect(r.cash).toBe(l.cash - 1000);
   });
 });
 
 describe('bank loans', () => {
   const e = mk(BASE);
   const s0 = e.newGame({ mode: 'full', professionId: 'test' });
-  it('only in multiples of 1,000, monthly payment 10% of principal', () => {
+  it('only in multiples of 1,000, interest-only: monthly payment 1% of principal', () => {
+    expect(LOAN_PAYMENT_RATE).toBe(0.01);
     expect(() => e.takeLoan(s0, 1500)).toThrow(/multiple/);
     expect(() => e.takeLoan(s0, 0)).toThrow();
     expect(() => e.takeLoan(s0, -1000)).toThrow();
@@ -320,45 +325,170 @@ describe('bank loans', () => {
     expect(s.cash).toBe(8000);
     const loan = s.liabilities.find((l) => l.kind === 'loan');
     expect(loan.principal).toBe(3000);
-    expect(loan.monthlyPayment).toBe(300);
-    expect(monthlyCashFlow(s)).toBe(5000 - 300);
+    expect(loan.monthlyPayment).toBe(30);
+    expect(loan.rate).toBe(LOAN_PAYMENT_RATE);
+    expect(monthlyCashFlow(s)).toBe(5000 - 30);
     expect(s.stats.loansTaken).toBe(1);
   });
+  it('loanMonthlyPayment never leaks float noise', () => {
+    for (let k = 1; k <= 400; k++) expect(Number.isInteger(loanMonthlyPayment(k * 1000) * 100)).toBe(true);
+    expect(loanMonthlyPayment(7000)).toBe(70);
+    expect(loanMonthlyPayment(33000)).toBe(330);
+  });
+  it('loanTerms: 1,000 costs 10 a month, 120 a year, 240 until the next payday; 12% nominal', () => {
+    const t1 = loanTerms(1000);
+    expect(t1).toMatchObject({ amount: 1000, monthly: 10, perYear: 120, perPayday: 240, totalAtPayday: 1240, months: PAYDAY_MONTHS });
+    expect(t1.aprNominal).toBe(12);
+    expect(t1.aprNominal).toBe(LOAN_APR_NOMINAL);
+    expect(t1.aprEffective).toBeCloseTo(12.68, 2);
+    const t5 = loanTerms(5000);
+    expect(t5).toMatchObject({ monthly: 50, perYear: 600, perPayday: 1200, totalAtPayday: 6200 });
+    // everything derives from the config constant
+    expect(loanTerms(1000).monthly).toBe(1000 * LOAN_PAYMENT_RATE);
+  });
   it('is limited so cash flow stays above -20% of salary', () => {
-    expect(maxLoan(s0)).toBe(70000); // (5000 + 2000) / 100 payment per 1000
-    expect(() => e.takeLoan(s0, 71000)).toThrow(/limit/);
-    const s = e.takeLoan(s0, 70000);
+    // cash flow 5000 -> room (5000 + 2000) / 10 per 1000 = 700,000, but the buying cap (12 salaries) binds first
+    expect(maxLoan(s0)).toBe(10000 * LOAN_CAP_SALARIES);
+    const tight = withState(s0, { profession: { ...s0.profession, expenses: [{ id: 'housing', label: 'דירה', amount: 11500 }] } });
+    expect(monthlyCashFlow(tight)).toBe(-1500);
+    expect(maxLoan(tight)).toBe(50000); // (-1500 + 2000) / 10 per 1000
+    expect(() => e.takeLoan(tight, 51000)).toThrow(/limit/);
+    const s = e.takeLoan(tight, 50000);
     expect(monthlyCashFlow(s)).toBe(-2000);
     expect(maxLoan(s)).toBe(0);
     expect(() => e.takeLoan(s, 1000)).toThrow(/limit/);
   });
+  it('caps total bank-loan principal at 12 salaries when buying, but never blocks an expense or shortfall', () => {
+    const cap = 10000 * LOAN_CAP_SALARIES;
+    const full = e.takeLoan(s0, cap);
+    expect(maxLoan(full)).toBe(0);
+    expect(() => e.takeLoan(full, 1000)).toThrow(/limit/);
+    // the same player who must pay an expense can still borrow (no deadlock)
+    const hit = withState(full, { cash: 0, pending: { kind: 'expense', card: expense, amount: 1500 } });
+    expect(maxLoan(hit)).toBeGreaterThan(0);
+    expect(maxLoan(withState(full, { pending: { kind: 'shortfall' } }))).toBeGreaterThan(0);
+    // repaying frees room under the cap again
+    const id = full.liabilities.find((l) => l.kind === 'loan').id;
+    expect(maxLoan(e.repayLoan(full, id, 5000))).toBe(5000);
+  });
   it('reports the payday impact of a loan and flags an unaffordable settlement', () => {
     const small = loanPaydayImpact(s0, 3000);
-    expect(small.flow).toBe(4700);
-    expect(small.payday).toBe(4700 * PAYDAY_MONTHS);
+    expect(small.flow).toBe(4970);
+    expect(small.payday).toBe(4970 * PAYDAY_MONTHS);
     expect(small.risky).toBe(false);
-    const max = loanPaydayImpact(s0, maxLoan(s0));
+    const big = withState(s0, { profession: { ...s0.profession, expenses: [{ id: 'housing', label: 'דירה', amount: 11500 }] } });
+    const max = loanPaydayImpact(big, maxLoan(big));
     expect(max.flow).toBe(-2000);
     expect(max.payday).toBe(-2000 * PAYDAY_MONTHS);
-    expect(max.cashAfter).toBe(s0.cash + 70000 - 2000 * PAYDAY_MONTHS);
+    expect(max.cashAfter).toBe(big.cash + 50000 - 2000 * PAYDAY_MONTHS);
     expect(loanPaydayImpact(withState(s0, { cash: 0 }), 1000).risky).toBe(false);
-    expect(loanPaydayImpact(withState(s0, { cash: 0 }), 70000).risky).toBe(false); // the money is still in hand
+    expect(loanPaydayImpact(withState(big, { cash: 0 }), 50000).risky).toBe(false); // the money is still in hand
     // the loan pays for a purchase: cash after = cash + loan - spend, then the (negative) payday lands
-    const bought = loanPaydayImpact(withState(s0, { cash: 0 }), 70000, 70000);
+    const bought = loanPaydayImpact(withState(big, { cash: 0 }), 50000, 50000);
     expect(bought.cashAfter).toBe(-2000 * PAYDAY_MONTHS);
     expect(bought.risky).toBe(true);
   });
-  it('can be repaid in full mode and the payment shrinks', () => {
-    let s = e.takeLoan(s0, 4000);
-    const id = s.liabilities.find((l) => l.kind === 'loan').id;
-    s = e.repayLoan(s, id, 1000);
-    const loan = s.liabilities.find((l) => l.id === id);
-    expect(loan.principal).toBe(3000);
-    expect(loan.monthlyPayment).toBe(300);
-    s = e.repayLoan(s, id, 3000);
-    expect(s.liabilities.find((l) => l.id === id)).toBeUndefined();
-    expect(monthlyCashFlow(s)).toBe(5000);
-    expect(() => e.repayLoan(s0, 'nope', 1000)).toThrow();
+  it('can be repaid (full and family modes) and the payment shrinks', () => {
+    for (const mode of ['full', 'family']) {
+      const m = e.newGame({ mode, professionId: 'test' });
+      let s = e.takeLoan(m, 4000);
+      const id = s.liabilities.find((l) => l.kind === 'loan').id;
+      s = e.repayLoan(s, id, 1000);
+      const loan = s.liabilities.find((l) => l.id === id);
+      expect(loan.principal).toBe(3000);
+      expect(loan.monthlyPayment).toBe(30);
+      s = e.repayLoan(s, id, 3000);
+      expect(s.liabilities.find((l) => l.id === id)).toBeUndefined();
+      expect(monthlyCashFlow(s)).toBe(5000);
+      expect(() => e.repayLoan(m, 'nope', 1000)).toThrow();
+    }
+  });
+});
+
+describe('interest accounting (stats.interestPaid)', () => {
+  const e = mk(BASE);
+  const s0 = e.newGame({ mode: 'full', professionId: 'test' });
+  const toPayday = (s) => e.roll(at(s, idx('payday', 1) - 3), [3]);
+  it('starts at zero and stays zero without bank loans', () => {
+    expect(s0.stats.interestPaid).toBe(0);
+    expect(toPayday(s0).stats.interestPaid).toBe(0);
+  });
+  it('adds payment x months for every bank loan at each payday', () => {
+    const s = e.takeLoan(s0, 5000);
+    const r = toPayday(s);
+    expect(r.stats.interestPaid).toBe(50 * PAYDAY_MONTHS);
+    const ev = r.events.find((x) => x.type === 'payday');
+    expect(ev).toMatchObject({ months: PAYDAY_MONTHS, monthly: monthlyCashFlow(s), amount: monthlyCashFlow(s) * PAYDAY_MONTHS, interest: 1200 });
+    // a second payday adds again; a repaid loan adds nothing
+    const again = e.roll(at({ ...r, phase: 'roll', pending: null }, idx('payday', 2) - 3), [3]);
+    expect(again.stats.interestPaid).toBe(2 * 1200);
+  });
+  it('does not count starting debts or mortgages as interest', () => {
+    const withDebt = mk(BASE, { ...profession, liabilities: [{ id: 'car', label: 'רכב', principal: 20000, monthlyPayment: 400 }] });
+    const s = withDebt.newGame({ mode: 'full', professionId: 'test' });
+    expect(e.roll(at(s, idx('payday', 1) - 3), [3]).stats.interestPaid).toBe(0);
+  });
+  it('a repaid loan stops accruing', () => {
+    let s = e.takeLoan(s0, 2000);
+    s = e.repayLoan(s, s.liabilities.find((l) => l.kind === 'loan').id, 2000);
+    expect(toPayday(s).stats.interestPaid).toBe(0);
+  });
+  it('old saves without the stat still work', () => {
+    const old = structuredClone(e.takeLoan(s0, 1000));
+    delete old.stats.interestPaid;
+    expect(toPayday(old).stats.interestPaid).toBe(10 * PAYDAY_MONTHS);
+  });
+});
+
+describe('balance sheet and loan kinds', () => {
+  const biz = { ...apt, id: 'opp-biz', type: 'business', title: 'עסק', price: 100000, downPayment: 50000, mortgage: 50000, monthlyCashFlow: 800, profit: 1675, loanPayment: 875 };
+  const e = mk([apt, biz, expense, cashEvt]);
+  const base = e.newGame({ mode: 'full', professionId: 'test' });
+  const own = withState(base, { cash: 30000, assets: [
+    { id: 'a1', cardId: 'opp-apt', type: 'apartment', title: 'דירה', price: 500000, downPayment: 20000, mortgage: 480000, monthlyCashFlow: 1000, loanPayment: 2600 },
+    { id: 'b1', cardId: 'opp-biz', type: 'business', title: 'עסק', price: 100000, downPayment: 50000, mortgage: 50000, monthlyCashFlow: 800, loanPayment: 875 },
+  ] });
+  it('apartments carry a mortgage, businesses a bizloan; the card payment wins over the rate', () => {
+    const r = liabilityReport(own);
+    expect(r.items.find((x) => x.assetId === 'a1')).toMatchObject({ kind: 'mortgage', monthlyPayment: 2600, includedInAssets: true });
+    expect(r.items.find((x) => x.assetId === 'b1')).toMatchObject({ kind: 'bizloan', assetType: 'business', principal: 50000, monthlyPayment: 875, includedInAssets: true });
+    // not subtracted twice: the payment is inside the asset's net flow
+    expect(r.totals.paidFromCashFlow).toBe(0);
+    expect(r.totals.includedInAssets).toBe(2600 + 875);
+  });
+  it('without a card payment the configured rates apply (rounded to 100)', () => {
+    expect(assetLoanPayment({ type: 'apartment', mortgage: 1600000 })).toBe(8800);
+    expect(assetLoanPayment({ type: 'business', mortgage: 160000 })).toBe(2800);
+    expect(MORTGAGE_PAYMENT_RATE).toBe(0.0055);
+    expect(BUSINESS_LOAN_PAYMENT_RATE).toBe(0.0175);
+  });
+  it('buying an asset stores the card payment', () => {
+    let s = withState(base, { cash: 100000, pending: { kind: 'opportunity', card: biz } });
+    s = e.buy(s);
+    expect(s.assets[0].loanPayment).toBe(875);
+    expect(liabilityReport(s).items.find((x) => x.kind === 'bizloan').monthlyPayment).toBe(875);
+  });
+  it('balanceSheet: assets (cash + value) minus liabilities = net worth', () => {
+    const withLoan = e.takeLoan(own, 5000);
+    const b = balanceSheet(withLoan);
+    expect(b.cash).toBe(35000);
+    expect(b.items.map((x) => x.value)).toEqual([500000, 100000]);
+    expect(b.assetsTotal).toBe(35000 + 600000);
+    expect(b.liabilitiesTotal).toBe(5000 + 480000 + 50000);
+    expect(b.netWorth).toBe(b.assetsTotal - b.liabilitiesTotal);
+    expect(b.netWorth).toBe(netWorth(withLoan));
+    expect(statement(withLoan).balance).toEqual(b);
+  });
+  it('buying or borrowing does not change net worth by itself', () => {
+    const before = netWorth(base);
+    expect(netWorth(e.takeLoan(base, 4000))).toBe(before);
+    const bought = e.buy(withState(base, { cash: 100000, pending: { kind: 'opportunity', card: apt } }));
+    expect(netWorth(bought)).toBe(netWorth(withState(base, { cash: 100000 })));
+  });
+  it('counts stocks at market price', () => {
+    const st = withState(base, { cash: 0, assets: [{ id: 's1', type: 'stock', symbol: 'AAA', title: 'מניה', qty: 10, avgCost: 10, dividend: 1, monthlyCashFlow: 10 }], stockPrices: { AAA: 25 } });
+    expect(balanceSheet(st).items[0].value).toBe(250);
+    expect(balanceSheet(st).netWorth).toBe(250);
   });
 });
 

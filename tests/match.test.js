@@ -199,15 +199,15 @@ describe('statement: all liabilities', () => {
     s = engine.takeLoan(s, amount);
     const r = liabilityReport(s);
     const kinds = r.items.map((x) => x.kind);
-    expect(kinds.filter((k) => k === 'mortgage')).toHaveLength(s.assets.filter((a) => a.mortgage > 0).length);
+    expect(kinds.filter((k) => k === 'mortgage' || k === 'bizloan')).toHaveLength(s.assets.filter((a) => a.mortgage > 0).length);
     expect(kinds).toContain('loan');
     for (const a of s.assets.filter((x) => x.mortgage > 0)) {
       const item = r.items.find((x) => x.assetId === a.id);
-      expect(item).toMatchObject({ kind: 'mortgage', principal: a.mortgage, includedInAssets: true, assetTitle: a.title });
+      expect(item).toMatchObject({ kind: a.type === 'business' ? 'bizloan' : 'mortgage', principal: a.mortgage, includedInAssets: true, assetTitle: a.title });
       expect(item.monthlyPayment).toBeGreaterThan(0);
     }
     const loan = r.items.find((x) => x.kind === 'loan');
-    expect(loan).toMatchObject({ principal: amount, monthlyPayment: amount / 10, includedInAssets: false });
+    expect(loan).toMatchObject({ principal: amount, monthlyPayment: amount / 100, includedInAssets: false });
     expect(r.totals.principal).toBe(r.items.reduce((a, x) => a + x.principal, 0));
     expect(r.totals.monthlyPayments).toBe(r.totals.paidFromCashFlow + r.totals.includedInAssets);
   });

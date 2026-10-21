@@ -46,6 +46,10 @@ dark=[ # (label, fg, bg, min)
  ('player 1 ring / bg (non-text)','#F2B53A','#0F1E46',3),('player 2 ring / bg (non-text)','#4DA3FF','#0F1E46',3),
  ('player 3 ring / bg (non-text)','#4FD6A0','#0F1E46',3),('player 4 ring / bg (non-text)','#FF9CCB','#0F1E46',3),
  ('others-strip cash / glass-strong','#F6C453','#%02x%02x%02x'%glassS_dark,4.5),
+ # payday float: dark pill rgba(10,21,51,.86) over the worst-case tile (cream in light, gold in dark)
+ ('float income / pill over gold tile','#5FE0AE','#%02x%02x%02x'%over(h('0A1533'),.86,h('F2B53A')),4.5),
+ ('float expense / pill over gold tile','#FFB3A7','#%02x%02x%02x'%over(h('0A1533'),.86,h('F2B53A')),4.5),
+ ('card text / breakdown tile (white)','#0F1E46','#FFFFFF',4.5),
 ]
 light=[
  ('text / bg','#0F1E46','#FBF3E1',4.5),('text / surface','#0F1E46','#FFFFFF',4.5),('text / sunken','#0F1E46','#F1E5C8',4.5),
@@ -64,6 +68,9 @@ light=[
  ('fox orange 700 text / bg','#B3501A','#FBF3E1',4.5),
  ('player token ring (navy outline in light) / bg (non-text)','#0F1E46','#FBF3E1',3),
  ('others-panel cash / cream panel','#7A4A00','#FFFBF2',4.5),
+ ('float income / pill over cream tile','#5FE0AE','#%02x%02x%02x'%over(h('0A1533'),.86,h('FBF3E1')),4.5),
+ ('float expense / pill over cream tile','#FFB3A7','#%02x%02x%02x'%over(h('0A1533'),.86,h('FBF3E1')),4.5),
+ ('card text / breakdown tile (white)','#0F1E46','#FFFFFF',4.5),
 ]
 bad=0; md='--md' in sys.argv
 for name,rows in (('DARK',dark),('LIGHT',light)):

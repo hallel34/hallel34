@@ -5,7 +5,7 @@ import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import {
-  createEngine, newMatch, act, serialize, purchasePlan, currentState, maxLoan,
+  createEngine, newMatch, act, serialize, purchasePlan, currentState, maxLoan, loanTerms, PAYDAY_MONTHS,
 } from '../../src/engine/index.js';
 
 const require = createRequire(import.meta.url);
@@ -242,7 +242,7 @@ async function checkStatementLiabilities(page, info) {
     const assets = [...document.querySelectorAll('.st-sec-asset .st-row')].length;
     return { rows, totals: sec, assets, kidsRow: !!document.querySelector('.st-sec-liability .st-empty') };
   });
-  const mortgages = r.rows.filter((x) => x.kind === 'mortgage');
+  const mortgages = r.rows.filter((x) => x.kind === 'mortgage' || x.kind === 'bizloan'); // apartments: mortgage, businesses: bizloan (N6)
   check(mortgages.length === info.mortgages, `statement lists a mortgage row for every bought asset (${mortgages.length}/${info.mortgages})`);
   check(r.rows.every((x) => /₪/.test(x.text)), 'every liability row shows balance and payment in shekels');
   const payments = r.rows.reduce((a, x) => a + x.pay, 0);
@@ -561,6 +561,105 @@ async function testLegacySave(page) {
   await page.waitForSelector('[data-screen="start"]');
 }
 
+/** v2 phase A (numbers + display): payday message and float, buy-card breakdown, loan terms, net-worth panel, family repay. */
+async function testPhaseA(page) {
+  const read = (p) => JSON.parse(readFileSync(new URL(`../../src/data/${p}`, import.meta.url), 'utf8'));
+  const engine = createEngine({ professions: read('professions.he.json'), cards: read('cards.he.json') });
+  const load = async (m) => {
+    await page.goto(`${URL_BASE}?seed=3`);
+    await page.evaluate((json) => localStorage.setItem('passivo.save', json), serialize(m));
+    await page.goto(`${URL_BASE}?seed=3`);
+    await page.waitForSelector('[data-action="resume"]');
+    await page.locator('[data-action="resume"]').click();
+    await page.waitForSelector('[data-screen="board"]');
+    await page.waitForTimeout(700);
+  };
+  const matchWith = (mode, cardId, prof = 'teacher') => {
+    for (let seed = 1; seed < 3000; seed++) {
+      const m = act(newMatch(engine, { mode, players: [{ name: 'דנה', professionId: prof }], seed }), (st) => engine.roll(st, [1]));
+      if (currentState(m).pending?.card?.id === cardId) return m;
+    }
+    throw new Error(`no seed for ${cardId}`);
+  };
+
+  // B1 + B2 + N3: the payday (summary) message and the floating number
+  let m = newMatch(engine, { mode: MODE, seed: 5, players: [{ name: 'דנה', professionId: 'engineer' }] });
+  m = act(m, (st) => ({ ...st, position: 3 }));
+  await load(m);
+  // the log/status are overwritten by later events (fast under reduced motion): record every state they pass through
+  await page.evaluate(() => {
+    window.__seen = [];
+    const rec = (sel, key) => new MutationObserver(() => {
+      const e = document.querySelector(sel);
+      if (e) window.__seen.push({ key, text: e.textContent, bdi: e.querySelectorAll('bdi').length });
+    }).observe(document.querySelector(sel), { childList: true, subtree: true, characterData: true });
+    rec('.status-chip', 'chip');
+    rec('.board-status', 'status');
+  });
+  await page.locator('[data-action="roll"]').click();
+  await page.waitForSelector('.float-text', { timeout: 15000 });
+  const f = await page.evaluate(() => {
+    const r = (e) => { const b = e.getBoundingClientRect(); return { top: b.top, bottom: b.bottom, left: b.left, right: b.right }; };
+    const hud = r(document.querySelector('.hud'));
+    const fl = r(document.querySelector('.float-text'));
+    const texts = [...document.querySelectorAll('.hud-prof, .hud-sub, .hud-id, .hud-btns, .hud-cash, .meter-labels')].map(r);
+    return {
+      hud, fl, overlapsHud: texts.some((t) => fl.top < t.bottom && fl.bottom > t.top && fl.left < t.right && fl.right > t.left),
+      floatBdi: document.querySelectorAll('.float-text bdi').length,
+    };
+  });
+  const seen = await page.evaluate(() => window.__seen);
+  const chipMsg = seen.find((x) => x.key === 'chip' && x.text.includes('סיכום שנתיים'));
+  const statusMsg = seen.find((x) => x.key === 'status' && x.text.includes('סיכום שנתיים'));
+  f.chip = chipMsg?.text ?? ''; f.chipBdi = chipMsg?.bdi ?? 0;
+  f.statusText = statusMsg?.text ?? ''; f.statusBdi = statusMsg?.bdi ?? 0;
+  check(!f.overlapsHud, `B2: the payday float does not overlap any HUD text (float top ${Math.round(f.fl.top)}, hud bottom ${Math.round(f.hud.bottom)})`);
+  check(f.fl.top >= f.hud.bottom - 1 && f.fl.left >= 0 && f.fl.right <= 360, 'B2: the payday float stays under the HUD and inside the viewport');
+  check(f.chipBdi >= 2 && f.statusBdi >= 2 && f.floatBdi >= 1, `B1: payday amounts are wrapped in <bdi> (chip ${f.chipBdi}, status ${f.statusBdi}, float ${f.floatBdi})`);
+  check(f.chip.includes('סיכום שנתיים') && f.chip.includes(`${PAYDAY_MONTHS} חודשים`) && /×.*=/.test(f.chip), `N3: log shows the maths ("${f.chip}")`);
+  check(!/יום משכורת/.test(f.chip + f.statusText), 'N3: no "יום משכורת" left in the payday messages');
+  await page.waitForTimeout(1500);
+
+  // N4: the buy card shows rent - mortgage = cash flow (apartment) and profit - loan = cash flow (business)
+  for (const [mode, id, re] of [['family', 'opp-apt-001', /שכירות.*משכנתא.*תזרים/], ['family', 'opp-biz-001', /רווח.*החזר הלוואה.*תזרים/]]) {
+    await load(matchWith(mode, id));
+    await page.waitForSelector('[data-card]');
+    const calc = await page.locator('.calc-line').innerText();
+    check(re.test(calc.replace(/\n/g, ' ')), `N4: ${id} buy card shows the breakdown (${calc.replace(/\n/g, ' ')})`);
+    await noHScroll(page, `buy card ${id}`);
+  }
+
+  // statement: net-worth panel; family can repay a loan; full shows loan terms
+  let g = matchWith(MODE, 'opp-apt-001', 'engineer');
+  g = act(g, (st) => engine.pass(st));
+  g = act(g, (st) => engine.takeLoan(st, 2000));
+  await load(g);
+  await page.locator('[data-action="statement"]').click();
+  await page.waitForSelector('.statement-body');
+  const panel = await page.locator('.st-sec-networth').innerText();
+  check(/שווי נקי/.test(panel) && /סך נכסים/.test(panel) && /סך התחייבויות/.test(panel), 'N4: the statement has the assets / liabilities / net worth panel');
+  check(await page.locator('[data-action="repay"]').count() >= 1, `loans can be repaid in ${MODE} mode (repay buttons)`);
+  check((await page.locator('[data-kind="loan"] .st-sub').innerText()).includes('ריבית'), 'the bank loan row says interest only');
+  await noHScroll(page, 'statement');
+  if (MODE === 'full') {
+    await page.locator('[data-action="loan"]').click();
+    await page.waitForSelector('.dialog');
+    const t = loanTerms(1000);
+    const rate = await page.locator('[data-loan="rate"]').innerText();
+    check(rate.includes(`${t.aprNominal}%`) && rate.includes(`${t.monthly}`), `N1: loan dialog shows ${t.aprNominal}% a year and ${t.monthly} per 1,000 (${rate})`);
+    const interest = await page.locator('[data-loan="interest"]').innerText();
+    const total = await page.locator('[data-loan="total"]').innerText();
+    check(interest.includes(String(t.perPayday)) && total.includes(t.totalAtPayday.toLocaleString('en-US')), `N1: loan dialog shows the cost until the next summary (${interest.replace(/\n/g, ' ')} / ${total.replace(/\n/g, ' ')})`);
+    await noHScroll(page, 'loan dialog');
+    await tapTargets(page, 'loan dialog');
+    await page.keyboard.press('Escape');
+  }
+  await page.goto(`${URL_BASE}?seed=3`);
+  await page.evaluate(() => localStorage.removeItem('passivo.save'));
+  await page.reload();
+  await page.waitForSelector('[data-screen="start"]');
+}
+
 async function main() {
   await startServer();
   const browser = await chromium.launch({ executablePath: exe, args: ['--no-sandbox'] });
@@ -749,6 +848,7 @@ async function main() {
   }
   if (PLAYERS === 1) { await testBuyStates(page); await testLegacySave(page); }
   await testRound5(page);
+  await testPhaseA(page);
 
   // light theme + start screen
   await page.locator('.topbar .icon-btn').last().click();

@@ -48,8 +48,8 @@
     "downPayment": 280000,
     "mortgage": 2520000,
     "monthlyCashFlow": 4300,
-    "rent": 18160,
-    "loanPayment": 13860
+    "rent": 18200,
+    "loanPayment": 13900
   },
   {
     "id": "opp-apt-004",
@@ -65,8 +65,8 @@
     "downPayment": 140000,
     "mortgage": 1260000,
     "monthlyCashFlow": 2600,
-    "rent": 9530,
-    "loanPayment": 6930,
+    "rent": 9500,
+    "loanPayment": 6900,
     "realWorld": true
   },
   {
@@ -185,8 +185,8 @@
     "downPayment": 72000,
     "mortgage": 72000,
     "monthlyCashFlow": 1400,
-    "profit": 2660,
-    "loanPayment": 1260
+    "profit": 2700,
+    "loanPayment": 1300
   },
   {
     "id": "opp-biz-005",
@@ -269,8 +269,8 @@
     "downPayment": 320000,
     "mortgage": 2880000,
     "monthlyCashFlow": 900,
-    "rent": 16740,
-    "loanPayment": 15840,
+    "rent": 16700,
+    "loanPayment": 15800,
     "realWorld": true
   },
   {
@@ -305,8 +305,8 @@
     "downPayment": 180000,
     "mortgage": 180000,
     "monthlyCashFlow": 900,
-    "profit": 4050,
-    "loanPayment": 3150
+    "profit": 4100,
+    "loanPayment": 3200
   },
   {
     "id": "opp-biz-010",
@@ -322,8 +322,8 @@
     "downPayment": 100000,
     "mortgage": 100000,
     "monthlyCashFlow": -6000,
-    "profit": -4250,
-    "loanPayment": 1750
+    "profit": -4200,
+    "loanPayment": 1800
   },
   {
     "id": "opp-apt-010",
@@ -338,8 +338,8 @@
     "downPayment": 240000,
     "mortgage": 2160000,
     "monthlyCashFlow": -5000,
-    "rent": 6880,
-    "loanPayment": 11880
+    "rent": 6900,
+    "loanPayment": 11900
   },
   {
     "id": "opp-biz-011",
@@ -372,8 +372,8 @@
     "downPayment": 480000,
     "mortgage": 4320000,
     "monthlyCashFlow": 1300,
-    "rent": 25060,
-    "loanPayment": 23760,
+    "rent": 25100,
+    "loanPayment": 23800,
     "realWorld": true
   },
   {
@@ -390,8 +390,8 @@
     "downPayment": 240000,
     "mortgage": 2160000,
     "monthlyCashFlow": 900,
-    "rent": 12780,
-    "loanPayment": 11880,
+    "rent": 12800,
+    "loanPayment": 11900,
     "realWorld": true
   },
   {
@@ -408,8 +408,8 @@
     "downPayment": 300000,
     "mortgage": 300000,
     "monthlyCashFlow": 1400,
-    "profit": 6650,
-    "loanPayment": 5250,
+    "profit": 6700,
+    "loanPayment": 5300,
     "realWorld": true
   },
   {
@@ -460,8 +460,8 @@
     "downPayment": 100000,
     "mortgage": 100000,
     "monthlyCashFlow": 1800,
-    "profit": 3550,
-    "loanPayment": 1750,
+    "profit": 3600,
+    "loanPayment": 1800,
     "realWorld": true
   },
   {
@@ -495,8 +495,8 @@
     "downPayment": 360000,
     "mortgage": 2840000,
     "monthlyCashFlow": 6000,
-    "rent": 21620,
-    "loanPayment": 15620
+    "rent": 21600,
+    "loanPayment": 15600
   },
   {
     "id": "opp-biz-015",
@@ -528,8 +528,8 @@
     "downPayment": 240000,
     "mortgage": 2160000,
     "monthlyCashFlow": 4300,
-    "rent": 16180,
-    "loanPayment": 11880,
+    "rent": 16200,
+    "loanPayment": 11900,
     "realWorld": true
   },
   {

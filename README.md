@@ -96,7 +96,12 @@ errors are listed with the card id. Required fields:
 // Opportunity: apartment | business  (price must equal downPayment + mortgage)
 { "id": "opp-apt-099", "deck": "opportunity", "type": "apartment", "modes": ["family", "full"],
   "title": "...", "text": "...",
-  "price": 1800000, "downPayment": 200000, "mortgage": 1600000, "monthlyCashFlow": 4000 }
+  "price": 1800000, "downPayment": 200000, "mortgage": 1600000, "monthlyCashFlow": 3400,
+  // optional, shown on the buy card as "rent - mortgage = cash flow" (validated: rent - loanPayment == monthlyCashFlow);
+  // a business uses "profit" instead of "rent" ("profit - loan payment = cash flow")
+  "rent": 12200, "loanPayment": 8800,
+  // optional: true marks a card that will get an "in the real world" fact later
+  "realWorld": true }
 
 // Opportunity: stock (full mode)
 { "id": "opp-stk-099", "deck": "opportunity", "type": "stock", "modes": ["full"],
@@ -112,6 +117,13 @@ errors are listed with the card id. Required fields:
 ```
 
 Professions live in `src/data/professions.he.json` (salary, savings, perChild, itemised expenses, starting liabilities).
+Starting debts carry `"debt": "car" | "card" | "student"`; their monthly payment must equal principal x the rate of that kind
+(`BASE_DEBT_RATES` in `config.js`: car 2%, card 3%, student 1%, rounded to 10). The validator enforces it.
+
+**Loans (v2).** Bank loans are interest only: `LOAN_PAYMENT_RATE` = 1% of the principal a month (12% a year; 1,000 costs 10 a month,
+240 until the next summary). `loanTerms(amount)` returns the figures the loan dialog shows; every number in the copy is derived from
+the config. Loans can be repaid in both modes. `LOAN_CAP_SALARIES` caps the total bank-loan principal when borrowing to buy
+(loans that cover an expense are never capped). The payday square is called "סיכום שנתיים" and settles `PAYDAY_MONTHS` months.
 After changing numbers run `npm run simulate` to check balance (targets: median 15-25 turns to win).
 Money formatting, card layout and the statement all adapt to the data.
 
@@ -119,8 +131,9 @@ Money formatting, card layout and the statement all adapt to the data.
 - Payback = `downPayment / monthlyCashFlow / 12` years. Good deals: 3-6 years (small), 7-12 (down payment >= 150,000).
 - About 35-40% of the opportunity cards per mode are traps: obvious ones (negative cash flow) and subtle ones
   (positive but payback over 14 years: high fees, balloon payments, over-priced). Traps need no code, just numbers.
-- Family-mode cards use round numbers (prices in 1,000s; down payment, loan and cash flow in 500s).
-- Stocks pay a 0.4-0.8% monthly dividend; give each a different volatility through its `stockPrice` market cards.
+- Family-mode cards use round numbers (prices in 1,000s; down payment and loan in 500s; cash flow, rent, profit and loan payment in 100s).
+- `loanPayment` is the loan's payment (mortgage x 0.55% a month for apartments, business loan x 1.75%, rounded to 100). It is display only: the cash flow is already net of it.
+- Stocks pay a 0.25-0.8% monthly dividend (whole shekels per share); give each a different volatility through its `stockPrice` market cards.
 - Pacing knob: `PAYDAY_MONTHS` in `src/engine/config.js`. A payday square settles that many months of cash flow
   (the board lap stands for a stretch of years), so deal sizes and pace can be tuned without touching the cards' payback.
   `BOARD` in the same file sets how often each square type appears.

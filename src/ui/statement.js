@@ -3,11 +3,11 @@ import { h } from './dom.js';
 import { t, tp } from '../i18n/index.js';
 import { openLayer } from './modal.js';
 import { icon } from './icons.js';
-import { money, moneyText, tn } from './format.js';
+import { money, moneyText, tn, numberText, paydayCalc } from './format.js';
 import { button, meter } from './widgets.js';
 import { animate } from './fx.js';
 import { motionOK } from './prefs.js';
-import { statement, maxLoan, PAYDAY_MONTHS } from '../engine/index.js';
+import { statement, maxLoan, PAYDAY_MONTHS, LOAN_PAYMENT_RATE } from '../engine/index.js';
 
 export function openStatement({ getState, ops, title = t('statement.title') }) {
   let layer;
@@ -21,7 +21,8 @@ export function openStatement({ getState, ops, title = t('statement.title') }) {
     const s = getState();
     const st = statement(s);
     const full = s.mode === 'full';
-    const actionable = full && s.phase === 'roll' && s.status === 'playing';
+    const actionable = s.phase === 'roll' && s.status === 'playing'; // repay works in both modes
+    const fullActions = full && actionable; // taking a voluntary loan and selling: full mode only
     body.replaceChildren();
 
     const m = meter({ large: true });
@@ -37,7 +38,7 @@ export function openStatement({ getState, ops, title = t('statement.title') }) {
       h('div', { class: 'meter-labels' },
         h('span', null, t('game.passive'), ' ', h('b', { class: 'tone-income' }, money(st.passiveIncome))),
         h('span', null, t('game.expenses'), ' ', h('b', { class: 'tone-expense' }, money(st.totalExpenses)))),
-      h('p', { class: 'st-goal st-payday' }, tn('statement.paydayLine', { months: PAYDAY_MONTHS, amount: money(st.monthlyCashFlow * PAYDAY_MONTHS, { sign: true }) })),
+      h('p', { class: 'st-goal st-payday' }, paydayCalc(st.monthlyCashFlow, PAYDAY_MONTHS, st.monthlyCashFlow * PAYDAY_MONTHS, 'statement.paydayLine')),
       h('p', { class: 'st-goal' }, t('statement.goalLine'))));
 
     body.append(section(t('statement.income'), 'income',
@@ -68,11 +69,16 @@ export function openStatement({ getState, ops, title = t('statement.title') }) {
     const liabRows = rep.items.length
       ? rep.items.map((l) => {
         const debt = s.liabilities.find((x) => x.id === l.id);
-        const label = l.kind === 'mortgage' ? t(l.assetType === 'business' ? 'statement.businessLoanLabel' : 'statement.mortgageLabel', { asset: l.assetTitle }) : (l.label === 'loan' ? t('statement.loanLabel') : l.label);
+        const label = l.kind === 'mortgage' ? t('statement.mortgageLabel', { asset: l.assetTitle })
+          : l.kind === 'bizloan' ? t('statement.bizLoanLabel', { asset: l.assetTitle })
+            : (l.label === 'loan' ? t('statement.loanLabel') : l.label);
+        const notes = [t('statement.balance', { amount: moneyText(l.principal) })];
+        if (l.kind === 'loan') notes.push(t('statement.interestOnly', { rate: numberText(Math.round(LOAN_PAYMENT_RATE * 1e4) / 100) }));
+        if (l.includedInAssets) notes.push(t('statement.inAssetFlow'));
         return h('div', { class: 'st-row st-liab', 'data-liab': l.id, 'data-kind': l.kind },
           h('span', { class: 'st-label' }, label),
           h('span', { class: 'st-value' }, tn('game.perMonth', { amount: money(l.monthlyPayment) })),
-          h('span', { class: 'st-sub' }, `${t('statement.balance', { amount: moneyText(l.principal) })}${l.includedInAssets ? ` · ${t('statement.inAssetFlow')}` : ''}`),
+          h('span', { class: 'st-sub' }, notes.join(' · ')),
           actionable && debt ? button(t('statement.repay'), { variant: 'secondary', size: 'sm', 'data-action': 'repay', onClick: async () => { await ops.repay(debt); render(); } }) : null);
       })
       : [h('p', { class: 'st-empty' }, t('statement.noLiabilities'))];
@@ -87,7 +93,17 @@ export function openStatement({ getState, ops, title = t('statement.title') }) {
     }
     body.append(section(t('statement.liabilities'), 'liability', ...liabRows));
 
-    if (actionable) {
+    // Balance sheet: what you own against what you owe.
+    const bal = st.balance;
+    body.append(section(t('statement.netWorthTitle'), 'networth',
+      row(t('statement.balanceCash'), money(bal.cash)),
+      row(t('statement.balanceHoldings'), money(bal.assetsTotal - bal.cash)),
+      row(t('statement.balanceAssets'), money(bal.assetsTotal), 'total'),
+      row(t('statement.balanceLiabilities'), money(bal.liabilitiesTotal), 'total'),
+      row(t('statement.balanceNet'), money(bal.netWorth), 'total'),
+      h('p', { class: 'st-empty' }, t('statement.balanceNote'))));
+
+    if (fullActions) {
       const tools = h('div', { class: 'st-tools' });
       const atLimit = maxLoan(s) === 0;
       tools.append(button(atLimit ? t('statement.takeLoanLimit') : t('statement.takeLoan'), {
@@ -99,7 +115,9 @@ export function openStatement({ getState, ops, title = t('statement.title') }) {
       if (s.assets.length) tools.append(button(t('sell.title'), { variant: 'secondary', 'data-action': 'sell', onClick: async () => { await ops.sell(); render(); } }));
       if (tools.children.length) body.append(tools);
     }
-    if (full && !actionable && s.status === 'playing') body.append(h('p', { class: 'st-empty' }, t('statement.lockedNote')));
+    if (!actionable && s.status === 'playing' && (full || s.liabilities.length)) {
+      body.append(h('p', { class: 'st-empty' }, t(full ? 'statement.lockedNote' : 'statement.lockedNoteFamily')));
+    }
 
     if (motionOK()) {
       const fill = track.querySelector('.meter-fill');

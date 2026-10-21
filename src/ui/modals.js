@@ -7,14 +7,14 @@ import { icon } from './icons.js';
 import { cornerPop, foxImg } from './fox.js';
 import { playerToken, withName } from './players.js';
 import { CARD_REACTION } from './fox-rules.js';
-import { money, moneyText, tn, numberText } from './format.js';
+import { money, moneyText, tn, numberText, signedMoney } from './format.js';
 import { button, stepper, statTile } from './widgets.js';
 import { haptic, countUp, shake } from './fx.js';
 import {
   monthlyCashFlow, passiveIncome, maxLoan, saleValue, canSell, loanPaydayImpact,
-  paybackYears, paybackTier, PAYDAY_MONTHS, purchasePlan,
+  paybackYears, paybackTier, PAYDAY_MONTHS, purchasePlan, loanTerms,
 } from '../engine/index.js';
-import { LOAN_STEP, LOAN_PAYMENT_RATE } from '../engine/index.js';
+import { LOAN_STEP } from '../engine/index.js';
 
 const BANNERS = import.meta.glob('../assets/card-*.svg', { eager: true, query: '?url', import: 'default' });
 const bannerUrl = (type) => BANNERS[`../assets/card-${type}.svg`] || BANNERS['../assets/card-opportunity.svg'];
@@ -108,11 +108,24 @@ export function opportunityModal(state, { flip = true } = {}) {
       statTile(t(c.type === 'business' ? 'card.businessLoan' : 'card.mortgage'), money(c.mortgage)),
       statTile(t('card.price'), money(c.price)),
     ),
+    breakdown(c),
     c.monthlyCashFlow < 0
       ? h('div', { class: 'banner banner-warn' }, icon('expense', { size: 24 }), h('span', null, tn('card.negativeFlow', { amount: money(-c.monthlyCashFlow) })))
       : banner(tn('card.newPassive', { amount: money(passive + c.monthlyCashFlow) })),
   ];
   return finishOpportunity({ c, body, flip, qtyGetter: () => 1, plan: purchasePlan(state, c.downPayment) });
+}
+
+/** "rent - mortgage = cash flow" (apartments) or "profit - loan payment = cash flow" (businesses), when the card has the fields. */
+function breakdown(c) {
+  const gross = c.type === 'business' ? c.profit : c.rent;
+  if (!Number.isFinite(gross) || !Number.isFinite(c.loanPayment)) return null;
+  return h('div', { class: 'calc-line', 'data-calc': c.type },
+    h('span', { class: 'stat-label' }, t('card.breakdownTitle')),
+    h('p', null, tn(c.type === 'business' ? 'card.profitLine' : 'card.rentLine', {
+      gross: money(gross),
+      payment: money(c.loanPayment), flow: signedMoney(c.monthlyCashFlow),
+    })));
 }
 
 function finishOpportunity({ c, body, flip, qtyGetter, plan }) {
@@ -279,6 +292,8 @@ export function loanDialog(state, { required = 0 } = {}) {
   const barFill = h('div', { class: 'limit-fill' });
   const usedLabel = h('span', { class: 'limit-label' });
   const flowRow = h('div', { class: 'kv' }, h('span', null, t('loan.newFlow')), flowOut);
+  const interestOut = h('bdi', { class: 'money', dir: 'ltr' });
+  const totalOut = h('bdi', { class: 'money', dir: 'ltr' });
   const paydayOut = h('bdi', { class: 'money', dir: 'ltr' });
   const paydayRow = h('div', { class: 'kv' }, h('span', null, tn('loan.paydayNext', { months: PAYDAY_MONTHS, amount: paydayOut })));
   const warnText = h('span');
@@ -286,8 +301,17 @@ export function loanDialog(state, { required = 0 } = {}) {
   let takeBtn = null;
   let shown = start;
 
+  // rate and "per 1,000" come from the config through loanTerms; nothing is typed into the copy
+  const unit = loanTerms(LOAN_STEP);
+  const rateLine = h('p', { class: 'loan-rate', 'data-loan': 'rate' }, tn('loan.rateLine', {
+    apr: h('bdi', { dir: 'ltr' }, numberText(unit.aprNominal)), unit: money(LOAN_STEP), unitPay: money(unit.monthly),
+  }));
+
   const update = (from, to) => {
-    const pay = to * LOAN_PAYMENT_RATE;
+    const terms = loanTerms(to);
+    const pay = terms.monthly;
+    interestOut.textContent = moneyText(terms.perPayday);
+    totalOut.textContent = moneyText(terms.totalAtPayday);
     countUp(from, to, (v) => { amountOut.textContent = moneyText(v); }, 300);
     payOut.textContent = moneyText(pay);
     const nf = cf - pay;
@@ -320,7 +344,10 @@ export function loanDialog(state, { required = 0 } = {}) {
     ? [h('div', { class: 'banner banner-warn', role: 'status' }, icon('bank', { size: 24 }), h('span', null, t('loan.limitReached')))]
     : [
       st.el,
+      rateLine,
       h('div', { class: 'kv' }, h('span', null, tn('loan.monthlyPayment', { amount: payOut }))),
+      h('div', { class: 'kv', 'data-loan': 'interest' }, h('span', null, t('loan.interestUntil', { months: numberText(PAYDAY_MONTHS) })), interestOut),
+      h('div', { class: 'kv', 'data-loan': 'total' }, h('span', null, t('loan.totalDue')), totalOut),
       flowRow,
       paydayRow,
       warn,

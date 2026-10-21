@@ -121,7 +121,7 @@ Play / App Store and generate revenue.
 - Opportunity: buy (down payment; debt becomes liability) or pass.
 - Unexpected expense: pay; if short → bank loan prompt.
 - Market event: offer to buy one of your assets, or a global effect.
-- Bank loan: ₪1,000 multiples, monthly payment = 10% of principal.
+- Bank loan: ₪1,000 multiples, interest-only, monthly payment = 1% of principal (12% a year; v2 decision, see docs/decisions.md).
 - Win screen with stats. Game over: negative cash flow + no cash +
   loan limit reached. localStorage save/resume.
 

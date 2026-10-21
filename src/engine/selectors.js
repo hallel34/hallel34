@@ -34,12 +34,12 @@ export function statement(s) {
 
 /**
  * Display-only monthly payment of an asset's mortgage / business loan (already inside the asset's net cash flow).
- * A card may carry its own `loanPayment` (the asset keeps it); otherwise it is the configured rate, rounded to 10.
+ * A card may carry its own `loanPayment` (the asset keeps it); otherwise it is the configured rate, rounded to 100.
  */
 export const assetLoanPayment = (asset) => {
   if (Number.isFinite(asset.loanPayment)) return asset.loanPayment;
   const rate = asset.type === 'business' ? BUSINESS_LOAN_PAYMENT_RATE : MORTGAGE_PAYMENT_RATE;
-  return Math.round((asset.mortgage * rate) / 10) * 10;
+  return Math.round((asset.mortgage * rate) / 100) * 100;
 };
 export const mortgagePayment = assetLoanPayment;
 
@@ -112,7 +112,9 @@ export function maxLoan(s) {
   const floor = -s.profession.salary * LOAN_LIMIT_SALARY_PCT;
   const room = monthlyCashFlow(s) - floor; // payment budget
   let steps = Math.floor(room / (LOAN_STEP * LOAN_PAYMENT_RATE) + 1e-9);
-  if (LOAN_CAP_SALARIES != null) {
+  // The cap limits borrowing to invest. A loan to cover an expense or a shortfall is never capped, so the player cannot get stuck.
+  const forced = s.pending?.kind === 'expense' || s.pending?.kind === 'shortfall';
+  if (LOAN_CAP_SALARIES != null && !forced) {
     const capRoom = s.profession.salary * LOAN_CAP_SALARIES - bankLoanPrincipal(s);
     steps = Math.min(steps, Math.floor(capRoom / LOAN_STEP));
   }

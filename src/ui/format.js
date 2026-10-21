@@ -46,3 +46,11 @@ export function tn(key, params = {}) {
   }
   return frag;
 }
+
+/** The one formatter for +/- amounts in messages: sign and digits stay glued inside a <bdi dir="ltr">. */
+export const signedMoney = (n) => money(n, { sign: true });
+
+/** "₪2,100 × 24 חודשים = ₪50,400" as DOM nodes (every amount isolated), for the log, status line, statement and float text. */
+export function paydayCalc(monthly, months, amount, key = 'game.paydayCalc') {
+  return tn(key, { monthly: money(monthly), months: numberText(months), amount: signedMoney(amount) });
+}

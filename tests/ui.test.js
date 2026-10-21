@@ -128,3 +128,56 @@ describe('accessibility wiring', () => {
     delete globalThis.location;
   });
 });
+
+describe('v2 phase A: amounts, payday copy, no typed numbers', () => {
+  const src = (p) => readFileSync(new URL(`../src/${p}`, import.meta.url), 'utf8');
+  it('one formatter for +/- amounts: the sign is glued to the symbol and digits (nothing to detach)', () => {
+    for (const n of [55200, -7200, 2300, 0, 1234567, -1]) {
+      const s = moneyText(n, { sign: true });
+      expect(s, String(n)).toMatch(/^[+-]?₪\d{1,3}(,\d{3})*$/);
+    }
+    expect(moneyText(55200, { sign: true })).toBe('+₪55,200');
+    expect(moneyText(-7200, { sign: true })).toBe('-₪7,200');
+    expect(moneyText(0, { sign: true })).toBe('₪0');
+  });
+  it('payday messages (log, status, float, statement) are built from <bdi dir=ltr> nodes, never from sign-bearing plain strings', () => {
+    const play = src('ui/play.js');
+    const fx = play.slice(play.indexOf('async function paydayFx'), play.indexOf('// ---------- turn ----------'));
+    expect(fx).toContain("tn('game.logPayday'");
+    expect(fx).toContain("tn('game.statusPayday'");
+    expect(fx).toContain('signedMoney(amount)');
+    expect(fx).not.toMatch(/moneyText\(/);
+    const fmt = src('ui/format.js');
+    expect(fmt).toContain("h('bdi', { class: `money");
+    expect(fmt).toContain("dir: 'ltr'");
+    expect(src('ui/statement.js')).toContain("paydayCalc(st.monthlyCashFlow, PAYDAY_MONTHS");
+    // the log/status containers accept nodes
+    expect(play).toContain('chip.replaceChildren(text)');
+    expect(play).toContain('status.replaceChildren(text)');
+  });
+  it('B2: the payday float is placed under the HUD, never over its text', () => {
+    expect(src('ui/play.js')).toContain("{ below: hud }");
+    const fx = src('ui/fx.js');
+    expect(fx).toContain('below.getBoundingClientRect().bottom');
+  });
+  it('N3: the payday event is called "סיכום שנתיים" everywhere, with the maths from the config', () => {
+    expect(lookup('square.payday')).toBe('סיכום שנתיים');
+    for (const key of ['game.payday', 'game.paydayFloatLabel', 'game.statusPayday', 'game.logPayday', 'statement.paydayLine', 'loan.paydayNext', 'howto.step1']) {
+      expect(lookup(key), key).toContain('שנתי');
+    }
+    expect(lookup('game.paydayCalc')).toBe('{monthly} × {months} חודשים = {amount}');
+    expect(JSON.stringify(he)).not.toMatch(/יום משכורת|ימי משכורת/);
+  });
+  it('the loan, card and statement copy contains no typed numbers (rates and amounts come from the config)', () => {
+    for (const key of ['loan.textVoluntary', 'loan.rateLine', 'loan.interestUntil', 'loan.totalDue', 'loan.paydayNext', 'card.rentLine', 'card.profitLine',
+      'card.breakdownTitle', 'statement.interestOnly', 'statement.balanceNote', 'howto.note', 'howto.step1']) {
+      expect(lookup(key), key).not.toMatch(/\d/);
+    }
+    expect(lookup('howto.note')).toContain('המספרים מפושטים כדי שהמשחק יזרום');
+  });
+  it('N4: buy-card breakdown and statement panel strings exist and use the proposed wording', () => {
+    expect(lookup('card.rentLine')).toBe('שכירות {gross} − משכנתא {payment} = תזרים {flow}');
+    expect(lookup('statement.bizLoanLabel')).toBe('הלוואת עסק – {asset}');
+    for (const key of ['statement.netWorthTitle', 'statement.balanceAssets', 'statement.balanceLiabilities', 'statement.balanceNet']) expect(lookup(key), key).toBeTruthy();
+  });
+});

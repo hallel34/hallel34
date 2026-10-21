@@ -7,7 +7,7 @@ import {
   totalExpenses, resumePlan, lastPlayerStanding, nextActiveIndex,
 } from '../engine/index.js';
 import { icon } from './icons.js';
-import { money, moneyText, tn } from './format.js';
+import { money, moneyText, tn, signedMoney, paydayCalc } from './format.js';
 import { button, iconButton, meter, cashDisplay, miniMeter } from './widgets.js';
 import { createDice } from './die.js';
 import { motionOK } from './prefs.js';
@@ -159,7 +159,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
 
   function pushLog(text, tone = '') {
     if (!text) return;
-    chip.textContent = text;
+    chip.replaceChildren(text); // a string or DOM nodes (amounts wrapped in <bdi dir="ltr">)
     chip.dataset.tone = tone;
     if (motionOK()) animate(chip, [{ transform: 'scale(.94)', opacity: 0.4 }, { transform: 'scale(1)', opacity: 1 }], { duration: 220, easing: 'cubic-bezier(.34,1.56,.64,1)' });
   }
@@ -308,7 +308,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     store.save(match);
   }
 
-  const setStatus = (text) => { status.textContent = text; };
+  const setStatus = (text) => { status.replaceChildren(text); };
 
   // The primary button always says what is happening: roll / rolling / advancing (disabled), or continue (enabled).
   const BTN_LABEL = { roll: 'game.roll', rolling: 'game.rolling', working: 'game.advancing', continue: 'game.continue' };
@@ -391,14 +391,14 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
         coinBurst(center, stmtBtn, 10);
         react('celebrate');
       } else if (ev.type === 'sold' || ev.type === 'loan') {
-        pushLog(ev.type === 'loan' ? t('game.logLoan', { amount: moneyText(ev.amount) }) : t('game.logSold', { amount: moneyText(ev.proceeds) }), ev.type === 'loan' ? 'bad' : 'good');
+        pushLog(ev.type === 'loan' ? tn('game.logLoan', { amount: money(ev.amount) }) : tn('game.logSold', { amount: money(ev.proceeds) }), ev.type === 'loan' ? 'bad' : 'good');
         haptic('purchase'); sound('coin');
         coinBurst(ev.type === 'loan' ? rollBtn : stmtBtn, cash.el, 6);
         if (ev.type === 'loan') react('worried');
       } else if (ev.type === 'passed') {
         pushLog(t('game.logPassed'));
       } else if (ev.type === 'donated') {
-        pushLog(t('game.logDonated', { amount: moneyText(ev.cost) }));
+        pushLog(tn('game.logDonated', { amount: money(ev.cost) }));
         haptic('purchase'); sound('coin');
       }
     }
@@ -431,11 +431,11 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     ], { duration: dur, easing: 'ease-out', fill: 'none' }).finished.catch(() => {});
   }
 
-  async function paydayFx(amount, months) {
+  async function paydayFx(amount, months, monthly = amount / months) {
     haptic('land'); sound('payday');
-    pushLog(t('game.logPayday', { amount: moneyText(amount, { sign: true }), months: t('game.paydayMonths', { months }) }), amount >= 0 ? 'good' : 'bad');
-    setStatus(t('game.statusPayday', { months, amount: moneyText(amount, { sign: true }) }));
-    floatText(cash.el, h('div', { class: 'float-stack' }, money(amount, { sign: true }), h('span', { class: 'float-sub' }, t('game.paydayFloatLabel', { months }))), amount >= 0 ? 'income' : 'expense');
+    pushLog(tn('game.logPayday', { calc: paydayCalc(monthly, months, amount) }), amount >= 0 ? 'good' : 'bad');
+    setStatus(tn('game.statusPayday', { calc: paydayCalc(monthly, months, amount) }));
+    floatText(cash.el, h('div', { class: 'float-stack' }, signedMoney(amount), h('span', { class: 'float-sub' }, t('game.paydayFloatLabel'))), amount >= 0 ? 'income' : 'expense', { below: hud });
     pulse(el.querySelector('.hud-cash'), 1.04);
     if (amount > 0) react('celebrate');
     await cash.to(cash.value + amount, 450);
@@ -466,7 +466,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     for (const idx of move.path) {
       if (destroyed) return;
       await hopTo(idx);
-      if (BOARD[idx] === 'payday' && paydays[pi]) { const pd = paydays[pi++]; await paydayFx(pd.amount, pd.months); }
+      if (BOARD[idx] === 'payday' && paydays[pi]) { const pd = paydays[pi++]; await paydayFx(pd.amount, pd.months, pd.monthly); }
     }
     if (destroyed) return;
     paintButton('working'); // the dice have stopped; the label now says we are moving on (cards, payday) instead of rolling
@@ -560,7 +560,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     } else if (ev.type === 'babyMax') {
       await babyModal(state, { max: true, extra: 0 });
     } else if (ev.type === 'expensePaid') {
-      pushLog(t('game.logExpense', { title: ev.card.title, amount: moneyText(-ev.amount) }), 'bad');
+      pushLog(tn('game.logExpense', { title: ev.card.title, amount: signedMoney(-ev.amount) }), 'bad');
       await expenseModal(state, { card: ev.card, amount: ev.amount, paid: true });
       haptic('error');
       await syncCash();

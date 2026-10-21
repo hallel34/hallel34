@@ -77,19 +77,29 @@ export function countUp(from, to, render, duration = cssMs('--dur-countup', 700)
   });
 }
 
-/** Floating "+₪1,200" label that rises 40px and fades. */
-export function floatText(anchor, node, tone = 'income') {
+/**
+ * Floating "+₪1,200" label that rises 40px and fades.
+ * `below` (an element, e.g. the HUD): the label starts just under that element's bottom edge and drifts DOWN a few pixels,
+ * so it never travels over the text above it (title, profession, buttons, cash). Always clamped inside the viewport.
+ */
+export function floatText(anchor, node, tone = 'income', { below = null } = {}) {
   const layer = document.getElementById('fx-layer');
   if (!layer || !anchor) return Promise.resolve();
   const r = anchor.getBoundingClientRect();
   const el = h('div', { class: `float-text float-${tone}`, 'aria-hidden': 'true' }, node);
   layer.append(el);
-  const rise = motionOK() ? 40 : 0;
-  const base = `translate(${r.left + r.width / 2}px, ${r.top}px)`;
+  const vw = document.documentElement.clientWidth || 360;
+  const half = (el.offsetWidth || 120) / 2;
+  const x = Math.min(Math.max(r.left + r.width / 2, half + 8), vw - half - 8);
+  const move = motionOK() ? 40 : 0;
+  const y = below ? below.getBoundingClientRect().bottom + 6 : r.top;
+  const dir = below ? 1 : -1; // under the HUD: down; otherwise: up
+  const travel = below ? move * 0.5 : move;
+  const base = `translate(${x}px, ${y}px)`;
   const a = animate(el, [
     { transform: `${base} translate(-50%, 0)`, opacity: 0 },
-    { transform: `${base} translate(-50%, ${-rise * 0.4}px)`, opacity: 1, offset: 0.2 },
-    { transform: `${base} translate(-50%, ${-rise}px)`, opacity: 0 },
+    { transform: `${base} translate(-50%, ${dir * travel * 0.4}px)`, opacity: 1, offset: 0.2 },
+    { transform: `${base} translate(-50%, ${dir * travel}px)`, opacity: 0 },
   ], { duration: motionOK() ? 1100 : 700, easing: 'ease-out' });
   const done = () => el.remove();
   a.finished.then(done, done);

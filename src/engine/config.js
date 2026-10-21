@@ -28,8 +28,10 @@ export const LOAN_PAYMENT_RATE = 0.01;
 export const MONTHS_PER_YEAR = 12;
 // Nominal yearly rate in percent, derived (never typed into copy): 1% a month -> 12.
 export const LOAN_APR_NOMINAL = Math.round(LOAN_PAYMENT_RATE * MONTHS_PER_YEAR * 1e6) / 1e4;
-// Optional ceiling on the total bank-loan principal, in monthly salaries. null = no cap (the cash-flow limit alone applies).
-export const LOAN_CAP_SALARIES = null;
+// Ceiling on the total bank-loan principal for BUYING (loans for expenses / shortfalls are exempt so nobody gets stuck),
+// in monthly salaries. Measured: without it bots borrowed up to 120-160 salaries (100% leverage on every down payment)
+// and the always-buy bot stopped losing. null = no cap (the cash-flow limit alone applies).
+export const LOAN_CAP_SALARIES = 12;
 
 // Starting debts (professions.he.json) follow one model: monthly payment = principal x the rate of its kind.
 // car 2% = a 60-month installment at ~6-7%; card 3% = a typical minimum payment; student 1% = cheap, long, like a bank loan.
