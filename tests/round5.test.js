@@ -176,7 +176,7 @@ describe('P2: names, plurals, copy', () => {
   });
   it('hot-seat hand-over: no handoff to the same player; cards wait for the home sheet; sell sheet closes when empty', () => {
     const play = src('src/ui/play.js');
-    expect(play).toMatch(/if \(match\.currentIndex !== prevIndex\) await showHandoff\(\)/);
+    expect(play).toMatch(/if \(match\.currentIndex === prev\) \{ busy = false; settleButton\(\); return; \}/);
     expect(play).toMatch(/\(!multi \|\| lastPlayerStanding\(match\)\) && canEndTurn\(match\)/);
     expect(play).toMatch(/while \(homeGate && !destroyed\) await homeGate/);
     expect(play).toMatch(/s\.assets\.length === 0/);

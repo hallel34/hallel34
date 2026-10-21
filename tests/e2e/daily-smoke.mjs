@@ -80,6 +80,7 @@ function decide() {
   if (top) {
     const card = q('.card', top);
     const btn = (a) => q(`[data-action="${a}"]:not([disabled])`, top);
+    if (q('.summary-card', top)) return { click: `${L} [data-action="summary-ok"]` };
     if (card) {
       const kind = card.dataset.card;
       if (kind === 'opportunity' && card.dataset.guess === 'ask') {
@@ -104,7 +105,7 @@ function decide() {
     if (btn('cancel')) return { click: `${L} [data-action="cancel"]` };
     return { wait: true };
   }
-  if (q('[data-action="continue"]:not([disabled])')) return { click: '[data-action="continue"]' };
+  if (q('[data-action="summary-ok"]')) return { click: '[data-action="summary-ok"]' };
   if (q('[data-action="roll"]:not([disabled])')) return { click: '[data-action="roll"]' };
   return { wait: true };
 }
@@ -135,6 +136,7 @@ async function open(ctx, { query = '', storage = {}, now = NOW } = {}) {
     if (!sessionStorage.getItem('__seeded')) {
       sessionStorage.setItem('__seeded', '1');
       localStorage.setItem('passivo.seenIntro', '1');
+      localStorage.setItem('passivo.tutorial', JSON.stringify({ storyDone: true, helpOn: false, quizDone: true }));
       for (const [k, v] of Object.entries(s)) localStorage.setItem(`passivo.${k}`, typeof v === 'string' ? v : JSON.stringify(v));
       if (theme) localStorage.setItem('passivo.prefs', JSON.stringify({ theme }));
     }

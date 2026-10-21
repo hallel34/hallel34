@@ -277,7 +277,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
       const text = st.target === 'monthly' && f.monthly < 0 ? st.negativeText : st.target === 'payback' && !Number.isFinite(f.years) ? st.neverText : st.text;
       return { target: st.target, body: fillNodes(text, slots) };
     });
-    steps.push({ target: null, body: def.closing });
+    steps.push({ target: null, body: fillNodes(def.closing) });
     return { steps, next: tut().ui.hintNext, done: tut().ui.gotIt };
   }
 

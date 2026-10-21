@@ -106,7 +106,8 @@ export function createHintScheduler({ seen = {}, active = () => true, mark = () 
   const book = { ...seen };
   let floatedThisTurn = false;
   let pending = [];
-  const group = (id) => (EXPENSE_GROUP.includes(id) ? EXPENSE_GROUP : SUMMARY_GROUP.includes(id) ? SUMMARY_GROUP : [id]);
+  // the expense hints retire each other; the income summary hint retires the plain one, but not the other way round
+  const group = (id) => (EXPENSE_GROUP.includes(id) ? EXPENSE_GROUP : id === 'h-summary-income' ? SUMMARY_GROUP : [id]);
   const retire = (id, turn) => { for (const g of group(id)) if (book[g] == null) { book[g] = turn; mark(g, turn); } };
   const isSeen = (id) => book[id] != null;
   return {

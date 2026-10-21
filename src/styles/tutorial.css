@@ -29,7 +29,8 @@
 @media (max-height: 700px) { .hud:has(.goal-line:not([hidden])) { gap: 3px; } }
 @media (max-height: 600px) { .hud:has(.goal-line:not([hidden])) { gap: 2px; } .goal-line, .free-line { font-size: .6875rem; line-height: 1.1; } }
 /* the extra HUD lines cost ~34px: the board keeps its size and the roll zone gives the room back */
-.screen-board:has(.goal-line:not([hidden])) { --board-w: min(100%, max(248px, calc(100dvh - 470px))); }
+.screen-board:has(.goal-line:not([hidden])) { --board-w: min(100%, max(258px, calc(100dvh - 464px))); }
+@media (max-height: 700px) { .screen-board:has(.goal-line:not([hidden])) { --fox-roll-h: 66px; --fox-tip-h: 70px; } }
 
 .flow-popover {
   position: absolute; inset-block-start: calc(100% + 10px); inset-inline-end: 6px; inline-size: min(320px, calc(100% - 12px)); z-index: calc(var(--z-hud) + 5);
@@ -130,7 +131,7 @@
   outline: 3px solid var(--c-gold-300); outline-offset: 4px; box-shadow: 0 0 0 6px rgb(242 181 58 / .25);
   animation: ring-in 220ms ease-out both, ring-pulse 1400ms ease-in-out 220ms 3;
 }
-.hint-ring.on-cream { outline-color: var(--c-gold-500); box-shadow: 0 0 0 6px rgb(227 160 32 / .25); }
+.hint-ring.on-cream { outline-color: var(--c-gold-700); box-shadow: 0 0 0 6px rgb(227 160 32 / .3); } /* gold-500 is only 2.1:1 on cream: the darker gold keeps the ring above 3:1 */
 .hint-ring.is-still { animation: none; }
 .hint-ring[hidden] { display: none; }
 @keyframes ring-in { from { opacity: 0; scale: 1.08; } to { opacity: 1; scale: 1; } }
@@ -249,4 +250,27 @@
   .story-screen[data-story="s5-turn"] .story-card-text { font-size: .75rem; line-height: 1.28; }
   .story-screen[data-story="s5-turn"] .story-num { font-size: .9375rem; }
   .story-screen[data-story="s5-turn"] .chain-label { font-size: .625rem; }
+}
+
+/* 320x568: the goal line folds away (the story and the hints say it; 'עוד X בחודש לחופש' stays), the board gives back a little room, the hint has no fox of its own */
+@media (max-height: 600px) {
+  .goal-line { display: none; }
+  .screen-board:has(.goal-line:not([hidden])) { --board-w: min(100%, 244px); --fox-roll-h: 50px; --fox-tip-h: 54px; }
+  .note-hint .note-fox { display: none; }
+}
+.hint-strip.in-body { margin-block: 4px 2px; }
+:root[data-theme="light"] .hint-ring { outline-color: var(--c-gold-700); }
+@media (max-height: 700px) {
+  .flow-popover { padding: 8px 12px 6px; gap: 2px; max-block-size: calc(100dvh - 252px); overflow-y: auto; }
+  .fp-row { font-size: .8125rem; } .fp-row .money { font-size: .9375rem; }
+  .fp-total { font-size: 1.0625rem; padding-block-end: 0; }
+  .fp-left { min-block-size: 40px; font-size: 1rem; } .fp-left .money { font-size: 1.25rem; }
+  .fp-foot { font-size: .6875rem; margin-block-start: 2px; }
+  .fp-op { margin-block: -3px; }
+}
+@media (max-height: 600px) { .flow-popover { max-block-size: calc(100dvh - 240px); } }
+@media (min-height: 760px) {
+  .story { --story-fox: 180px; }
+  .story-screen[data-story="s5-turn"] .story-fox .fox { block-size: calc(var(--story-fox) * .6); }
+  .story-screen[data-story="s5-turn"] .story-stage { min-block-size: calc(var(--story-fox) * .6); }
 }

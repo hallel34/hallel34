@@ -159,6 +159,23 @@ is in localStorage (`passivo.learn.seen`, `passivo.learn.badges`); the explainer
 ('הסברים של פסיבו', 'ניחוש לפני קנייה': on by default in family mode, off in full mode). Save schema 3 added `state.learn`; older saves migrate.
 Tuning parameters: `LOAN_COSTLY_PAYMENT_SHARE`, `INVESTOR_EYE_STREAK`, `REPORT_*` in `src/engine/config.js`.
 
+## The first game with Passivo (learnability package)
+Spec: `docs/v2/tutorial/spec.md`, art: `docs/v2/tutorial/art.md`, all wording: `src/data/learn/tutorial.he.json` (validated at load by
+`src/learn/validate-tutorial.js`, pruned for the production bundle by `scripts/prune-learn.js`).
+- **One-tap hand-over (hot-seat):** when a turn resolves the pass-the-phone sheet opens at once with a recap and one button
+  `זרקו קובייה, <שם>` that rolls for the next player. Single player has no hand-over.
+- **Summary card:** every `סיכום שנתיים` (all modes) shows salary + money that works - expenses = left a month, x 24 = amount, cash before -> after
+  (`src/ui/summary-card.js`, figures from `summaryFigures()` in `src/learn/tutorial.js` = the engine's payday numbers).
+- **Family HUD:** `נשאר בחודש` chip + popover, goal line (until 3 finished games), `עוד X בחודש לחופש` (`src/ui/hud-family.js`).
+- **Story** (5 screens, family, first game per device, replayable from settings and the help button) and the optional **3-question check**
+  live in `src/ui/tutorial/` and load with `import()`; the three illustrations are in `src/assets/tutorial/`.
+- **Guided hints** (10, first game only, once per device): scheduler in `src/learn/tutorial.js`, device record `passivo.tutorial`
+  (`storyDone`, `quizDone`, `hintsSeen`, `helpOn`). Settings: help switch, replay the story, replay the hints, parent card.
+- **Family vocabulary:** 22 strings and 13 kid names swap in family mode only (`familyStrings.overrides`, `kidNames` in the same JSON); the dictionary
+  shows the real term under the kid name. Add a word = edit the JSON.
+- Tests: `tests/tutorial.test.js` (rules), `tests/tutorial-content.test.js` (every `computed` figure recomputed from the game data),
+  `npm run smoke:tutorial` (Playwright, optional axe via `AXE=/path/to/axe.min.js`).
+
 ## The fox (Passivo)
 
 Poses live in `src/assets/fox/` as transparent WebP (`tired`, `wave`, `roll`, `hammock`, `tip` with `@2x`) plus four

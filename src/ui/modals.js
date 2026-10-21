@@ -231,13 +231,14 @@ export function opportunityModal(state, { flip = true, guess = null, tour = null
   if (guess.prior) {
     queueMicrotask(() => reveal(guess.prior.guess, guess.prior));
   } else {
-    ctl.body.append(guessPrompt(ui.prompt, () => reveal('skip')));
-    const introStrip = guess.intro ? hintStrip({ body: guess.intro.body, cls: 'in-card', label: tutLabel() }) : null;
+    // the intro strip scrolls with the card (above the question), so it never sits over the guess buttons or the skip link
+    const introStrip = guess.intro ? hintStrip({ body: guess.intro.body, cls: 'in-card in-body', label: tutLabel() }) : null;
+    ctl.body.append(...(introStrip ? [introStrip] : []), guessPrompt(ui.prompt, () => reveal('skip')));
     ctl.setActions([
       { id: 'guess-bad', label: [icon('close', { size: 22, width: 3.4 }), h('span', null, ui.prompt.bad)], variant: 'danger', cls: 'btn-guess', run: () => reveal('bad') },
       { id: 'guess-good', label: [icon('check', { size: 22, width: 3.4 }), h('span', null, ui.prompt.good)], variant: 'buy', cls: 'btn-guess', autofocus: true, run: () => reveal('good') },
     ]);
-    ctl.setFoot(introStrip);
+    ctl.setFoot(null);
   }
   return opts.promise;
 }
@@ -672,7 +673,7 @@ export function handoffSheet({ name, color, recap = null, extra = null }) {
   let tapped = false;
   let resolveTap;
   const tap = new Promise((r) => { resolveTap = r; });
-  const go = button(withName(t('players.rollFor', { name: '{name}' }), name), {
+  const go = button(h('span', { class: 'btn-label' }, withName(t('players.rollFor', { name: '{name}' }), name)), {
     variant: 'primary', size: 'lg', cls: 'btn-roll-next', 'data-action': 'roll-next', 'data-autofocus': '',
     onClick: () => {
       if (tapped) return; // a second tap on the closing sheet does nothing

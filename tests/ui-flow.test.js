@@ -33,9 +33,9 @@ describe('the primary board button never reads "..."', () => {
     expect(he.game.advancing).toBe('מתקדמים...');
     expect(he.game.continue).toBe('המשיכו');
   });
-  it('play.js only ever paints the button from those keys and enables "continue"', () => {
+  it("play.js only ever paints the button from those keys and has no continue mode (hot-seat hands over with one tap)", () => {
     const src = read('src/ui/play.js');
-    expect(src).toMatch(/BTN_LABEL = \{ roll: 'game\.roll', rolling: 'game\.rolling', working: 'game\.advancing', continue: 'game\.continue' \}/);
+    expect(src).toMatch(/BTN_LABEL = \{ roll: 'game\.roll', rolling: 'game\.rolling', working: 'game\.advancing' \}/);
     expect(src).toMatch(/rollBtn\.disabled = mode === 'rolling' \|\| mode === 'working'/);
     expect(src).not.toMatch(/textContent = '\.\.\.'/);
     expect(JSON.stringify(he)).not.toMatch(/"\.\.\."/);

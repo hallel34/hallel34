@@ -87,6 +87,13 @@ light=[
  ('settings help (text-muted) / surface','#3F4C78','#FFFFFF',4.5),
  ('note kicker (card-muted) / cream bubble','#46527E','#FFF6E3',4.5),
  ('eye chip gold / navy','#FFD479','#0F1E46',4.5),
+ ('tutorial: summary passive amount / income tint','#0A7560','#E1F8EC',4.5),('tutorial: summary salary / cream','#0F1E46','#FFF6E3',4.5),
+ ('tutorial: summary expense amount / cream','#B3261E','#FFF6E3',4.5),('tutorial: summary left (income-ink) / cream','#0B6B43','#FFF6E3',4.5),
+ ('tutorial: summary muted caption / cream','#46527E','#FFF6E3',4.5),('tutorial: summary result gold / navy band','#F6C453','#0F1E46',4.5),
+ ('tutorial: summary negative result coral / navy band','#FF9C8C','#0F1E46',4.5),('tutorial: popover left pill (positive)','#032A1A','#4FD6A0',4.5),
+ ('tutorial: popover left pill (negative)','#6B120C','#FFD3CB',4.5),('tutorial: hint strip text / navy','#FFFFFF','#0F1E46',4.5),
+ ('tutorial: hint strip number gold / navy','#FFD479','#0F1E46',4.5),('tutorial: story title gold / night','#F2B53A','#091330',4.5),
+ ('tutorial: story card muted / cream','#46527E','#FFF6E3',4.5),('tutorial: highlight ring gold-700 on cream (non-text)','#A56A0A','#FFF6E3',3),('tutorial: highlight ring gold-300 on navy (non-text)','#FFD479','#0F1E46',3),
 ]
 bad=0; md='--md' in sys.argv
 for name,rows in (('DARK',dark),('LIGHT',light)):

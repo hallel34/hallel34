@@ -146,7 +146,7 @@ describe('v2 phase A: amounts, payday copy, no typed numbers', () => {
     const fx = play.slice(play.indexOf('async function paydayFx'), play.indexOf('// ---------- turn ----------'));
     expect(fx).toContain("tn('game.logPayday'");
     expect(fx).toContain("tn('game.statusPayday'");
-    expect(fx).toContain('signedMoney(amount)');
+    expect(fx).toContain('signedMoney(f.amount)');
     expect(fx).not.toMatch(/moneyText\(/);
     const fmt = src('ui/format.js');
     expect(fmt).toContain("h('bdi', { class: `money");

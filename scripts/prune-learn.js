@@ -23,7 +23,7 @@ function strip(value, path = []) {
 }
 
 // The tutorial file carries more authoring text than the others: worked examples, wording notes and the hand-computed sums.
-const TUTORIAL_DROP = new Set(['note', 'sampleText', 'sampleOneLine', 'sampleNoAsset', 'sample', 'ownerWording', 'trigger', 'afterwards', 'assumes', 'textGenderNeutral', 'illustration', 'was', 'terms', 'target', 'howto', 'keepAsIs', 'showWhile']);
+const TUTORIAL_DROP = new Set(['note', 'sampleText', 'sampleOneLine', 'sampleNoAsset', 'sample', 'ownerWording', 'trigger', 'afterwards', 'assumes', 'textGenderNeutral', 'illustration', 'was', 'terms', 'target', 'howto', 'keepAsIs', 'showWhile', 'computed']);
 function pruneTutorial(data) {
   const out = strip(data);
   const drop = (v) => {
