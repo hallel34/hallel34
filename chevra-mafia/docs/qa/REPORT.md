@@ -69,3 +69,46 @@ Real latency races between two devices (e.g. doctor pick vs. host resolve in the
 3. Night timing/detective result UX.
 4. Auth + Rules + escape ids.
 5. Config limits, 48px targets, copy.
+
+
+---
+
+# Round 2 (re-verification of the developer fix, uncommitted diff)
+
+Method: code reading of the full diff, `node --check` of the extracted script (OK), and a harness that loads the REAL functions from public/index.html (hostTick, nightMode, resolveNightUpd, forcedTarget, leaveRoom, tx, winnerOf) with a mock Firestore transaction and a fake clock. Harness: `chevra-mafia/qa/round2.cjs` (`node qa/round2.cjs`, 13/13 scenarios PASS). No live Firebase or browser (still not verified: 360x800 layout, real multi-device races).
+
+## Per-item result
+| Item | Result | Evidence |
+|---|---|---|
+| P0 night stall: mafia leaves in night | PASS | harness: leaveRoom sets over/town in the same tx; hostTick also catches it |
+| P0 mafia disagree | PASS | no resolve at 19s, resolves at 22-25s with one of the picked victims; majority wins, tie random |
+| P0 nobody picks / doctor or detective missing | PASS | not resolved before 120s, then forced; victim never mafia; missing doctor = skipped |
+| P0 win check on leave (leaveRoom + hostTick, night/day/vote/voteResult) | PASS | town on 0 mafia, mafia on mafia>=others; reveal-phase leave does not end game |
+| P0 host leaves: hostId reassigned | PASS | |
+| P0 no double transition / idempotency | PASS | single tx logged per resolution; tx no-ops when status changed; 4 stale ticks give 1 write |
+| P1 detective result hold (DET_HOLD 6s) | PASS | held 5.5s, resolves at ~6-6.5s, single write; hold counted from the pick (not from night start) |
+| P1 detective result shown in vDay | PASS (code) | vDay renders checks[round] for living detective, name escaped |
+| P1 XSS: myId validation | PASS (code) | PID_RE, regenerated when bad; saved room must match /^\d{4}$/ |
+| P1 XSS: esc on data-arg and room.code | PASS (code) | all innerHTML interpolations of names/ids/code/lastEvent now escaped; field-path injection via `players.${myId}` closed |
+| a11y: zoom | PASS | maximum-scale removed |
+| a11y: 48px targets | PASS (by CSS) | stepper 48x48, .seg, .tgl 64x48, .peek, .btn.sm, .btn.link min-height 48. Not measured in a browser |
+| a11y: reduced-motion | PASS | global animation/transition off (also disables card flip transition, acceptable) |
+| hostTick backoff | PASS | after a failing tx at most 3 attempts in 5s (1s,2s,4s... max 10s) |
+| GAME_DESIGN.md matches code | PASS | 6s/20s/120s, local timers, leave win check all match |
+
+No syntax errors, RTL unchanged (new markup uses existing classes; toggle thumb still uses physical `right`, old P2 #12).
+
+## New bugs (all P2)
+1. [P2] resolveNightUpd win-check message: when the pre-check finds `w0==='mafia'` the lastEvent is still "אין עוד מאפיונרים בחדר" (wrong; only true for town). Use the same text by winner. Also leave-triggered over shows "שחקנים עזבו את החדר" even if the game would otherwise have ended normally, acceptable.
+2. [P2] Night timers (120s / 20s / 6s) live only in the host's memory: host change or host page reload restarts the 120s and 20s counts, so a night can last up to 120s after every host handoff. Documented in GAME_DESIGN, but persist `nightStartedAt` to Firestore for robustness.
+3. [P2] DET_HOLD starts when the HOST first observes the check, so detective's actual view time is 6s minus snapshot latency at the host side only when the host sees it late; fine in practice, but the detective's own screen has no countdown or "הבנתי" ack, and the doctor can change the pick during the hold. Minor.
+4. [P2] Forced path with the detective hold: forced close at 120s ignores DET_HOLD (detective who picks at 119s gets <1s). Rare.
+5. [P2] Still open from round 1 (a11y/copy): toggle aria-labels in English, no aria-pressed/aria-live/role=status, `right:` physical positioning on toggle, mixed gendered Hebrew, fonts from CDN.
+
+## Still open from round 1 (not part of this fix, still P1)
+- P1 host is the single point of failure for all progression (no heartbeat/takeover; wake lock only on click).
+- P1 ghost players (closed tab) in lobby/reveal block the start with no kick or skip. Night/vote are now unblocked by timeout/host button, reveal is not.
+- P1 security: firestore.rules `allow read, write: if true`; roles and picks readable/writable by any client. XSS part is fixed, data-integrity part is not.
+
+## Round 2 status: RED
+All requested fixes (P0 night stall, P1 XSS, P1 detective hold, a11y items) verified PASS. Status stays RED only because three round-1 P1s were not in scope of this change (host SPOF, ghost players in reveal, open Firestore rules). If the CEO accepts those as roadmap items for a friends-only beta, the build for this diff is GREEN-with-known-issues; there are no new P0/P1.
