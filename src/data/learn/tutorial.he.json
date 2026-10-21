@@ -141,18 +141,20 @@
         "concept": "summary",
         "pose": "roll",
         "illustration": null,
-        "title": "איך מתקדמים",
+        "title": "מתי הכסף מגיע אליך",
         "lines": [
-          "זורקים קובייה, נוחתים על משבצת ומחליטים מה לעשות.",
-          "בכל פעם שעוברים על ״סיכום שנתיים״, מחשבים כאילו עברו שנתיים: מה שנשאר בחודש כפול 24."
+          "קונים דירה, והיא מכניסה כסף כל חודש. הכסף מצטבר, ומגיע אליכם בבת אחת במשבצת ״סיכום שנתיים״.",
+          "שם מחשבים: משכורת, ועוד כסף שעובד, פחות הוצאות. מה שנשאר בחודש, כפול 24."
         ],
+        "chain": ["קונים דירה", "כל חודש היא מכניסה כסף (כסף שעובד)", "הכסף מצטבר", "בסיכום שנתיים הוא מגיע למזומן"],
         "example": {
+          "cardId": "opp-apt-004",
           "professionId": "teacher",
-          "text": "אצל {profession}: {monthly} × {months} = {amount}.",
-          "sampleText": "אצל מורה: ₪1,490 × 24 = ₪35,760.",
-          "computed": { "monthly": 1490, "months": 24, "amount": 35760 }
+          "text": "קונים את הדירה בקריית שמונה: היא מכניסה {passive} בחודש. בסיכום שנתיים: משכורת {salary} + כסף שעובד {passive} − הוצאות {expenses} = נשארו {monthly} בחודש. {monthly} × {months} = {amount}.",
+          "sampleText": "קונים את הדירה בקריית שמונה: היא מכניסה ₪2,600 בחודש. בסיכום שנתיים: משכורת ₪8,800 + כסף שעובד ₪2,600 − הוצאות ₪7,310 = נשארו ₪4,090 בחודש. ₪4,090 × 24 = ₪98,160.",
+          "computed": { "rent": 9500, "loanPayment": 6900, "passive": 2600, "salary": 8800, "expenses": 7310, "monthly": 4090, "months": 24, "amount": 98160 }
         },
-        "simplification": "במשחק מסכמים שנתיים בבת אחת כדי שהמשחק יהיה קצר. בחיים הכסף נכנס ויוצא כל חודש.",
+        "simplification": "במשחק הכסף מגיע למזומן רק בסיכום שנתיים, ומסכמים שנתיים בבת אחת כדי שהמשחק יהיה קצר. בחיים הכסף נכנס ויוצא כל חודש. ₪2,600 הם אחרי תשלום המשכנתא, והוא כבר מחושב בקלף.",
         "readSec": 15
       }
     ]
@@ -196,7 +198,7 @@
     },
     {
       "id": "summary",
-      "kid": "סיכום שנתיים הוא משבצת שמחשבת מה שנשאר בחודש כפול 24.",
+      "kid": "סיכום שנתיים הוא המשבצת שבה הכסף של 24 חודשים מגיע למזומן: מה שנשאר בחודש כפול 24.",
       "example": "₪1,490 × 24 = ₪35,760.",
       "computed": { "monthly": 1490, "months": 24, "amount": 35760 }
     }
@@ -291,6 +293,23 @@
           "computed": { "monthly": 1490, "months": 24, "amount": 35760 }
         },
         "ownerWording": "הניסוח המקורי 'מקבלים משכורת של שנתיים בבת אחת' אינו מדויק: הסיכום הוא התזרים החודשי (אחרי הוצאות) כפול 24, והוא יכול להיות גם שלילי. לכן הניסוח לעיל."
+      },
+      {
+        "id": "h-summary-income",
+        "priority": 3,
+        "trigger": "הסיכום הראשון שבו passiveIncome(state) גדול מ-0 (יש נכס שמכניס כסף). מוצג יחד עם הודעת summaryBreakdown, מחליף את h-summary אם h-summary טרם הוצג",
+        "pose": "tip",
+        "target": "שורת 'כסף שעובד' בהודעת הסיכום (טבעת הדגשה)",
+        "text": "הדירה שקנית עבדה בשבילך: הנה הכסף שהיא הכניסה.",
+        "textGenderNeutral": "הנכס שקניתם עבד בשבילכם: הנה הכסף שהוא הכניס.",
+        "textAsset": { "apartment": "הדירה שקניתם עבדה בשבילכם: הנה הכסף שהיא הכניסה.", "business": "העסק שקניתם עבד בשבילכם: הנה הכסף שהוא הכניס." },
+        "more": "בכל חודש הוא הכניס {passive}. {months} חודשים זה {passiveTotal}, והם כבר בתוך הסכום שהגיע למזומן.",
+        "example": {
+          "cardId": "opp-apt-004",
+          "sampleText": "הדירה שקניתם עבדה בשבילכם: הנה הכסף שהיא הכניסה. בכל חודש היא הכניסה ₪2,600. 24 חודשים זה ₪62,400, והם כבר בתוך הסכום שהגיע למזומן.",
+          "computed": { "passive": 2600, "months": 24, "passiveTotal": 62400 }
+        },
+        "ownerWording": "הניסוח המקורי בלשון יחיד ('שקנית') הוחלף בלשון רבים. אם מעדיפים יחיד מותאם, ללא החלטה כוללת במסמך decisions."
       },
       {
         "id": "h-card",
@@ -392,6 +411,45 @@
       }
     ]
   },
+  "summaryBreakdown": {
+    "note": "הודעת סיכום שנתיים מפורטת, מוצגת בכל סיכום (במצב משפחה תמיד; במלא אופציונלי). מחליפה/מרחיבה את game.paydayCalc. פס בתוך כרטיס קטן, מעל הכפתור, לא מכסה את HUD. כל שורה אפשר להקיש לפתיחת המושג. הנוסחה: salary + passive - expenses = monthly; monthly x PAYDAY_MONTHS = amount. passive כאן הוא passiveIncome(state) (כבר נטו אחרי משכנתא/הלוואת עסק), expenses הוא totalExpenses(state).",
+    "rows": [
+      { "id": "salary", "label": "המשכורת שלך", "template": "המשכורת שלך {salary}" },
+      { "id": "passive", "label": "כסף שעובד", "template": "כסף שעובד (הכנסה פסיבית) {passive}", "zeroTemplate": "כסף שעובד: עוד אין נכסים שמכניסים כסף" },
+      { "id": "expenses", "label": "הוצאות", "template": "הוצאות {expenses}" }
+    ],
+    "resultMonthly": "נשארו {monthly} בחודש",
+    "resultTotal": "{monthly} × {months} = {amount}",
+    "oneLine": "המשכורת שלך {salary}, כסף שעובד {passive}, הוצאות {expenses} → נשארו {monthly} בחודש × {months} = {amount}",
+    "negativeResult": "יצא מינוס של {monthlyAbs} בחודש × {months} = מינוס {amountAbs}. זה יורד מהמזומן",
+    "arrival": "הכסף מגיע למזומן עכשיו: {cashBefore} → {cashAfter}",
+    "example": {
+      "professionId": "teacher",
+      "cardId": "opp-apt-004",
+      "sampleOneLine": "המשכורת שלך ₪8,800, כסף שעובד ₪2,600, הוצאות ₪7,310 → נשארו ₪4,090 בחודש × 24 = ₪98,160",
+      "sampleNoAsset": "המשכורת שלך ₪8,800, כסף שעובד ₪0, הוצאות ₪7,310 → נשארו ₪1,490 בחודש × 24 = ₪35,760",
+      "computed": { "salary": 8800, "passive": 2600, "expenses": 7310, "monthly": 4090, "amount": 98160, "noAssetMonthly": 1490, "noAssetAmount": 35760 }
+    },
+    "animation": "שלוש שורות נכנסות אחת אחרי השנייה (150ms), אז התוצאה, אז ספירה למעלה של המזומן. תחת reduced-motion: הכול בבת אחת."
+  },
+  "hudFamily": {
+    "note": "מצב משפחה: ה-flow-chip הקיים ליד המזומן הופך ל'נשאר בחודש +X' (במקום תזרים). הקשה עליו פותחת פופאובר קטן שמתחת ל-HUD (לא מכסה כפתורים) עם נכנס ויוצא. פס המד נשאר: כסף שעובד מול הוצאות.",
+    "chip": "נשאר בחודש {monthlySigned}",
+    "popoverTitle": "בכל חודש",
+    "incomeTitle": "כסף שנכנס בחודש",
+    "incomeRows": ["משכורת {salary}", "כסף שעובד {passive}"],
+    "incomeTotal": "יחד {income}",
+    "outTitle": "כסף שיוצא בחודש",
+    "outRows": ["הוצאות {expenses}"],
+    "resultRow": "נשאר בחודש {monthly}",
+    "arrivalLine": "הכסף מצטבר ומגיע למזומן בסיכום שנתיים הבא: {monthly} × {months}",
+    "example": {
+      "professionId": "teacher",
+      "cardId": "opp-apt-004",
+      "sample": "כסף שנכנס בחודש: משכורת ₪8,800 + כסף שעובד ₪2,600 = ₪11,400. כסף שיוצא בחודש: ₪7,310. נשאר בחודש ₪4,090.",
+      "computed": { "income": 11400, "out": 7310, "monthly": 4090 }
+    }
+  },
   "goalLine": {
     "showWhile": "helpOn ופחות מ-3 משחקים שהסתיימו במכשיר (הצעה, ראו שאלה פתוחה)",
     "text": "המטרה: שהכסף שעובד בשבילך יהיה גדול מההוצאות",
@@ -448,7 +506,7 @@
       { "key": "loan.rateLine", "was": "[[term:interest|ריבית]]: {apr}% בשנה, כלומר {unitPay} בחודש על כל {unit}", "family": "[[term:interest|תוספת]]: {unitPay} בחודש על כל {unit}" },
       { "key": "loan.interestUntil", "was": "[[term:interest|ריבית]] עד הסיכום הבא ({months} חודשים)", "family": "[[term:interest|תוספת]] עד הסיכום הבא ({months} חודשים)" },
       { "key": "loan.textVoluntary", "was": "בכפולות של {step}. משלמים רק ריבית, והקרן נשארת עד שמחזירים", "family": "בכפולות של {step}. כל חודש משלמים רק את התוספת, והחוב נשאר עד שמחזירים אותו" },
-      { "key": "milestone", "was": "{pct}% מהדרך לחופש!", "family": "{pct}% מהדרך לחופש!", "key_actual": "game.milestone", "unchanged": true }
+      { "key": "game.paydayCalc", "was": "{monthly} × {months} חודשים = {amount}", "family": "נשארו {monthly} בחודש × {months} = {amount}" }
     ],
     "howto": "במצב משפחה, לחיצה על 'איך משחקים' פותחת גיליון עם שלוש שורות: 'ראו שוב את הסיפור (דקה)', 'המילון של פסיבו', 'כללי המשחק בקצרה' (howto.step1 עד step4 הקיימים, עם תיקון בשלב 1: ללא 'תזרים' ללא הסבר). בפעם הראשונה בלבד, במקום הגיליון, מתחיל הסיפור.",
     "keepAsIs": ["game.expenses", "game.payday", "loan.title", "loan.totalDue", "card.businessLoan", "square.*", "game.milestone"]
