@@ -3,7 +3,7 @@ import { h } from './dom.js';
 import { t, tp } from '../i18n/index.js';
 import { icon } from './icons.js';
 import { money, moneyText, numberText } from './format.js';
-import { playerToken, playerName } from './players.js';
+import { playerToken, playerName, nameBdi } from './players.js';
 import { standings } from '../engine/index.js';
 
 const cell = (label, value) => h('div', { class: 'stand-cell' }, h('span', { class: 'stand-label' }, label), h('span', { class: 'stand-value' }, value));
@@ -20,7 +20,7 @@ export function standingsList(match) {
     h('div', { class: 'stand-head' },
       h('span', { class: 'stand-place' }, r.winner ? icon('star', { size: 18, width: 2.4 }) : numberText(r.place)),
       playerToken(r.color),
-      h('strong', { class: 'stand-name' }, name),
+      h('strong', { class: 'stand-name' }, nameBdi(name)),
       r.status === 'lost' ? h('span', { class: 'stand-tag' }, t('standings.out')) : null,
       h('span', { class: 'stand-turns' }, tp('plural.turns', r.turns))),
     h('div', { class: 'stand-nums' },

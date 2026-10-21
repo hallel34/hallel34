@@ -9,7 +9,7 @@ import { meter } from '../widgets.js';
 import { confetti, haptic, sound, toast, animate } from '../fx.js';
 import { statement, isMultiplayer } from '../../engine/index.js';
 import { standingsList } from '../standings.js';
-import { playerName } from '../players.js';
+import { playerName, withName } from '../players.js';
 
 const rays = () => html(`<svg class="rays" aria-hidden="true" focusable="false" viewBox="-300 -300 600 600"><g fill="#FFE27A" opacity=".16">${
   Array.from({ length: 12 }, (_, i) => `<path d="M0 0L-60 -420L60 -420z" transform="rotate(${i * 30})"/>`).join('')
@@ -116,7 +116,7 @@ function createMatchWin({ match, onAgain, onMenu }) {
     h('div', { class: 'rays-wrap', 'aria-hidden': 'true' }, rays()),
     h('div', { class: 'end-hero' },
       winFox,
-      h('h1', { class: `title title-win pc-text-${winner.color}` }, t('standings.winnerTitle', { name })),
+      h('h1', { class: `title title-win pc-text-${winner.color}` }, withName(t('standings.winnerTitle', { name: '{name}' }), name)),
       h('p', { class: 'tagline' }, t('standings.winnerText'))),
     h('div', { class: 'glass glass-strong end-card', tabindex: '0', role: 'region', 'aria-label': t('standings.title') }, h('h2', { class: 'end-card-title' }, t('standings.title')), standingsList(match)),
     h('div', { class: 'end-actions' },

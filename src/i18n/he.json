@@ -12,6 +12,7 @@
     "resume": "המשך משחק",
     "resumeInfo": "תור {turn} · {profession}",
     "resumeInfoMulti": "{n} שחקנים · תור {turn}",
+    "resumeInfoFresh": "{n} שחקנים",
     "modeFamily": "משפחה",
     "modeFull": "מלא",
     "modeFamilyDesc": "מגיל 9 · דירות ועסקים",
@@ -316,7 +317,7 @@
   "standings": {
     "title": "דירוג",
     "winnerTitle": "הניצחון של {name}!",
-    "winnerText": "ההכנסה הפסיבית הראשונה שעקפה את ההוצאות",
+    "winnerText": "ההכנסה הפסיבית עקפה את ההוצאות",
     "passive": "פסיבית",
     "expenses": "הוצאות",
     "netWorth": "שווי נקי",

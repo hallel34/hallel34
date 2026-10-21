@@ -93,3 +93,43 @@ describe('hot-seat copy', () => {
     expect(he.win.again).toBe('שחק שוב');
   });
 });
+
+describe('round 6 polish', () => {
+  it('the sell sheet auto-closes only in the must-pay flow, never when opened from the statement', () => {
+    const src = read('src/ui/play.js');
+    expect(src).toMatch(/async function sellFlow\(\{ autoClose = false \} = \{\}\)/);
+    expect(src).toMatch(/shouldClose: \(s\) => autoClose && /);
+    expect(src.match(/sellFlow\(\{ autoClose: true \}\)/g)).toHaveLength(2); // expense + shortfall prompts
+    expect(src).toMatch(/sell: async \(\) => \{ await sellFlow\(\); closeIfOver\(\); \}/);
+  });
+  it('player names are isolated with <bdi dir=auto> in the panel, strip, standings, handoff and winner title', () => {
+    expect(read('src/ui/players.js')).toMatch(/h\('bdi', \{ dir: 'auto' \}, name\)/);
+    expect(read('src/ui/play.js')).toMatch(/or-name' \}, nameBdi\(nameOf\(i\)\)/);
+    expect(read('src/ui/standings.js')).toMatch(/stand-name' \}, nameBdi\(name\)/);
+    expect(read('src/ui/modals.js')).toMatch(/handoff-title' \}, withName/);
+    expect(read('src/ui/screens/end.js')).toMatch(/withName\(/);
+  });
+  it('out players carry a visible text tag and screen-reader text', () => {
+    const src = read('src/ui/play.js');
+    expect(src.match(/class: 'out-tag'/g).length).toBeGreaterThanOrEqual(2);
+    expect(src).toMatch(/t\('standings\.out'\)\} `/);
+    expect(he.standings.out).toBe('מחוץ למשחק');
+  });
+  it('a card queued when going home is saved with the match and shown after resume', () => {
+    const src = read('src/ui/play.js');
+    expect(src).toMatch(/if \(unseen\.length\) match\.unseen = unseen;/);
+    expect(src).toMatch(/if \(unseen\.length\) \{/);
+    expect(src).toMatch(/delete match\.unseen/);
+    const m = { players: [{ state: { profession: {} } }], unseen: [{ ev: { type: 'expensePaid', amount: 500, card: { title: 'x' } }, noMatch: false }], schemaVersion: 2 };
+    return import('../src/engine/save.js').then(({ deserialize }) => {
+      const back = deserialize(JSON.stringify({ ...m, schemaVersion: 2 }));
+      expect(back?.unseen?.[0].ev.card.title).toBe('x');
+    });
+  });
+  it('fresh multiplayer resume label has no turn 0; winner subtitle is neutral', () => {
+    const src = read('src/ui/screens/start.js');
+    expect(src).toMatch(/< 1\s*\? t\('menu\.resumeInfoFresh'/);
+    expect(`${he.menu.resume} · ${he.menu.resumeInfoFresh.replace('{n}', 3)}`).toBe('המשך משחק · 3 שחקנים');
+    expect(he.standings.winnerText).toBe('ההכנסה הפסיבית עקפה את ההוצאות');
+  });
+});

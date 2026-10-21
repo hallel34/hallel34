@@ -14,7 +14,9 @@ import wordmarkUrl from '../../assets/wordmark.svg?url';
 import coinUrl from '../../assets/coin-small.svg?url';
 
 const resumeInfo = (m) => (isMultiplayer(m)
-  ? t('menu.resumeInfoMulti', { n: m.players.length, turn: Math.max(...m.players.map((p) => p.state.turn)) })
+  ? (Math.max(...m.players.map((p) => p.state.turn)) < 1
+    ? t('menu.resumeInfoFresh', { n: m.players.length })
+    : t('menu.resumeInfoMulti', { n: m.players.length, turn: Math.max(...m.players.map((p) => p.state.turn)) }))
   : t('menu.resumeInfo', { turn: currentState(m).turn, profession: currentState(m).profession.title }));
 
 export const WAVE_MS = 1800;

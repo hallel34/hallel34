@@ -5,7 +5,7 @@ import { t, tp } from '../i18n/index.js';
 import { openLayer, closeButton } from './modal.js';
 import { icon } from './icons.js';
 import { cornerPop, foxImg } from './fox.js';
-import { playerToken } from './players.js';
+import { playerToken, withName } from './players.js';
 import { CARD_REACTION } from './fox-rules.js';
 import { money, moneyText, tn, numberText } from './format.js';
 import { button, stepper, statTile } from './widgets.js';
@@ -438,8 +438,8 @@ export function handoffSheet({ name, color }) {
   const content = h('div', { class: 'sheet handoff-sheet', 'data-handoff': String(color) },
     h('div', { class: 'handoff-fox' }, foxImg('roll', { height: 96 })),
     playerToken(color, { cls: 'ptoken-xl' }),
-    h('h2', { class: 'dialog-title handoff-title' }, t('players.handoffTitle', { name })),
-    h('p', { class: 'dialog-text' }, t('players.handoffText', { name })),
+    h('h2', { class: 'dialog-title handoff-title' }, withName(t('players.handoffTitle', { name: '{name}' }), name)),
+    h('p', { class: 'dialog-text' }, withName(t('players.handoffText', { name: '{name}' }), name)),
     h('div', { class: 'sheet-cta' }, button(t('players.ready'), { variant: 'primary', size: 'lg', 'data-action': 'ready', 'data-autofocus': '', onClick: () => { haptic('tap'); layer.close(true); } })));
   layer = openLayer(content, { kind: 'sheet', label: t('players.handoffTitle', { name }), dismissable: false, cls: 'layer-handoff' });
   return layer.closed;
@@ -468,7 +468,7 @@ export function playerOutModal({ name, color }) {
   const content = h('div', { class: 'dialog out-dialog', 'data-out': String(color) },
     h('div', { class: 'fox-pop out-fox', style: '--pop:92px' }, foxImg('worried', { size: 92 })),
     h('div', { class: 'out-who' }, playerToken(color, { cls: 'ptoken-xl' })),
-    h('h2', { class: 'dialog-title out-title' }, t('game.outTitle', { name })),
+    h('h2', { class: 'dialog-title out-title' }, withName(t('game.outTitle', { name: '{name}' }), name)),
     h('p', { class: 'dialog-text' }, t('game.outText')),
     h('div', { class: 'dialog-actions' }, button(t('game.continue'), { variant: 'primary', size: 'lg', 'data-action': 'ok', 'data-autofocus': '', onClick: () => { haptic('tap'); layer.close({ action: 'ok' }); } })));
   layer = openLayer(content, { kind: 'modal', label: t('game.outTitle', { name }), dismissable: false, cls: 'layer-dialog layer-out' });

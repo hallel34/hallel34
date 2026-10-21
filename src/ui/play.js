@@ -18,7 +18,7 @@ import * as raw from './modals.js';
 import { openStatement } from './statement.js';
 import { openSettings } from './settings.js';
 import { ringPos, avatarColor, pawnOffsets, progressPct, CROWD_FROM } from './layout.js';
-import { playerToken, playerName } from './players.js';
+import { playerToken, playerName, nameBdi } from './players.js';
 import { closeAllLayers, destroyAllLayers } from './modal.js';
 import { debugEnabled, mountDebugTools } from './debug.js';
 import { foxImg, createReactor, warmFox, dirSign } from './fox.js';
@@ -241,8 +241,8 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     othersCells.replaceChildren(...order.map((i) => {
       const ps = match.players[i].state;
       return h('span', { class: `os-cell pc-${colorOf(i)}${ps.status === 'lost' ? ' is-out' : ''}`, 'data-player': String(i) },
-        h('span', { class: 'vh' }, `${nameOf(i)} `),
-        h('bdi', { class: 'money os-cash', dir: 'ltr' }, moneyText(ps.cash)),
+        h('span', { class: 'vh' }, nameBdi(nameOf(i)), ps.status === 'lost' ? ` ${t('standings.out')} ` : ' '),
+        ps.status === 'lost' ? h('span', { class: 'out-tag', 'aria-hidden': 'true' }, t('standings.out')) : h('bdi', { class: 'money os-cash', dir: 'ltr' }, moneyText(ps.cash)),
         h('span', { class: 'os-top' }, playerToken(colorOf(i)),
           h('span', { class: 'os-bar' }, h('i', { style: `--fill:${progressPct(passiveIncome(ps), totalExpenses(ps))}` }))));
     }));
@@ -251,7 +251,8 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
       const pct = progressPct(passiveIncome(ps), totalExpenses(ps));
       return h('li', { class: `others-row pc-${colorOf(i)}${ps.status === 'lost' ? ' is-out' : ''}`, 'data-player': String(i) },
         // two lines: [token  name ........ cash] / [progress bar  %  per-month flow] so the name always keeps room
-        h('div', { class: 'or-top' }, playerToken(colorOf(i)), h('strong', { class: 'or-name' }, nameOf(i)), h('span', { class: 'or-cash' }, money(ps.cash))),
+        h('div', { class: 'or-top' }, playerToken(colorOf(i)), h('strong', { class: 'or-name' }, nameBdi(nameOf(i))),
+          ps.status === 'lost' ? h('span', { class: 'out-tag' }, t('standings.out')) : null, h('span', { class: 'or-cash' }, money(ps.cash))),
         h('div', { class: 'or-sub' },
           miniMeter(pct, t('game.otherRow', { name: nameOf(i), cash: moneyText(ps.cash), pct: Math.round(pct * 100) })),
           h('span', { class: 'or-pct' }, `${Math.round(pct * 100)}%`),
@@ -550,27 +551,40 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     settleButton();
   }
 
-  async function handleEvents(s) {
-    for (const ev of s.events) {
-      if (destroyed) return;
-      if (ev.type === 'baby') {
-        pushLog(t('game.logBaby'));
-        await babyModal(state, { max: false, extra: ev.extra });
-      } else if (ev.type === 'babyMax') {
-        await babyModal(state, { max: true, extra: 0 });
-      } else if (ev.type === 'expensePaid' && ev.card) {
-        pushLog(t('game.logExpense', { title: ev.card.title, amount: moneyText(-ev.amount) }), 'bad');
-        await expenseModal(state, { card: ev.card, amount: ev.amount, paid: true });
-        haptic('error');
-        await syncCash();
-      } else if (ev.type === 'market' && s.pending?.kind !== 'offer') {
-        pushLog(t('game.logMarket', { title: ev.card.title }));
-        const noMatch = s.events.some((x) => x.type === 'noMatchingAsset');
-        await marketInfoModal(state, { card: ev.card, noMatch, familyOffer: ev.card.effect === 'offer' && !noMatch });
-        if (ev.card.effect === 'cash') { haptic(ev.card.amount >= 0 ? 'purchase' : 'error'); sound(ev.card.amount >= 0 ? 'coin' : 'error'); }
-        await syncCash();
-      }
+  /** Events whose cards are queued but not yet seen; saved with the match when the player goes home mid-turn. */
+  let unseen = Array.isArray(match.unseen) ? match.unseen : [];
+  async function showEvent(ev, noMatch) {
+    if (ev.type === 'baby') {
+      pushLog(t('game.logBaby'));
+      await babyModal(state, { max: false, extra: ev.extra });
+    } else if (ev.type === 'babyMax') {
+      await babyModal(state, { max: true, extra: 0 });
+    } else if (ev.type === 'expensePaid') {
+      pushLog(t('game.logExpense', { title: ev.card.title, amount: moneyText(-ev.amount) }), 'bad');
+      await expenseModal(state, { card: ev.card, amount: ev.amount, paid: true });
+      haptic('error');
+      await syncCash();
+    } else if (ev.type === 'market') {
+      pushLog(t('game.logMarket', { title: ev.card.title }));
+      await marketInfoModal(state, { card: ev.card, noMatch, familyOffer: ev.card.effect === 'offer' && !noMatch });
+      if (ev.card.effect === 'cash') { haptic(ev.card.amount >= 0 ? 'purchase' : 'error'); sound(ev.card.amount >= 0 ? 'coin' : 'error'); }
+      await syncCash();
     }
+  }
+  async function runEventQueue() {
+    while (unseen.length && !destroyed) {
+      const q = unseen[0];
+      await showEvent(q.ev, q.noMatch);
+      if (destroyed) return; // not shown to the end: it stays queued for the saved match
+      unseen.shift();
+    }
+  }
+  async function handleEvents(s) {
+    const noMatch = s.events.some((x) => x.type === 'noMatchingAsset');
+    const shown = (ev) => ev.type === 'baby' || ev.type === 'babyMax' || (ev.type === 'expensePaid' && ev.card)
+      || (ev.type === 'market' && s.pending?.kind !== 'offer');
+    unseen = s.events.filter(shown).map((ev) => ({ ev, noMatch }));
+    await runEventQueue();
     await syncCash();
   }
 
@@ -580,11 +594,11 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     return !!amount;
   }
 
-  async function sellFlow() {
+  async function sellFlow({ autoClose = false } = {}) {
     await sellSheet(
       () => state,
       (id, qty) => { apply((s) => engine.sellAsset(s, id, qty)); return state; },
-      { shouldClose: (s) => s.status !== 'playing' || s.phase !== 'mustPay' || s.assets.length === 0 },
+      { shouldClose: (s) => autoClose && (s.status !== 'playing' || s.phase !== 'mustPay' || s.assets.length === 0) },
     );
   }
 
@@ -609,12 +623,12 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
         r = await expenseModal(state, { card: p.card, amount: p.amount, paid: false, flip });
         if (!r) break; // closed by debug force
         if (r.action === 'loan') await loanFlow(p.amount - state.cash);
-        else if (r.action === 'sell') await sellFlow();
+        else if (r.action === 'sell') await sellFlow({ autoClose: true });
       } else if (p.kind === 'shortfall') {
         r = await shortfallModal(state, { flip });
         if (!r) break; // closed by debug force
         if (r.action === 'loan') await loanFlow(-state.cash);
-        else if (r.action === 'sell') await sellFlow();
+        else if (r.action === 'sell') await sellFlow({ autoClose: true });
       } else if (p.kind === 'charity') {
         r = await charityModal(state, { flip });
         if (!r) break; // closed by debug force
@@ -692,6 +706,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   /** Saves the whole match and returns to the start screen (where the resume button appears). */
   function goHome() {
     if (destroyed) return;
+    if (unseen.length) match.unseen = unseen; // cards queued but not yet seen come back after resume
     store.save(match);
     teardown(); // every open card / dialog / sheet is removed and this controller goes inert before the start screen mounts
     nav.menu();
@@ -720,6 +735,13 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     /** Called once the screen is mounted. Resumes a pending decision if the save had one. */
     async start() {
       warmFox(REACTIONS);
+      if (unseen.length) { // a card that was queued when the player went home: show it now, then drop it from the save
+        setBusy(true);
+        await runEventQueue();
+        if (destroyed) return;
+        delete match.unseen; unseen = [];
+        store.save(match);
+      }
       const plan = resumePlan(match);
       if (plan === 'finish') { setBusy(false); await finishIfOver(); return; }
       if (plan === 'out') { await outFlow(); return; } // the current player is already out: announce it and hand over (or end the match)

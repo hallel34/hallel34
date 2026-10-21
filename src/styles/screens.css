@@ -271,7 +271,9 @@
 .others-strip { inline-size: 100%; min-block-size: 48px; padding: 4px 6px; border-radius: 14px; border: 1px solid var(--glass-border); background: var(--glass-bg-strong); color: var(--text); display: flex; align-items: center; }
 .os-cells { display: flex; gap: 6px; inline-size: 100%; }
 .os-cell { flex: 1 1 0; min-inline-size: 0; display: flex; flex-direction: column; gap: 3px; container-type: inline-size; }
-.os-cell.is-out { opacity: .55; }
+.os-cell.is-out .os-top, .os-cell.is-out .os-cash { opacity: .55; }
+.out-tag { font-size: .6875rem; line-height: 1.2; padding: 1px 6px; border-radius: 8px; background: var(--glass-chip); color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-inline-size: 0; }
+.os-cell .out-tag { align-self: flex-start; max-inline-size: 100%; }
 .os-top { display: flex; align-items: center; gap: 4px; min-inline-size: 0; }
 .os-top .os-bar { flex: 1; }
 .os-top .ptoken { inline-size: 16px; block-size: 16px; font-size: .625rem; border-width: 1.5px; flex: none; }
@@ -286,7 +288,7 @@
 .others-row { display: flex; flex-direction: column; gap: 4px; padding: 6px 10px; border-radius: 14px; background: var(--glass-chip); flex: none; }
 .or-sub { display: flex; align-items: center; gap: 8px; }
 .or-sub .or-bar { flex: 1; min-inline-size: 0; }
-.others-row.is-out { opacity: .6; }
+.others-row.is-out .or-bar, .others-row.is-out .ptoken { opacity: .6; }
 .or-top { display: flex; align-items: center; gap: 8px; min-inline-size: 0; }
 .or-top .ptoken { flex: none; }
 .or-name { flex: 1 1 0; min-inline-size: 6ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .9375rem; }
