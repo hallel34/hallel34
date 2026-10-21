@@ -50,3 +50,31 @@ export function enqueue(queue, ids, seen) {
   for (const id of ids) if (!seen.has(id) && !out.includes(id)) out.push(id);
   return out;
 }
+
+// ---- the explainer queue with priority (one explainer per turn, none is lost) ----
+/** An explainer waiting longer than this many turns goes first, so a busy game cannot starve it. */
+export const EXPLAINER_MAX_WAIT_TURNS = 3;
+/** Unread explainers are re-offered at most this many times; after that they count as seen (the dictionary still has them). */
+export const EXPLAINER_MAX_OFFERS = 3;
+
+/** Adds ids to a queue of { id, turn, n }: `turn` = the turn of the trigger, `n` = arrival order. No duplicates, nothing seen. */
+let arrival = 0;
+export function enqueueAt(items, ids, seen, turn) {
+  const out = [...items];
+  for (const id of ids) if (!seen.has(id) && !out.some((x) => x.id === id)) out.push({ id, turn, n: (arrival += 1) });
+  return out;
+}
+
+/**
+ * The explainer to show now: an aged one first (oldest trigger first), else the ones of the most recent trigger, in the
+ * order the trigger listed them. Returns the item or null. Nothing is dropped: the rest keeps waiting.
+ */
+export function pickExplainer(items, seen, mode, turn) {
+  const live = items.filter((x) => !seen.has(x.id) && conceptAvailable(x.id, mode));
+  if (!live.length) return null;
+  const byOrder = (a, b) => a.turn - b.turn || a.n - b.n;
+  const aged = live.filter((x) => turn - x.turn >= EXPLAINER_MAX_WAIT_TURNS).sort(byOrder);
+  if (aged.length) return aged[0];
+  const latest = Math.max(...live.map((x) => x.turn));
+  return live.filter((x) => x.turn === latest).sort(byOrder)[0];
+}

@@ -1,28 +1,40 @@
 // L4: the 'מה למדתי' report as a view model (texts already filled). The counting is engine/learn.js buildReport.
 import { buildReport, conversationOrder } from '../engine/learn.js';
+import { tp } from '../i18n/index.js';
 import { passiveIncome, totalExpenses } from '../engine/selectors.js';
 import { learnContent, conceptsForMode } from './content.js';
 import { moneyText, numberText } from '../ui/format.js';
 import { yearsPhrase, pctText, fillSlots } from './slots.js';
-import { renderFeedback, feedbackForEnd } from './feedback.js';
+import { renderFeedback, feedbackForEnd, feedbackForWinExtra } from './feedback.js';
+
+/** A text that is either one string or per-mode ({ family, full, all }). */
+const byMode = (v, mode) => (v && typeof v === 'object' ? v[mode] ?? v.all ?? v.family ?? '' : v ?? '');
+/** A {one, two, other} family of texts (Intl plural categories) picked by `n`. */
+const pluralOf = (forms, n) => (n === 1 ? forms.one : n === 2 ? forms.two ?? forms.other : forms.other);
 
 /**
  * @param state    one player's final engine state
- * @param opts     { seen: ids unlocked on this device, seed, theme: index into the conversation order }
+ * @param opts     { seed, theme: index into the conversation order }. The concept count is THIS player's in THIS game
+ *                 (state.learn.concepts), never the device-wide set: a hot-seat opponent's or an earlier game's concepts are not theirs.
  */
-export function reportView(state, { seen = [], seed = 0, theme = 0 } = {}) {
+export function reportView(state, { seed = 0, theme = 0 } = {}) {
   const { report, guess } = learnContent();
   const data = buildReport(state);
   const mode = state.mode;
   const S = report.sections;
   const sections = [];
 
-  // best / worst deal
-  if (data.bestDeal) {
+  // best / worst deal. Truthful about what was bought: a deal, deals that never pay, only stocks, or nothing.
+  const B = S.bestDeal;
+  if (data.bestKind === 'deal') {
     const d = data.bestDeal;
-    sections.push({ id: 'bestDeal', title: S.bestDeal.title, text: fillSlots(S.bestDeal.template, { title: d.title, years: yearsPhrase(d.years), yield: pctText(d.yieldPct) }) });
+    sections.push({
+      id: 'bestDeal', title: data.dealCount === 1 && B.titleOnly ? B.titleOnly : B.title,
+      text: fillSlots(B.template, { title: d.title, years: yearsPhrase(d.years), yield: pctText(d.yieldPct) }),
+    });
   } else {
-    sections.push({ id: 'bestDeal', title: S.bestDeal.title, text: S.bestDeal.empty, empty: true });
+    const text = { negativeOnly: B.negativeOnly, stocksOnly: B.stocksOnly }[data.bestKind] ?? B.empty;
+    sections.push({ id: 'bestDeal', title: B.title, text, empty: true, kind: data.bestKind });
   }
   if (data.worstDeal) {
     const d = data.worstDeal;
@@ -44,7 +56,8 @@ export function reportView(state, { seen = [], seed = 0, theme = 0 } = {}) {
 
   // green decisions
   const G = S.greenDecisions;
-  const gt = { all: G.allGreen, none: G.noneGreen, noData: G.noData }[data.green.kind] ?? fillSlots(G.template, { green: numberText(data.green.green), total: numberText(data.green.total) });
+  const gForms = G.templatePlural ? pluralOf(G.templatePlural, data.green.green) : G.template;
+  const gt = { all: G.allGreen, none: G.noneGreen, noData: G.noData }[data.green.kind] ?? fillSlots(gForms, { green: numberText(data.green.green), total: numberText(data.green.total) });
   sections.push({ id: 'greenDecisions', title: G.title, text: gt });
 
   // guesses ('עין של משקיע')
@@ -52,13 +65,17 @@ export function reportView(state, { seen = [], seed = 0, theme = 0 } = {}) {
 
   // concepts
   const available = conceptsForMode(mode);
-  const have = new Set([...data.concepts, ...seen]);
+  const have = new Set(data.concepts);
   const unlocked = available.filter((c) => have.has(c.id));
   const C = S.concepts;
   sections.push({
     id: 'concepts', title: C.title, dictionary: C.openDictionary,
     text: unlocked.length
-      ? fillSlots(C.template, { n: numberText(unlocked.length), all: numberText(available.length), list: unlocked.map((c) => c.term).join(', ') })
+      ? fillSlots(C.template, {
+        // {count}: "מושג אחד" / "שני מושגים" / "5 מושגים" (never "1 מושגים"); older content keeps {n}
+        count: C.count ? fillSlots(pluralOf(C.count, unlocked.length), { n: numberText(unlocked.length) }) : tp('plural.concepts', unlocked.length),
+        n: numberText(unlocked.length), all: numberText(available.length), list: unlocked.map((c) => c.term).join(', '),
+      })
       : C.none,
     unlocked: unlocked.map((c) => c.id),
   });
@@ -74,7 +91,7 @@ export function reportView(state, { seen = [], seed = 0, theme = 0 } = {}) {
   ];
 
   // tip + conversation
-  const tip = { id: data.tip, title: report.nextStep.title, text: report.nextStep.tips[data.tip] };
+  const tip = { id: data.tip, title: report.nextStep.title, text: byMode(report.nextStep.tips[data.tip], mode) };
   const themes = report.conversation[mode] ?? report.conversation.family;
   const order = conversationOrder(mode, data.tip, Object.keys(themes), seed);
   const themeKey = order[((theme % order.length) + order.length) % order.length];
@@ -86,10 +103,13 @@ export function reportView(state, { seen = [], seed = 0, theme = 0 } = {}) {
   // the end-of-game fox line (win / lose group of feedback.json), rotated by the seed
   const endReq = feedbackForEnd(state);
   const fox = renderFeedback(learnContent().feedback, endReq, { mode, seed, counter: 0 });
+  const extraReq = feedbackForWinExtra(state);
+  const extra = extraReq ? renderFeedback(learnContent().feedback, extraReq, { mode, seed, counter: 0 }) : null;
 
   return {
-    title: report.title, subtitle: state.status === 'won' ? report.subtitle.win : report.subtitle.lose, won: state.status === 'won',
-    fox: fox ? { text: fox.text, pose: fox.pose } : null,
+    title: report.title, won: state.status === 'won', end: endReq.group,
+    subtitle: state.status === 'won' ? report.subtitle.win : state.status === 'lost' ? report.subtitle.lose : (report.subtitle.neutral ?? report.subtitle.lose),
+    fox: fox ? { text: fox.text, pose: fox.pose } : null, foxExtra: extra ? extra.text : null,
     sections, stats, statsTitle: S.stats.title, guessLine, tip, conversation, tipId: data.tip, data,
   };
 }

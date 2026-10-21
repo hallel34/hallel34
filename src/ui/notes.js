@@ -32,12 +32,13 @@ export function createNotes({ zone, onActive, onDismiss }) {
     node.remove();
   }
 
-  function hideCurrent({ next = true } = {}) {
+  /** reason: 'button' (the player answered it), 'timeout' (it was on screen for its whole time), 'cleared' (a new roll / screen change). */
+  function hideCurrent({ next = true, reason = 'button' } = {}) {
     if (!current) return;
-    const { el, timer, item } = current;
+    const { el, timer, item, shownAt } = current;
     clearTimeout(timer);
     current = null;
-    item.onHide?.();
+    item.onHide?.({ reason, ms: performance.now() - shownAt });
     remove(el).then(() => {
       if (destroyed) return;
       if (next && queue.length) setTimeout(pump, 120); else if (!current && !queue.length) onActive?.(false);
@@ -55,8 +56,8 @@ export function createNotes({ zone, onActive, onDismiss }) {
             h('p', { class: 'note-head' }, h('strong', { class: 'note-term' }, c.term), h('span', { class: 'note-kicker' }, item.label)),
             h('p', { class: 'note-text' }, c.short), why),
           h('div', { class: 'note-actions' },
-            button(item.gotIt, { variant: 'primary', size: 'sm', cls: 'note-btn', 'data-action': 'explain-ok', 'aria-label': t('learn.gotItLabel'), onClick: () => { hideCurrent(); onDismiss?.(); } }),
-            button(t('learn.more'), { variant: 'secondary', size: 'sm', cls: 'note-btn', 'data-action': 'explain-more', 'aria-label': t('learn.moreLabel', { term: c.term }), onClick: () => { hideCurrent(); item.onMore?.(c.id); } }))));
+            button(item.gotIt, { variant: 'primary', size: 'sm', cls: 'note-btn', 'data-action': 'explain-ok', 'aria-label': t('learn.gotItLabel'), onClick: () => { hideCurrent({ reason: 'answered' }); onDismiss?.(); } }),
+            button(t('learn.more'), { variant: 'secondary', size: 'sm', cls: 'note-btn', 'data-action': 'explain-more', 'aria-label': t('learn.moreLabel', { term: c.term }), onClick: () => { hideCurrent({ reason: 'answered' }); item.onMore?.(c.id); } }))));
     }
     return h('div', { class: 'note note-feedback', role: 'status', 'data-note': 'feedback', 'data-group': item.group, 'data-tone': item.tone,
       onClick: () => hideCurrent() },
@@ -73,7 +74,7 @@ export function createNotes({ zone, onActive, onDismiss }) {
       ? [{ opacity: 0, transform: 'translateY(14px)' }, { opacity: 1, transform: 'translateY(0)' }]
       : [{ opacity: 0 }, { opacity: 1 }], { duration: motionOK() ? 260 : cssMs('--dur-base', 120), easing: 'cubic-bezier(.16,1,.3,1)' });
     const hold = item.kind === 'explain' ? 20000 : holdFor(item.plain ?? '');
-    current = { el, item, timer: setTimeout(() => hideCurrent(), hold) };
+    current = { el, item, shownAt: performance.now(), timer: setTimeout(() => hideCurrent({ reason: 'timeout' }), hold) };
   }
 
   function pump() {
@@ -92,7 +93,7 @@ export function createNotes({ zone, onActive, onDismiss }) {
       clearTimeout(retry);
       const dropped = queue.filter((i) => i.kind === 'explain'); // never shown: the flow keeps them for a later turn
       queue.length = 0;
-      if (current) hideCurrent({ next: false }); else onActive?.(false);
+      if (current) hideCurrent({ next: false, reason: 'cleared' }); else onActive?.(false);
       return dropped;
     },
     /** Dismiss only the visible note (tap elsewhere), then show the next one. */

@@ -16,7 +16,7 @@ Salary, bills, loans... and how do you make your money work for you? Passivo is 
 
 How you play
 • Pick a profession (teacher, engineer, nurse, driver and more) and start in the daily grind: a salary and monthly expenses, just like real life.
-• Roll the die and move around the board: opportunities, unexpected expenses, market events, a new baby, charity and payday.
+• Roll the die and move around the board: opportunities, unexpected expenses, market events, a new baby, charity and the two-year summary.
 • Buy apartments and small businesses (and stocks in Full mode) to build passive income.
 • You win when your passive income is higher than your monthly expenses. Welcome to financial freedom (in the game)!
 

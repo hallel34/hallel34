@@ -13,6 +13,9 @@ const LIGHT_OF = { good: 'green', ok: 'yellow', bad: 'red', trap: 'red' };
 
 export const isDeal = (card) => card?.type === 'apartment' || card?.type === 'business';
 
+/** Monthly cash flow a purchase of `qty` of an opportunity card adds (a deal's is already net of its mortgage / loan). */
+export const purchaseCashFlow = (card, qty = 1) => (!card ? 0 : isDeal(card) ? card.monthlyCashFlow : qty * (card.dividend ?? 0));
+
 /**
  * Rating of an apartment / business deal: tier 'good' | 'ok' | 'bad' | 'trap' (cash flow <= 0), the traffic light
  * ('green' | 'yellow' | 'red'), payback years (Infinity when it never pays) and the yearly yield on the down payment in %.
@@ -38,11 +41,12 @@ export const lightOfTier = (tier) => LIGHT_OF[tier] ?? null;
  *    would end below zero.
  *  - with no asset (voluntary, `card` = null): costly when the payment is more than that share of the (positive) cash flow
  *    before the loan, the cash flow after it is not positive, or the next summary would end below zero.
- * `spend` is what the loan is about to pay for (the card's down payment), as in loanPaydayImpact.
+ * `spend` is what the loan is about to pay for (the card's down payment), as in loanPaydayImpact. For a purchase the next
+ * summary is judged WITH the asset (its cash flow counts), the same figures the loan dialog shows.
  */
-export function loanRating(s, amount, { card = null, spend = 0 } = {}) {
+export function loanRating(s, amount, { card = null, spend = 0, qty = 1 } = {}) {
   const payment = loanTerms(amount).monthly;
-  const risky = loanPaydayImpact(s, amount, spend).risky;
+  const risky = loanPaydayImpact(s, amount, spend, purchaseCashFlow(card, qty)).risky;
   if (card) {
     const m = dealMetrics(card);
     const costly = m.cf <= 0 || m.tier === 'bad' || m.tier === 'trap' || payment > LOAN_COSTLY_PAYMENT_SHARE * m.cf || risky;
@@ -166,32 +170,61 @@ export const diversifyKey = (s) => {
 };
 
 // ---------- report (L4, spec 6) ----------
+/** Buy records (flagged `derived`) for owned assets that no recorded decision covers (counted per card id). */
+function assetsWithoutDecision(s, decisions) {
+  const covered = new Map();
+  for (const x of decisions) if (x.kind === 'buy') covered.set(x.cardId, (covered.get(x.cardId) ?? 0) + 1);
+  const out = [];
+  for (const a of s.assets ?? []) {
+    if ((covered.get(a.cardId) ?? 0) > 0) { covered.set(a.cardId, covered.get(a.cardId) - 1); continue; }
+    if (a.type === 'stock') {
+      out.push({ kind: 'buy', derived: true, cardId: a.cardId, title: a.title, type: 'stock', tier: null, green: null, symbol: a.symbol, qty: a.qty, cf: a.monthlyCashFlow });
+    } else if (Number.isFinite(a.downPayment) && Number.isFinite(a.monthlyCashFlow)) {
+      const m = dealMetrics(a);
+      out.push({
+        kind: 'buy', derived: true, cardId: a.cardId, title: a.title, type: a.type, tier: m.tier, years: finite(m.years), yieldPct: finite(m.yieldPct),
+        cf: m.cf, down: m.down, green: null,
+      });
+    }
+  }
+  return out;
+}
+
 /**
  * Pure aggregation for the 'מה למדתי' report of one player's final state.
  * Concepts and texts are the UI's job; this only counts.
  */
 export function buildReport(s) {
   const learn = learnOf(s);
-  const decisions = learn.decisions;
-  const deals = decisions.filter((x) => x.kind === 'buy' && (x.type === 'apartment' || x.type === 'business'));
+  const recorded = learn.decisions;
+  // Games migrated from before the learning layer (or bought before it) have assets without a recorded decision: rate those
+  // assets from their own numbers, so the report never says "you bought nothing" about a player who owns things.
+  const decisions = [...recorded, ...assetsWithoutDecision(s, recorded)];
+  const buys = decisions.filter((x) => x.kind === 'buy');
+  const deals = buys.filter((x) => x.type === 'apartment' || x.type === 'business');
+  const stockBuys = buys.length - deals.length;
   const yearsOf = (x) => (x.years == null ? Infinity : x.years);
-  let best = null;
-  let worst = null;
+  // best = the quickest payback among deals that actually pay (cash flow > 0); a deal that never pays is never "the best"
+  let bestIdx = -1;
+  deals.forEach((x, i) => { if (x.tier !== 'trap' && (bestIdx < 0 || yearsOf(x) < yearsOf(deals[bestIdx]))) bestIdx = i; });
+  const bestDeal = bestIdx >= 0 ? deals[bestIdx] : null;
+  // worst = another deal that never pays (the biggest monthly loss first), else the slowest one; only slow (bad) or negative count
+  let worstIdx = -1;
   deals.forEach((x, i) => {
-    if (!best || yearsOf(x) < yearsOf(deals[best.i])) best = { i };
-    if (!worst || yearsOf(x) >= yearsOf(deals[worst.i])) worst = { i };
+    if (i === bestIdx) return;
+    if (worstIdx < 0) { worstIdx = i; return; }
+    const w = deals[worstIdx];
+    const worse = x.tier === 'trap' && w.tier === 'trap' ? x.cf <= w.cf : yearsOf(x) >= yearsOf(w);
+    if (worse) worstIdx = i;
   });
-  const pick = (r) => (r ? deals[r.i] : null);
-  let bestDeal = pick(best);
-  let worstDeal = pick(worst);
-  // a deal that never pays is not "the best"; with a single deal only the best is shown; a worst that is good/ok is "none"
-  if (bestDeal && bestDeal.tier === 'trap') bestDeal = null;
-  if (deals.length < 2 || (worst && best && worst.i === best.i)) worstDeal = null;
+  let worstDeal = worstIdx >= 0 ? deals[worstIdx] : null;
   const worstKind = worstDeal ? (worstDeal.tier === 'trap' ? 'negative' : worstDeal.tier === 'bad' ? 'slow' : null) : null;
-  const worstEmpty = deals.length >= 2 && !worstKind;
+  const worstEmpty = deals.length >= 2 && !worstKind && !!bestDeal;
   if (!worstKind) worstDeal = null;
+  // what the best-deal section says: a deal, "none of them pays", "only stocks", or "nothing bought"
+  const bestKind = bestDeal ? 'deal' : deals.length ? 'negativeOnly' : stockBuys ? 'stocksOnly' : 'empty';
 
-  const rated = decisions.filter((x) => x.green === true || x.green === false);
+  const rated = decisions.filter((x) => !x.derived && (x.green === true || x.green === false));
   const green = rated.filter((x) => x.green).length;
   const total = rated.length;
   const greenKind = total === 0 ? 'noData' : green === total ? 'all' : green === 0 ? 'none' : 'some';
@@ -211,7 +244,7 @@ export function buildReport(s) {
   else if (total > 0 && green / total >= REPORT_ALL_GOOD_SHARE) tip = 'allGood';
 
   return {
-    bestDeal, worstDeal, worstKind, worstEmpty, dealCount: deals.length,
+    bestDeal, bestKind, worstDeal, worstKind, worstEmpty, dealCount: deals.length, stockCount: stockBuys,
     interest: { available: typeof interestPaid === 'number', amount: interestPaid ?? 0, loansTaken, none: loansTaken === 0 },
     green: { green, total, kind: greenKind },
     guesses: guessTotals(learn.guesses),

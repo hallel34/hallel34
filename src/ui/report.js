@@ -8,19 +8,18 @@ import { foxImg } from './fox.js';
 import { button } from './widgets.js';
 import { openDictionary } from './learn.js';
 import { reportView } from '../learn/report.js';
-import { seenConcepts } from '../learn/store.js';
 import { setLearnMode } from '../learn/context.js';
 import { playerToken, playerName, nameBdi } from './players.js';
 import { haptic } from './fx.js';
 
 function sectionNode(sec, extra = null) {
-  return h('section', { class: `rep-sec${sec.empty ? ' is-empty' : ''}`, 'data-section': sec.id, 'data-tier': sec.tier ?? null },
+  return h('section', { class: `rep-sec${sec.empty ? ' is-empty' : ''}`, 'data-section': sec.id, 'data-tier': sec.tier ?? null, 'data-kind': sec.kind ?? null },
     h('h3', { class: 'rep-title' }, sec.title), h('p', { class: 'rep-text' }, sec.text), extra);
 }
 
 /** The report of one player's final state as DOM (also used by tests through its data attributes). */
 export function reportBody(state, { seed, theme, onTheme, onDictionary }) {
-  const v = reportView(state, { seen: [...seenConcepts()], seed, theme });
+  const v = reportView(state, { seed, theme });
   const conv = h('section', { class: 'rep-sec rep-conv', 'data-section': 'conversation', 'data-theme': v.conversation.theme, 'aria-live': 'polite' },
     h('h3', { class: 'rep-title' }, v.conversation.title),
     h('p', { class: 'rep-intro' }, v.conversation.intro),
@@ -30,7 +29,8 @@ export function reportBody(state, { seed, theme, onTheme, onDictionary }) {
   return h('div', { class: 'rep', 'data-won': String(v.won), 'data-tip': v.tipId },
     h('div', { class: 'rep-hero' },
       v.fox ? h('div', { class: 'fox-pop rep-pop', 'aria-hidden': 'true' }, foxImg(v.fox.pose, { size: 52 })) : null,
-      h('div', { class: 'rep-hero-text' }, h('p', { class: 'rep-subtitle' }, v.subtitle), v.fox ? h('p', { class: 'rep-fox' }, v.fox.text) : null)),
+      h('div', { class: 'rep-hero-text' }, h('p', { class: 'rep-subtitle' }, v.subtitle), v.fox ? h('p', { class: 'rep-fox' }, v.fox.text) : null,
+        v.foxExtra ? h('p', { class: 'rep-fox rep-fox-extra' }, v.foxExtra) : null)),
     ...v.sections.map((sec) => {
       if (sec.id === 'concepts') {
         return sectionNode(sec, button(sec.dictionary, { variant: 'secondary', size: 'sm', cls: 'rep-dict', 'data-action': 'report-dictionary', onClick: onDictionary }));

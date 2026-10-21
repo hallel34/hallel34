@@ -5,7 +5,7 @@ import { t } from '../i18n/index.js';
 import { createNotes } from './notes.js';
 import { openDictionary, recordSeen, explainEnabled } from './learn.js';
 import { learnContent, conceptById, glossaryUi } from '../learn/content.js';
-import { conceptsForTrigger, nextExplainer, enqueue } from '../learn/triggers.js';
+import { conceptsForTrigger, enqueueAt, pickExplainer, EXPLAINER_MAX_OFFERS } from '../learn/triggers.js';
 import { renderFeedback } from '../learn/feedback.js';
 import { seenConcepts } from '../learn/store.js';
 import { markShown } from '../engine/learn.js';
@@ -35,15 +35,19 @@ export function feedbackNodes(template, slots) {
 export function createLearnFlow({ zone, mode, seed, getState, setState, onActive, onDismiss }) {
   const notes = createNotes({ zone, onActive, onDismiss });
   const counters = {};
-  let queue = [];
+  let queue = []; // [{ id, turn, n }]: explainers waiting (see triggers.js pickExplainer)
+  const offers = {}; // how many times an unread explainer was offered
   let shownThisTurn = false;
+  // An explainer the player rolled past before reading (on screen under READ_MS) is not "seen": it comes back, at most
+  // EXPLAINER_MAX_OFFERS times, so a fast player still meets every concept at its first relevant moments.
+  const READ_MS = 3000;
 
   const state = () => getState();
 
   /** A moment of the game that may introduce concepts. */
   function trigger(name, ctx = {}) {
     const ids = conceptsForTrigger(name, { mode: state().mode ?? mode, ...ctx });
-    queue = enqueue(queue, ids, seenConcepts());
+    queue = enqueueAt(queue, ids, seenConcepts(), state().turn ?? 0);
   }
 
   /** Fox feedback for requests from src/learn/feedback.js. */
@@ -61,14 +65,21 @@ export function createLearnFlow({ zone, mode, seed, getState, setState, onActive
   /** At the end of a turn: bring up the next queued explainer (at most one per turn, after any feedback). */
   function pumpExplain() {
     if (!explainEnabled() || shownThisTurn) return;
-    const id = nextExplainer(queue, seenConcepts(), mode);
-    if (!id) return;
+    const item = pickExplainer(queue, seenConcepts(), mode, state().turn ?? 0);
+    if (!item) return;
+    const id = item.id;
     shownThisTurn = true;
-    queue = queue.filter((x) => x !== id);
+    queue = queue.filter((x) => x.id !== id);
     const ui = glossaryUi();
     notes.push({
-      kind: 'explain', concept: conceptById(id), label: ui.explainTitle, gotIt: ui.gotIt, whyLabel: ui.whyLabel,
-      onShow: () => recordSeen(id), onMore: (cid) => openDictionary({ termId: cid }),
+      kind: 'explain', queued: item, concept: conceptById(id), label: ui.explainTitle, gotIt: ui.gotIt, whyLabel: ui.whyLabel,
+      onMore: (cid) => openDictionary({ termId: cid }),
+      onHide: ({ reason, ms }) => {
+        const unread = reason === 'cleared' && ms < READ_MS;
+        offers[id] = (offers[id] ?? 0) + (reason === 'cleared' ? 1 : 0);
+        if (unread && offers[id] < EXPLAINER_MAX_OFFERS) queue = [{ ...item }, ...queue.filter((x) => x.id !== id)];
+        else recordSeen(id);
+      },
     });
   }
 
@@ -78,10 +89,10 @@ export function createLearnFlow({ zone, mode, seed, getState, setState, onActive
     newTurn() {
       shownThisTurn = false;
       // an explainer that was queued but never shown (the player rolled on) goes back to the front of the queue
-      const dropped = notes.clear().map((i) => i.concept.id);
-      queue = [...dropped, ...queue.filter((x) => !dropped.includes(x))];
+      const dropped = notes.clear().map((i) => i.queued);
+      queue = [...dropped, ...queue.filter((x) => !dropped.some((d) => d.id === x.id))];
     },
-    get queued() { return [...queue]; },
+    get queued() { return queue.map((x) => x.id); },
     destroy() { notes.destroy(); },
     // for tests / debugging
     get prefs() { return getPrefs(); },

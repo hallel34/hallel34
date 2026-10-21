@@ -12,11 +12,11 @@ import { createTermScope, termButton } from './rich.js';
 import { realWorldForCard, realWorldForPlace } from './realworld.js';
 import { learnContent, conceptById } from '../learn/content.js';
 import { revealModel, resultModel, stockNoteModel } from '../learn/guess.js';
-import { pctText } from '../learn/slots.js';
+import { pctText, yearsPhrase, yearsValue } from '../learn/slots.js';
 import { button, stepper, statTile } from './widgets.js';
 import { haptic, countUp, shake } from './fx.js';
 import {
-  monthlyCashFlow, passiveIncome, maxLoan, saleValue, canSell, loanPaydayImpact,
+  monthlyCashFlow, passiveIncome, maxLoan, loanLimits, saleValue, canSell, loanPaydayImpact,
   paybackTier, PAYDAY_MONTHS, purchasePlan, loanTerms, dealMetrics,
 } from '../engine/index.js';
 import { LOAN_STEP } from '../engine/index.js';
@@ -84,11 +84,14 @@ function cardShell({ type, art, chip, title, text, body = [], actions, flip = fa
 
 const limitBanner = () => h('div', { class: 'banner banner-warn', role: 'status' }, icon('bank', { size: 24 }), h('span', null, t('loan.limitHint')));
 const grid = (...tiles) => h('div', { class: 'stat-grid' }, tiles);
-/** Whole years, rounded UP, so the shown number always agrees with the tier (8.33y is '9', amber; 8.0y is '8', neutral). */
-export const paybackYearsShown = (years) => Math.max(1, Math.ceil(years - 1e-9));
+/**
+ * Payback years as the badge shows them: exactly the figure of the reveal (one decimal at most, never crossing a threshold:
+ * 8.04y reads 8.1 and amber, 4.9y reads 4.9 and never "5"). One rounding rule for the card, the reveal, the feedback and the report.
+ */
+export const paybackYearsShown = yearsValue;
 function paybackBadge(years, tier, scope) {
   const label = Number.isFinite(years)
-    ? tn('card.payback', { years: numberText(paybackYearsShown(years)) }, { scope })
+    ? tn('card.payback', { years: yearsPhrase(years) }, { scope })
     : tn('card.paybackNever', {}, { scope });
   return h('div', { class: `payback payback-${tier}`, 'data-payback-tier': tier }, icon(tier === 'ok' ? 'check' : 'expense', { size: 20 }), h('span', null, label));
 }
@@ -183,7 +186,7 @@ export function opportunityModal(state, { flip = true, guess = null } = {}) {
       stockNote(c),
       realWorldForCard(c),
     ].filter(Boolean);
-    return finishOpportunity({ c, body, flip, qtyGetter: () => st.value, plan: purchasePlan(state, c.price) });
+    return finishOpportunity({ state, c, body, flip, qtyGetter: () => st.value, plan: purchasePlan(state, c.price) });
   }
 
   const m = dealMetrics(c);
@@ -206,12 +209,12 @@ export function opportunityModal(state, { flip = true, guess = null } = {}) {
   const plan = purchasePlan(state, c.downPayment);
 
   // ---- no guess: the numbers straight away (full mode default) ----
-  if (!guess?.enabled) return finishOpportunity({ c, body: cardNumbers(), flip, qtyGetter: () => 1, plan });
+  if (!guess?.enabled) return finishOpportunity({ state, c, body: cardNumbers(), flip, qtyGetter: () => 1, plan });
 
   // ---- the guess flow (family mode): prompt first, numbers after ----
   const { guess: ui } = learnContent();
   const ctl = {};
-  const opts = finishOpportunity({ c, body: [], flip, qtyGetter: () => 1, plan, ctl, deferred: true, guessState: 'ask' });
+  const opts = finishOpportunity({ state, c, body: [], flip, qtyGetter: () => 1, plan, ctl, deferred: true, guessState: 'ask' });
   const reveal = (pick, prior = null) => {
     const eye = prior ? guess.eye?.() : guess.onGuess(pick, m.light);
     const result = resultModel(m.light, pick, { seed: guess.seed });
@@ -249,11 +252,11 @@ function breakdown(c, scope) {
     }, { scope })));
 }
 
-function finishOpportunity({ c, body, flip, qtyGetter, plan, ctl = null, deferred = false, guessState = 'off' }) {
+function finishOpportunity({ state, c, body, flip, qtyGetter, plan, ctl = null, deferred = false, guessState = 'off' }) {
   // plan.status: 'ok' (cash covers it) | 'loan' (one loan covers the gap) | 'blocked' (short even after the maximum loan)
   const hintId = 'buy-hint';
   const warn = plan.status === 'blocked'
-    ? h('div', { class: 'banner banner-warn', role: 'status', id: hintId, 'data-hint': 'blocked' }, icon('bank', { size: 24 }), h('span', null, t('card.noFundsMax')))
+    ? h('div', { class: 'banner banner-warn', role: 'status', id: hintId, 'data-hint': 'blocked' }, icon('bank', { size: 24 }), h('span', null, t('card.noFundsMax'), loanLimits(state).capBinds ? ` ${t('loan.capBlocked', { salaries: numberText(loanLimits(state).capSalaries) })}` : ''))
     : plan.status === 'loan'
       ? h('div', { class: 'banner banner-warn', role: 'status', id: hintId, 'data-hint': 'loan' }, icon('bank', { size: 24 }), h('span', null, t('card.needLoan', { amount: moneyText(plan.need) })))
       : null;
@@ -404,10 +407,20 @@ function dialogShell({ title, text, body, actions, label, fox = '' }) {
   return { layer, promise: layer.closed.then((v) => (v === undefined ? null : v)), bar };
 }
 
+/** Why the loan limit is what it is, when the 12-salary ceiling on borrowing to buy is the binding one (else null). */
+function capNote(state) {
+  const lim = loanLimits(state);
+  if (!lim.capBinds) return null;
+  return h('p', { class: 'limit-cap', 'data-loan': 'cap' }, t('loan.capNote', { salaries: numberText(lim.capSalaries), amount: moneyText(lim.capAmount) }));
+}
+
 /** Loan dialog. Resolves with the amount (multiple of 1000) or null. */
-export function loanDialog(state, { required = 0 } = {}) {
+export function loanDialog(state, { required = 0, gain = null } = {}) {
   const max = maxLoan(state);
-  const cf = monthlyCashFlow(state);
+  // For a purchase the figures describe the state right AFTER buying: the asset's cash flow is part of the new flow and
+  // of the next summary (gain = null: the loan is not for a purchase).
+  const purchase = gain != null;
+  const cf = monthlyCashFlow(state) + (gain ?? 0);
   const start = max === 0 ? 0 : Math.min(max, Math.max(LOAN_STEP, Math.ceil(required / LOAN_STEP) * LOAN_STEP));
   const voluntary = required <= 0;
   const spend = voluntary ? 0 : state.cash + required; // what the loan is about to pay for
@@ -417,7 +430,7 @@ export function loanDialog(state, { required = 0 } = {}) {
   const flowOut = h('bdi', { class: 'money', dir: 'ltr' });
   const barFill = h('div', { class: 'limit-fill' });
   const usedLabel = h('span', { class: 'limit-label' });
-  const flowRow = h('div', { class: 'kv' }, h('span', null, t('loan.newFlow')), flowOut);
+  const flowRow = h('div', { class: 'kv', 'data-loan': 'flow' }, h('span', null, t(purchase ? 'loan.newFlowPurchase' : 'loan.newFlow')), flowOut);
   const interestOut = h('bdi', { class: 'money', dir: 'ltr' });
   const totalOut = h('bdi', { class: 'money', dir: 'ltr' });
   const paydayOut = h('bdi', { class: 'money', dir: 'ltr' });
@@ -444,7 +457,7 @@ export function loanDialog(state, { required = 0 } = {}) {
     const nf = cf - pay;
     flowOut.textContent = moneyText(nf, { sign: true });
     flowRow.classList.toggle('is-negative', nf < 0);
-    const imp = loanPaydayImpact(state, to, spend);
+    const imp = loanPaydayImpact(state, to, spend, gain ?? 0);
     paydayOut.textContent = moneyText(imp.payday, { sign: true });
     paydayRow.classList.toggle('is-negative', imp.payday < 0);
     warn.hidden = !imp.risky;
@@ -468,7 +481,7 @@ export function loanDialog(state, { required = 0 } = {}) {
   if (st) update(start, start); else amountOut.textContent = moneyText(0);
 
   const body = max === 0
-    ? [h('div', { class: 'banner banner-warn', role: 'status' }, icon('bank', { size: 24 }), h('span', null, t('loan.limitReached')))]
+    ? [h('div', { class: 'banner banner-warn', role: 'status' }, icon('bank', { size: 24 }), h('span', null, t('loan.limitReached'))), capNote(state)].filter(Boolean)
     : [
       st.el,
       rateLine,
@@ -478,7 +491,8 @@ export function loanDialog(state, { required = 0 } = {}) {
       flowRow,
       paydayRow,
       warn,
-      h('div', { class: 'limit' }, h('div', { class: 'limit-bar', 'aria-hidden': 'true' }, barFill), h('div', { class: 'limit-row' }, h('span', null, t('loan.limit')), usedLabel)),
+      h('div', { class: 'limit' }, h('div', { class: 'limit-bar', 'aria-hidden': 'true' }, barFill), h('div', { class: 'limit-row' }, h('span', null, t('loan.limit')), usedLabel),
+        capNote(state)),
       realWorldForPlace('loan-window'),
     ].filter(Boolean);
   const d = dialogShell({

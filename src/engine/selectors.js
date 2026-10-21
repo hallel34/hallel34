@@ -55,6 +55,7 @@ export function liabilityReport(s) {
   const debts = s.liabilities.map((l) => ({
     id: l.id, kind: l.kind === 'base' ? 'base' : 'loan', label: l.label, principal: l.principal,
     monthlyPayment: l.monthlyPayment, includedInAssets: false,
+    ...(l.kind === 'loan' ? { rate: loanRate(l) } : {}),
   }));
   // An apartment's loan is a mortgage; a business's is a business loan (kind 'bizloan'). Both are already in the asset's flow.
   const mortgages = s.assets.filter((a) => a.type !== 'stock' && a.mortgage > 0).map((a) => ({
@@ -86,6 +87,15 @@ export function purchasePlan(s, cost) {
   return { cost, need, loanRoom, status, loanAmount: need === 0 ? 0 : Math.ceil(need / LOAN_STEP) * LOAN_STEP };
 }
 
+/**
+ * Monthly interest rate of a bank loan (a fraction): the one stored with the loan, else what its payment says. Loans taken
+ * before the 1%/month rule (10% of the principal) carry no `rate`; they must be labelled with THEIR rate, not today's.
+ */
+export function loanRate(l) {
+  if (Number.isFinite(l.rate) && l.rate > 0) return l.rate;
+  return l.principal > 0 && l.monthlyPayment > 0 ? Math.round((l.monthlyPayment / l.principal) * 1e4) / 1e4 : LOAN_PAYMENT_RATE;
+}
+
 /** Bank-loan principal owed right now (kind 'loan'; starting debts are not counted). */
 export const bankLoanPrincipal = (s) => sum(s.liabilities.filter((l) => l.kind === 'loan'), (l) => l.principal);
 
@@ -107,18 +117,27 @@ export function loanTerms(amount) {
   };
 }
 
-/** Largest new loan (multiple of LOAN_STEP) allowed; 0 when limit reached. */
-export function maxLoan(s) {
+/**
+ * The two limits behind maxLoan: `byFlow` (cash flow may not fall below -20% of salary) and `byCap` (the 12-salary ceiling on
+ * borrowing to buy; Infinity when it does not apply: no cap configured, or the loan covers an expense / shortfall).
+ * `capBinds` is true when the cap is what stops a bigger loan.
+ */
+export function loanLimits(s) {
   const floor = -s.profession.salary * LOAN_LIMIT_SALARY_PCT;
   const room = monthlyCashFlow(s) - floor; // payment budget
-  let steps = Math.floor(room / (LOAN_STEP * LOAN_PAYMENT_RATE) + 1e-9);
+  const byFlow = Math.floor(room / (LOAN_STEP * LOAN_PAYMENT_RATE) + 1e-9) * LOAN_STEP;
   // The cap limits borrowing to invest. A loan to cover an expense or a shortfall is never capped, so the player cannot get stuck.
   const forced = s.pending?.kind === 'expense' || s.pending?.kind === 'shortfall';
-  if (LOAN_CAP_SALARIES != null && !forced) {
-    const capRoom = s.profession.salary * LOAN_CAP_SALARIES - bankLoanPrincipal(s);
-    steps = Math.min(steps, Math.floor(capRoom / LOAN_STEP));
-  }
-  return Math.max(0, steps * LOAN_STEP);
+  const capOn = LOAN_CAP_SALARIES != null && !forced;
+  const capAmount = capOn ? s.profession.salary * LOAN_CAP_SALARIES : null;
+  const byCap = capOn ? Math.floor((capAmount - bankLoanPrincipal(s)) / LOAN_STEP) * LOAN_STEP : Infinity;
+  return { byFlow, byCap, capAmount, capSalaries: capOn ? LOAN_CAP_SALARIES : null, capBinds: capOn && byCap < byFlow };
+}
+
+/** Largest new loan (multiple of LOAN_STEP) allowed; 0 when limit reached. */
+export function maxLoan(s) {
+  const { byFlow, byCap } = loanLimits(s);
+  return Math.max(0, Math.min(byFlow, byCap));
 }
 
 /**

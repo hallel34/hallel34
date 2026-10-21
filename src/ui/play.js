@@ -30,7 +30,7 @@ import { eyeModel } from '../learn/guess.js';
 import { earnBadge } from '../learn/store.js';
 import { guessEnabled } from './prefs.js';
 import {
-  recordGuess, guessForCard, unlockConcept, markShown, hasShown, isDeal,
+  recordGuess, guessForCard, unlockConcept, markShown, hasShown, isDeal, purchaseCashFlow,
 } from '../engine/learn.js';
 import { REACTIONS, LAND_REACTION, tipIndexForTurn } from './fox-rules.js';
 import coinUrl from '../assets/coin.svg?url';
@@ -630,9 +630,10 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     await syncCash();
   }
 
-  async function loanFlow(required = 0) {
+  async function loanFlow(required = 0, { card = null, qty = 1 } = {}) {
     flow.trigger('loan');
-    const amount = await loanDialog(state, { required });
+    // a loan that buys the pending card: the dialog shows the state right after the purchase (the asset's cash flow counts)
+    const amount = await loanDialog(state, { required, gain: card ? purchaseCashFlow(card, qty) : null });
     if (amount) apply((s) => engine.takeLoan(s, amount));
     return !!amount;
   }
@@ -681,7 +682,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
         else if (r.action === 'buyLoan') {
           // Short of cash but one loan covers the gap: ask for exactly that loan, then complete the purchase.
           // Cancelling the loan dialog leaves the card open (the loop below shows it again).
-          if (await loanFlow(r.need)) bought(r.qty);
+          if (await loanFlow(r.need, { card: p.card, qty: r.qty })) bought(r.qty);
         }
       } else if (p.kind === 'expense') {
         flow.trigger('expense');

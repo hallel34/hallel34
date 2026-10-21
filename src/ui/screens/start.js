@@ -19,7 +19,9 @@ const resumeInfo = (m) => (isMultiplayer(m)
   ? (Math.max(...m.players.map((p) => p.state.turn)) < 1
     ? t('menu.resumeInfoFresh', { n: m.players.length })
     : t('menu.resumeInfoMulti', { n: m.players.length, turn: Math.max(...m.players.map((p) => p.state.turn)) }))
-  : t('menu.resumeInfo', { turn: currentState(m).turn, profession: currentState(m).profession.title }));
+  : (currentState(m).turn < 1
+    ? t('menu.resumeInfoNew', { profession: currentState(m).profession.title })
+    : t('menu.resumeInfo', { turn: currentState(m).turn, profession: currentState(m).profession.title })));
 
 export const WAVE_MS = 1800;
 const JOKES = ['fox.joke1', 'fox.joke2', 'fox.joke3'];

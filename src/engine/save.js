@@ -3,6 +3,7 @@
 import { SCHEMA_VERSION } from './config.js';
 import { matchFromState } from './match.js';
 import { emptyLearn } from './learn.js';
+import { loanRate } from './selectors.js';
 
 // Each step lifts a save by exactly one schema version.
 const migrations = {
@@ -34,5 +35,12 @@ export function deserialize(json) {
     s = m(s);
   }
   if (!Array.isArray(s.players) || !s.players.length || s.players.some((p) => !p?.state?.profession)) return null;
+  // Bank loans from before the 1%/month rule have no `rate`: stamp the one their payment implies (10% back then), so a
+  // loan is always labelled with its own rate.
+  for (const p of s.players) {
+    for (const l of Array.isArray(p.state.liabilities) ? p.state.liabilities : []) {
+      if (l?.kind === 'loan' && !Number.isFinite(l.rate)) l.rate = loanRate(l);
+    }
+  }
   return s;
 }

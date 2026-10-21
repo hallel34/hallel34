@@ -76,7 +76,7 @@ export function openStatement({ getState, ops, title = t('statement.title') }) {
           : l.kind === 'bizloan' ? t('statement.bizLoanLabel', { asset: l.assetTitle })
             : (l.label === 'loan' ? t('statement.loanLabel') : l.label);
         const notes = [t('statement.balance', { amount: moneyText(l.principal) })];
-        if (l.kind === 'loan') notes.push(lab('statement.interestOnly', { rate: numberText(Math.round(LOAN_PAYMENT_RATE * 1e4) / 100) }));
+        if (l.kind === 'loan') notes.push(lab('statement.interestOnly', { rate: numberText(Math.round((l.rate ?? LOAN_PAYMENT_RATE) * 1e4) / 100) }));
         if (l.includedInAssets) notes.push(t('statement.inAssetFlow'));
         const sub = notes.flatMap((n, i) => (i ? [' · ', n] : [n]));
         return h('div', { class: 'st-row st-liab', 'data-liab': l.id, 'data-kind': l.kind },

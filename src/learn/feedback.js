@@ -1,7 +1,7 @@
 // L3: instant fox feedback after a decision (spec section 2). Pure: it maps what changed in the state to
 // { group, slots, pose, tone } requests, picks one of the phrasings deterministically (a seeded rotation, never
 // Math.random, never the same line twice in a row) and fills the slots.
-import { learnOf, diversifyKey, hasShown } from '../engine/learn.js';
+import { learnOf, diversifyKey, hasShown, assetKinds } from '../engine/learn.js';
 import { passiveIncome, totalExpenses } from '../engine/selectors.js';
 import { moneyText } from '../ui/format.js';
 import { yearsPhrase, pctText, loanSlots, fillSlots } from './slots.js';
@@ -22,19 +22,20 @@ export const GROUP_SLOTS = {
   'market.sold': ['title', 'amount', 'over'], 'market.kept': ['title', 'monthly'],
   'market.priceUp': ['symbol', 'price'], 'market.priceDown': ['symbol', 'price'],
   'market.cashGood': ['amount'], 'market.cashBad': ['amount'],
-  win: ['passive', 'expenses'], lose: ['passive', 'expenses'],
+  win: ['passive', 'expenses'], lose: ['passive', 'expenses'], 'end.neutral': ['passive', 'expenses'],
+  'win.fastPayback': [], 'win.diversified': [], 'win.noBankLoan': [],
 };
 
 /** Fox reaction crop per group (spec 2: good/cushion/win celebrate, ok and pass think, bad/trap/costly/lose worried, market ponder). */
 export function poseOfGroup(group) {
   if (/^market\./.test(group)) return 'ponder';
-  if (group === 'buy.good' || group === 'expense.cushion' || group === 'win' || group === 'buy.diversify' || group === 'loan.repaid' || group === 'charity.donate') return 'celebrate';
+  if (group === 'buy.good' || group === 'expense.cushion' || group === 'win' || /^win\./.test(group) || group === 'buy.diversify' || group === 'loan.repaid' || group === 'charity.donate') return 'celebrate';
   if (group === 'buy.bad' || group === 'buy.trap' || group === 'loan.costly' || group === 'lose' || group === 'expense.forcedSale') return 'worried';
   return 'think';
 }
 /** Border tone of the note: 'good' (green deals), 'warn' (the deal is the problem, never the player), else 'neutral'. */
 export function toneOfGroup(group) {
-  if (['buy.good', 'expense.cushion', 'win', 'loan.sensible', 'loan.repaid', 'pass.bad', 'pass.trap'].includes(group)) return 'good';
+  if (['buy.good', 'expense.cushion', 'win', 'win.fastPayback', 'win.diversified', 'win.noBankLoan', 'loan.sensible', 'loan.repaid', 'pass.bad', 'pass.trap'].includes(group)) return 'good';
   if (['buy.bad', 'buy.trap', 'loan.costly', 'lose', 'expense.forcedSale', 'pass.goodDeal'].includes(group)) return 'warn';
   return 'neutral';
 }
@@ -143,7 +144,27 @@ export function feedbackForEvent(ev, state, { priorPrice = null } = {}) {
   return [];
 }
 
-/** Feedback line of the end screens (win / lose). */
-export const feedbackForEnd = (state) => req(state.status === 'won' ? 'win' : 'lose', {
-  passive: moneyText(passiveIncome(state)), expenses: moneyText(totalExpenses(state)),
-});
+/**
+ * Feedback line of the end screens. 'win' only for a player who reached financial freedom, 'lose' only for a player who is
+ * actually out of the game; a player who did not win but is still in (the round ended because someone else won) gets the
+ * neutral 'end.neutral' line, which never says the cash ran out.
+ */
+export const feedbackForEnd = (state) => req(
+  state.status === 'won' ? 'win' : state.status === 'lost' ? 'lose' : 'end.neutral',
+  { passive: moneyText(passiveIncome(state)), expenses: moneyText(totalExpenses(state)) },
+);
+
+/**
+ * The optional second line of a win: ONE claim that is true for this game (a fast-payback deal was bought, the assets are of
+ * two or more kinds, no bank loan was taken). The plain 'win' lines make no such claim, so nothing here can be untrue.
+ * Returns null when no claim holds.
+ */
+export function feedbackForWinExtra(state) {
+  if (state.status !== 'won') return null;
+  const decisions = learnOf(state).decisions;
+  const fast = decisions.some((x) => x.kind === 'buy' && x.tier === 'good');
+  const diversified = assetKinds(state).length >= 2;
+  const noLoan = (state.stats?.loansTaken ?? 0) === 0;
+  const group = fast ? 'win.fastPayback' : noLoan ? 'win.noBankLoan' : diversified ? 'win.diversified' : null;
+  return group ? req(group) : null;
+}

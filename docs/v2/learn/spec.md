@@ -67,7 +67,9 @@ Deal rating (shared by buy.*, pass.*, guess; apartments and businesses only, **n
 | Market: sold at offer / kept | `market.sold` / `market.kept` | title, amount, over / monthly |
 | Market: stock price up/down | `market.priceUp` / `market.priceDown` | symbol, price |
 | Market: cash event > 0 / < 0 | `market.cashGood` / `market.cashBad` | amount |
-| Win / Game over | `win` / `lose` | passive, expenses |
+| Win | `win` (+ optional second line, see 2.4) | passive, expenses |
+| Game over: this player is out | `lose` (only then) | none |
+| Multiplayer, round ended, this player did not win and is still in | `end.neutral` | none |
 
 ### 2.1 Loan slot semantics (precise; the developer renders these from `loanTerms(loanAmount)`)
 
@@ -113,6 +115,23 @@ Worked values (share 0.5, interest-only 1%), so QA can test:
 Largest sensible principal for a purchase = `LOAN_COSTLY_PAYMENT_SHARE x F / LOAN_PAYMENT_RATE` (= 50 x F with the current values). The game also caps total borrowing for purchases at `LOAN_CAP_SALARIES` (12) monthly salaries.
 
 Fox reaction crop: good/cushion/win -> `celebrate`, ok/pass.* -> `think`, bad/trap/costly/lose -> `worried`, market -> `ponder` (see `src/ui/fox-rules.js`). Never use red-shaming visuals for the player; the red state is on the deal, not on them.
+
+### 2.3 Wording fixes in round 7 (educator, 2026-10-21)
+
+- `pass.goodDeal` no longer implies the player lacked cash (that case is `pass.cantAfford`). Its lines are true whether or not the player could afford the deal.
+- `market.priceUp` / `market.priceDown` are true for any player, with or without shares: "paper gain/loss" lines say "למי שמחזיק במניה". The developer may still show them only to holders; no condition is required.
+- `lose` lines are accurate only for a player who is out (negative cash flow, no cash, loan limit reached). Never use `lose` for a player who is still in the game: use `end.neutral`.
+- Loan window row "סך הכול להחזיר": show the qualifier from `feedback.notes.loanTotalLabel.qualifier` ("אם תפרעו בסיכום הקרוב") next to the number (see 2.1 rules).
+
+### 2.4 Win lines and optional second line (condition ids for the developer)
+
+The three `win` lines per mode are true for any win. Optionally append ONE second line from the groups below, only when its condition holds (choose the first that holds, in this order; none if none holds):
+
+| Group | Condition id | Condition (state at the win) |
+|---|---|---|
+| `win.fastPayback` | `winFastPayback` | at least one apartment/business was bought with cash flow > 0 and `paybackTier === 'ok'` (the tier named good/green) |
+| `win.noBankLoan` | `winNoBankLoan` | no bank loan was ever taken (`stats.loansTaken === 0` / no interest paid) |
+| `win.diversified` | `winDiversified` | the player owns at least 2 asset kinds (the same rule as `buy.diversify`) |
 
 ## 3. Glossary and first-time concept triggers (L1)
 
@@ -200,6 +219,12 @@ Shown on the win and game-over screens, below the existing stats, as an expandab
 5. `nextStep`: one tip. Priority: `highInterest` (`interestPaid` greater than one monthly salary of the profession, or more than 2 bank loans taken; tunable defaults, not educational claims), `noCushion` (an expense needed a loan while cash was below the expense), `manyRed` (>= 2 buys in tier bad/trap), `noDiversify` (full mode, one asset kind and >= 3 assets), `allGood` (green share >= 80%), else `fallback`.
 6. `conversation`: family mode shows the 3 questions of one theme; full mode shows 3 questions from the full pool. Theme choice is in `conversation.rules`. Add a "next question" button for the other themes.
 
+Round-7 additions to the report (all strings in `report.he.json`):
+- Subtitle by outcome: `subtitle.win`, `subtitle.lose` (this player is out), `subtitle.neutral` (multiplayer, did not win, still in).
+- Best-deal conditions (`sections.bestDeal.conditions`): `titleOnly` when exactly one apartment/business was bought; `negativeOnly` when at least one was bought and all have monthly cash flow <= 0 (no best deal; supportive text); `stocksOnly` when only stocks were bought; `empty` when nothing was bought. The old text "לא קניתם נכסים" was untrue for the first three cases.
+- Plural-safe counts: `concepts.template` uses `{count}` from `concepts.count` (one / two / other); `greenDecisions.templatePlural` by green (1, 2, other). `n` counts concepts unlocked in this game, not device-wide.
+- `nextStep.tips.allGood` is an object `{ family, full }`; the family variant may mention full mode, the full variant must not. Its text says "most decisions were green" and so is true for any game that meets the 80% rule.
+
 Do not render the report during play. No colored shame states; red only appears on the deal rows.
 
 ## 7. Engine and state additions (developer, no rule changes)
@@ -217,6 +242,8 @@ Fact object: `{ id, cardIds[], appliesTo?, concept, game, real, type: "fact"|"ti
 - `real` contains only claims that need no number, so it is safe to show now. Any real-world figure sits in `numbers` with `publish: false` and must not be shown until finance flips it to true after finding a primary source with a date.
 - `status`: `qualitative` (no figure) or `pending_finance` (a figure is waiting). Sources carry a tag: `source`, `secondary`, `estimate`, `not found`.
 - Always show the fixed line `ui.disclaimer` ("הסבר לימודי בלבד, לא ייעוץ השקעות ולא הבטחה לרווח") once on the first fact of a session.
+
+Round-7 rules: `real` never starts with "בעולם האמיתי" (the UI adds the label). Each fact has `dictionary: true|false`; the dictionary sheet of a concept lists only facts with `dictionary: true` (at most 2 per concept: yield 2, cashflow 2, payback 2, others 1). Facts with `dictionary: false` still appear after their card via `cardIds`. Qualitative claims use "לפעמים" / "בדרך כלל" or are general truths, none with a figure.
 
 What is and is not claimed (from `docs/v2/numbers-proposal.md`, finance, 2026-10-21, and an educator search the same day):
 - Rental yield: the game shows about 8.1% gross on the price; real-world "בדרך כלל כמה אחוזים" is shown without a figure. The estimate 2.5% to 4% (periphery up to about 5%; national about 2.7%, finance's own calculation from 4,919 x 12 / about 2.2M) is **estimate only**, not published.
@@ -255,4 +282,5 @@ If cards, professions or config change, rerun the check and update the texts tha
 5. Stocks and the traffic light: decision in section 5.1 (no light). CEO to confirm; finance to confirm that "דיבידנד שנתי ממחיר המניה" is acceptable wording.
 6. `rw-franchise`: royalty range 5% to 8% unverified. `rw-market-offers`: wording about capital-gains tax (מס שבח) needs the Tax Authority citation. `rw-building-fees`: wording about who pays building fees needs legal confirmation. All `real` texts that carry no number still lack citations for B2B and store material.
 7. `lose`/`win` full lines mention real-world risk in general terms only; no figures to verify.
+9. Round 7: every qualitative `real` claim in `real-world.he.json` (rental yield "a few percent", investment-apartment higher down payment, vacant apartment, renovation overruns, building fees, long loans cost more interest in total, franchise royalties by contract, dividend paid periodically, tax on sale profit, rates differ by bank) is general knowledge worded with "בדרך כלל/לפעמים" and has no citation yet. Finance to supply sources and dates before B2B or store use. Also unconfirmed: the marketing line that premium adds 4 professions (data has 8; free is 6).
 8. Starting debts are modeled as fixed payments that never reduce the principal (`BASE_DEBT_RATES`: car 2%, student 1%, card 3%). The liability text says so and says real installment loans reduce the debt with each payment; please confirm that this is how finance wants it described.
