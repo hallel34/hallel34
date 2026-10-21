@@ -2,7 +2,7 @@
 <html lang="he" dir="rtl">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0b0b12">
 <title>חברה – משחק מאפיה</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -42,8 +42,8 @@ input:focus{border-color:var(--red)}
 .btn.primary{background:linear-gradient(135deg,var(--red),var(--red2));box-shadow:0 8px 24px rgba(255,59,92,.3)}
 .btn.big{padding:18px;font-size:19px}
 .btn.ghost{background:transparent;border:1px solid var(--line)}
-.btn.sm{padding:9px;font-size:14px;width:auto;margin:10px auto 0;padding-inline:18px}
-.btn.link{background:none;color:var(--muted);font-weight:500;font-size:15px}
+.btn.sm{min-height:48px;padding:9px;font-size:14px;width:auto;margin:10px auto 0;padding-inline:18px}
+.btn.link{min-height:48px;background:none;color:var(--muted);font-weight:500;font-size:15px}
 .err,.warn{background:rgba(255,59,92,.12);border:1px solid rgba(255,59,92,.4);color:#ff9fb1;border-radius:12px;padding:10px 14px;text-align:center;font-size:14px}
 .divider{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:13px;margin:18px 0 12px}
 .divider:before,.divider:after{content:"";flex:1;height:1px;background:var(--line)}
@@ -56,7 +56,7 @@ input:focus{border-color:var(--red)}
 .pill{background:var(--card);border:1px solid var(--line);border-radius:99px;padding:6px 12px;font-size:13px;color:var(--muted);white-space:nowrap}
 .pill b{color:var(--text);letter-spacing:2px}
 .phase{font-weight:700;font-size:17px}
-.peek{background:var(--card);border:1px solid var(--line);border-radius:99px;padding:6px 10px;color:var(--text);font:inherit;font-size:13px}
+.peek{min-height:48px;min-width:48px;background:var(--card);border:1px solid var(--line);border-radius:99px;padding:6px 10px;color:var(--text);font:inherit;font-size:13px}
 .codebox{text-align:center;padding:18px;border-radius:20px;background:linear-gradient(160deg,#211425,#141420);border:1px solid #3a2236}
 .bigcode{font-size:64px;font-weight:900;letter-spacing:14px;color:#fff;text-shadow:0 0 30px rgba(255,59,92,.6);direction:ltr}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
@@ -67,13 +67,13 @@ input:focus{border-color:var(--red)}
 .row:last-of-type{border-bottom:0}
 .row.col{flex-direction:column;align-items:stretch;gap:10px}
 .stepper{display:flex;align-items:center;gap:14px}
-.stepper button{width:38px;height:38px;border-radius:12px;border:0;background:var(--card2);color:var(--text);font-size:22px}
+.stepper button{width:48px;height:48px;border-radius:12px;border:0;background:var(--card2);color:var(--text);font-size:22px}
 .stepper b{font-size:20px;min-width:18px;text-align:center}
-.tgl{width:52px;height:30px;border-radius:99px;border:0;background:var(--card2);position:relative;transition:.2s}
-.tgl i{position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;background:#666;transition:.2s}
-.tgl.on{background:var(--red)}.tgl.on i{right:26px;background:#fff}
+.tgl{width:64px;height:48px;border-radius:99px;border:0;background:var(--card2);position:relative;transition:.2s}
+.tgl i{position:absolute;top:10px;right:6px;width:28px;height:28px;border-radius:50%;background:#666;transition:.2s}
+.tgl.on{background:var(--red)}.tgl.on i{right:30px;background:#fff}
 .seg{display:flex;gap:6px}
-.seg button{flex:1;border:0;border-radius:10px;padding:10px 0;background:var(--card2);color:var(--muted);font:inherit;font-size:14px}
+.seg button{flex:1;min-height:48px;border:0;border-radius:10px;padding:10px 0;background:var(--card2);color:var(--muted);font:inherit;font-size:14px}
 .seg button.on{background:var(--red);color:#fff;font-weight:700}
 .dots{display:flex;gap:6px;justify-content:center;margin-top:12px}
 .dots i{width:8px;height:8px;border-radius:50%;background:var(--red);animation:blink 1.2s infinite}
@@ -144,6 +144,7 @@ input:focus{border-color:var(--red)}
 #toast{position:fixed;bottom:24px;left:50%;transform:translate(-50%,40px);opacity:0;background:#2a2a40;color:#fff;
   padding:12px 20px;border-radius:12px;transition:.3s;z-index:30;font-size:15px;pointer-events:none}
 #toast.show{opacity:1;transform:translate(-50%,0)}
+@media (prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 </style>
 </head>
 <body>
@@ -179,8 +180,9 @@ const fmt = ms => { const s=Math.ceil(ms/1000); return `${Math.floor(s/60)}:${St
 function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 
 const ls = { get:k=>{try{return localStorage.getItem(k)}catch{return null}}, set:(k,v)=>{try{localStorage.setItem(k,v)}catch{}}, del:k=>{try{localStorage.removeItem(k)}catch{}} };
+const PID_RE = /^[A-Za-z0-9_-]{1,40}$/;
 let myId = ls.get('mafia_pid');
-if(!myId){ myId = 'p' + Math.random().toString(36).slice(2,10) + Date.now().toString(36).slice(-4); ls.set('mafia_pid', myId); }
+if(!myId || !PID_RE.test(myId)){ myId = 'p' + Math.random().toString(36).slice(2,10) + Date.now().toString(36).slice(-4); ls.set('mafia_pid', myId); }
 let myName = ls.get('mafia_name') || '';
 
 let db, roomCode=null, room=null, unsub=null, busy=false, lastStatus=null;
@@ -211,6 +213,15 @@ function mafiaTarget(d){
   const t=[...picks][0];
   return d.players[t]?.alive ? t : null;
 }
+/* בחירה כפויה (תקרת זמן / אי-הסכמה): הנבחר ביותר, תיקו -> הגרלה, אין בחירות -> אזרח חי אקראי */
+function forcedTarget(d){
+  const v = d.night?.mafia || {}, cnt = {};
+  alive(d).filter(p=>p.role==='mafia').forEach(m=>{ const t=v[m.id]; if(t && d.players[t]?.alive && d.players[t].role!=='mafia') cnt[t]=(cnt[t]||0)+1; });
+  const best = Math.max(0, ...Object.values(cnt));
+  let pool = Object.keys(cnt).filter(k=>cnt[k]===best);
+  if(!pool.length) pool = alive(d).filter(p=>p.role!=='mafia').map(p=>p.id);
+  return pool.length ? pool[Math.floor(Math.random()*pool.length)] : null;
+}
 function nightDone(d){
   const al = alive(d), n = d.night||{};
   if(!mafiaTarget(d)) return false;
@@ -231,10 +242,13 @@ async function tx(expect, fn){
 }
 const nightUpd = round => ({status:'night', round, night:{mafia:{},doctor:null,detective:null}});
 
-function resolveNightUpd(d){
-  if(!nightDone(d)) return null;
-  const target = mafiaTarget(d);
-  const saved = d.night.doctor === target;
+function resolveNightUpd(d, force){
+  const w0 = winnerOf(d.players);
+  if(w0) return {status:'over', winner:w0, lastEvent:'אין עוד מאפיונרים בחדר'};
+  if(!force && !nightDone(d)) return null;
+  const target = force ? forcedTarget(d) : mafiaTarget(d);
+  if(!target) return null;
+  const saved = alive(d).some(p=>p.role==='doctor') && d.night?.doctor === target;
   const players = JSON.parse(JSON.stringify(d.players));
   if(!saved) players[target].alive = false;
   const o = { players, dayResult:{killed: saved?null:target, saved, round:d.round},
@@ -259,14 +273,37 @@ function resolveVoteUpd(d){
   return o;
 }
 
+const NIGHT_MAX=120000, DISAGREE_WAIT=20000, DET_HOLD=6000;
+let nightMeta=null, failN=0, backoffUntil=0;
+const LIVE = ['night','day','vote','voteResult'];
+/* מחזיר true/false אם הלילה צריך להיסגר עכשיו (false=רגיל, true=כפוי), או null אם לא */
+function nightMode(r){
+  const now=Date.now();
+  if(!nightMeta || nightMeta.round!==r.round) nightMeta={round:r.round, since:now, allAt:0, detAt:0};
+  const nm=nightMeta, al=alive(r), n=r.night||{}, v=n.mafia||{};
+  const hasDet = al.some(p=>p.role==='detective') && !!r.checks?.[r.round];
+  if(hasDet && !nm.detAt) nm.detAt=now;
+  const holdOk = !hasDet || now-nm.detAt >= DET_HOLD;
+  const mafia = al.filter(p=>p.role==='mafia');
+  const picked = mafia.length>0 && mafia.every(m=>v[m.id]);
+  if(picked && !nm.allAt) nm.allAt=now; if(!picked) nm.allAt=0;
+  if(nightDone(r)) return holdOk ? false : null;
+  const othersDone = (!al.some(p=>p.role==='doctor') || n.doctor) && (!al.some(p=>p.role==='detective') || n.detective);
+  if(now-nm.since >= NIGHT_MAX) return true;
+  if(picked && othersDone && holdOk && now-nm.allAt >= DISAGREE_WAIT) return true;
+  return null;
+}
 async function hostTick(){
-  if(!room || !isHost() || busy) return;
+  if(!room || !isHost() || busy || Date.now()<backoffUntil) return;
   const r = room; let action = null;
-  if(r.status==='reveal' && alive(r).every(p=>p.ready)) action = ()=>tx('reveal', ()=>nightUpd(1));
-  else if(r.status==='night' && nightDone(r)) action = ()=>tx('night', resolveNightUpd);
+  if(r.status!=='night') nightMeta=null;
+  if(LIVE.includes(r.status) && winnerOf(r.players)) action = ()=>tx(r.status, d=>{
+    const w=winnerOf(d.players); return w ? {status:'over', winner:w, lastEvent:'שחקנים עזבו את החדר'} : null; });
+  else if(r.status==='reveal' && alive(r).every(p=>p.ready)) action = ()=>tx('reveal', ()=>nightUpd(1));
+  else if(r.status==='night'){ const f=nightMode(r); if(f!==null) action = ()=>tx('night', d=>resolveNightUpd(d, f)); }
   else if(r.status==='day' && Date.now() >= r.dayEndsAt) action = ()=>tx('day', ()=>({status:'vote', votes:{}}));
   else if(r.status==='vote' && allVoted(r)) action = ()=>tx('vote', resolveVoteUpd);
-  if(action){ busy=true; try{ await action(); }catch(e){ console.error(e); } busy=false; }
+  if(action){ busy=true; try{ await action(); failN=0; }catch(e){ console.error(e); backoffUntil=Date.now()+Math.min(10000, 1000*2**failN); failN++; } busy=false; }
 }
 
 /* ---------- room lifecycle ---------- */
@@ -349,6 +386,7 @@ async function leaveRoom(){
       const ids = Object.keys(players);
       if(!ids.length){ t.delete(ref); return; }
       const o = {players};
+      if(LIVE.includes(d.status)){ const w=winnerOf(players); if(w){ o.status='over'; o.winner=w; o.lastEvent='שחקנים עזבו את החדר'; } }
       if(d.hostId===myId) o.hostId = ids.sort((a,b)=>players[a].joinedAt-players[b].joinedAt)[0];
       t.update(ref, o);
     });
@@ -433,14 +471,14 @@ function renderHome(err){
 function topbar(label){
   const canPeek = me()?.role && room.status!=='lobby' && room.status!=='over';
   return `<div class="top">
-    <div class="pill">חדר <b>${room.code}</b></div>
+    <div class="pill">חדר <b>${esc(room.code)}</b></div>
     <div class="phase">${label}</div>
     ${canPeek?`<button class="peek" data-act="peek">👁 התפקיד שלי</button>`:(room.round?`<div class="pill">סבב ${room.round}</div>`:'<div></div>')}
   </div>`;
 }
 const toggle = (k,on) => `<button class="tgl ${on?'on':''}" data-act="toggle" data-arg="${k}" aria-label="${k}"><i></i></button>`;
 const header = (ico,title,sub) => `<div class="night-h"><div class="ricon sm">${ico}</div><h2>${title}</h2>${sub?`<p class="muted" style="margin:0">${sub}</p>`:''}</div>`;
-const pgrid = (ps,sel,act,cls,extra={}) => `<div class="grid">${ps.map(t=>`<button class="pbtn ${sel===t.id?'sel '+cls:''}" data-act="${act}" data-arg="${t.id}">
+const pgrid = (ps,sel,act,cls,extra={}) => `<div class="grid">${ps.map(t=>`<button class="pbtn ${sel===t.id?'sel '+cls:''}" data-act="${act}" data-arg="${esc(t.id)}">
   <span>${esc(t.name)}${t.id===myId?' (אני)':''}</span>${extra[t.id]?`<small>${extra[t.id]}</small>`:''}</button>`).join('')}</div>`;
 const deadView = (msg='את/ה מחוץ למשחק. צפו בשקט – בלי לרמוז 🤐') => `<div class="deadbox"><div style="font-size:48px">💀</div><b>יצאת מהמשחק</b>${msg}</div>`;
 function roleFace(p){
@@ -460,7 +498,7 @@ function vLobby(){
   const ps=list(room), s=room.settings, n=ps.length, err=startError();
   const citizens=Math.max(0, n - s.mafia - (s.doctor?1:0) - (s.detective?1:0));
   return topbar('לובי') + `
-  <div class="codebox"><div class="muted small">קוד החדר</div><div class="bigcode">${room.code}</div>
+  <div class="codebox"><div class="muted small">קוד החדר</div><div class="bigcode">${esc(room.code)}</div>
     <button class="btn ghost sm" data-act="share">📤 שיתוף קישור הזמנה</button></div>
   <div class="card"><div class="card-h">שחקנים בחדר (${n})</div><div class="chips">
     ${ps.map(p=>`<div class="chip ${p.id===myId?'me':''}">${p.id===room.hostId?'👑 ':''}${esc(p.name)}</div>`).join('')}</div></div>
@@ -504,7 +542,7 @@ function vNight(){
     const who={}; targets.forEach(t=>{ const w=mafia.filter(m=>v[m.id]===t.id).map(m=>esc(m.name)); if(w.length) who[t.id]='🔪 '+w.join(', '); });
     body = header('🔪','בחרו קורבן', mafia.length>1?'כל המאפיונרים צריכים לבחור באותו שחקן':'בחר/י את הקורבן של הלילה')
       + pgrid(targets, v[myId], 'mafiaPick', 'mafia', who)
-      + `<div class="status ${agreed?'ok':''}">${agreed?'✓ הקורבן נבחר. ממתינים לסוף הלילה…':(picks.size>1?'⚠️ אין הסכמה – בחרו באותו שחקן':'ממתין לבחירה…')}</div>`;
+      + `<div class="status ${agreed?'ok':''}">${agreed?'✓ הקורבן נבחר. ממתינים לסוף הלילה…':(picks.size>1?'⚠️ אין הסכמה – בחרו באותו שחקן, אחרת תוגרל בחירה':'ממתין לבחירה…')}</div>`;
   }
   else if(p.role==='doctor'){
     body = header('💉','את מי להציל הלילה?','אפשר לבחור גם בעצמך')
@@ -532,6 +570,7 @@ function vDay(){
     : `<div class="ann save"><div class="big-ico">🛡️</div><div class="ann-name" style="font-size:22px">הרופא הציל!</div><div class="muted">המאפיה תקפה – אבל אף אחד לא מת</div></div>`;
   return topbar('יום ☀️') + ann + `
     <div class="timer-box"><div class="muted small">זמן דיון</div><div id="timer" class="timer ${left<15000?'low':''}">${fmt(left)}</div></div>
+    ${p.alive&&p.role==='detective'&&room.checks?.[room.round]?`<div class="result ${room.checks[room.round].mafia?'bad':'good'}"><div class="muted small">תוצאת הבדיקה של הלילה</div><b>${esc(nameOf(room.checks[room.round].target))}</b>${room.checks[room.round].mafia?'🔪 מאפיונר':'✅ לא מאפיונר'}</div>`:''}
     ${p.alive?'<p class="center muted" style="margin:0">דברו, האשימו, חקרו – מי מכם המאפיה?</p>':deadView()}
     ${playersCard()}
     ${isHost()?`<button class="btn primary" data-act="toVote">🗳️ מעבר להצבעה עכשיו</button>`:''}`;
@@ -618,7 +657,7 @@ if(firebaseConfig.apiKey.startsWith('PASTE')){
   db = firebase.firestore();
   const saved = ls.get('mafia_room');
   const urlCode = new URLSearchParams(location.search).get('code');
-  if(saved && (!urlCode || urlCode===saved)) enterRoom(saved); else renderHome();
+  if(saved && /^\d{4}$/.test(saved) && (!urlCode || urlCode===saved)) enterRoom(saved); else renderHome();
 }
 </script>
 </body>
