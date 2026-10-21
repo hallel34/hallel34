@@ -25,6 +25,7 @@ import { reportView } from '../src/learn/report.js';
 import { realWorldView, factForCard, factsForConcept } from '../src/learn/rw.js';
 import { validateLearn } from '../src/learn/validate.js';
 import { moneyText } from '../src/ui/format.js';
+import { setLearnMode } from '../src/learn/context.js';
 
 const data = loadData('he');
 const engine = createEngine(data);
@@ -552,6 +553,8 @@ describe('glossary markup [[term:id|display]]', () => {
     expect(stripMarkup('[[term:yield]]', (id) => `<${id}>`)).toBe('<yield>');
   });
   it('t() hands out plain text, tRaw() keeps the markup, plurals are stripped too', () => {
+    setLearnMode('full'); // the full-mode wording; the family layer is covered in tutorial.test.js
+    learnContent();
     expect(t('card.downPayment')).toBe('מקדמה');
     expect(tRaw('card.downPayment')).toBe('[[term:down_payment|מקדמה]]');
     expect(t('card.rentLine', { gross: 1, payment: 2, flow: 3 })).toBe('שכירות 1 − משכנתא 2 = תזרים 3');

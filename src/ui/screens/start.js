@@ -62,7 +62,7 @@ export function createStart({ save, mode: initialMode, gamesPlayed = 0, daily = 
       : h('span'),
     h('div', { class: 'topbar-actions' },
       iconButton('book', t('settings.dictionary'), () => { setLearnMode(mode); openDictionary(); }, 'icon-btn-glass'),
-      iconButton('help', t('menu.howTo'), () => openHowTo(), 'icon-btn-glass'),
+      iconButton('help', t('menu.howTo'), () => openHowTo({ mode }), 'icon-btn-glass'),
       iconButton('gear', t('menu.settings'), () => openSettings({ version: __APP_VERSION__, mode }), 'icon-btn-glass')));
 
   // h1 keeps the accessible name 'פסיבו'; the wordmark art itself is decorative.

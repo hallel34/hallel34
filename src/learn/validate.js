@@ -1,6 +1,7 @@
 // Schema validation for the learning content (src/data/learn/*.<locale>.json). Fails loudly at load, like the cards do.
 // Adding a concept, a feedback phrasing or a real-world fact is a JSON edit only.
 import { termIds } from '../i18n/markup.js';
+import { validateTutorial } from './validate-tutorial.js';
 
 /** Feedback groups the UI can trigger (spec section 2). Unknown groups in the JSON are an error. */
 export const FEEDBACK_GROUPS = [
@@ -18,7 +19,7 @@ export const GLOSSARY_SLOTS = ['months', 'monthlyRate', 'rate', 'amount', 'month
 const isStr = (x) => typeof x === 'string' && x.trim().length > 0;
 const slotsIn = (s) => [...String(s).matchAll(/\{(\w+)\}/g)].map((m) => m[1]);
 
-export function validateLearn({ glossary, feedback, report, guess, realWorld }, { cards = [] } = {}) {
+export function validateLearn({ glossary, feedback, report, guess, realWorld, tutorial }, { cards = [] } = {}) {
   const errors = [];
   const err = (m) => errors.push(m);
 
@@ -111,6 +112,9 @@ export function validateLearn({ glossary, feedback, report, guess, realWorld }, 
     if (f.numbers && typeof f.numbers.publish !== 'boolean') err(`${w}: numbers.publish must be true/false`);
   }
   for (const k of ['title', 'gameLabel', 'realLabel', 'disclaimer']) if (!isStr(realWorld?.ui?.[k])) err(`real-world.ui.${k}`);
+
+  // ---- the first-game package (story, hints, summary card, family vocabulary) ----
+  errors.push(...validateTutorial(tutorial, { glossaryIds: ids, cards, glossaryLevels: Object.fromEntries((list ?? []).map((c) => [c.id, c.level])) }));
 
   // ---- markup in every learn text resolves ----
   const texts = JSON.stringify({ glossary, feedback, report, guess, realWorld });

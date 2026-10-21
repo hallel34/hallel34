@@ -7,7 +7,7 @@ import {
   totalExpenses, resumePlan, lastPlayerStanding, nextActiveIndex,
 } from '../engine/index.js';
 import { icon } from './icons.js';
-import { money, moneyText, tn, signedMoney, paydayCalc } from './format.js';
+import { money, moneyText, tn, signedMoney, paydayCalc, numberText } from './format.js';
 import { button, iconButton, meter, cashDisplay, miniMeter, fitText } from './widgets.js';
 import { createDice } from './die.js';
 import { motionOK } from './prefs.js';
@@ -23,6 +23,7 @@ import { closeAllLayers, destroyAllLayers, closeTopLayer } from './modal.js';
 import { debugEnabled, mountDebugTools } from './debug.js';
 import { foxImg, createReactor, warmFox, dirSign } from './fox.js';
 import { createLearnFlow } from './learn-flow.js';
+import { loanTerms } from '../engine/index.js';
 import { setLearnHooks, clearLearnHooks } from './learn.js';
 import { setLearnMode } from '../learn/context.js';
 import { feedbackForChange, feedbackForEvent } from '../learn/feedback.js';
@@ -33,6 +34,17 @@ import {
   recordGuess, guessForCard, unlockConcept, markShown, hasShown, isDeal, purchaseCashFlow,
 } from '../engine/learn.js';
 import { REACTIONS, LAND_REACTION, tipIndexForTurn } from './fox-rules.js';
+import { summaryCard } from './summary-card.js';
+import { createFamilyHud } from './hud-family.js';
+import {
+  tut, hintDef, fillNodes, showRing, hintStrip, hintMoreAllowed,
+} from './hint-ui.js';
+import { loadTutorial, markHintSeen, unmarkHintSeen, gamesFinished } from '../learn/tutorial-store.js';
+import {
+  goalLineVisible, hintsActive, tipReplaced, explainerAllowed, summaryFigures, summaryHintId, createHintScheduler, assetKindOf,
+  cardTourFigures, freedomView, leftToFreedom,
+} from '../learn/tutorial.js';
+import { yearsPhrase, fillSlots } from '../learn/slots.js';
 import coinUrl from '../assets/coin.svg?url';
 import pawnUrl from '../assets/pawn.svg?url';
 import dieUrl from '../assets/die-3.svg?url';
@@ -60,7 +72,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   const multi = isMultiplayer(match);
   let busy = false;
   let destroyed = false;
-  let btnMode = 'roll'; // roll | rolling | working | continue
+  let btnMode = 'roll'; // roll | rolling | working
   // A destroyed controller (after "home", or when another screen replaced it) must never touch the save again:
   // late taps, timers and promise continuations all end up here.
   const store = {
@@ -85,6 +97,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   const repayDialog = gated(raw.repayDialog);
   const sellSheet = gated(raw.sellSheet);
   const handoffSheet = gated(raw.handoffSheet);
+  const summaryCardGated = gated(summaryCard);
   const playerOutModal = gated(raw.playerOutModal);
   const { homeConfirmSheet, giveUpConfirmSheet } = raw;
   const isDaily = !!match.daily;
@@ -100,13 +113,19 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   const babies = h('span', { class: 'hud-babies', role: 'img', 'aria-label': t('game.kids', { n: 0 }) });
   const charityChip = h('span', { class: 'chip chip-charity', 'data-active': 'false' });
   const cash = cashDisplay(state.cash);
-  const flowChip = h('span', { class: 'flow-chip' });
+  const isFamily = state.mode === 'family';
+  // Family: the chip reads 'נשאר בחודש +₪X' and opens a small popover (money in, money out, what is left). Full mode keeps the plain chip.
+  const flowChip = isFamily
+    ? h('button', { type: 'button', class: 'flow-chip flow-chip-btn', 'aria-expanded': 'false', 'aria-haspopup': 'true', 'data-action': 'flow' })
+    : h('span', { class: 'flow-chip' });
+  const goalLine = h('p', { class: 'goal-line', hidden: true, 'data-goal': '' });
+  const freeLine = h('p', { class: 'free-line', hidden: true, 'data-free': '' });
   const cashWrap = h('span', { class: 'cash-wrap', 'aria-label': t('game.cash') }, cash.el);
   fitText(cash.el, { minScale: 0.5, box: cashWrap }); // very narrow screens (320px): a long amount shrinks to fit instead of overflowing
   const passiveVal = h('b', { class: 'tone-income' });
   const expenseVal = h('b', { class: 'tone-expense' });
   const m = meter();
-  const settingsBtn = iconButton('gear', t('game.settings'), () => openSettings({ onQuit: () => goHome(), version: __APP_VERSION__, mode: state.mode }), 'icon-btn-glass');
+  const settingsBtn = iconButton('gear', t('game.settings'), () => openSettings({ onQuit: () => goHome(), version: __APP_VERSION__, mode: state.mode, professionId: state.profession.id }), 'icon-btn-glass');
   const stmtBtn = iconButton('statement', t('game.statement'), () => openStmt(), 'icon-btn-glass');
   stmtBtn.dataset.action = 'statement';
   const homeBtn = iconButton('home', t('game.home'), () => askHome(), 'icon-btn-glass');
@@ -121,10 +140,15 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
       h('img', { class: 'hud-coin', src: coinUrl, alt: '', width: 30, height: 30 }),
       cashWrap,
       flowChip),
+    goalLine,
     h('div', { class: 'meter-labels' },
       h('span', null, t('game.passive'), ' ', passiveVal),
       h('span', null, t('game.expenses'), ' ', expenseVal)),
-    m.el);
+    m.el, freeLine);
+  const famHud = isFamily ? createFamilyHud({ hud, chip: flowChip, goalLine, freeLine }) : null;
+  const tutorialDevice = () => ({ mode: state.mode, helpOn: loadTutorial().helpOn, gamesFinished: gamesFinished(), daily: !!match.daily });
+  // the hints belong to the first game since they were (re-)armed: 'הפעילו שוב את הרמזים' in the settings re-arms them
+  const hintsDevice = () => { const d = tutorialDevice(); return { ...d, gamesFinished: d.gamesFinished - loadTutorial().hintsFrom }; };
 
   // ---------- Board (variation A: night city) ----------
   const tiles = BOARD.map((sq, i) => {
@@ -154,7 +178,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
 
   const rollLabel = h('span', null, t('game.roll'));
   const dieIcon = h('img', { src: dieUrl, alt: '', width: 30, height: 30, class: 'btn-die' });
-  const rollBtn = button([dieIcon, rollLabel], { variant: 'primary', cls: 'btn-roll', 'data-action': 'roll', onClick: () => (btnMode === 'continue' ? continueTurn() : turn()) });
+  const rollBtn = button([dieIcon, rollLabel], { variant: 'primary', cls: 'btn-roll', 'data-action': 'roll', onClick: () => turn() });
   const actions = h('div', { class: 'board-actions' }, rollBtn);
 
   // Roll zone (above the roll button): fox roll pose + latest-event chip; family tips replace them.
@@ -187,10 +211,110 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   /** Brief fox reaction in the strip under the board (never over the HUD, tiles, die or numbers; not while a fox note is up). */
   const react = (pose) => { if (!flow.notes.active) reactor.show(pose); };
 
-  function pushLog(text, tone = '') {
+  // ---------- guided hints (first family game; spec section 5) ----------
+  const hintsOn = () => hintsActive(hintsDevice());
+  const hints = createHintScheduler({
+    seen: loadTutorial().hintsSeen,
+    active: hintsOn,
+    mark: (id, turn) => markHintSeen(id, turn),
+    unmark: (id) => unmarkHintSeen(id),
+    priorityOf: (id) => hintDef(id)?.priority ?? 9,
+  });
+  const tourCards = new Set(); // cards shown with the tour: they never get the guess window on a re-open
+  let floating = null; // { id, shown } the floating hint of this turn
+
+  /** The text of a floating hint with its figures (all from the live state). */
+  function floatingView(id, ctx = {}) {
+    const def = hintDef(id);
+    const st = statement(state);
+    const slots = { amount: money(ctx.amount ?? 0), cashLeft: money(ctx.cashLeft ?? state.cash), passive: money(st.passiveIncome), expenses: money(st.totalExpenses), left: money(leftToFreedom(state)) };
+    return { id, pose: def.pose, body: fillNodes(def.text, slots), more: def.more ? fillNodes(def.more, slots) : null, plain: def.text };
+  }
+  const ringTarget = (id) => (id === 'h-roll' ? rollBtn : id.startsWith('h-expense') ? el.querySelector('.hud-cash') : el.querySelector('.hud .meter-track'));
+
+  /** Single player: the fox points from the roll zone (after the feedback line), ring on the target. Hot-seat: see sheetExtra(). */
+  function showFloatingHint() {
+    if (destroyed || multi) return false;
+    const next = hints.takeFloating(state.turn);
+    if (!next) return false;
+    const v = floatingView(next.id, next.ctx);
+    let ring = null;
+    floating = { id: next.id, shown: false };
+    flow.notes.push({
+      kind: 'hint', id: next.id, label: tut().ui.hintFoxLabel, pose: v.pose, body: v.body, more: v.more, plain: v.plain,
+      onShow: () => { floating.shown = true; ring = showRing(ringTarget(next.id)); },
+      onHide: () => { ring?.remove(); ring = null; },
+    });
+    return true;
+  }
+  /** A floating hint that never reached the screen (the player rolled on first) is given back for a later turn. */
+  function releaseUnshownHint() {
+    if (floating && !floating.shown) hints.release(floating.id);
+    floating = null;
+  }
+
+  /** The summary hint of this summary (or null): the income variant once an asset pays, else the plain one. */
+  function summaryHintFor(f) {
+    const pick = summaryHintId(f, hints);
+    if (!pick || !hints.claim(pick.id, state.turn)) return null;
+    const def = hintDef(pick.id);
+    if (pick.variant === 'income') {
+      const kind = assetKindOf(state);
+      const slots = { passive: money(f.passive), months: numberText(f.months), passiveTotal: money(f.passive * f.months) };
+      return { body: fillNodes(def.textAsset[kind], slots), more: fillNodes(def.moreAsset[kind], slots), target: 'passive' };
+    }
+    const v = def.variants[pick.variant];
+    const slots = { monthly: money(f.monthly), months: numberText(f.months), amount: money(pick.variant === 'negative' ? Math.abs(f.amount) : f.amount) };
+    return { body: fillNodes(v.text, slots), more: v.more ? fillNodes(v.more, slots) : null, target: 'cash' };
+  }
+
+  /** The 3-step tour of the first apartment / business card (down payment, what it brings, payback), then the closing line. */
+  function cardTourFor(card) {
+    const def = hintDef('h-card');
+    const f = cardTourFigures(card);
+    const slots = { downPayment: money(f.downPayment), monthly: money(f.monthly), loss: money(f.loss), years: Number.isFinite(f.years) ? yearsPhrase(f.years) : '' };
+    const steps = def.steps.map((st) => {
+      const text = st.target === 'monthly' && f.monthly < 0 ? st.negativeText : st.target === 'payback' && !Number.isFinite(f.years) ? st.neverText : st.text;
+      return { target: st.target, body: fillNodes(text, slots) };
+    });
+    steps.push({ target: null, body: def.closing });
+    return { steps, next: tut().ui.hintNext, done: tut().ui.gotIt };
+  }
+
+  /** The loan window's hint: the figures follow the amount on the stepper. */
+  function loanHintFor() {
+    if (!hints.claim('h-loan', state.turn)) return null;
+    hints.claim('h-expense-loan', state.turn); // one lesson at a time: the loan window wins the turn
+    const def = hintDef('h-loan');
+    return {
+      render: (amount) => {
+        const lt = loanTerms(amount);
+        const slots = { amount: money(amount), monthlyPayment: money(lt.monthly), perSummary: money(lt.perPayday) };
+        return { body: fillNodes(def.text, slots), more: fillNodes(def.more, slots) };
+      },
+    };
+  }
+
+  /** Hot-seat: one learning line for the pass-the-phone sheet (the zone is covered then): a hint, else an explainer, else a tip. */
+  function sheetExtra() {
+    const next = hints.takeFloating(state.turn);
+    if (next) { const v = floatingView(next.id, next.ctx); return { body: v.body, more: v.more, pose: v.pose, label: tut().ui.hintFoxLabel }; }
+    const ex = flow.explainerForSheet({ allowed: explainerAllowed({ active: hintsOn(), turn: state.turn }) });
+    if (ex) return { body: [h('b', null, ex.name), ': ', ex.short], pose: 'tip', label: t('learn.foxSays') };
+    if (state.mode === 'family' && !tipReplaced({ active: hintsOn(), turn: state.turn + 1 })) {
+      const idx = tipIndexForTurn(state.turn + 1);
+      if (idx >= 0) return { body: t(`fox.tip${idx + 1}`), pose: 'tip', label: t('learn.foxSays') };
+    }
+    return null;
+  }
+
+  // What happened in the turn that is being played, for the hot-seat recap (nodes: amounts keep their <bdi>).
+  let turnLog = [];
+  function pushLog(text, tone = '', { record = true } = {}) {
     if (!text) return;
     chip.replaceChildren(text); // a string or DOM nodes (amounts wrapped in <bdi dir="ltr">)
     chip.dataset.tone = tone;
+    if (record) turnLog.push([...chip.childNodes].map((n) => n.cloneNode(true)));
     if (motionOK()) animate(chip, [{ transform: 'scale(.94)', opacity: 0.4 }, { transform: 'scale(1)', opacity: 1 }], { duration: 220, easing: 'cubic-bezier(.34,1.56,.64,1)' });
   }
 
@@ -206,6 +330,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   }
   function maybeTip() {
     if (destroyed || busy || state.mode !== 'family' || state.status !== 'playing' || state.phase !== 'roll') return;
+    if (tipReplaced({ active: hintsOn(), turn: state.turn + 1 })) return; // the first game's turns 1-3 have the guided hints instead
     const idx = tipIndexForTurn(state.turn + 1);
     if (idx < 0) return;
     tipBubble.textContent = t(`fox.tip${idx + 1}`);
@@ -305,8 +430,11 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
       profEl.textContent = state.profession.title;
       turnEl.textContent = `· ${t('game.turnShort', { turn: state.turn > match.turnMark ? state.turn : state.turn + 1 })}`;
     } else turnEl.textContent = isDaily ? (state.turn ? t('daily.turnOf', { turn: state.turn, cap: state.daily.turnCap }) : t('game.yourTurn')) : turnText;
-    flowChip.replaceChildren(tn('game.perMonth', { amount: money(st.monthlyCashFlow, { sign: true }) }));
-    flowChip.classList.toggle('is-negative', st.monthlyCashFlow < 0);
+    if (famHud) famHud.refresh(state, { goal: goalLineVisible(tutorialDevice()) });
+    else {
+      flowChip.replaceChildren(tn('game.perMonth', { amount: money(st.monthlyCashFlow, { sign: true }) }));
+      flowChip.classList.toggle('is-negative', st.monthlyCashFlow < 0);
+    }
     passiveVal.replaceChildren(money(st.passiveIncome));
     expenseVal.replaceChildren(money(st.totalExpenses));
     m.set(st.passiveIncome, st.totalExpenses);
@@ -330,6 +458,8 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     refreshOthers();
   }
   refreshHud();
+  const mqShort = typeof matchMedia === 'function' ? matchMedia(`(max-height: ${tut().goalLine.shortFromHeightPx}px)`) : null;
+  mqShort?.addEventListener?.('change', refreshHud); // the goal line has a short form on short screens
   lastPct = (() => { const st = statement(state); return st.totalExpenses > 0 ? st.passiveIncome / st.totalExpenses : 0; })();
 
   /** The engine state of the active player is saved into the match, then the whole match is persisted. */
@@ -340,14 +470,13 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
 
   const setStatus = (text) => { status.replaceChildren(text); };
 
-  // The primary button always says what is happening: roll / rolling / advancing (disabled), or continue (enabled).
-  const BTN_LABEL = { roll: 'game.roll', rolling: 'game.rolling', working: 'game.advancing', continue: 'game.continue' };
+  // The primary button always says what is happening: roll / rolling / advancing (disabled).
+  const BTN_LABEL = { roll: 'game.roll', rolling: 'game.rolling', working: 'game.advancing' };
   function paintButton(mode) {
     btnMode = mode;
     rollLabel.textContent = t(BTN_LABEL[mode]);
     rollBtn.disabled = mode === 'rolling' || mode === 'working';
-    rollBtn.dataset.action = mode === 'continue' ? 'continue' : 'roll';
-    dieIcon.hidden = mode === 'continue';
+    rollBtn.dataset.action = 'roll';
     el.dataset.btn = mode;
   }
   function setBusy(b, mode = 'working') {
@@ -365,8 +494,9 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     }
   }
   /**
-   * Called whenever a turn has fully played out (or a game is resumed): puts the button into a state the player can act on.
-   * Single player: the turn is closed silently and the roll button returns. Hot-seat: "continue" hands the phone on.
+   * Called whenever a turn has fully played out (or a game is resumed): puts the game into a state the player can act on.
+   * Single player: the turn is closed silently and the roll button returns. Hot-seat: the pass-the-phone sheet opens at once
+   * with a recap and ONE button that rolls for the next player (no 'המשיכו', no 'מוכנים').
    */
   function settleButton() {
     if (destroyed) return;
@@ -374,13 +504,8 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     if ((!multi || lastPlayerStanding(match)) && canEndTurn(match) && state.status === 'playing') {
       match = endTurn(match); store.save(match); state = currentState(match); refreshHud();
     }
-    if (multi && state.status === 'playing' && canEndTurn(match)) {
-      busy = false;
-      paintButton('continue');
-      el.classList.remove('is-busy');
-      setPose('roll');
-      setStatus(afterTurnStatus());
-    } else setBusy(false);
+    if (multi && state.status === 'playing' && canEndTurn(match) && !lastPlayerStanding(match)) { handOver(); return; }
+    setBusy(false);
   }
   /** Status line once a turn has played out: who is next in hot-seat, otherwise the roll prompt. */
   function afterTurnStatus() {
@@ -442,6 +567,8 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     const pct = st.totalExpenses > 0 ? st.passiveIncome / st.totalExpenses : 0;
     const crossed = [0.25, 0.5, 0.75].find((mark) => lastPct < mark && pct >= mark && pct < 1);
     lastPct = pct;
+    if (passiveIncome(before) < st.passiveIncome) hints.offer('h-meter', state.turn); // the first asset that pays
+    if (pct >= 0.75 && pct < 1) hints.offer('h-almost', state.turn);
     if (crossed) { pushLog(t('game.milestone', { pct: Math.round(crossed * 100) }), 'good'); react('celebrate'); }
     return true;
   }
@@ -465,14 +592,22 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     ], { duration: dur, easing: 'ease-out', fill: 'none' }).finished.catch(() => {});
   }
 
-  async function paydayFx(amount, months, monthly = amount / months) {
+  /**
+   * 'סיכום שנתיים': the itemised card (blocking but quick: one tap), then the cash arrives (float text, count-up) and the one-line
+   * form stays in the log. The figures are the engine's own payday event over the player's state.
+   */
+  async function paydayFx(pd) {
+    const f = summaryFigures(state, pd, cash.value);
     haptic('land'); sound('payday');
-    pushLog(tn('game.logPayday', { calc: paydayCalc(monthly, months, amount) }), amount >= 0 ? 'good' : 'bad');
-    setStatus(tn('game.statusPayday', { calc: paydayCalc(monthly, months, amount) }));
-    floatText(cash.el, h('div', { class: 'float-stack' }, signedMoney(amount), h('span', { class: 'float-sub' }, t('game.paydayFloatLabel'))), amount >= 0 ? 'income' : 'expense', { below: hud });
+    await summaryCardGated({ figures: f, hint: summaryHintFor(f) });
+    if (destroyed) return;
+    const calc = paydayCalc(f.monthly, f.months, f.amount);
+    pushLog(tn('game.logPayday', { calc }), f.amount >= 0 ? 'good' : 'bad');
+    setStatus(tn('game.statusPayday', { calc: paydayCalc(f.monthly, f.months, f.amount) }));
+    floatText(cash.el, h('div', { class: 'float-stack' }, signedMoney(f.amount), h('span', { class: 'float-sub' }, t('game.paydayFloatLabel'))), f.amount >= 0 ? 'income' : 'expense', { below: hud });
     pulse(el.querySelector('.hud-cash'), 1.04);
-    if (amount > 0) react('celebrate');
-    await cash.to(cash.value + amount, 450);
+    if (f.amount > 0) react('celebrate');
+    await cash.to(cash.value + f.amount, 450);
   }
 
   // ---------- turn ----------
@@ -480,7 +615,11 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   async function turn() {
     if (busy || destroyed || state.phase !== 'roll' || state.status !== 'playing') return;
     setBusy(true, 'rolling');
+    releaseUnshownHint();
     flow.newTurn();
+    hints.newTurn();
+    hints.sync(loadTutorial().hintsSeen);
+    turnLog = [];
     priorPrices = { ...state.stockPrices };
     haptic('roll'); sound('roll');
     let next;
@@ -503,7 +642,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     for (const idx of move.path) {
       if (destroyed) return;
       await hopTo(idx);
-      if (BOARD[idx] === 'payday' && paydays[pi]) { const pd = paydays[pi++]; flow.trigger('summary'); await paydayFx(pd.amount, pd.months, pd.monthly); }
+      if (BOARD[idx] === 'payday' && paydays[pi]) { const pd = paydays[pi++]; flow.trigger('summary'); await paydayFx(pd); }
     }
     if (destroyed) return;
     paintButton('working'); // the dice have stopped; the label now says we are moving on (cards, payday) instead of rolling
@@ -530,8 +669,10 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     if (destroyed) return;
     if (match.status !== 'playing') { setBusy(false); await finishIfOver(); return; }
     if (state.status === 'lost') { await outFlow(); return; }
+    // the fox points from the roll zone after the feedback line (single player); in hot-seat the sheet carries it
+    if (!multi) showFloatingHint();
     settleButton();
-    flow.pumpExplain();
+    if (!multi) flow.pumpExplain({ allowed: explainerAllowed({ active: hintsOn(), turn: state.turn }) && !hints.floatedThisTurn });
   }
 
   /** Switches the screen to the (new) current player of the match. */
@@ -543,34 +684,50 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     dice.setValues(state.lastRoll?.dice || [1]);
     lastPct = (() => { const st = statement(state); return st.totalExpenses > 0 ? st.passiveIncome / st.totalExpenses : 0; })();
     setStatus(t('game.statusStart'));
-    pushLog(t('game.playerTurn', { name: nameOf() }));
+    pushLog(t('game.playerTurn', { name: nameOf() }), '', { record: false });
     hideTip();
     toggleOthers(false);
   }
 
-  /** Pass-the-phone: switch to the next player, then ask them to confirm they are ready. */
-  async function passTo(prevIndex) {
-    switchPlayer();
-    // The same player again (everyone else is out): nobody to hand the phone to.
-    if (match.currentIndex !== prevIndex) await showHandoff();
-  }
-  async function showHandoff() {
-    if (!multi || destroyed) return;
-    await handoffSheet({ name: nameOf(), color: colorOf() });
+  /** What happened in the turn that just ended, for the pass-the-phone sheet: the last log lines and the fox's line. */
+  function buildRecap(prevIndex) {
+    const lines = turnLog.slice(-2).map((nodes) => nodes.map((n) => n.cloneNode(true)));
+    return { who: nameOf(prevIndex), lines, fox: flow.lastFeedbackNodes() };
   }
 
-  /** "Continue": the player has seen the outcome; the turn passes to the next player. */
-  async function continueTurn() {
-    if (busy || destroyed || btnMode !== 'continue' || !canEndTurn(match)) return;
+  let handingOver = false;
+  /**
+   * The ONE-TAP hand-over: the turn is resolved, so the sheet appears at once (no 'המשיכו' first). It shows the recap and one
+   * primary button 'זרקו קובייה, <name>'; the tap closes the sheet and rolls for that player right away.
+   * `recap` null = nothing just happened (a fresh match, a resume between turns).
+   */
+  async function handoverAndRoll({ recap = null, extra = null } = {}) {
+    if (destroyed) return;
+    busy = true;
+    paintButton('working');
+    el.classList.remove('is-busy');
+    const tapped = await handoffSheet({ name: nameOf(), color: colorOf(), recap, extra });
+    if (!tapped || destroyed) return;
+    busy = false;
+    paintButton('roll');
+    turn(); // not awaited: the whole next turn plays out on its own (and ends in the next hand-over)
+  }
+
+  /** Hot-seat, a turn is resolved: close it for the active player, switch to the next one and show the sheet. */
+  async function handOver() {
+    if (handingOver) return; // a second call while the sheet is being prepared does nothing
+    handingOver = true;
     busy = true;
     paintButton('working');
     const prev = match.currentIndex;
+    const recap = buildRecap(prev);
+    const extra = sheetExtra();
+    flow.newTurn(); // the old fox note goes away: it belongs to the player who just finished
     match = endTurn(match);
     store.save(match);
-    await passTo(prev);
-    if (destroyed) return;
-    busy = false;
-    settleButton();
+    switchPlayer();
+    handingOver = false;
+    await handoverAndRoll({ recap, extra });
   }
 
   /** Hot-seat: this player is out. Tell everyone, then hand over to the next player still in the game. */
@@ -583,10 +740,10 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     match = endTurn(match);
     store.save(match);
     if (match.status !== 'playing') { await finishIfOver(); return; }
-    await passTo(prev);
-    if (destroyed) return;
-    busy = false;
-    settleButton();
+    switchPlayer();
+    // The same player again (everyone else is out): nobody to hand the phone to.
+    if (match.currentIndex === prev) { busy = false; settleButton(); return; }
+    await handoverAndRoll({});
   }
 
   /** Events whose cards are queued but not yet seen; saved with the match when the player goes home mid-turn. */
@@ -602,6 +759,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     } else if (ev.type === 'expensePaid') {
       pushLog(tn('game.logExpense', { title: ev.card.title, amount: signedMoney(-ev.amount) }), 'bad');
       flow.trigger('expense');
+      hints.offer('h-expense-paid', state.turn, { amount: ev.amount, cashLeft: state.cash }); // shown after the card, once the turn is free
       await expenseModal(state, { card: ev.card, amount: ev.amount, paid: true });
       haptic('error');
       await syncCash();
@@ -636,7 +794,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   async function loanFlow(required = 0, { card = null, qty = 1 } = {}) {
     flow.trigger('loan');
     // a loan that buys the pending card: the dialog shows the state right after the purchase (the asset's cash flow counts)
-    const amount = await loanDialog(state, { required, gain: card ? purchaseCashFlow(card, qty) : null });
+    const amount = await loanDialog(state, { required, gain: card ? purchaseCashFlow(card, qty) : null, hint: loanHintFor() });
     if (amount) apply((s) => engine.takeLoan(s, amount));
     return !!amount;
   }
@@ -652,10 +810,12 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   /** The 'עסקה טובה?' guess for an opportunity card: on for apartments / businesses when the setting is on (never stocks). */
   function guessFor(card) {
     if (!guessEnabled(state.mode) || !isDeal(card)) return null;
+    if (tourCards.has(card.id)) return null; // the first card of the first game: the tour shows the numbers, the guess starts with the second
     const seed = state.seed + state.turn;
+    const intro = hints.claim('h-guess-intro', state.turn) ? { body: fillNodes(hintDef('h-guess-intro').text) } : null;
     const eye = (wasEarned) => eyeModel(state.learn?.guesses ?? [], { wasEarned });
     return {
-      enabled: true, seed, prior: guessForCard(state, card.id),
+      enabled: true, seed, prior: guessForCard(state, card.id), intro,
       eye: () => eye(true),
       onGuess: (pick, light) => {
         state = recordGuess(state, { cardId: card.id, light, guess: pick });
@@ -677,7 +837,12 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
       let r;
       if (p.kind === 'opportunity') {
         flow.trigger('opportunity', { card: p.card });
-        r = await opportunityModal(state, { flip, guess: guessFor(p.card) });
+        // first apartment / business card of the first game: a 3-step tour instead of the guess window
+        let tour = null;
+        if (isDeal(p.card) && !tourCards.has(p.card.id) && hints.claim('h-card', state.turn)) { tour = cardTourFor(p.card); tourCards.add(p.card.id); }
+        else if (tourCards.has(p.card.id)) tour = null;
+        r = await opportunityModal(state, { flip, guess: guessFor(p.card), tour });
+        if (tour) flow.trigger('reveal'); // the numbers were shown without a guess: the yield / payback explainers may follow
         if (!r) break; // closed by debug force
         const bought = (qty) => { if (apply((s) => engine.buy(s, qty))) { flow.trigger('purchase', { card: p.card }); if (isDeal(p.card) && !guessEnabled(state.mode)) flow.trigger('reveal'); } };
         if (r.action === 'buy') bought(r.qty);
@@ -689,6 +854,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
         }
       } else if (p.kind === 'expense') {
         flow.trigger('expense');
+        hints.offer('h-expense-loan', state.turn, { amount: p.amount });
         r = await expenseModal(state, { card: p.card, amount: p.amount, paid: false, flip });
         if (!r) break; // closed by debug force
         if (r.action === 'loan') await loanFlow(p.amount - state.cash);
@@ -797,6 +963,8 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   function teardown() {
     destroyed = true;
     clearTimeout(tipTimer);
+    famHud?.destroy();
+    mqShort?.removeEventListener?.('change', refreshHud);
     reactor.hide();
     flow.destroy();
     clearLearnHooks();
@@ -840,13 +1008,14 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
       }
       if (plan === 'settle') { settleButton(); return; } // rolled and resolved: hot-seat waits for "continue", single player rolls on
       if (multi && !lastPlayerStanding(match)) {
-        // Fresh match or a resume between turns: confirm whose turn it is before anyone can roll.
+        // Fresh match or a resume between turns: the sheet names whose turn it is and its one button rolls for them.
         setBusy(true);
-        pushLog(t('game.playerTurn', { name: nameOf() }));
-        await showHandoff();
-        if (destroyed) return;
-        setBusy(false);
+        pushLog(t('game.playerTurn', { name: nameOf() }), '', { record: false });
+        if (state.turn === 0) hints.offer('h-roll', 0);
+        await handoverAndRoll({ extra: sheetExtra() });
+        return;
       }
+      if (state.turn === 0) { hints.offer('h-roll', 0); showFloatingHint(); }
       maybeTip();
     },
     destroy: () => teardown(),

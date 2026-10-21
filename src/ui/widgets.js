@@ -97,8 +97,8 @@ export function miniMeter(pct, valueText, cls = 'or-bar') {
     h('i', { style: `--fill:${pct}` }));
 }
 
-export function statTile(label, valueNode, { tone = '', big = false } = {}) {
-  return h('div', { class: `stat-tile${tone ? ` stat-${tone}` : ''}${big ? ' stat-big' : ''}` },
+export function statTile(label, valueNode, { tone = '', big = false, tut = null } = {}) {
+  return h('div', { class: `stat-tile${tone ? ` stat-${tone}` : ''}${big ? ' stat-big' : ''}`, 'data-tut': tut },
     h('span', { class: 'stat-label' }, label), fitText(h('span', { class: 'stat-value' }, valueNode)));
 }
 

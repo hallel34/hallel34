@@ -4,7 +4,7 @@ import { h } from './dom.js';
 import { t } from '../i18n/index.js';
 import { createNotes } from './notes.js';
 import { openDictionary, recordSeen, explainEnabled } from './learn.js';
-import { learnContent, conceptById, glossaryUi } from '../learn/content.js';
+import { learnContent, conceptById, glossaryUi, termName, hasKidName, kidOf } from '../learn/content.js';
 import { conceptsForTrigger, enqueueAt, pickExplainer, EXPLAINER_MAX_OFFERS } from '../learn/triggers.js';
 import { renderFeedback } from '../learn/feedback.js';
 import { seenConcepts } from '../learn/store.js';
@@ -38,6 +38,7 @@ export function createLearnFlow({ zone, mode, seed, getState, setState, onActive
   let queue = []; // [{ id, turn, n }]: explainers waiting (see triggers.js pickExplainer)
   const offers = {}; // how many times an unread explainer was offered
   let shownThisTurn = false;
+  let turnFeedback = []; // { template, slots, plain } of this turn's fox lines (the hot-seat recap shows the last one)
   // An explainer the player rolled past before reading (on screen under READ_MS) is not "seen": it comes back, at most
   // EXPLAINER_MAX_OFFERS times, so a fast player still meets every concept at its first relevant moments.
   const READ_MS = 3000;
@@ -58,13 +59,14 @@ export function createLearnFlow({ zone, mode, seed, getState, setState, onActive
       if (rq.mark) setState(markShown(state(), rq.mark));
       if (rq.group === 'buy.diversify') trigger('diversified');
       if (!r) continue;
+      turnFeedback.push({ template: r.template, slots: r.slots, plain: r.text });
       notes.push({ kind: 'feedback', group: rq.group, pose: rq.pose, tone: rq.tone, plain: r.text, body: feedbackNodes(r.template, r.slots) });
     }
   }
 
   /** At the end of a turn: bring up the next queued explainer (at most one per turn, after any feedback). */
-  function pumpExplain() {
-    if (!explainEnabled() || shownThisTurn) return;
+  function pumpExplain({ allowed = true } = {}) {
+    if (!allowed || !explainEnabled() || shownThisTurn) return;
     const item = pickExplainer(queue, seenConcepts(), mode, state().turn ?? 0);
     if (!item) return;
     const id = item.id;
@@ -72,7 +74,7 @@ export function createLearnFlow({ zone, mode, seed, getState, setState, onActive
     queue = queue.filter((x) => x.id !== id);
     const ui = glossaryUi();
     notes.push({
-      kind: 'explain', queued: item, urgent: (item.starved ?? 0) >= 1, concept: conceptById(id), label: ui.explainTitle, gotIt: ui.gotIt, whyLabel: ui.whyLabel,
+      kind: 'explain', queued: item, urgent: (item.starved ?? 0) >= 1, concept: conceptById(id), name: termName(id), short: hasKidName(id) ? kidOf(id).kidShort : conceptById(id).short, pro: hasKidName(id) ? conceptById(id).term : null, label: ui.explainTitle, gotIt: ui.gotIt, whyLabel: ui.whyLabel,
       onMore: (cid) => openDictionary({ termId: cid }),
       onHide: ({ reason, ms }) => {
         const unread = reason === 'cleared' && ms < READ_MS;
@@ -83,11 +85,29 @@ export function createLearnFlow({ zone, mode, seed, getState, setState, onActive
     });
   }
 
+  /**
+   * Hot-seat: the explainer that would have shown in the roll zone goes into the pass-the-phone sheet instead (the turn is over,
+   * the zone is covered). Returns { id, name, short, pro } and records it as seen, or null.
+   */
+  function explainerForSheet({ allowed = true } = {}) {
+    if (!allowed || !explainEnabled() || shownThisTurn) return null;
+    const item = pickExplainer(queue, seenConcepts(), mode, state().turn ?? 0);
+    if (!item) return null;
+    shownThisTurn = true;
+    queue = queue.filter((x) => x.id !== item.id);
+    recordSeen(item.id);
+    return { id: item.id, name: termName(item.id), short: hasKidName(item.id) ? kidOf(item.id).kidShort : conceptById(item.id).short, pro: hasKidName(item.id) ? conceptById(item.id).term : null };
+  }
+
   return {
-    notes, trigger, feedback, pumpExplain,
+    notes, trigger, feedback, pumpExplain, explainerForSheet,
+    /** The last fox line of this turn as DOM (amounts isolated), or null. */
+    lastFeedbackNodes() { const f = turnFeedback.at(-1); return f ? feedbackNodes(f.template, f.slots) : null; },
+    get explainedThisTurn() { return shownThisTurn; },
     /** A roll starts: a new turn (one explainer allowed again) and the old note goes away. */
     newTurn() {
       shownThisTurn = false;
+      turnFeedback = [];
       // an explainer that was queued but never shown (the player rolled on) goes back to the front of the queue
       // never shown (a feedback note was in front, or a card was open): it waits again, but its next turn is urgent
       const dropped = notes.clear().map((i) => ({ ...i.queued, starved: (i.queued.starved ?? 0) + 1 }));

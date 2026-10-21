@@ -8,7 +8,10 @@ import { createTermScope } from './rich.js';
 import { openDictionary } from './learn.js';
 import { icon } from './icons.js';
 import { button } from './widgets.js';
-import { haptic, sound } from './fx.js';
+import { haptic, sound, toast } from './fx.js';
+import { tut } from './hint-ui.js';
+import { loadTutorial, setHelpOn, resetHints } from '../learn/tutorial-store.js';
+import { getEngine } from './session.js';
 import { PAYDAY_MONTHS } from '../engine/index.js';
 
 /** `read` / `write` override how the value is stored (the guess toggle is stored per mode). */
@@ -27,7 +30,7 @@ function toggleRow(label, key, { read = () => !!getPrefs()[key], write = (v) => 
 }
 
 /** `mode`: the mode the settings are for ('family' | 'full'): the guess toggle is remembered per mode. */
-export function openSettings({ onQuit, version = '', mode = 'family' } = {}) {
+export function openSettings({ onQuit, version = '', mode = 'family', professionId = null } = {}) {
   let layer;
   const themeBtns = ['dark', 'light', 'auto'].map((k) => {
     const label = { dark: t('settings.themeDark'), light: t('settings.themeLight'), auto: t('settings.themeAuto') }[k];
@@ -49,6 +52,7 @@ export function openSettings({ onQuit, version = '', mode = 'family' } = {}) {
       help: t('settings.guessHelp'), read: () => guessEnabled(mode), write: (v) => setPref(mode === 'full' ? 'guessFull' : 'guessFamily', v),
     }),
     button([icon('book', { size: 22, width: 2.4 }), t('settings.dictionary')], { variant: 'secondary', cls: 'btn-dictionary', 'data-action': 'dictionary', onClick: () => openDictionary() }),
+    ...(mode === 'family' ? familyRows(professionId) : []),
     h('div', { class: 'setting-block' }, h('span', null, t('settings.theme')), h('div', { class: 'seg', role: 'group' }, themeBtns)),
     availableLocales().length > 1 ? h('div', { class: 'setting-block' }, h('span', null, t('settings.language')),
       h('div', { class: 'seg', role: 'group' }, availableLocales().map((l) => h('button', {
@@ -63,7 +67,28 @@ export function openSettings({ onQuit, version = '', mode = 'family' } = {}) {
   return layer.closed;
 }
 
-export function openHowTo() {
+/** Family mode: help for beginners (goal line + hints), the story again, the hints again, the parent card. */
+function familyRows(professionId) {
+  const ui = tut().ui;
+  const tool = (iconName, label, action, onClick) => button([icon(iconName, { size: 22, width: 2.4 }), label], { variant: 'secondary', cls: 'btn-dictionary', 'data-action': action, onClick });
+  return [
+    toggleRow(ui.helpToggle, 'helpOn', { read: () => loadTutorial().helpOn, write: (v) => setHelpOn(v), help: ui.helpToggleHelp }),
+    tool('star', ui.replay, 'replay-story', () => playStoryAgain(professionId)),
+    tool('check', ui.replayHints, 'replay-hints', () => { resetHints(); toast(ui.replayHints); }),
+    tool('help', ui.parentCardOpen, 'parent-card', async () => { const { openParentCard } = await import('./tutorial/index.js'); openParentCard(); }),
+  ];
+}
+
+/** The story again (lazy chunk): from the settings, from the help sheet. The numbers follow the profession when one is chosen. */
+export async function playStoryAgain(professionId = null) {
+  const engine = getEngine();
+  if (!engine) return null;
+  const { openStory } = await import('./tutorial/index.js');
+  return openStory({ engine, professionId: professionId ?? 'teacher' });
+}
+
+export function openHowTo({ mode = 'family', professionId = null } = {}) {
+  if (mode === 'family') return openHowToFamily(professionId);
   let layer;
   const scope = createTermScope();
   const content = h('div', { class: 'dialog' },
@@ -73,5 +98,27 @@ export function openHowTo() {
     h('p', { class: 'howto-note', 'data-howto': 'daily' }, t('howto.dailyNote')),
     h('div', { class: 'dialog-actions' }, button(t('card.ok'), { variant: 'primary', 'data-autofocus': '', onClick: () => layer.close() })));
   layer = openLayer(content, { kind: 'modal', label: t('howto.title'), cls: 'layer-dialog' });
+  return layer.closed;
+}
+
+/**
+ * Family mode: the short kid version. The first time ever, the story itself opens instead of the sheet; afterwards the sheet has
+ * three rows: the story again (a minute), the dictionary, the rules in four short lines (plus the parent card).
+ */
+async function openHowToFamily(professionId) {
+  if (!loadTutorial().storyDone) return playStoryAgain(professionId);
+  const ui = tut().ui;
+  let layer;
+  const row = (iconName, label, action, onClick) => button([icon(iconName, { size: 22, width: 2.4 }), label], { variant: 'secondary', cls: 'btn-dictionary howto-row', 'data-action': action, onClick });
+  const content = h('div', { class: 'dialog howto-kid', 'data-howto': 'kid' },
+    h('div', { class: 'dialog-head' }, h('h2', { class: 'dialog-title' }, tut().howtoKid.title), closeButton(() => layer.close())),
+    row('star', ui.howtoStory, 'howto-story', () => playStoryAgain(professionId)),
+    row('book', t('settings.dictionary'), 'howto-dictionary', () => openDictionary()),
+    h('h3', { class: 'howto-rules-title' }, ui.howtoRules),
+    h('ol', { class: 'howto' }, tut().howtoKid.steps.map((s) => h('li', null, s))),
+    h('p', { class: 'howto-note', 'data-howto': 'note' }, t('howto.note')),
+    row('help', ui.parentCardOpen, 'howto-parent', async () => { const { openParentCard } = await import('./tutorial/index.js'); openParentCard(); }),
+    h('div', { class: 'dialog-actions' }, button(t('card.ok'), { variant: 'primary', 'data-autofocus': '', onClick: () => layer.close() })));
+  layer = openLayer(content, { kind: 'modal', label: tut().howtoKid.title, cls: 'layer-dialog' });
   return layer.closed;
 }

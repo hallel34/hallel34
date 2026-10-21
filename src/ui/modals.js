@@ -6,6 +6,7 @@ import { openLayer, closeButton } from './modal.js';
 import { icon } from './icons.js';
 import { cornerPop, foxImg } from './fox.js';
 import { playerToken, withName } from './players.js';
+import { hintStrip, showRing } from './hint-ui.js';
 import { CARD_REACTION } from './fox-rules.js';
 import { money, moneyText, tn, numberText, signedMoney } from './format.js';
 import { createTermScope, termButton } from './rich.js';
@@ -93,7 +94,7 @@ function paybackBadge(years, tier, scope) {
   const label = Number.isFinite(years)
     ? tn('card.payback', { years: yearsPhrase(years) }, { scope })
     : tn('card.paybackNever', {}, { scope });
-  return h('div', { class: `payback payback-${tier}`, 'data-payback-tier': tier }, icon(tier === 'ok' ? 'check' : 'expense', { size: 20 }), h('span', null, label));
+  return h('div', { class: `payback payback-${tier}`, 'data-payback-tier': tier, 'data-tut': 'payback' }, icon(tier === 'ok' ? 'check' : 'expense', { size: 20 }), h('span', null, label));
 }
 const banner = (node, tone = 'info') => h('div', { class: `banner banner-${tone}` }, icon('star', { size: 26 }), h('span', null, node));
 const ltr = (text) => h('bdi', { dir: 'ltr' }, text);
@@ -153,7 +154,7 @@ function stockNote(c) {
  * `guess` (family default, full opt-in): { enabled, seed, prior, onGuess(pick, light) -> eye model }.
  * `prior`: the guess already made for this open card (a reload shows the numbers straight away).
  */
-export function opportunityModal(state, { flip = true, guess = null } = {}) {
+export function opportunityModal(state, { flip = true, guess = null, tour = null } = {}) {
   const c = state.pending.card;
   const passive = passiveIncome(state);
   const scope = createTermScope();
@@ -186,7 +187,7 @@ export function opportunityModal(state, { flip = true, guess = null } = {}) {
       stockNote(c),
       realWorldForCard(c),
     ].filter(Boolean);
-    return finishOpportunity({ state, c, body, flip, qtyGetter: () => st.value, plan: purchasePlan(state, c.price) });
+    return finishOpportunity({ state, c, body, flip, qtyGetter: () => st.value, plan: purchasePlan(state, c.price), tour: null });
   }
 
   const m = dealMetrics(c);
@@ -195,8 +196,8 @@ export function opportunityModal(state, { flip = true, guess = null } = {}) {
   const cardNumbers = ({ light = false } = {}) => [
     light ? null : paybackBadge(years, tier, scope),
     grid(
-      statTile(tn('card.downPayment', {}, { scope }), money(c.downPayment), { big: true }),
-      statTile(tn('card.monthlyCashFlow', {}, { scope }), money(c.monthlyCashFlow, { sign: true }), { tone: c.monthlyCashFlow <= 0 || tier === 'bad' ? 'expense' : (tier === 'slow' ? 'slow' : 'income'), big: true }),
+      statTile(tn('card.downPayment', {}, { scope }), money(c.downPayment), { big: true, tut: 'downPayment' }),
+      statTile(tn('card.monthlyCashFlow', {}, { scope }), money(c.monthlyCashFlow, { sign: true }), { tone: c.monthlyCashFlow <= 0 || tier === 'bad' ? 'expense' : (tier === 'slow' ? 'slow' : 'income'), big: true, tut: 'monthly' }),
       statTile(tn(c.type === 'business' ? 'card.businessLoan' : 'card.mortgage', {}, { scope }), money(c.mortgage)),
       statTile(t('card.price'), money(c.price)),
     ),
@@ -209,7 +210,7 @@ export function opportunityModal(state, { flip = true, guess = null } = {}) {
   const plan = purchasePlan(state, c.downPayment);
 
   // ---- no guess: the numbers straight away (full mode default) ----
-  if (!guess?.enabled) return finishOpportunity({ state, c, body: cardNumbers(), flip, qtyGetter: () => 1, plan });
+  if (!guess?.enabled) return finishOpportunity({ state, c, body: cardNumbers(), flip, qtyGetter: () => 1, plan, tour });
 
   // ---- the guess flow (family mode): prompt first, numbers after ----
   const { guess: ui } = learnContent();
@@ -231,11 +232,12 @@ export function opportunityModal(state, { flip = true, guess = null } = {}) {
     queueMicrotask(() => reveal(guess.prior.guess, guess.prior));
   } else {
     ctl.body.append(guessPrompt(ui.prompt, () => reveal('skip')));
+    const introStrip = guess.intro ? hintStrip({ body: guess.intro.body, cls: 'in-card', label: tutLabel() }) : null;
     ctl.setActions([
       { id: 'guess-bad', label: [icon('close', { size: 22, width: 3.4 }), h('span', null, ui.prompt.bad)], variant: 'danger', cls: 'btn-guess', run: () => reveal('bad') },
       { id: 'guess-good', label: [icon('check', { size: 22, width: 3.4 }), h('span', null, ui.prompt.good)], variant: 'buy', cls: 'btn-guess', autofocus: true, run: () => reveal('good') },
     ]);
-    ctl.setFoot(null);
+    ctl.setFoot(introStrip);
   }
   return opts.promise;
 }
@@ -252,7 +254,7 @@ function breakdown(c, scope) {
     }, { scope })));
 }
 
-function finishOpportunity({ state, c, body, flip, qtyGetter, plan, ctl = null, deferred = false, guessState = 'off' }) {
+function finishOpportunity({ state, c, body, flip, qtyGetter, plan, ctl = null, deferred = false, guessState = 'off', tour = null }) {
   // plan.status: 'ok' (cash covers it) | 'loan' (one loan covers the gap) | 'blocked' (short even after the maximum loan)
   const hintId = 'buy-hint';
   const warn = plan.status === 'blocked'
@@ -270,9 +272,11 @@ function finishOpportunity({ state, c, body, flip, qtyGetter, plan, ctl = null, 
         : { action: 'buy', qty: qtyGetter() }),
     },
   ];
+  const tourCtl = tour && !ctl ? {} : null;
+  const tourUi = tour ? createCardTour(tour, () => (ctl ?? tourCtl).card) : null;
   const promise = cardShell({
     type: 'opportunity', art: c.type, chip: `${t('square.opportunity')} · ${t(`type.${c.type}`)}`, title: c.title, text: c.text,
-    body, foot: deferred ? null : warn, actions: deferred ? [] : actions, flip, ctl,
+    body, foot: deferred ? null : [tourUi?.strip, warn], actions: deferred ? [] : actions, flip, ctl: ctl ?? tourCtl,
     data: {
       afford: String(plan.status === 'ok'), buy: plan.status, kind: c.type, cost: String(plan.cost),
       payback: c.type === 'stock' ? '' : String(Math.round(c.downPayment / Math.max(1, c.monthlyCashFlow))),
@@ -280,7 +284,47 @@ function finishOpportunity({ state, c, body, flip, qtyGetter, plan, ctl = null, 
       guess: guessState,
     },
   });
+  if (tourUi) { tourUi.start(flip); promise.then(() => tourUi.stop()); }
   return deferred ? { promise, warn, normalActions: actions } : promise;
+}
+
+const tutLabel = () => learnContent().tutorial.ui.hintFoxLabel;
+
+/**
+ * The first card's 3-step tour (spec section 5): a strip between the numbers and the buttons says what the down payment, the monthly
+ * amount and the payback mean, one step at a time ('הבא'), with a gold ring around the number it talks about (never over it).
+ */
+function createCardTour(tour, getCard) {
+  let i = 0;
+  let ring = null;
+  let timer = 0;
+  const paintStep = () => tour.steps[i].body.cloneNode(true);
+  const strip = hintStrip({ body: paintStep(), cls: 'in-card is-tour', label: tutLabel(), action: { label: tour.next, onClick: () => advance() } });
+  const textEl = strip.querySelector('.hint-text');
+  const btn = strip.querySelector('.hint-next');
+  const aim = () => {
+    const card = getCard();
+    const target = tour.steps[i].target ? card?.querySelector(`[data-tut="${tour.steps[i].target}"]`) : null;
+    if (!target) { ring?.remove(); ring = null; return; }
+    if (ring) ring.move(target, { onCream: true }); else ring = showRing(target, { onCream: true, holdMs: 120000 });
+  };
+  function advance() {
+    haptic('tap');
+    if (i >= tour.steps.length - 1) { stop(); strip.remove(); return; }
+    i += 1;
+    textEl.replaceChildren(paintStep());
+    strip.dataset.step = String(i + 1);
+    if (i === tour.steps.length - 1) btn.textContent = tour.done;
+    aim();
+  }
+  function stop() { clearTimeout(timer); ring?.remove(); ring = null; }
+  strip.dataset.step = '1';
+  return {
+    strip,
+    // the ring waits for the card's flip to land
+    start(flip) { timer = setTimeout(aim, flip ? 700 : 250); },
+    stop,
+  };
 }
 
 // ---------- expense (paid or must-pay) ----------
@@ -415,7 +459,7 @@ function capNote(state) {
 }
 
 /** Loan dialog. Resolves with the amount (multiple of 1000) or null. */
-export function loanDialog(state, { required = 0, gain = null } = {}) {
+export function loanDialog(state, { required = 0, gain = null, hint = null } = {}) {
   const max = maxLoan(state);
   // For a purchase the figures describe the state right AFTER buying: the asset's cash flow is part of the new flow and
   // of the next summary (gain = null: the loan is not for a purchase).
@@ -440,6 +484,13 @@ export function loanDialog(state, { required = 0, gain = null } = {}) {
   let takeBtn = null;
   let shown = start;
   const scope = createTermScope();
+  // first loan window of the first game: the fox says what 'תוספת' means in numbers; it follows the amount on the stepper
+  const hintEl = hint ? hintStrip({ body: [], more: [], cls: 'in-loan', label: tutLabel() }) : null;
+  const paintHint = (amount) => {
+    const v = hint.render(amount);
+    hintEl.querySelector('.hint-text').replaceChildren(v.body);
+    hintEl.querySelector('.hint-more')?.replaceChildren(v.more);
+  };
 
   // rate and "per 1,000" come from the config through loanTerms; nothing is typed into the copy
   const unit = loanTerms(LOAN_STEP);
@@ -468,6 +519,7 @@ export function loanDialog(state, { required = 0, gain = null } = {}) {
       takeBtn.classList.toggle('btn-danger', imp.risky);
       takeBtn.classList.toggle('btn-primary', !imp.risky);
     }
+    if (hintEl) paintHint(to);
     barFill.style.setProperty('--fill', String(max ? to / max : 0));
     usedLabel.textContent = t('loan.limitUsed', { amount: moneyText(to), max: moneyText(max) });
   };
@@ -494,6 +546,7 @@ export function loanDialog(state, { required = 0, gain = null } = {}) {
       h('div', { class: 'limit' }, h('div', { class: 'limit-bar', 'aria-hidden': 'true' }, barFill), h('div', { class: 'limit-row' }, h('span', null, t('loan.limit')), usedLabel),
         capNote(state)),
       realWorldForPlace('loan-window'),
+      hintEl,
     ].filter(Boolean);
   const d = dialogShell({
     title: voluntary ? t('loan.titleVoluntary') : t('loan.title'),
@@ -508,6 +561,11 @@ export function loanDialog(state, { required = 0, gain = null } = {}) {
   });
   takeBtn = d.bar.querySelector('[data-action="take"]');
   if (st) update(start, start);
+  if (hintEl && st) {
+    let ring = null;
+    const t0 = setTimeout(() => { const row = d.layer.panel.querySelector('[data-loan="interest"]'); if (row && !d.layer.done) ring = showRing(row, { holdMs: 12000 }); }, 450);
+    d.layer.closed.then(() => { clearTimeout(t0); ring?.remove(); });
+  }
   return d.promise.then((v) => (typeof v === 'number' ? v : null));
 }
 
@@ -601,17 +659,48 @@ export function sellSheet(getState, onSell, { shouldClose = () => false } = {}) 
 
 
 // ---------- hot-seat sheets ----------
-/** Pass-the-phone sheet: "תור של <name>" with one primary button. Not dismissable; resolves when the next player is ready. */
-export function handoffSheet({ name, color }) {
+/**
+ * Pass-the-phone sheet, ONE tap: "תור של <name>", a short recap of what just happened, and a single primary button
+ * 'זרקו קובייה, <name>' that closes the sheet and rolls at once (the caller starts the roll when the promise resolves,
+ * which happens on the tap itself, not after the closing animation). Not dismissable. Safe against double taps.
+ * recap: { who, lines: [text|Node], fox: text|null } of the turn that just ended, or null (first turn, resume).
+ * extra: { body: Node|string, more?: Node|string, pose? } one learning line (a hint, an explainer or a tip) or null.
+ * Resolves true on the tap, false when the screen was torn down with the sheet still open.
+ */
+export function handoffSheet({ name, color, recap = null, extra = null }) {
   let layer;
-  const content = h('div', { class: 'sheet handoff-sheet', 'data-handoff': String(color) },
+  let tapped = false;
+  let resolveTap;
+  const tap = new Promise((r) => { resolveTap = r; });
+  const go = button(withName(t('players.rollFor', { name: '{name}' }), name), {
+    variant: 'primary', size: 'lg', cls: 'btn-roll-next', 'data-action': 'roll-next', 'data-autofocus': '',
+    onClick: () => {
+      if (tapped) return; // a second tap on the closing sheet does nothing
+      tapped = true;
+      go.disabled = true;
+      haptic('tap');
+      resolveTap(true);
+      layer.close(true);
+    },
+  });
+  const recapBlock = recap && (recap.lines?.length || recap.fox)
+    ? h('div', { class: 'handoff-recap', 'data-recap': '' },
+      h('p', { class: 'hr-title' }, withName(t('players.recapTitle', { name: '{name}' }), recap.who)),
+      ...(recap.lines ?? []).map((l) => h('p', { class: 'hr-line' }, l)),
+      recap.fox ? h('p', { class: 'hr-fox' }, h('span', { class: 'vh' }, `${t('learn.foxSays')}: `), recap.fox) : null)
+    : null;
+  const extraBlock = extra ? hintStrip({ body: extra.body, more: extra.more ?? null, pose: extra.pose ?? 'tip', cls: 'in-handoff', label: extra.label }) : null;
+  const content = h('div', { class: 'sheet handoff-sheet', 'data-handoff': String(color), 'data-has-recap': String(!!recapBlock) },
     h('div', { class: 'handoff-fox' }, foxImg('roll', { height: 96 })),
     playerToken(color, { cls: 'ptoken-xl' }),
     h('h2', { class: 'dialog-title handoff-title' }, withName(t('players.handoffTitle', { name: '{name}' }), name)),
     h('p', { class: 'dialog-text' }, withName(t('players.handoffText', { name: '{name}' }), name)),
-    h('div', { class: 'sheet-cta' }, button(t('players.ready'), { variant: 'primary', size: 'lg', 'data-action': 'ready', 'data-autofocus': '', onClick: () => { haptic('tap'); layer.close(true); } })));
+    recapBlock, extraBlock,
+    h('div', { class: 'sheet-cta' }, go));
   layer = openLayer(content, { kind: 'sheet', label: t('players.handoffTitle', { name }), dismissable: false, cls: 'layer-handoff' });
-  return layer.closed;
+  // torn down with the sheet still open (home, debug): nobody tapped
+  layer.closed.then(() => resolveTap(false));
+  return tap;
 }
 
 /** In-page confirm for "back to the start screen" (no native dialogs). Resolves 'home' or null. */

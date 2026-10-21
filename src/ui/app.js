@@ -22,11 +22,14 @@ import { getLocale } from '../i18n/index.js';
 import { destroyAllLayers } from './modal.js';
 import { initTermButtons } from './learn.js';
 import { setLearnMode } from '../learn/context.js';
+import { loadTutorial } from '../learn/tutorial-store.js';
+import { setSession } from './session.js';
 
 export function createApp(host) {
   const data = loadData(getLocale());
   initTermButtons(); // glossary term buttons + validation of the learning content (fails loudly)
   const engine = createEngine(data);
+  setSession({ engine });
   const professionIds = data.professions.map((p) => p.id);
   let active = null;
   let mode = readRaw('mode') === 'full' ? 'full' : 'family';
@@ -171,11 +174,18 @@ export function createApp(host) {
     }) });
   }
 
-  function startNew() {
+  async function startNew() {
     const m = newMatch(engine, {
       mode, seed: nextSeed(),
       players: setup.professionIds.map((professionId, i) => ({ name: setup.names[i], professionId })),
     });
+    // 'המשחק הראשון עם פסיבו': the first family game of this device opens with the five-screen story (lazy chunk, skippable)
+    if (mode === 'family' && !loadTutorial().storyDone) {
+      try {
+        const { runFirstGameIntro } = await import('./tutorial/index.js');
+        await runFirstGameIntro({ engine, professionId: setup.professionIds[0] });
+      } catch (err) { console.error(err); } // never block the game on the introduction
+    }
     goPlay(m);
   }
 

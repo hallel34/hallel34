@@ -16,10 +16,10 @@ export function loadData(locale = FALLBACK) {
   return data;
 }
 
-const LEARN_KINDS = { glossary: 'glossary', feedback: 'feedback', report: 'report', guess: 'guess', realWorld: 'real-world' };
+const LEARN_KINDS = { glossary: 'glossary', feedback: 'feedback', report: 'report', guess: 'guess', realWorld: 'real-world', tutorial: 'tutorial' };
 
 /**
- * Validated learning content for a locale: { glossary, feedback, report, guess, realWorld } from src/data/learn/<kind>.<locale>.json
+ * Validated learning content for a locale: { glossary, feedback, report, guess, realWorld, tutorial } from src/data/learn/<kind>.<locale>.json
  * (falls back to Hebrew per file). Throws with a readable message when a file breaks the schema.
  */
 export function loadLearn(locale = FALLBACK, { cards } = {}) {

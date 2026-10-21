@@ -139,6 +139,8 @@
     "handoffTitle": "תור של {name}",
     "handoffText": "העבירו את המכשיר אל {name}",
     "ready": "מוכנים",
+    "rollFor": "זרקו קובייה, {name}",
+    "recapTitle": "בתור של {name}",
     "changeSettings": "שנו הגדרות"
   },
   "square": {

@@ -5,6 +5,7 @@ import './styles/components.css';
 import './styles/screens.css';
 import './styles/fox.css';
 import './styles/learn.css';
+import './styles/tutorial.css';
 import { setLocale, t } from './i18n/index.js';
 import { applyPrefs, getPrefs, setPref } from './ui/prefs.js';
 import { createApp } from './ui/app.js';

@@ -1,0 +1,252 @@
+/* 'המשחק הראשון עם פסיבו' (docs/v2/tutorial/art.md): the itemised summary card, the family HUD (chip, popover, goal line), the one-tap
+   hand-over recap, the hint strips and the highlight ring, and the five-screen story with its check. Logical properties only. */
+
+.btn-text { --bg-btn: transparent; --fg-btn: var(--text-soft); box-shadow: none; margin-block-end: 0; font-size: var(--fs-sm); font-weight: var(--fw-bold); text-decoration: underline; text-underline-offset: 3px; backdrop-filter: none; touch-action: manipulation; }
+.btn-text:active:not(:disabled) { transform: scale(var(--press-scale)); box-shadow: none; }
+
+/* ===== Family HUD: 'נשאר בחודש' chip, goal line, 'עוד X בחודש לחופש' ===== */
+.flow-chip-btn {
+  display: inline-flex; align-items: center; gap: 4px; min-block-size: var(--tap-min); max-inline-size: 132px; padding: 2px 8px 2px 6px;
+  border: 0; border-radius: 14px; text-align: start; font-family: inherit; font-size: .8125rem; line-height: 1.15;
+  white-space: normal; touch-action: manipulation; cursor: pointer;
+}
+.flow-chip-btn .fc-text { text-wrap: balance; }
+.flow-chip-btn .money { white-space: nowrap; }
+.fc-chev { flex: none; transition: transform var(--dur-base) var(--ease-out); transform: rotate(-90deg); }
+[dir="rtl"] .flow-chip-btn .fc-chev { transform: rotate(90deg); }
+.flow-chip-btn.is-open .fc-chev { transform: rotate(90deg); }
+[dir="rtl"] .flow-chip-btn.is-open .fc-chev { transform: rotate(-90deg); }
+/* never red when negative (spec): the chip keeps its calm glass fill and only the text takes the expense colour */
+.flow-chip-btn.is-negative { background: var(--glass-chip); color: var(--expense); }
+:root[data-theme="light"] .flow-chip-btn.is-negative { background: var(--glass-chip); color: var(--expense-ink); }
+.flow-chip-btn:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 2px; }
+
+.goal-line, .free-line { margin: 0; font-size: .75rem; line-height: 1.2; font-weight: var(--fw-medium); color: var(--text-muted); }
+.free-line { font-weight: var(--fw-bold); color: var(--income); }
+.free-line .money { font-weight: var(--fw-black); }
+.goal-line[hidden], .free-line[hidden] { display: none; }
+.hud:has(.goal-line:not([hidden])) { gap: 6px; }
+@media (max-height: 700px) { .hud:has(.goal-line:not([hidden])) { gap: 3px; } }
+@media (max-height: 600px) { .hud:has(.goal-line:not([hidden])) { gap: 2px; } .goal-line, .free-line { font-size: .6875rem; line-height: 1.1; } }
+/* the extra HUD lines cost ~34px: the board keeps its size and the roll zone gives the room back */
+.screen-board:has(.goal-line:not([hidden])) { --board-w: min(100%, max(248px, calc(100dvh - 470px))); }
+
+.flow-popover {
+  position: absolute; inset-block-start: calc(100% + 10px); inset-inline-end: 6px; inline-size: min(320px, calc(100% - 12px)); z-index: calc(var(--z-hud) + 5);
+  display: flex; flex-direction: column; gap: 4px; padding: 12px 14px 10px; border-radius: 18px;
+  background: var(--surface-2); color: var(--text); border: 1px solid var(--glass-border); box-shadow: var(--shadow-2);
+  transform-origin: calc(100% - 52px) 0;
+}
+[dir="rtl"] .flow-popover { transform-origin: 52px 0; }
+.fp-tail { position: absolute; inset-block-start: -8px; inset-inline-end: 44px; inline-size: 14px; block-size: 14px; background: var(--surface-2); border: 1px solid var(--glass-border); border-block-end: 0; border-inline-end: 0; transform: rotate(45deg); }
+[dir="rtl"] .fp-tail { border-inline-end: 1px solid var(--glass-border); border-inline-start: 0; }
+.fp-block { display: flex; flex-direction: column; gap: 2px; }
+.fp-head { margin: 0; display: flex; align-items: center; gap: 6px; font-size: .8125rem; font-weight: var(--fw-medium); color: var(--text-muted); }
+.fp-dot { inline-size: 10px; block-size: 10px; border-radius: 50%; background: var(--income); flex: none; }
+.fp-out .fp-dot { background: var(--expense); }
+.fp-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; font-size: .875rem; }
+.fp-row .money { font-size: 1rem; font-weight: var(--fw-bold); }
+.fp-total { margin: 0; display: flex; align-items: baseline; justify-content: space-between; font-size: 1.25rem; font-weight: var(--fw-black); color: var(--income); border-block-end: 2px solid var(--income); padding-block-end: 2px; }
+.fp-out .fp-total { color: var(--expense); border-block-end-color: var(--expense); }
+.fp-total .money, .fp-left .money { font-weight: var(--fw-black); }
+.fp-op { align-self: center; display: grid; place-items: center; inline-size: 22px; block-size: 22px; margin-block: -2px; border-radius: 50%; background: var(--surface-sunken); color: var(--text); font-weight: var(--fw-black); font-size: 1rem; line-height: 1; }
+.fp-left { margin: 2px 0 0; display: flex; align-items: center; justify-content: space-between; min-block-size: 44px; padding-inline: 14px; border-radius: 22px; font-size: 1.0625rem; font-weight: var(--fw-bold); }
+.fp-left.is-positive { background: var(--income-fill); color: #032A1A; }
+.fp-left.is-negative { background: #FFD3CB; color: #6B120C; }
+.fp-left .money { font-size: 1.375rem; }
+.fp-foot { margin: 4px 0 0; font-size: .75rem; line-height: 1.3; color: var(--text-muted); }
+:root[data-theme="light"] .fp-dot { background: var(--c-mint-700); }
+
+/* ===== Itemised summary card ===== */
+.layer-summary .scrim { background: rgb(5 12 32 / .30); }
+.layer-summary { max-inline-size: 448px; max-block-size: calc(100dvh - 168px); }
+.summary-card {
+  min-block-size: 0; max-block-size: 100%; overflow-y: auto; gap: 6px; padding: 14px 16px 6px;
+  background: var(--card-bg); color: var(--card-text); border: 3px solid var(--card-ring); border-block-end: 0; box-shadow: var(--shadow-glow-gold);
+  border-start-start-radius: 24px; border-start-end-radius: 24px; cursor: pointer;
+}
+.sc-title { margin: 0; text-align: center; font-size: 1.0625rem; font-weight: var(--fw-black); color: var(--card-muted); letter-spacing: 0; }
+.sc-rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.sc-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-block-size: 36px; padding-inline: 8px; border-radius: 10px; font-size: .9375rem; font-weight: var(--fw-medium); }
+.sc-amt { font-size: 1.125rem; font-weight: var(--fw-bold); font-variant-numeric: tabular-nums; }
+.sc-salary .sc-amt { color: var(--card-text); }
+.sc-passive.has-income { background: var(--card-income-bg); }
+.sc-passive .sc-amt { color: #0A7560; }
+.sc-passive .sc-none { color: var(--card-muted); font-size: .9375rem; font-weight: var(--fw-medium); }
+.sc-expense .sc-amt { color: var(--expense-ink); }
+.sc-divider { border-block-start: 2px dashed var(--card-border); margin-block: 2px; }
+.sc-left { display: flex; align-items: baseline; justify-content: center; gap: 6px; flex-wrap: wrap; font-size: 1rem; font-weight: var(--fw-black); text-align: center; }
+.sc-big { font-size: 1.625rem; font-weight: var(--fw-black); font-variant-numeric: tabular-nums; }
+.summary-card.is-positive .sc-left .sc-big { color: var(--income-ink); }
+.summary-card.is-negative .sc-left .sc-big { color: var(--expense-ink); }
+.sc-band { display: flex; align-items: baseline; justify-content: center; flex-wrap: wrap; gap: 2px 6px; padding: 8px 12px; border-radius: 14px; background: var(--c-navy-900); color: #fff; font-size: 1rem; font-weight: var(--fw-bold); text-align: center; }
+.sc-calc { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.sc-result { font-size: 1.5rem; font-weight: var(--fw-black); color: #F6C453; font-variant-numeric: tabular-nums; }
+.summary-card.is-negative .sc-result { color: #FF9C8C; }
+.sc-note { flex-basis: 100%; font-size: .8125rem; font-weight: var(--fw-medium); color: #fff; opacity: .92; }
+.sc-cash { margin: 0; text-align: center; font-size: .8125rem; line-height: 1.3; color: var(--card-muted); }
+.sc-arrow { display: inline-block; margin-inline: 4px; }
+[dir="rtl"] .sc-arrow { transform: scaleX(-1); }
+.sc-cta { position: sticky; inset-block-end: 0; padding-block: 4px 6px; background: var(--card-bg); margin-inline: -16px; padding-inline: 16px; }
+.sc-cta .btn { inline-size: 100%; min-block-size: 56px; font-size: 1.25rem; }
+.summary-card .hint-strip { cursor: default; }
+@media (max-height: 600px) { .summary-card { padding-block-start: 8px; gap: 3px; } .sc-row { min-block-size: 30px; } .sc-title { display: none; } }
+
+/* ===== Hand-over sheet: recap ===== */
+.handoff-recap { inline-size: 100%; display: flex; flex-direction: column; gap: 2px; padding: 8px 12px; border-radius: 16px; text-align: start; background: var(--glass-chip); border: 1px solid var(--glass-border); font-size: .875rem; line-height: 1.35; }
+.hr-title { margin: 0; font-size: .75rem; font-weight: var(--fw-bold); color: var(--text-muted); }
+.hr-line { margin: 0; color: var(--text); }
+.hr-fox { margin: 4px 0 0; padding-inline-start: 8px; border-inline-start: 3px solid var(--c-gold-400); font-weight: var(--fw-bold); color: var(--text); }
+.handoff-sheet .hint-strip { inline-size: 100%; text-align: start; }
+.handoff-sheet { gap: var(--sp-2); }
+.handoff-sheet .dialog-text { margin: 0; }
+@media (max-height: 700px) { .handoff-fox .fox { block-size: 72px; inline-size: auto; } .handoff-fox { margin-block-start: -48px; } .handoff-title { font-size: 1.5rem; } .handoff-sheet .ptoken-xl { transform: scale(.85); margin-block: -6px; } }
+.btn-roll-next { min-block-size: 64px; }
+
+/* ===== Hint strip (inside a card, the summary, the loan window, the hand-over sheet) ===== */
+.hint-strip { display: flex; align-items: center; gap: 8px; padding: 6px 10px 6px 8px; border-radius: 16px; background: var(--c-navy-900); color: #fff; border: 2px solid var(--c-gold-400); }
+.hint-fox { flex: none; align-self: flex-end; margin-block-start: -18px; }
+.hint-fox .fox { block-size: 60px; inline-size: auto; filter: drop-shadow(0 4px 6px rgb(0 0 0 / .5)); }
+.hint-body { flex: 1; min-inline-size: 0; display: flex; flex-direction: column; gap: 2px; }
+.hint-text, .hint-more { margin: 0; font-size: .875rem; line-height: 1.35; font-weight: var(--fw-bold); }
+.hint-more { font-weight: var(--fw-medium); color: var(--c-ice-100); font-size: .8125rem; }
+.hint-text .money, .hint-text bdi { color: var(--c-gold-300); }
+.hint-next { flex: none; min-inline-size: 64px; padding-inline: 12px; margin-block-end: 0; }
+.card-foot > .hint-strip { margin: 10px 22px 0; }
+.summary-card .hint-strip { margin-block-start: 4px; }
+.dialog .hint-strip { margin-block-start: 6px; }
+@media (max-height: 700px) { .hint-text { font-size: .8125rem; line-height: 1.3; } .hint-fox .fox { block-size: 48px; } .card-foot > .hint-strip { margin-block-start: 6px; padding-block: 4px; } }
+
+/* the floating hint in the roll zone (single player): same bubble as an explainer, no buttons */
+.note-hint { align-items: flex-end; cursor: pointer; }
+.note-hint .note-fox .fox { block-size: min(var(--fox-tip-h, 150px), 96px); }
+.note-hint .note-text { padding: 0; background: none; box-shadow: none; border: 0; font-size: .875rem; font-weight: var(--fw-bold); line-height: 1.35; color: var(--card-text); }
+.note-hint .note-bubble { padding-block: 8px; }
+@media (max-height: 600px) { .note-hint .note-text { font-size: .75rem; line-height: 1.3; } .note-hint .note-bubble { padding-block: 4px; } .note-hint .note-fox .fox { block-size: min(var(--fox-tip-h, 84px), 72px); } }
+
+/* ===== Highlight ring (outline only: it surrounds, never covers; the target keeps its own tap area) ===== */
+.hint-ring {
+  position: fixed; inset-block-start: 0; left: 0; box-sizing: border-box; border-radius: 14px; pointer-events: none; z-index: var(--z-fx);
+  outline: 3px solid var(--c-gold-300); outline-offset: 4px; box-shadow: 0 0 0 6px rgb(242 181 58 / .25);
+  animation: ring-in 220ms ease-out both, ring-pulse 1400ms ease-in-out 220ms 3;
+}
+.hint-ring.on-cream { outline-color: var(--c-gold-500); box-shadow: 0 0 0 6px rgb(227 160 32 / .25); }
+.hint-ring.is-still { animation: none; }
+.hint-ring[hidden] { display: none; }
+@keyframes ring-in { from { opacity: 0; scale: 1.08; } to { opacity: 1; scale: 1; } }
+@keyframes ring-pulse { 0%, 100% { box-shadow: 0 0 0 6px rgb(242 181 58 / .25); } 50% { box-shadow: 0 0 0 6px rgb(242 181 58 / .6); } }
+:root[data-motion="reduced"] .hint-ring { animation: none; }
+@media (prefers-reduced-motion: reduce) { .hint-ring { animation: none; } }
+
+/* ===== Story: five screens in a full-screen layer ===== */
+.layer-k-modal:has(.layer-story) { padding: 0; }
+.layer-story { inline-size: 100%; max-inline-size: 480px; block-size: 100dvh; max-block-size: 100dvh; background: var(--grad-night); color: var(--text); border-radius: 0; overflow: hidden; }
+.story { --story-fox: 120px; display: flex; flex-direction: column; block-size: 100%; min-block-size: 0; padding: max(6px, env(safe-area-inset-top)) 20px max(10px, env(safe-area-inset-bottom)); gap: 4px; }
+@media (min-height: 620px) { .story { --story-fox: 150px; } }
+@media (min-height: 760px) { .story { --story-fox: 200px; gap: 8px; } }
+.story-top { flex: none; display: grid; grid-template-columns: 48px 1fr 72px; align-items: center; min-block-size: 48px; }
+.story-top .icon-btn { inline-size: 48px; block-size: 48px; }
+.story-dots { justify-self: center; display: flex; align-items: center; gap: 6px; }
+.story-dots i { display: block; inline-size: 8px; block-size: 8px; border-radius: 4px; background: var(--c-navy-500); }
+.story-dots i.is-on { inline-size: 22px; background: var(--c-gold-400); }
+.story-skip { justify-self: end; min-block-size: 48px; min-inline-size: 48px; padding-inline: 10px; }
+.story-skip-gap { inline-size: 48px; }
+.story-view { flex: 1 1 0; min-block-size: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; }
+.story-screen { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; padding-block-end: 4px; margin-block: auto; inline-size: 100%; }
+.story-stage { position: relative; inline-size: 100%; min-block-size: var(--story-fox); display: flex; align-items: flex-end; justify-content: center; flex: none; }
+.story-halo { position: absolute; inset-block: -6% auto; inset-inline: 0; margin-inline: auto; inline-size: calc(var(--story-fox) * 1.1); block-size: calc(var(--story-fox) * 1.1); background: var(--glow-fox); border-radius: 50%; pointer-events: none; }
+.story-stage.has-art .story-halo { inset-inline: auto; inset-inline-start: 10%; }
+.story-fox { position: relative; z-index: 2; flex: none; }
+.story-fox .fox { block-size: var(--story-fox); inline-size: auto; }
+.story-stage[data-pose="hammock"] .story-fox .fox { block-size: auto; inline-size: min(220px, 62vw); }
+@media (max-height: 600px) { .story-stage[data-pose="hammock"] .story-fox .fox { inline-size: 160px; } }
+@media (min-height: 620px) and (max-height: 700px) { .story-stage[data-pose="hammock"] .story-fox .fox { inline-size: 190px; } }
+.story-art { position: relative; z-index: 1; flex: none; inline-size: calc(var(--story-fox) * 1.33); block-size: auto; max-inline-size: 55%; margin-inline-start: -24px; }
+.story-title { margin: 0; font-size: 1.375rem; line-height: 1.2; font-weight: var(--fw-black); background: var(--title-grad); -webkit-background-clip: text; background-clip: text; color: transparent; outline: none; text-wrap: balance; padding-block: 2px; }
+.story-body { max-inline-size: 312px; font-size: 1.125rem; line-height: 1.4; font-weight: var(--fw-medium); display: flex; flex-direction: column; gap: 4px; }
+.story-body p { margin: 0; }
+@media (max-height: 640px) { .story-body { font-size: 1rem; line-height: 1.35; } .story-title { font-size: 1.25rem; } }
+@media (max-height: 600px) { .story-title { font-size: 1.125rem; } .story-body { font-size: .9375rem; line-height: 1.3; gap: 2px; } }
+.story-card { inline-size: 100%; display: flex; flex-direction: column; gap: 4px; padding: 8px 12px; border-radius: 20px; background: var(--card-bg); color: var(--card-text); text-align: center; cursor: pointer; box-shadow: var(--shadow-1); }
+.story-card-label { font-size: .75rem; font-weight: var(--fw-medium); color: var(--card-muted); }
+.story-card-text { margin: 0; font-size: .875rem; line-height: 1.4; font-weight: var(--fw-medium); }
+.story-card-foot { margin: 0; font-size: .75rem; line-height: 1.3; color: var(--card-muted); }
+.story-num { font-size: 1.0625rem; font-weight: var(--fw-black); color: var(--card-text); white-space: nowrap; }
+@media (max-height: 600px) { .story-card { padding: 6px 12px; gap: 2px; } .story-card-label, .story-card-foot { display: none; } .story-card-text { font-size: .8125rem; line-height: 1.3; } .story-num { font-size: 1rem; } }
+.story-simplify { margin: 0; max-inline-size: 312px; font-size: .75rem; line-height: 1.35; color: var(--text-muted); text-align: start; padding: 6px 10px; border-radius: 12px; background: var(--glass-chip); }
+.story-simplify-label { color: var(--text); }
+@media (max-height: 600px) { .story-simplify { font-size: .6875rem; line-height: 1.25; padding: 4px 8px; } }
+.story-cta { flex: none; padding-block-start: 4px; }
+.story-cta .btn { inline-size: 100%; min-block-size: 56px; font-size: 1.25rem; }
+.story-card .money { white-space: nowrap; }
+
+.chain { display: flex; flex-direction: column; gap: 4px; }
+.chain-row { list-style: none; margin: 0; padding: 0; display: flex; align-items: flex-start; justify-content: space-between; gap: 0; }
+.chain-chip { flex: 1 1 0; min-inline-size: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.chain-icon { display: grid; place-items: center; inline-size: 38px; block-size: 38px; border-radius: 50%; background: var(--c-navy-900); color: var(--c-gold-300); }
+.chain-label { font-size: .6875rem; line-height: 1.15; font-weight: var(--fw-bold); text-align: center; }
+.chain-arrow { flex: none; align-self: flex-start; margin-block-start: 9px; color: var(--card-muted); }
+.chain-dots { display: flex; justify-content: center; gap: 3px; }
+.chain-dots i { display: block; inline-size: 6px; block-size: 6px; border-radius: 50%; background: var(--c-gold-500); }
+@media (max-height: 600px) { .chain-icon { inline-size: 30px; block-size: 30px; } .chain-icon svg { inline-size: 18px; block-size: 18px; } .chain-arrow { margin-block-start: 5px; } .chain-dots i { inline-size: 5px; block-size: 5px; } }
+
+.offer-actions { inline-size: 100%; display: flex; flex-direction: column; gap: 10px; }
+.offer-actions .btn { inline-size: 100%; min-block-size: 56px; }
+.story-parent { min-block-size: 48px; }
+
+/* ===== The check: three questions ===== */
+.quiz-step { margin: 0; font-size: .8125rem; color: var(--text-muted); font-weight: var(--fw-medium); }
+.quiz-prompt { font-size: 1.375rem; }
+.quiz-options { inline-size: 100%; display: flex; flex-direction: column; gap: 8px; }
+.quiz-option {
+  display: flex; align-items: center; gap: 10px; inline-size: 100%; min-block-size: 56px; padding: 8px 14px; border-radius: 16px; text-align: start;
+  background: var(--glass-bg); color: var(--text); border: 2px solid var(--glass-border); font-family: inherit; font-size: .9375rem; line-height: 1.3; font-weight: var(--fw-bold); touch-action: manipulation;
+}
+.quiz-option:active:not(:disabled) { transform: scale(var(--press-scale)); }
+.quiz-mark { flex: none; display: grid; place-items: center; inline-size: 24px; block-size: 24px; border-radius: 50%; border: 2px solid var(--border-strong); }
+.quiz-option.is-right { border-color: var(--income); background: rgb(95 224 174 / .16); }
+.quiz-option.is-right .quiz-mark { background: var(--income-fill); border-color: var(--income-fill); color: #032A1A; }
+.quiz-option.is-miss { border-style: dashed; opacity: .8; }
+.quiz-option:disabled { color: var(--text); }
+.quiz-status { inline-size: 100%; text-align: start; font-size: .9375rem; line-height: 1.4; }
+.quiz-status p { margin: 0 0 4px; }
+.quiz-hint { color: var(--c-gold-300); font-weight: var(--fw-bold); }
+:root[data-theme="light"] .quiz-hint { color: var(--c-fox-700); }
+.quiz-explain { padding: 8px 12px; border-radius: 14px; background: var(--glass-chip); }
+.quiz-showme { align-self: center; min-block-size: 48px; }
+.quiz-replay { inline-size: 100%; white-space: normal; line-height: 1.2; }
+@media (max-height: 640px) { .quiz-option { min-block-size: 48px; padding-block: 4px; font-size: .875rem; } .quiz-prompt { font-size: 1.125rem; } .quiz-options { gap: 6px; } .quiz-status { font-size: .8125rem; } }
+
+/* ===== Parent card, kid how-to, dictionary extras ===== */
+.parent-steps { margin: 0; padding-inline-start: 22px; display: flex; flex-direction: column; gap: 8px; font-size: 1rem; line-height: 1.4; }
+.parent-qs { display: flex; flex-direction: column; gap: 10px; }
+.parent-q { padding: 8px 12px; border-radius: 14px; background: var(--glass-chip); }
+.parent-question { margin: 0; font-weight: var(--fw-bold); }
+.parent-answer { margin: 4px 0 0; font-size: .875rem; color: var(--text-muted); }
+.howto-kid .howto-row { inline-size: 100%; justify-content: flex-start; }
+.howto-rules-title { margin: 4px 0 0; font-size: var(--fs-md); font-weight: var(--fw-black); }
+.dict-pro { margin: 0; font-size: .8125rem; color: var(--text-muted); font-weight: var(--fw-medium); }
+.dict-pro-sm { grid-column: 1; }
+
+/* screen 5 is the longest: the fox shrinks to the inline-start and the second body line (the card repeats it with the numbers) folds away on short screens */
+.story-screen[data-story="s5-turn"] .story-fox .fox { block-size: calc(var(--story-fox) * .8); }
+@media (max-height: 700px) {
+  .story-screen[data-story="s5-turn"] .story-stage { min-block-size: calc(var(--story-fox) * .8); }
+  .story-screen[data-story="s5-turn"] .story-body p:nth-child(2) { display: none; }
+  .story-screen[data-story="s5-turn"] .chain-dots { display: none; }
+}
+
+@media (max-height: 640px) {
+  .story-screen[data-story="s5-turn"] .story-fox .fox { block-size: calc(var(--story-fox) * .72); }
+  .story-screen[data-story="s5-turn"] .story-stage { min-block-size: calc(var(--story-fox) * .72); }
+  .story-screen[data-story="s5-turn"] .story-card-text { font-size: .8125rem; line-height: 1.32; }
+  .story-screen[data-story="s5-turn"] .story-card-label { display: none; }
+}
+@media (max-height: 600px) {
+  .story-screen[data-story="s5-turn"] .story-fox .fox { block-size: calc(var(--story-fox) * .62); }
+  .story-screen[data-story="s5-turn"] .story-stage { min-block-size: calc(var(--story-fox) * .62); }
+  .story-screen[data-story="s5-turn"] .story-body { font-size: .875rem; }
+  .story-screen[data-story="s5-turn"] .story-card-text { font-size: .75rem; line-height: 1.28; }
+  .story-screen[data-story="s5-turn"] .story-num { font-size: .9375rem; }
+  .story-screen[data-story="s5-turn"] .chain-label { font-size: .625rem; }
+}
