@@ -5,17 +5,20 @@ import { dayNumber, addDays } from './calendar.js';
 export const STREAK_SCHEMA = 1;
 export const STREAK_BADGES = [3, 7, 30]; // streak lengths that earn a badge (kept for good once earned)
 
+export const MAX_COUNT = 9999; // a stored count above this cannot be real: clamped
+const clampCount = (n) => (Number.isFinite(n) && n >= 0 ? Math.min(Math.floor(n), MAX_COUNT) : 0);
+
 export const emptyStreak = () => ({ v: STREAK_SCHEMA, last: null, count: 0, best: 0, badges: [] });
 
 /** Reads whatever was stored; anything that is not a valid v1 record becomes an empty streak. */
 export function parseStreak(raw) {
   if (!raw || typeof raw !== 'object' || raw.v !== STREAK_SCHEMA) return emptyStreak();
   const okKey = typeof raw.last === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(raw.last);
-  const count = Number.isInteger(raw.count) && raw.count >= 0 ? raw.count : 0;
+  const count = clampCount(raw.count);
   if (!okKey && raw.last != null) return emptyStreak();
   return {
     v: STREAK_SCHEMA, last: okKey ? raw.last : null, count: okKey ? count : 0,
-    best: Math.max(count, Number.isInteger(raw.best) && raw.best >= 0 ? raw.best : 0),
+    best: Math.max(count, clampCount(raw.best)),
     badges: Array.isArray(raw.badges) ? raw.badges.filter((b) => STREAK_BADGES.includes(b)) : [],
   };
 }
@@ -27,7 +30,7 @@ export function recordPlay(streak, date) {
   // backup): it is ignored instead of freezing the streak. One day ahead is a clock set back a little: nothing changes then.
   if (s.last != null && dayNumber(s.last) > dayNumber(date) + 1) return recordPlay({ ...s, last: null, count: 0 }, date);
   if (s.last != null && dayNumber(date) <= dayNumber(s.last)) return s;
-  const count = s.last != null && dayNumber(date) - dayNumber(s.last) === 1 ? s.count + 1 : 1;
+  const count = s.last != null && dayNumber(date) - dayNumber(s.last) === 1 ? Math.min(s.count + 1, MAX_COUNT) : 1;
   const badges = [...new Set([...s.badges, ...STREAK_BADGES.filter((b) => count >= b)])].sort((a, b) => a - b);
   return { v: STREAK_SCHEMA, last: date, count, best: Math.max(s.best, count), badges };
 }

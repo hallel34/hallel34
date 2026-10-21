@@ -23,7 +23,7 @@ export function streakText(view) {
 
 /** The learning headline needs at least 3 rated decisions; fewer (a short game, an early give-up) says "no data" instead of "all green". */
 export const MIN_RATED_FOR_HEADLINE = 3;
-export const headlineGreen = (g) => (g && g.total < MIN_RATED_FOR_HEADLINE ? { ...g, kind: 'noData' } : g);
+export const headlineGreen = (g) => (!g || g.total < MIN_RATED_FOR_HEADLINE ? { green: 0, total: 0, ...g, kind: 'noData' } : g);
 
 export const badgeLabel = (days) => tp('plural.badgeDays', days);
 export const outcomeText = (record) => (record.turns == null ? t('daily.cardDoneFail') : t('daily.cardDoneFreedom', { turns: tp('plural.turnsIn', record.turns) }));

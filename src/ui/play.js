@@ -719,7 +719,8 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   async function finishIfOver() {
     if (destroyed || ending || match.status === 'playing') return;
     ending = true;
-    store.clear(match);
+    if (isDaily) nav.commit?.(match); // result first, then the daily slot is cleared (one ordered step, before the pause)
+    else store.clear(match);
     await pause(500);
     if (destroyed) return;
     if (match.status === 'won') nav.win(match); else nav.over(match);

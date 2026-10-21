@@ -352,16 +352,16 @@ describe('share text (D2)', () => {
   const url = 'https://example.org/passivo/';
   it('first line: date | outcome | net worth, then the squares and the link', () => {
     const lines = buildShareText(entry({ lights: undefined }), url).split('\n');
-    expect(lines[0]).toBe('פסיבו אתגר יומי 21.10 | חופש כלכלי ב-17 תורות | שווי נקי ₪1.2M');
+    expect(lines[0]).toBe('פסיבו אתגר יומי 21.10 | חופש כלכלי ב-17 תורות | שווי נקי \u2066₪1.2M\u2069');
     const full = buildShareText(entry(), url).split('\n');
-    expect(full[0]).toBe('פסיבו אתגר יומי 21.10 | חופש כלכלי ב-17 תורות | שווי נקי ₪1.2M');
+    expect(full[0]).toBe('פסיבו אתגר יומי 21.10 | חופש כלכלי ב-17 תורות | שווי נקי \u2066₪1.2M\u2069');
     expect(full[1]).toBe('\u200F🟩🟨🟥⬜🟩🟩'); // RLM at the start of each emoji row
     expect(full.at(-1)).toBe(url);
   });
   it('uses the plural helper for one turn and says "not today" without freedom', () => {
     expect(buildShareText(entry({ turns: 1 }), url).split('\n')[0]).toContain('בתור אחד');
     const fail = buildShareText(entry({ turns: null, netWorth: 90000 }), url).split('\n')[0];
-    expect(fail).toBe('פסיבו אתגר יומי 21.10 | לא הצלחתי היום | שווי נקי ₪90K');
+    expect(fail).toBe('פסיבו אתגר יומי 21.10 | לא הצלחתי היום | שווי נקי \u2066₪90K\u2069');
   });
   it('wraps the squares in rows of ten', () => {
     expect(squaresRows('g'.repeat(23))).toEqual(['\u200F' + '🟩'.repeat(10), '\u200F' + '🟩'.repeat(10), '\u200F' + '🟩'.repeat(3)]);
@@ -377,7 +377,7 @@ describe('share text (D2)', () => {
     expect(compactMoney(-300)).toBe('מינוס ₪300');
     expect(compactMoney(-24000)).toBe('מינוס ₪24K');
     expect(compactMoney(-1500000)).toBe('מינוס ₪1.5M');
-    expect(buildShareText(entry({ netWorth: -24000 }), url).split('\n')[0]).toBe('פסיבו אתגר יומי 21.10 | חופש כלכלי ב-17 תורות | שווי נקי מינוס ₪24K');
+    expect(buildShareText(entry({ netWorth: -24000 }), url).split('\n')[0]).toBe('פסיבו אתגר יומי 21.10 | חופש כלכלי ב-17 תורות | שווי נקי \u2066מינוס ₪24K\u2069');
   });
   it('a real game reveals no card titles, no profession, no player names', () => {
     const { s } = play('2026-10-21', 'sensible');

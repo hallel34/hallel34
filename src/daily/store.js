@@ -14,6 +14,16 @@ export function finishDailyGame(state) {
   return out;
 }
 
+/**
+ * The ordered end of a daily game: the RESULT is written first, then the streak, and only then the save slot is cleared
+ * (clearSave). A reload at any instant keeps the attempt: before the result a save still exists, after it the day is 'done'.
+ */
+export function endDailyGame(state, clearSave = () => {}) {
+  const out = finishDailyGame(state);
+  clearSave();
+  return out;
+}
+
 /** ?debug=1 only: forget today's result so the day can be played again (the streak and older days stay). */
 export function resetDay(date) {
   const r = loadResults();

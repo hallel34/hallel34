@@ -17,6 +17,8 @@ export function compactMoney(n) {
 
 /** 'gyrn' -> emoji blocks, `perRow` per line. */
 export const RLM = '\u200F';
+export const LRI = '\u2066'; // isolates the amount: K / M stay attached even in a bubble forced to LTR
+export const PDI = '\u2069';
 
 export function squaresRows(lights, perRow = 10) {
   const sym = { g: t('daily.shareLines.green'), y: t('daily.shareLines.yellow'), r: t('daily.shareLines.red'), n: t('daily.shareLines.none') };
@@ -30,6 +32,6 @@ export function squaresRows(lights, perRow = 10) {
 export function buildShareText(entry, url) {
   const { record, lights } = entry;
   const outcome = record.turns == null ? t('daily.shareLines.notToday') : t('daily.shareLines.freedom', { turns: tp('plural.turnsIn', record.turns) });
-  const head = t('daily.shareLines.head', { date: shortDate(record.date), outcome, net: compactMoney(record.netWorth) });
+  const head = t('daily.shareLines.head', { date: shortDate(record.date), outcome, net: `${LRI}${compactMoney(record.netWorth)}${PDI}` });
   return [head, ...squaresRows(lights), url].filter(Boolean).join('\n');
 }

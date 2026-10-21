@@ -8,11 +8,35 @@ export const KEEP_DAYS = 60; // finished days kept on the device (older ones are
 
 export const emptyResults = () => ({ v: RESULTS_SCHEMA, byDate: {} });
 
+const fin = (x, d) => (typeof x === 'number' && Number.isFinite(x) ? x : d);
+
+/** A stored entry repaired field by field, so the daily card and the result screen never throw. null = not an entry at all. */
+export function sanitizeEntry(e, date) {
+  if (!e || typeof e !== 'object' || !e.record || typeof e.record !== 'object' || e.record.date !== date) return null;
+  const r = e.record;
+  const turns = Number.isInteger(r.turns) && r.turns >= 0 ? r.turns : null;
+  const g = e.green && typeof e.green === 'object' ? e.green : null;
+  const kinds = ['all', 'none', 'some', 'noData'];
+  const green = g && Number.isInteger(g.green) && Number.isInteger(g.total) && g.green >= 0 && g.total >= g.green && kinds.includes(g.kind)
+    ? { green: g.green, total: g.total, kind: g.kind } : { green: 0, total: 0, kind: 'noData' };
+  return {
+    v: RESULTS_SCHEMA,
+    record: {
+      date, seed: fin(r.seed, 0), turns, netWorth: fin(r.netWorth, 0), professionId: typeof r.professionId === 'string' ? r.professionId : '',
+      mode: typeof r.mode === 'string' ? r.mode : 'family', actionsLog: Array.isArray(r.actionsLog) ? r.actionsLog : [],
+    },
+    outcome: ['won', 'gaveUp', 'failed'].includes(e.outcome) ? e.outcome : turns == null ? 'failed' : 'won',
+    lights: typeof e.lights === 'string' ? e.lights.replace(/[^gyrn]/g, '').slice(0, 200) : '',
+    green,
+  };
+}
+
 export function parseResults(raw) {
   if (!raw || typeof raw !== 'object' || raw.v !== RESULTS_SCHEMA || !raw.byDate || typeof raw.byDate !== 'object') return emptyResults();
   const byDate = {};
   for (const [k, e] of Object.entries(raw.byDate)) {
-    if (/^\d{4}-\d{2}-\d{2}$/.test(k) && e?.record && e.record.date === k) byDate[k] = e;
+    const clean = /^\d{4}-\d{2}-\d{2}$/.test(k) ? sanitizeEntry(e, k) : null;
+    if (clean) byDate[k] = clean;
   }
   return { v: RESULTS_SCHEMA, byDate };
 }

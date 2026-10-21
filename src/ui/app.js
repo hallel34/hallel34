@@ -16,7 +16,7 @@ import { createDailyResult } from './screens/daily.js';
 import { dayKey } from '../daily/calendar.js';
 import { streakView } from '../daily/streak.js';
 import { dailyStatus } from '../daily/attempt.js';
-import { loadResults, loadStreak, finishDailyGame, resetDay } from '../daily/store.js';
+import { loadResults, loadStreak, endDailyGame, resetDay } from '../daily/store.js';
 import { showInterstitial } from '../services/ads.js';
 import { getLocale } from '../i18n/index.js';
 import { destroyAllLayers } from './modal.js';
@@ -40,7 +40,7 @@ export function createApp(host) {
     const raw = readRaw('save');
     if (!raw) return null;
     const m = deserialize(raw);
-    if (!m || !['playing', 'lost', 'won'].includes(m.status) || !m.players.every((p) => engine.data.professions.some((x) => x.id === p.state.profession?.id))) return null;
+    if (!m || m.daily || !['playing', 'lost', 'won'].includes(m.status) || !m.players.every((p) => engine.data.professions.some((x) => x.id === p.state.profession?.id))) return null;
     return m;
   }
 
@@ -82,10 +82,16 @@ export function createApp(host) {
     mount({ el: res.el, destroy: () => res.destroy() }, { start: () => res.start() });
   }
 
+  // The result is written (then the save slot cleared) the instant the game ends, BEFORE the end-of-game pause, so a reload at any
+  // moment keeps the attempt. The outcome is remembered so the screen shown after the pause still celebrates the fresh result.
+  const dailyOutcomes = new WeakMap();
+  function commitDaily(m) {
+    if (!dailyOutcomes.has(m)) dailyOutcomes.set(m, endDailyGame(currentState(m), () => store.clear(m)));
+    return dailyOutcomes.get(m);
+  }
   function finishDaily(m) {
-    const out = finishDailyGame(currentState(m));
-    store.clear(m);
-    countGame();
+    // a daily finish is not a 'game played' for the interstitial cadence (decisions.md)
+    const out = commitDaily(m);
     goDailyResult(out.entry, { fresh: true, badges: out.newBadges });
   }
 
@@ -115,6 +121,7 @@ export function createApp(host) {
 
   const nav = {
     menu: () => goStart(),
+    commit: (m) => { if (m.daily) commitDaily(m); },
     win: (s) => goWin(s),
     over: (s) => goOver(s),
   };
