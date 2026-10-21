@@ -36,12 +36,14 @@
       {
         "id": "car",
         "label": "הלוואת רכב",
+        "debt": "car",
         "principal": 18000,
-        "monthlyPayment": 450
+        "monthlyPayment": 360
       },
       {
         "id": "card",
         "label": "חוב בכרטיס אשראי",
+        "debt": "card",
         "principal": 5000,
         "monthlyPayment": 150
       }
@@ -84,14 +86,16 @@
       {
         "id": "car",
         "label": "הלוואת רכב",
+        "debt": "car",
         "principal": 40000,
-        "monthlyPayment": 900
+        "monthlyPayment": 800
       },
       {
         "id": "student",
         "label": "הלוואת סטודנט",
+        "debt": "student",
         "principal": 20000,
-        "monthlyPayment": 300
+        "monthlyPayment": 200
       }
     ]
   },
@@ -132,6 +136,7 @@
       {
         "id": "car",
         "label": "הלוואת רכב",
+        "debt": "car",
         "principal": 30000,
         "monthlyPayment": 600
       }
@@ -174,14 +179,16 @@
       {
         "id": "car",
         "label": "הלוואת רכב",
+        "debt": "car",
         "principal": 20000,
-        "monthlyPayment": 500
+        "monthlyPayment": 400
       },
       {
         "id": "student",
         "label": "הלוואת לימודים",
+        "debt": "student",
         "principal": 12000,
-        "monthlyPayment": 250
+        "monthlyPayment": 120
       }
     ]
   },
@@ -227,8 +234,9 @@
       {
         "id": "card",
         "label": "חוב בכרטיס אשראי",
+        "debt": "card",
         "principal": 8000,
-        "monthlyPayment": 250
+        "monthlyPayment": 240
       }
     ]
   },
@@ -269,8 +277,9 @@
       {
         "id": "car",
         "label": "הלוואת רכב",
+        "debt": "car",
         "principal": 22000,
-        "monthlyPayment": 550
+        "monthlyPayment": 440
       }
     ]
   },
@@ -311,8 +320,9 @@
       {
         "id": "card",
         "label": "חוב בכרטיס אשראי",
+        "debt": "card",
         "principal": 6000,
-        "monthlyPayment": 200
+        "monthlyPayment": 180
       }
     ]
   },
@@ -353,14 +363,16 @@
       {
         "id": "car",
         "label": "הלוואת רכב",
+        "debt": "car",
         "principal": 45000,
-        "monthlyPayment": 1000
+        "monthlyPayment": 900
       },
       {
         "id": "student",
         "label": "הלוואת לימודים",
+        "debt": "student",
         "principal": 25000,
-        "monthlyPayment": 350
+        "monthlyPayment": 250
       }
     ]
   }

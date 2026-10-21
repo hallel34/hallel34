@@ -1,4 +1,5 @@
 // Schema validation for professions and cards. Fails loudly.
+import { BASE_DEBT_RATES } from './config.js';
 const MODES = ['family', 'full'];
 const DECKS = ['opportunity', 'expense', 'market'];
 const TYPES = ['apartment', 'business', 'stock'];
@@ -27,6 +28,13 @@ export function validateProfessions(list) {
     else p.liabilities.forEach((l) => {
       if (!isStr(l.id) || !isStr(l.label) || !isNum(l.principal) || !isNum(l.monthlyPayment)) {
         errors.push(`${w}: bad liability ${l?.id}`);
+      } else if (l.debt !== undefined) {
+        // One consistent model for starting debts: payment = principal x rate of its kind (rounded to 10).
+        const rate = BASE_DEBT_RATES[l.debt];
+        if (rate === undefined) errors.push(`${w}: liability ${l.id} has unknown debt kind ${l.debt}`);
+        else if (l.monthlyPayment !== Math.round((l.principal * rate) / 10) * 10) {
+          errors.push(`${w}: liability ${l.id} payment must be ${Math.round((l.principal * rate) / 10) * 10} (${l.debt} rate)`);
+        }
       }
     });
   }
@@ -47,6 +55,7 @@ export function validateCards(list) {
     if (!Array.isArray(c.modes) || !c.modes.length || c.modes.some((m) => !MODES.includes(m))) {
       errors.push(`${w}: modes`);
     }
+    if (c.realWorld !== undefined && typeof c.realWorld !== 'boolean') errors.push(`${w}: realWorld must be true/false`);
     if (c.deck === 'opportunity') {
       if (!TYPES.includes(c.type)) errors.push(`${w}: type`);
       else if (c.type === 'stock') {
@@ -59,6 +68,16 @@ export function validateCards(list) {
         }
         if (isNum(c.price) && c.price !== c.downPayment + c.mortgage) {
           errors.push(`${w}: price must equal downPayment + mortgage`);
+        }
+        // Optional breakdown shown on the card: rent (apartment) or profit (business) minus the loan payment = monthlyCashFlow.
+        const gross = c.type === 'business' ? 'profit' : 'rent';
+        const other = c.type === 'business' ? 'rent' : 'profit';
+        if (c[other] !== undefined) errors.push(`${w}: ${other} is not allowed on a ${c.type}`);
+        if (c.loanPayment !== undefined || c[gross] !== undefined) {
+          if (!isNum(c.loanPayment) || c.loanPayment < 0 || !isNum(c[gross])) errors.push(`${w}: ${gross} and loanPayment go together`);
+          else if (isNum(c.monthlyCashFlow) && c[gross] - c.loanPayment !== c.monthlyCashFlow) {
+            errors.push(`${w}: ${gross} - loanPayment must equal monthlyCashFlow`);
+          }
         }
       }
     } else if (c.deck === 'expense') {
