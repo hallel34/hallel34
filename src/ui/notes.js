@@ -73,7 +73,7 @@ export function createNotes({ zone, onActive, onDismiss }) {
     animate(el, motionOK()
       ? [{ opacity: 0, transform: 'translateY(14px)' }, { opacity: 1, transform: 'translateY(0)' }]
       : [{ opacity: 0 }, { opacity: 1 }], { duration: motionOK() ? 260 : cssMs('--dur-base', 120), easing: 'cubic-bezier(.16,1,.3,1)' });
-    const hold = item.kind === 'explain' ? 20000 : holdFor(item.plain ?? '');
+    const hold = item.kind === 'explain' ? (window.matchMedia?.('(max-height: 600px)').matches ? 6000 : 20000) : holdFor(item.plain ?? '');
     current = { el, item, shownAt: performance.now(), timer: setTimeout(() => hideCurrent({ reason: 'timeout' }), hold) };
   }
 

@@ -256,7 +256,7 @@ function finishOpportunity({ state, c, body, flip, qtyGetter, plan, ctl = null, 
   // plan.status: 'ok' (cash covers it) | 'loan' (one loan covers the gap) | 'blocked' (short even after the maximum loan)
   const hintId = 'buy-hint';
   const warn = plan.status === 'blocked'
-    ? h('div', { class: 'banner banner-warn', role: 'status', id: hintId, 'data-hint': 'blocked' }, icon('bank', { size: 24 }), h('span', null, t('card.noFundsMax'), loanLimits(state).capBinds ? ` ${t('loan.capBlocked', { salaries: numberText(loanLimits(state).capSalaries) })}` : ''))
+    ? h('div', { class: 'banner banner-warn', role: 'status', id: hintId, 'data-hint': 'blocked' }, icon('bank', { size: 24 }), h('span', null, t('card.noFundsMax'), loanLimits(state).capBinds ? `. ${t('loan.capBlocked', { salaries: numberText(loanLimits(state).capSalaries) })}` : ''))
     : plan.status === 'loan'
       ? h('div', { class: 'banner banner-warn', role: 'status', id: hintId, 'data-hint': 'loan' }, icon('bank', { size: 24 }), h('span', null, t('card.needLoan', { amount: moneyText(plan.need) })))
       : null;

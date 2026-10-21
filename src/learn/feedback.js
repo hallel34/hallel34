@@ -4,13 +4,14 @@
 import { learnOf, diversifyKey, hasShown, assetKinds } from '../engine/learn.js';
 import { passiveIncome, totalExpenses } from '../engine/selectors.js';
 import { moneyText } from '../ui/format.js';
+import { tp } from '../i18n/index.js';
 import { yearsPhrase, pctText, loanSlots, fillSlots } from './slots.js';
 
 /** Slots each group's caller provides (the content test checks every text only uses these). */
 export const GROUP_SLOTS = {
   'buy.good': ['title', 'years', 'yield', 'monthly'], 'buy.ok': ['title', 'years', 'yield', 'monthly'],
   'buy.bad': ['title', 'years', 'yield', 'monthly'], 'buy.trap': ['title', 'loss'],
-  'buy.stock': ['qty', 'symbol', 'monthly'], 'buy.diversify': [],
+  'buy.stock': ['qty', 'symbol', 'shares', 'monthly'], 'buy.diversify': [],
   'pass.goodDeal': ['years', 'yield'], 'pass.neutral': ['years'], 'pass.bad': ['years', 'yield'], 'pass.trap': ['loss'], 'pass.cantAfford': [],
   'loan.sensible': ['amount', 'loanAmount', 'monthlyPayment', 'interest', 'total', 'rate'],
   'loan.costly': ['amount', 'loanAmount', 'monthlyPayment', 'interest', 'total', 'rate'],
@@ -76,7 +77,7 @@ function dealSlots(x) {
 function fromDecision(x, after) {
   if (x.kind === 'buy') {
     if (x.type === 'stock') {
-      const out = [req('buy.stock', { qty: String(x.qty), symbol: x.symbol, monthly: moneyText(x.cf) })];
+      const out = [req('buy.stock', { qty: String(x.qty), symbol: x.symbol, shares: tp('plural.sharesOf', x.qty, { symbol: x.symbol }), monthly: moneyText(x.cf) })];
       const key = diversifyKey(after);
       if (key && !hasShown(after, key)) out.push(req('buy.diversify', {}, { mark: key }));
       return out;

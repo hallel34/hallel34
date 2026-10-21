@@ -29,7 +29,7 @@ describe('the primary board button never reads "..."', () => {
       expect(text, key).toBeTruthy();
       expect(text.replace(/[.\s]/g, ''), key).not.toBe('');
     }
-    expect(he.game.rolling).toBe('הקוביה מתגלגלת...');
+    expect(he.game.rolling).toBe('הקובייה מתגלגלת...');
     expect(he.game.advancing).toBe('מתקדמים...');
     expect(he.game.continue).toBe('המשיכו');
   });

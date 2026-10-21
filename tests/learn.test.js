@@ -369,7 +369,7 @@ describe('slot rendering (spec 2.1)', () => {
     }
   });
   it('a filled line has no {slot} left', () => {
-    const slots = { title: 'דירה', years: '4.9 שנים', yield: '20.4%', monthly: '₪3,400', loss: '₪500', qty: '10', symbol: 'MAV', ...loanSlots(5000), cashLeft: '₪1,500', saved: '₪10', over: '25%', price: '₪300', passive: '₪1', expenses: '₪2' };
+    const slots = { title: 'דירה', years: '4.9 שנים', yield: '20.4%', monthly: '₪3,400', loss: '₪500', qty: '10', symbol: 'MAV', shares: '10 מניות של MAV', ...loanSlots(5000), cashLeft: '₪1,500', saved: '₪10', over: '25%', price: '₪300', passive: '₪1', expenses: '₪2' };
     for (const [group, v] of Object.entries(content.feedback.lines)) {
       for (const mode of ['family', 'full']) {
         const r = renderFeedback(content.feedback, { group, slots }, { mode, seed: 3, counter: 0 });

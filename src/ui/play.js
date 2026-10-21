@@ -8,7 +8,7 @@ import {
 } from '../engine/index.js';
 import { icon } from './icons.js';
 import { money, moneyText, tn, signedMoney, paydayCalc } from './format.js';
-import { button, iconButton, meter, cashDisplay, miniMeter } from './widgets.js';
+import { button, iconButton, meter, cashDisplay, miniMeter, fitText } from './widgets.js';
 import { createDice } from './die.js';
 import { motionOK } from './prefs.js';
 import {
@@ -100,6 +100,8 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   const charityChip = h('span', { class: 'chip chip-charity', 'data-active': 'false' });
   const cash = cashDisplay(state.cash);
   const flowChip = h('span', { class: 'flow-chip' });
+  const cashWrap = h('span', { class: 'cash-wrap', 'aria-label': t('game.cash') }, cash.el);
+  fitText(cash.el, { minScale: 0.5, box: cashWrap }); // very narrow screens (320px): a long amount shrinks to fit instead of overflowing
   const passiveVal = h('b', { class: 'tone-income' });
   const expenseVal = h('b', { class: 'tone-expense' });
   const m = meter();
@@ -116,7 +118,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
       h('div', { class: 'hud-btns' }, stmtBtn, homeBtn, settingsBtn)),
     h('div', { class: 'hud-cash' },
       h('img', { class: 'hud-coin', src: coinUrl, alt: '', width: 30, height: 30 }),
-      h('span', { class: 'cash-wrap', 'aria-label': t('game.cash') }, cash.el),
+      cashWrap,
       flowChip),
     h('div', { class: 'meter-labels' },
       h('span', null, t('game.passive'), ' ', passiveVal),

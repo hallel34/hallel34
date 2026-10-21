@@ -24,6 +24,7 @@
       "total": "loanTerms(loanAmount).totalAtPayday = loanAmount + interest, formatted. It is the sum to hand back ONLY if the loan is repaid at the next summary (principal stays owed until repaid, interest continues every month). Texts must always say 'אם תפרעו/מחזירים בסיכום הקרוב' next to it. It is NOT a total until the loan ends (there is no end date). Same number as the loan window row 'סך הכול להחזיר'",
       "saved": "monthly payment that disappears after a repayment (loanMonthlyPayment of the repaid amount), formatted",
       "qty": "number of shares",
+      "shares": "number of shares with the symbol, already plural-aware (e.g. one share of MAV / 10 shares of MAV)",
       "symbol": "stock name as shown on the card",
       "price": "new share price, formatted",
       "over": "offer above the purchase price, as percent, e.g. '25%'",
@@ -82,9 +83,9 @@
     },
     "buy.stock": {
       "full": [
-        "קניתם {qty} מניות {symbol}. הדיבידנד מכניס {monthly} בחודש, אבל המחיר זז ואין הבטחה.",
-        "{qty} מניות {symbol} מוסיפות {monthly} בחודש במשחק. בעולם האמיתי דיבידנד לא מובטח.",
-        "מניות הן הכנסה פסיבית עם סיכון: המחיר יכול לעלות ולרדת. {qty} מניות {symbol} בדרך."
+        "קניתם {shares}. הדיבידנד מכניס {monthly} בחודש, אבל המחיר זז ואין הבטחה.",
+        "ההחזקה ב{shares} מוסיפה {monthly} בחודש במשחק. בעולם האמיתי דיבידנד לא מובטח.",
+        "מניות הן הכנסה פסיבית עם סיכון: המחיר יכול לעלות ולרדת. כעת אצלכם: {shares}."
       ]
     },
     "buy.diversify": {
@@ -246,7 +247,7 @@
     },
     "market.priceDown": {
       "full": [
-        "מחיר המניה {symbol} ירד ל-{price}. תנודות קורות במניות, ואלה בדיוק הסיבות לפיזור.",
+        "מחיר המניה {symbol} ירד ל-{price}. תנודות כאלה קורות במניות, ואלה בדיוק הסיבה לפיזור.",
         "{symbol} ירדה ל-{price}. במשחק הדיבידנד לא משתנה, אבל בעולם האמיתי הוא עלול להשתנות.",
         "מחיר {symbol} ירד ל-{price}. למי שמחזיק במניה זה הפסד על הנייר עד שמוכרים, והמחיר לא בהכרח יחזור."
       ]

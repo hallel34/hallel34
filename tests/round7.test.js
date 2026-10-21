@@ -175,3 +175,17 @@ describe('round 7: production bundle carries no unpublished figure', () => {
     expect(js).toContain('המילון של פסיבו');
   }, 180000);
 });
+
+describe('round 9 polish', () => {
+  it('one share reads "מניה אחת", several read "N מניות"', async () => {
+    const { tp } = await import('../src/i18n/index.js');
+    expect(tp('plural.sharesOf', 1, { symbol: 'MAV' })).toBe('מניה אחת של MAV');
+    expect(tp('plural.sharesOf', 10, { symbol: 'MAV' })).toBe('10 מניות של MAV');
+  });
+  it('learn texts use the UI currency order (₪ before the number)', async () => {
+    const fs = await import('node:fs');
+    for (const f of ['report', 'real-world', 'glossary', 'guess', 'feedback']) {
+      expect(fs.readFileSync(`src/data/learn/${f}.he.json`, 'utf8'), f).not.toMatch(/\d ₪/);
+    }
+  });
+});

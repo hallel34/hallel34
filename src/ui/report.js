@@ -2,7 +2,7 @@
 // Collapsed by nature (a button opens it), neutral on game over: red appears only on a deal row, never on the player.
 import { h } from './dom.js';
 import { t } from '../i18n/index.js';
-import { openLayer } from './modal.js';
+import { openLayer, closeTopLayer } from './modal.js';
 import { icon } from './icons.js';
 import { foxImg } from './fox.js';
 import { button } from './widgets.js';
@@ -84,5 +84,20 @@ export function openReport({ match, index = null }) {
       h('button', { type: 'button', class: 'icon-btn', 'aria-label': t('common.close'), onClick: () => layer.close() }, icon('close', { size: 22 }))),
     scroll);
   layer = openLayer(content, { kind: 'sheet', label: t('learn.reportOpen') });
+  // Browser / Android back: closes the top layer (the dictionary sheet, then this report) before anything else happens.
+  // One history entry is held while the report is open; it is given back when the report is closed some other way.
+  const marker = { passivo: 'report' };
+  history.pushState(marker, '');
+  let held = true;
+  const onPop = () => {
+    held = false; // the browser just consumed our entry
+    closeTopLayer();
+    if (!layer.done) { history.pushState(marker, ''); held = true; }
+  };
+  window.addEventListener('popstate', onPop);
+  layer.closed.then(() => {
+    window.removeEventListener('popstate', onPop);
+    if (held && history.state?.passivo === 'report') history.back();
+  });
   return layer;
 }
