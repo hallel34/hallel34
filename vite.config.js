@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 import { readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { join, relative, basename } from 'node:path';
+import { pruneLearn } from './scripts/prune-learn.js';
 
 const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8'));
 
@@ -54,10 +55,24 @@ function pwaPlugin() {
   };
 }
 
+/** Production only: learning content ships without notes, sources, review text or unpublished real-world figures. */
+function pruneLearnPlugin() {
+  return {
+    name: 'passivo-prune-learn',
+    apply: 'build',
+    enforce: 'pre',
+    transform(code, id) {
+      const m = id.split('?')[0].replace(/\\/g, '/').match(/\/src\/data\/learn\/([a-z-]+)\.[a-z]+\.json$/);
+      if (!m) return null;
+      return { code: JSON.stringify(pruneLearn(m[1], JSON.parse(code))), map: null };
+    },
+  };
+}
+
 export default defineConfig({
   base,
   define: { __APP_VERSION__: JSON.stringify(pkg.version) },
-  plugins: [pwaPlugin()],
+  plugins: [pruneLearnPlugin(), pwaPlugin()],
   build: { target: 'es2020', assetsInlineLimit: 4096 },
   test: {
     environment: 'node',

@@ -1,0 +1,168 @@
+/* ===== Learning layer (v2 phase B): glossary terms, the fox note, the dictionary, the guess, the report ===== */
+
+/* --- term buttons: dashed underline, a real 48px hit box that does not change the line it sits in (negative margins) --- */
+.term {
+  display: inline-block; position: relative; padding: 14px 9px; margin: -14px -9px; min-inline-size: 48px; min-block-size: 48px;
+  border: 0; border-radius: 10px; background: none; color: inherit; font: inherit; line-height: inherit; text-align: center;
+  cursor: pointer; vertical-align: baseline;
+}
+.term-t { text-decoration: underline dashed; text-decoration-thickness: 1.5px; text-underline-offset: 4px; }
+.term:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: -6px; }
+.card .term:focus-visible, .rw .term:focus-visible { outline-color: var(--c-navy-900); }
+.stock-links .term, .dict-detail .term { margin: 0; }
+
+/* --- the fox note in the roll zone (feedback + explainer) --- */
+.roll-zone[data-pose="note"] .status-chip { display: none; }
+.roll-zone[data-pose="note"] .fox-roll { opacity: 0; }
+.note {
+  position: absolute; inset-inline: 0; inset-block-end: 0; min-block-size: 100%; z-index: var(--z-hud);
+  display: flex; align-items: center; gap: 8px;
+  --btn-secondary-bg: var(--card-tile-bg); --btn-secondary-text: var(--card-text); --btn-secondary-border: var(--border-strong);
+}
+.note-feedback { cursor: pointer; }
+.note-pop { flex: none; --pop: 52px; }
+.note-text {
+  flex: 1; min-inline-size: 0; margin: 0; padding: 10px 14px; border-radius: 18px; border-start-start-radius: 4px;
+  background: var(--c-cream-100); color: var(--c-navy-900); font-size: .875rem; font-weight: var(--fw-bold); line-height: 1.4;
+  box-shadow: 0 6px 16px rgb(0 0 0 / .35); border-inline-start: 6px solid var(--c-cream-200);
+}
+.note-feedback[data-tone="good"] .note-text { border-inline-start-color: var(--c-mint-500); }
+.note-feedback[data-tone="warn"] .note-text { border-inline-start-color: var(--c-gold-500); }
+.note-explain { align-items: flex-end; }
+.note-fox { flex: none; align-self: flex-end; }
+.note-fox .fox { block-size: var(--fox-tip-h, 150px); inline-size: auto; }
+.note-bubble {
+  flex: 1; min-inline-size: 0; display: flex; align-items: center; gap: 8px; padding-block: 4px; margin-block-end: 0;
+  border-radius: 18px; border-end-start-radius: 4px; background: var(--c-cream-100); color: var(--c-navy-900); box-shadow: 0 6px 16px rgb(0 0 0 / .35);
+  padding-inline: 12px 6px;
+}
+.note-main { flex: 1; min-inline-size: 0; display: flex; flex-direction: column; gap: 1px; }
+.note-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; font-size: .9375rem; line-height: 1.25; }
+.note-term { font-weight: var(--fw-black); }
+.note-kicker { font-size: .75rem; font-weight: var(--fw-medium); color: var(--card-muted); }
+.note-explain .note-text { padding: 0; background: none; box-shadow: none; border: 0; font-size: .8125rem; font-weight: var(--fw-medium); line-height: 1.35; color: var(--card-text); }
+.note-why { display: none; font-size: .8125rem; line-height: 1.35; color: var(--card-muted); }
+@media (min-height: 740px) { .note-why { display: block; } }
+.note-actions { flex: none; display: flex; flex-direction: column; gap: 4px; justify-content: center; }
+.note-btn { margin-block-end: 0; min-inline-size: 0; inline-size: 66px; padding-inline: 4px; font-size: .8125rem; line-height: 1.1; white-space: nowrap; }
+.note-btn.btn-secondary { box-shadow: inset 0 0 0 2px var(--border-strong); backdrop-filter: none; }
+@media (max-height: 600px) { .note-explain .note-text { font-size: .75rem; line-height: 1.3; } .note-head { font-size: .875rem; } }
+
+/* --- dictionary sheet --- */
+.dict-hint { color: var(--text-muted); font-size: var(--fs-sm); }
+.dict-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.dict-item {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 10px; row-gap: 2px; align-items: center; inline-size: 100%;
+  min-block-size: 56px; padding: 10px 14px; border-radius: 16px; text-align: start;
+  background: var(--glass-bg); border: 1px solid var(--glass-border); color: var(--text);
+}
+.dict-item:active { transform: scale(var(--press-scale)); }
+.dict-item-main { display: flex; align-items: center; gap: 8px; min-inline-size: 0; }
+.dict-item-term { font-size: 1.0625rem; font-weight: var(--fw-black); }
+.dict-new { padding: 1px 8px; border-radius: 10px; background: var(--c-gold-400); color: var(--c-gold-ink); font-size: .75rem; font-weight: var(--fw-bold); }
+.dict-item-short { grid-column: 1; font-size: .8125rem; color: var(--text-muted); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
+.dict-item .icon { grid-column: 2; grid-row: 1 / span 2; color: var(--text-muted); }
+[dir="rtl"] .dict-item .icon-dir { transform: none; }
+[dir="ltr"] .dict-item .icon-dir { transform: scaleX(-1); }
+.dict-back { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; min-block-size: var(--tap-min); padding: 0 12px; border: 0; border-radius: var(--r-pill); background: var(--glass-chip); color: var(--text); font-weight: var(--fw-bold); font-size: var(--fs-sm); }
+.dict-detail { display: flex; flex-direction: column; gap: 10px; }
+.dict-hero { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
+.dict-kicker { font-size: .8125rem; color: var(--text-muted); font-weight: var(--fw-medium); }
+.dict-term { font-size: 1.625rem; font-weight: var(--fw-black); line-height: 1.2; }
+.dict-fox { flex: none; }
+.dict-short { font-size: 1.125rem; font-weight: var(--fw-bold); line-height: 1.45; }
+.dict-sec { display: flex; flex-direction: column; gap: 4px; padding: 10px 14px; border-radius: 16px; background: var(--glass-bg); border: 1px solid var(--glass-border); }
+.dict-sec p { line-height: 1.5; }
+.dict-label { font-size: .8125rem; font-weight: var(--fw-bold); color: var(--text-muted); margin: 0; }
+.rw-disclaimer { font-size: .8125rem; color: var(--card-muted); }
+.dict-sec .rw-disclaimer, .dialog .rw-disclaimer, .rep .rw-disclaimer { color: var(--text-muted); }
+
+/* --- 'בעולם האמיתי' row (collapsed) --- */
+.rw { border-radius: 18px; border: 2px dashed var(--card-border); background: var(--card-tile-bg); color: var(--card-text); }
+.dialog .rw { background: var(--glass-bg); border-color: var(--glass-border); color: var(--text); }
+.rw-toggle { display: flex; align-items: center; gap: 10px; inline-size: 100%; min-block-size: var(--tap-min); padding: 0 14px; border: 0; background: none; color: inherit; font-weight: var(--fw-bold); font-size: .9375rem; text-align: start; }
+.rw-state { margin-inline-start: auto; display: grid; place-items: center; }
+.rw-body { display: flex; flex-direction: column; gap: 8px; padding: 0 14px 12px; font-size: .9375rem; line-height: 1.5; }
+.rw-block b { font-weight: var(--fw-black); }
+
+/* --- 'עסקה טובה?' guess, reveal, traffic light --- */
+.guess-prompt { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; padding: 12px 14px; border-radius: 20px; background: var(--card-tile-bg); border: 2px solid var(--card-border); }
+.guess-title { font-size: 1.25rem; font-weight: var(--fw-black); line-height: 1.2; }
+.guess-sub { font-size: 1rem; font-weight: var(--fw-medium); }
+.guess-hint { font-size: .875rem; color: var(--card-muted); line-height: 1.4; }
+.guess-skip { align-self: flex-start; --btn-secondary-bg: transparent; --btn-secondary-text: var(--card-text); --btn-secondary-border: var(--border-strong); box-shadow: inset 0 0 0 2px var(--border-strong); backdrop-filter: none; }
+.card-actions .btn-guess { flex: 1 1 0; min-inline-size: 0; gap: 4px; padding-inline: 8px; font-size: 1.0625rem; }
+.btn-guess .icon { flex: none; }
+.reveal { display: flex; flex-direction: column; gap: 10px; }
+.guess-result { display: flex; align-items: center; gap: 8px; font-weight: var(--fw-black); font-size: 1.0625rem; }
+.guess-correct { color: var(--income-ink); }
+.guess-wrong, .guess-yellowAny, .guess-skipped { color: var(--card-text); }
+.light { display: inline-flex; align-items: center; gap: 12px; align-self: flex-start; padding: 6px 14px 6px 8px; border-radius: 18px; border: 2px solid; font-weight: var(--fw-bold); font-size: 1rem; }
+.light-lamps { display: inline-flex; gap: 6px; padding: 5px 7px; border-radius: 999px; background: var(--c-navy-900); }
+.lamp { inline-size: 26px; block-size: 26px; border-radius: 50%; display: grid; place-items: center; background: rgb(255 255 255 / .14); }
+.lamp.is-on { box-shadow: 0 0 0 2px rgb(255 255 255 / .9); }
+.lamp-green.is-on { background: #4FD6A0; color: #032A1A; }
+.lamp-yellow.is-on { background: #F2B53A; color: #2A1700; }
+.lamp-red.is-on { background: #FF8E80; color: #3A0600; }
+.light-green { background: #E1F8EC; border-color: #9DE8C4; color: #0B6B43; }
+.light-yellow { background: #FFF1D0; border-color: #F2B84B; color: #6B4300; }
+.light-red { background: #FFE9E5; border-color: #FFB3A7; color: #7A1810; }
+.guess-verdict { font-size: 1rem; line-height: 1.45; font-weight: var(--fw-medium); }
+.guess-legend { font-size: .8125rem; line-height: 1.4; color: var(--card-muted); }
+.eye-chip { display: inline-flex; align-items: center; gap: 8px; align-self: flex-start; padding: 6px 12px; border-radius: 14px; background: var(--c-navy-900); color: var(--c-gold-300); font-weight: var(--fw-bold); font-size: .875rem; line-height: 1.3; }
+.eye-chip.is-earned { box-shadow: 0 0 0 3px var(--c-gold-400); }
+.eye-earned { background: var(--c-navy-900); }
+.stock-note { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border-radius: 18px; background: var(--card-tile-bg); border: 2px dashed var(--card-border); font-size: .9375rem; line-height: 1.45; }
+.stock-links { display: flex; flex-wrap: wrap; gap: 8px 18px; }
+
+/* --- settings additions --- */
+.setting-item { display: flex; flex-direction: column; gap: 2px; }
+.setting-help { font-size: .8125rem; line-height: 1.35; color: var(--text-muted); padding-inline-end: 68px; }
+.btn-dictionary { inline-size: 100%; }
+
+/* --- the report ('מה למדתי') --- */
+.rep { display: flex; flex-direction: column; gap: 10px; }
+.rep-hero { display: flex; align-items: center; gap: 10px; }
+.rep-pop { flex: none; --pop: 52px; }
+.rep-subtitle { font-weight: var(--fw-bold); font-size: 1rem; line-height: 1.35; }
+.rep-fox { margin-block-start: 2px; font-size: .875rem; color: var(--text-muted); line-height: 1.4; }
+.rep-sec { display: flex; flex-direction: column; gap: 4px; padding: 10px 14px; border-radius: 16px; background: var(--glass-bg); border: 1px solid var(--glass-border); }
+.rep-title { font-size: .8125rem; font-weight: var(--fw-bold); color: var(--text-muted); }
+.rep-text { font-size: 1rem; line-height: 1.5; }
+.rep-sec[data-section="bestDeal"] { border-inline-start: 6px solid var(--income-fill); }
+.rep-sec[data-section="worstDeal"] { border-inline-start: 6px solid var(--c-gold-400); }
+.rep-sec.is-empty { border-inline-start-width: 1px; border-inline-start-color: var(--glass-border); }
+.rep-guess { display: flex; align-items: center; gap: 8px; color: var(--c-gold-300); font-weight: var(--fw-bold); font-size: .9375rem; }
+:root[data-theme="light"] .rep-guess { color: var(--fox-ink); }
+.rep-grid { display: flex; flex-direction: column; gap: 4px; }
+.rep-stat { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 6px 4px; border-block-end: 1px solid var(--glass-border); min-inline-size: 0; }
+.rep-stat:last-child { border-block-end: 0; }
+.rep-stat-label { font-size: .9375rem; color: var(--text-muted); }
+.rep-stat-value { font-weight: var(--fw-black); font-variant-numeric: tabular-nums; font-size: 1.0625rem; white-space: nowrap; }
+.rep-tip { border-inline-start: 6px solid var(--c-gold-400); }
+.rep-intro { font-size: .875rem; color: var(--text-muted); }
+.rep-theme { font-weight: var(--fw-black); }
+.rep-questions { margin: 0; padding-inline-start: 1.3em; display: flex; flex-direction: column; gap: 8px; line-height: 1.5; }
+.rep-next, .rep-dict { align-self: flex-start; }
+.rep-who { margin-block-end: 4px; }
+.rep-who .seg-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.end-row { display: flex; gap: 8px; }
+.end-actions .end-row .btn { inline-size: auto; flex: 1 1 0; min-inline-size: 0; padding-inline: 8px; font-size: .9375rem; gap: 6px; white-space: normal; line-height: 1.15; }
+.btn-report .icon { flex: none; }
+
+@media (prefers-reduced-motion: reduce) { .dict-item:active { transform: none; } }
+
+/* Game over on very short screens (<= 600px, e.g. 320x568): the three actions ("ננסה שוב", "מה למדתי", "חזרה לתפריט") must stay
+   inside the viewport (they did not even before the report existed). The tip moves into the report ('הצעד הבא'), the fox shrinks a little. */
+@media (max-height: 600px) {
+  .screen-over .tip { display: none; }
+  .screen-over .over-fox .fox { block-size: min(200px, 17dvh); }
+}
+
+/* On very short screens (320x568) the roll zone is ~60px tall: an explainer (fox, text, two 48px buttons) cannot fit in it and
+   used to grow up over the bottom row of tiles. It now takes the zone AND the roll button row (the button is hidden under it until "הבנתי" / "עוד" is tapped, or for at most 6 s: notes.js
+   auto-dismisses it on short screens), so nothing on the board is covered. */
+@media (max-height: 600px) {
+  .note-explain { inset-block-end: -68px; min-block-size: 0; }
+  .screen-board:has(.note-explain) .board-actions { visibility: hidden; }
+}

@@ -1,12 +1,16 @@
 // User preferences (sound, haptics, theme, motion), persisted in localStorage.
 import { readJSON, writeJSON } from '../services/storage.js';
 
-const DEFAULTS = { sound: true, haptics: true, theme: 'dark', reduceMotion: false, locale: 'he' };
+// explain: 'פסיבו מסביר' (first-time concept explainers). guessFamily / guessFull: the 'עסקה טובה?' guess before the numbers,
+// on by default in family mode, off in full mode.
+const DEFAULTS = { sound: true, haptics: true, theme: 'dark', reduceMotion: false, locale: 'he', explain: true, guessFamily: true, guessFull: false };
 let prefs = { ...DEFAULTS, ...(readJSON('prefs', {}) || {}) };
 const listeners = new Set();
 const mq = typeof matchMedia === 'function' ? matchMedia('(prefers-color-scheme: light)') : null;
 
 export const getPrefs = () => prefs;
+/** Is the guess before a purchase on for this mode? */
+export const guessEnabled = (mode) => !!prefs[mode === 'full' ? 'guessFull' : 'guessFamily'];
 export function setPref(key, value) {
   prefs = { ...prefs, [key]: value };
   writeJSON('prefs', prefs);

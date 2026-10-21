@@ -1,0 +1,159 @@
+{
+  "version": 2,
+  "title": "מה למדתי",
+  "subtitle": {
+    "win": "הגעתם לחופש כלכלי במשחק. הנה סיכום ההחלטות שלכם",
+    "lose": "המשחק נגמר הפעם. הנה מה שאפשר לקחת הלאה",
+    "neutral": "הסיבוב נגמר. הנה מה שאפשר לקחת הלאה",
+    "when": "win = this player reached financial freedom. lose = this player is actually out of the game. neutral = multiplayer, this player did not win and is still in the game (round ended because someone else won)."
+  },
+  "notes": {
+    "slots": {
+      "title": "card title of the deal",
+      "years": "payback phrase with unit (שנה אחת / שנתיים / 4.2 שנים)",
+      "yield": "annual yield with percent sign",
+      "loss": "absolute monthly loss, formatted",
+      "amount": "money, formatted",
+      "green": "count of green decisions",
+      "total": "count of all rated decisions",
+      "n": "count of unlocked concepts",
+      "all": "total concepts available in this mode (13 in full mode, 10 in family mode; read from glossary level)",
+      "list": "comma-separated concept terms"
+    },
+    "pick": "Best deal = purchased apartment/business with the shortest payback; worst = longest payback or negative cash flow. Stocks are NOT included (no payback light for stocks, see spec section 5.1). If one deal was bought show only best. A deal counts as worst only if its tier is slow/bad or negative.",
+    "green": "A decision is rated green when: a purchase of an apartment/business has green payback; a pass on a red/negative deal; an expense paid from cash; a loan rated 'sensible' (spec section 2, LOAN_COSTLY_PAYMENT_SHARE). Stock buys and passes are not rated. Rated total = all rated decisions in the game. See spec.md."
+  },
+  "sections": {
+    "bestDeal": {
+      "title": "העסקה הכי טובה",
+      "titleOnly": "העסקה שקניתם",
+      "template": "{title}: החזר תוך {years}, תשואה של {yield} בשנה.",
+      "negativeOnly": "הנכסים שקניתם הפעם לא הכניסו כסף בכל חודש אחרי התשלומים: התזרים שלהם היה אפס או שלילי. אין כאן עסקה מוצלחת להציג, אבל זה בדיוק מה שהמשחק בא ללמד. בפעם הבאה בדקו את התזרים לפני שקונים.",
+      "stocksOnly": "קניתם הפעם רק מניות. למניות אין דירוג החזר במשחק, ובדירות ובעסקים אפשר לראות את שנות ההחזר.",
+      "empty": "לא קניתם דירות או עסקים הפעם. בפעם הבאה נסו לבדוק עסקה ולהחליט.",
+      "conditions": {
+        "titleOnly": "exactly one apartment/business bought: use titleOnly instead of title",
+        "negativeOnly": "at least one apartment/business bought and every one has monthlyCashFlow <= 0 (no best deal exists): show negativeOnly in place of template; hide worstDeal (it would repeat) or show it only when 2 or more deals",
+        "stocksOnly": "no apartment/business bought, at least one stock bought",
+        "empty": "nothing bought at all"
+      }
+    },
+    "worstDeal": {
+      "title": "העסקה שאפשר לשפר",
+      "templateSlow": "{title}: החזר תוך {years}. עסקה איטית שתקעה את הכסף.",
+      "templateNegative": "{title}: תזרים של מינוס {loss} בחודש. כדאי לבדוק תזרים לפני קנייה.",
+      "empty": "אף עסקה לא הייתה איטית במיוחד או עם תזרים שלילי."
+    },
+    "interest": {
+      "title": "ריבית ששילמתם",
+      "template": "שילמתם {amount} ריבית על הלוואות מהבנק. זה כסף שהיה יכול להישאר אצלכם.",
+      "zero": "לא לקחתם הלוואות מהבנק, ולכן לא שילמתם עליהן ריבית.",
+      "hiddenIfUnavailable": true,
+      "source": "stats.interestPaid (engine: sum of bank-loan monthly payments x PAYDAY_MONTHS at each summary). Starting debts (car, card, student) are installments and are not counted here. Show `zero` only when no bank loan was ever taken; the field exists in v2 saves, so hide the section only for old saves without it."
+    },
+    "greenDecisions": {
+      "title": "החלטות ירוקות",
+      "template": "{green} מתוך {total} החלטות היו ירוקות: חכמות לפי המספרים.",
+      "templatePlural": {
+        "one": "החלטה אחת מתוך {total} הייתה ירוקה: חכמה לפי המספרים.",
+        "two": "שתי החלטות מתוך {total} היו ירוקות: חכמות לפי המספרים.",
+        "other": "{green} מתוך {total} החלטות היו ירוקות: חכמות לפי המספרים."
+      },
+      "pluralRule": "Pick by green (1 -> one, 2 -> two, else other). total is always >= 2 here, because total = 1 is allGreen or noneGreen.",
+      "allGreen": "כל ההחלטות היו ירוקות! עבודה מצוינת.",
+      "noneGreen": "הפעם לא היו החלטות ירוקות. בפעם הבאה בדקו את שנות ההחזר לפני כל קנייה.",
+      "noData": "עוד לא התקבלו החלטות לדירוג."
+    },
+    "concepts": {
+      "title": "מושגים שפתחתם",
+      "template": "פתחתם {count} מתוך {all}: {list}.",
+      "count": {
+        "one": "מושג אחד",
+        "two": "שני מושגים",
+        "other": "{n} מושגים"
+      },
+      "countRule": "{count} = the phrase from `count` chosen by n (1 -> one, 2 -> two, else other, with {n} filled). n counts only concepts unlocked in THIS game (state.learn.seenConcepts), not the device-wide seen set; {all} is the number of concepts of the current mode (10 family, 13 full).",
+      "none": "עוד לא נפתחו מושגים. אפשר לראות את כולם במילון של פסיבו.",
+      "openDictionary": "לפתיחת המילון"
+    },
+    "stats": {
+      "title": "במספרים",
+      "turns": "תורות",
+      "passive": "הכנסה פסיבית",
+      "expenses": "הוצאות חודשיות",
+      "assets": "נכסים",
+      "loansTaken": "הלוואות"
+    }
+  },
+  "nextStep": {
+    "title": "הצעד הבא",
+    "tips": {
+      "highInterest": "ההלוואות עלו לכם ריבית. בפעם הבאה נסו להחזיק מזומן בצד כדי לא להזדקק להן, או להחזיר הלוואה ברגע שיש מזומן.",
+      "noCushion": "נתקעתם בלי מזומן כשהגיעה הוצאה. בפעם הבאה השאירו כרית ביטחון לפני שקונים.",
+      "manyRed": "קניתם כמה עסקאות איטיות או מפסידות. בפעם הבאה בדקו את שנות ההחזר לפני כל קנייה.",
+      "noDiversify": "כל הנכסים שלכם היו מאותו סוג. בפעם הבאה נסו לשלב כמה סוגי נכסים.",
+      "allGood": {
+        "family": "רוב ההחלטות שלכם היו ירוקות. נסו מקצוע אחר או מצב מלא, ובדקו מה משתנה.",
+        "full": "רוב ההחלטות שלכם היו ירוקות. נסו מקצוע אחר ובדקו אילו החלטות עובדות גם שם."
+      },
+      "fallback": "כל משחק הוא תרגול. בפעם הבאה נסו לבדוק תחילה את התזרים ואת שנות ההחזר."
+    }
+  },
+  "conversation": {
+    "title": "שיחה במשפחה",
+    "intro": "שלוש שאלות לשיחה, בלי תשובות נכונות",
+    "family": {
+      "flow": {
+        "title": "תזרים והחלטות",
+        "questions": [
+          "איזו עסקה במשחק הרגשתם שהכי כדאי, ולמה? איך בדקתם?",
+          "מה ההבדל בין משכורת להכנסה פסיבית? איפה בחיים אפשר לראות כסף שנכנס בלי לעבוד עליו כל יום?",
+          "אם הייתם מקבלים ₪1,000, מה הייתם עושים איתם? מה היה קורה אחרי חודש ואחרי שנה?"
+        ]
+      },
+      "safety": {
+        "title": "כרית ביטחון וסיכון",
+        "questions": [
+          "איזו הוצאה פתאומית במשחק הפתיעה אתכם הכי הרבה? איך הייתם מתכוננים אליה?",
+          "למה לדעתכם כדאי להחזיק קצת כסף בצד, גם כשיש הזדמנות מעניינת לקנות?",
+          "ספרו על משהו שקרה במשפחה בלי תכנון. מה עזר שיהיה מוכן, ומה היה קשה?"
+        ]
+      },
+      "borrow": {
+        "title": "הלוואות וריבית",
+        "questions": [
+          "מתי לדעתכם כדאי לקחת הלוואה ומתי לא? תנו דוגמה מהמשחק.",
+          "מה זו ריבית, ומי מרוויח ממנה? איך זה מרגיש להחזיר יותר ממה שלקחתם?",
+          "איך אפשר לבדוק כמה הלוואה עולה לפני שלוקחים אותה? אילו מספרים הייתם רוצים לראות?"
+        ]
+      }
+    },
+    "full": {
+      "invest": {
+        "title": "מניות, פיזור וסיכון",
+        "questions": [
+          "למה הכנסה מכמה מקורות בטוחה יותר ממקור אחד? אילו מקורות היו לכם במשחק?",
+          "מה ההבדל בין מניה שמשלמת דיבידנד קבוע לבין נכס שמחירו קופץ? מה מתאים לכם יותר, ולמה?",
+          "מחיר מניה ירד. מה אפשר לעשות, ואילו שאלות כדאי לשאול לפני שמחליטים?"
+        ]
+      },
+      "realWorld": {
+        "title": "המשחק מול העולם האמיתי",
+        "questions": [
+          "איפה המשחק מפשט דברים? מה לדעתכם שונה בעולם האמיתי בדירות, במשכנתאות ובתשואות?",
+          "בעסקאות אמיתיות יש גם מיסים, תחזוקה ושוכרים שלא משלמים. איך אפשר לקחת אותם בחשבון?",
+          "אילו שאלות הייתם שואלים מומחה או הורה לפני שקונים נכס, עסק או מניה?"
+        ]
+      },
+      "strategy": {
+        "title": "אסטרטגיה והחלטות",
+        "questions": [
+          "מה הייתה האסטרטגיה שלכם בתחילת המשחק, ומה שיניתם בדרך?",
+          "מתי שווה למכור נכס שמכניס כסף כל חודש בעבור הצעה גבוהה חד-פעמית?",
+          "אם הייתם משחקים שוב, איזו החלטה אחת הייתם משנים, ולמה?"
+        ]
+      }
+    },
+    "rules": "Family mode shows the 3 questions of one theme, chosen by the nextStep tip: highInterest->borrow, noCushion->safety, manyRed/allGood/fallback->flow. Full mode shows 3 questions from the full pool (invest, realWorld, strategy: 9 questions) plus may add 1 family question; choose the theme by tip: noDiversify->invest, manyRed->realWorld, others->strategy."
+  }
+}

@@ -3,6 +3,7 @@ import { h } from '../dom.js';
 import { t } from '../../i18n/index.js';
 import { icon } from '../icons.js';
 import { money, tn } from '../format.js';
+import { createTermScope } from '../rich.js';
 import { button, iconButton } from '../widgets.js';
 import { openLayer } from '../modal.js';
 import { avatarColor } from '../layout.js';
@@ -10,12 +11,14 @@ import { statement } from '../../engine/index.js';
 import { haptic, pulse, animate } from '../fx.js';
 import { foxImg } from '../fox.js';
 import { motionOK } from '../prefs.js';
+import { playerToken } from '../players.js';
 
-export function createPick({ engine, mode, onBack, onGo }) {
+export function createPick({ engine, mode, onBack, onGo, player = null }) {
   const professions = engine.data.professions;
   const ids = professions.map((p) => p.id);
 
   function preview(p) {
+    const scope = createTermScope();
     const s = engine.newGame({ mode, professionId: p.id, seed: 1 });
     const st = statement(s);
     let layer;
@@ -51,10 +54,10 @@ export function createPick({ engine, mode, onBack, onGo }) {
           toggle, expenseRows,
           row(t('statement.totalExpenses'), money(st.totalExpenses), 'total')),
         p.liabilities.length ? h('section', { class: 'st-section st-sec-liability' },
-          h('h3', { class: 'st-title' }, t('pick.liabilities')),
+          h('h3', { class: 'st-title' }, tn('pick.liabilities', {}, { scope })),
           ...p.liabilities.map((l) => row(l.label, money(l.principal)))) : null,
-        row(t('pick.cashflow'), money(st.monthlyCashFlow, { sign: true }), 'total'),
-        h('div', { class: 'banner banner-info' }, icon('star', { size: 24 }), h('span', null, t('pick.goal')))),
+        row(tn('pick.cashflow', {}, { scope }), money(st.monthlyCashFlow, { sign: true }), 'total'),
+        h('div', { class: 'banner banner-info' }, icon('star', { size: 24 }), h('span', null, tn('pick.goal', {}, { scope })))),
       h('div', { class: 'sheet-cta' }, button(t('pick.go'), { variant: 'primary', size: 'lg', 'data-action': 'go', 'data-autofocus': '', onClick: () => { layer.close(); onGo(p.id); } })));
     // Pop-in when the sheet opens (the sheet itself slides up over --dur-base).
     animate(foxPop, motionOK() ? [{ opacity: 0, transform: 'scale(.5)' }, { opacity: 1, transform: 'scale(1)' }] : [{ opacity: 0 }, { opacity: 1 }], { duration: 320, delay: motionOK() ? 200 : 0, easing: 'cubic-bezier(.34,1.56,.64,1)' });
@@ -75,6 +78,9 @@ export function createPick({ engine, mode, onBack, onGo }) {
   return h('section', { class: 'screen screen-pick', 'data-screen': 'pick' },
     h('div', { class: 'pick-top' },
       iconButton('arrow', t('pick.back'), onBack, 'icon-btn-glass'),
-      h('div', null, h('h1', { class: 'screen-title' }, t('pick.title')), h('p', { class: 'muted' }, t('pick.subtitle')))),
+      player ? playerToken(player.color, { cls: 'ptoken-lg' }) : null,
+      h('div', { class: 'pick-heading' },
+        h('h1', { class: 'screen-title' }, player ? t('players.pickTitle', { name: player.name }) : t('pick.title')),
+        h('p', { class: 'muted' }, player ? t('players.pickStep', { n: player.n, total: player.total }) : t('pick.subtitle')))),
     h('div', { class: 'prof-grid' }, cards));
 }

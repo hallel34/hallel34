@@ -1,0 +1,224 @@
+{
+  "version": 2,
+  "notes": {
+    "numbers": "Card and profession numbers in the examples are literal and were recomputed on 2026-10-21 against src/data/cards.he.json and professions.he.json. Each example carries a `computed` block so a QA script can compare it to the data (see docs/v2/learn/spec.md section 9). Rates and loan costs are never typed: they use slots.",
+    "slots": {
+      "months": "PAYDAY_MONTHS as a number (24)",
+      "monthlyRate": "LOAN_PAYMENT_RATE as percent, with sign, e.g. '1%' (derived, per month)",
+      "rate": "LOAN_APR_NOMINAL as percent with sign, e.g. '12%' (nominal yearly: monthly rate x 12; NOT the effective rate)",
+      "amount": "principal of the example loan, formatted money (the example uses 5,000)",
+      "monthlyPayment": "loanTerms(amount).monthly, interest only, formatted money",
+      "interest": "loanTerms(amount).perPayday = monthlyPayment x PAYDAY_MONTHS, formatted money",
+      "total": "loanTerms(amount).totalAtPayday = amount + interest, formatted money. Only true if the loan is repaid at that summary"
+    }
+  },
+  "ui": {
+    "explainTitle": "פסיבו מסביר",
+    "dictionaryTitle": "המילון של פסיבו",
+    "dictionaryEmpty": "עוד לא נפתחו מושגים. שחקו, והמילון יתמלא",
+    "whyLabel": "למה זה חשוב",
+    "exampleLabel": "דוגמה מהמשחק",
+    "simplificationLabel": "במשחק זה מפושט",
+    "realWorldLabel": "בעולם האמיתי",
+    "gotIt": "הבנתי",
+    "newTerm": "מושג חדש",
+    "lockedTerm": "עוד לא פגשתם את המושג הזה"
+  },
+  "concepts": [
+    {
+      "id": "cashflow",
+      "order": 1,
+      "term": "תזרים חודשי",
+      "level": "family",
+      "short": "תזרים חודשי הוא הכסף שנכנס בחודש פחות הכסף שיוצא.",
+      "why": "אם יוצא יותר ממה שנכנס המזומן נגמר, ואם נכנס יותר יש מה לחסוך ולהשקיע.",
+      "example": {
+        "professionId": "teacher",
+        "text": "למורה יש משכורת של ₪8,800, הוצאות של ₪6,800 ותשלומי חובות של ₪510 (הלוואת רכב ₪360 וחוב בכרטיס אשראי ₪150), ולכן התזרים החודשי הוא ₪1,490.",
+        "computed": { "salary": 8800, "expenses": 6800, "debtPayments": 510, "cashFlow": 1490, "perSummary": 35760 }
+      },
+      "gameSimplification": "במשחק מחשבים תזרים של חודש אחד, ובמשבצת ״סיכום שנתיים״ מסכמים {months} חודשים בבת אחת: התזרים החודשי כפול {months}. זה מקצר את המשחק. בחיים הכסף נכנס ויוצא כל חודש, והסכומים משתנים.",
+      "needs_review": null
+    },
+    {
+      "id": "passive_income",
+      "order": 2,
+      "term": "הכנסה פסיבית",
+      "level": "family",
+      "short": "הכנסה פסיבית היא כסף שנכנס מנכס שיש לכם, בלי שתצטרכו לעבוד בשבילו שעה אחרי שעה.",
+      "why": "כשההכנסה הפסיבית גדולה מההוצאות החודשיות מגיעים לחופש כלכלי, וזו מטרת המשחק.",
+      "example": {
+        "cardId": "opp-biz-007",
+        "text": "המכבסה השכונתית מכניסה רווח של ₪6,200 בחודש. אחרי החזר ההלוואה של העסק (₪3,500) נשארים ₪2,700 בחודש, גם בחודשים שבהם אתם בבית.",
+        "computed": { "profit": 6200, "loanPayment": 3500, "cashFlow": 2700 }
+      },
+      "gameSimplification": "במשחק גם עסק נחשב הכנסה פסיבית. בעולם האמיתי עסק דורש בדרך כלל עבודה וניהול, וההכנסה ממנו לא מובטחת.",
+      "needs_review": null
+    },
+    {
+      "id": "asset",
+      "order": 3,
+      "term": "נכס",
+      "level": "family",
+      "short": "במשחק, נכס הוא משהו שאתם מחזיקים ומכניס לכם כסף כל חודש.",
+      "why": "נכסים טובים מגדילים את התזרים ומקרבים אתכם לחופש כלכלי.",
+      "example": {
+        "cardId": "opp-apt-004",
+        "text": "הדירה בקריית שמונה היא נכס: היא מושכרת ב-₪9,500 בחודש. אחרי תשלום המשכנתא (₪6,900) נשארים ₪2,600 בחודש.",
+        "computed": { "rent": 9500, "loanPayment": 6900, "cashFlow": 2600 }
+      },
+      "gameSimplification": "בעולם האמיתי גם דבר שלא מכניס כסף כל חודש, כמו חיסכון, יכול להיות נכס. במשחק מתמקדים בנכסים שמכניסים כסף.",
+      "needs_review": null
+    },
+    {
+      "id": "liability",
+      "order": 4,
+      "term": "התחייבות",
+      "level": "family",
+      "short": "התחייבות היא חוב: כסף שאתם חייבים לאחרים ומשלמים עליו בכל חודש.",
+      "why": "תשלומי חובות מקטינים את התזרים, ולכן כדאי לדעת כמה חובות יש ומה הם עולים.",
+      "example": {
+        "professionId": "teacher",
+        "text": "למורה יש הלוואת רכב של ₪18,000 שעולה ₪360 בכל חודש, וחוב בכרטיס אשראי של ₪5,000 שעולה ₪150 בחודש. יחד זה חוב של ₪23,000 ותשלום של ₪510 בחודש.",
+        "computed": { "carPrincipal": 18000, "carPayment": 360, "cardPrincipal": 5000, "cardPayment": 150, "totalDebt": 23000, "totalPayment": 510 }
+      },
+      "gameSimplification": "במשחק התשלום החודשי על חוב התחלתי נשאר קבוע ולא מקטין את החוב, עד שמחזירים אותו. בהלוואה רגילה בעולם האמיתי חלק מכל תשלום מקטין את החוב.",
+      "needs_review": null
+    },
+    {
+      "id": "down_payment",
+      "order": 5,
+      "term": "מקדמה",
+      "level": "family",
+      "short": "מקדמה היא החלק שמשלמים מהכיס ברגע הקנייה, ואת השאר מממנים בהלוואה.",
+      "why": "המקדמה היא הכסף שאתם שמים על הכף בעסקה, ולכן כדאי לדעת תוך כמה זמן היא חוזרת.",
+      "example": {
+        "cardId": "opp-apt-003",
+        "text": "הדירה ליד הטכניון עולה ₪2,800,000. משלמים מקדמה של ₪280,000, ואת ₪2,520,000 הנותרים מממנים במשכנתא.",
+        "computed": { "price": 2800000, "downPayment": 280000, "mortgage": 2520000, "downPaymentSharePct": 10 }
+      },
+      "gameSimplification": "במשחק המקדמה היא בערך עשירית ממחיר הדירה. בעולם האמיתי הבנק דורש מקדמה גדולה יותר, ובדירה להשקעה גדולה אפילו יותר.",
+      "needs_review": "finance: הניסוח כללי בכוונה, בלי אחוזים. לאשר את הכיוון (מימון נמוך יותר לדירה להשקעה) ואת המספר מול הוראה 329 של בנק ישראל בנוסח העדכני: חיפוש ב-21.10.2026 מצא נוסח ישן (75% דירה יחידה, 70% משפר דיור, 50% דירה להשקעה, ללא תאריך) ונוסח מעודכן מיוני 2026 שלא נקרא. ראו real-world.he.json, rw-down-payment."
+    },
+    {
+      "id": "mortgage",
+      "order": 6,
+      "term": "משכנתא",
+      "level": "family",
+      "short": "משכנתא היא הלוואה גדולה מהבנק לקניית נכס, כמו דירה, שמחזירים בתשלומים חודשיים.",
+      "why": "משכנתא מאפשרת לקנות נכס יקר, אבל התשלום החודשי והריבית הם עלות אמיתית.",
+      "example": {
+        "cardId": "opp-apt-001",
+        "text": "הסטודיו בבאר שבע עולה ₪1,800,000: מקדמה של ₪200,000 ומשכנתא של ₪1,600,000. התשלום החודשי על המשכנתא במשחק הוא ₪8,800, והשכירות ₪12,200, ולכן נשארים ₪3,400 בחודש.",
+        "computed": { "price": 1800000, "downPayment": 200000, "mortgage": 1600000, "loanPayment": 8800, "rent": 12200, "cashFlow": 3400 }
+      },
+      "gameSimplification": "במשחק התזרים שבכרטיס כבר אחרי תשלום המשכנתא (שכירות פחות תשלום משכנתא), והתשלום הוא סכום קבוע שנגזר מגודל המשכנתא, בלי חישוב נפרד של קרן וריבית. בעולם האמיתי המשכנתא נמשכת שנים רבות וכוללת ריבית.",
+      "needs_review": null
+    },
+    {
+      "id": "yield",
+      "order": 7,
+      "term": "תשואה",
+      "level": "family",
+      "short": "תשואה היא כמה כסף נכס מכניס בשנה, באחוזים מהכסף שהשקעתם בו.",
+      "why": "תשואה מאפשרת להשוות בין עסקאות, גם כשהמחירים שלהן שונים מאוד.",
+      "example": {
+        "cardId": "opp-apt-001",
+        "text": "הסטודיו בבאר שבע מכניס ₪3,400 בחודש, כלומר ₪40,800 בשנה. על מקדמה של ₪200,000 זו תשואה של 20.4% בשנה.",
+        "computed": { "monthlyCashFlow": 3400, "yearly": 40800, "downPayment": 200000, "yieldOnDownPaymentPct": 20.4, "grossRentYieldOnPricePct": 8.1 }
+      },
+      "gameSimplification": "במשחק התשואה מחושבת לפי המקדמה בלבד, ולכן היא יוצאת גבוהה. אילו חישבנו לפי מחיר הדירה המלא, שכירות של ₪12,200 בחודש על ₪1,800,000 היא כ-8.1% בשנה, וגם זה גבוה מאוד ביחס למציאות. בעולם האמיתי תשואת שכירות על דירה בישראל נמוכה בהרבה (ראו ״בעולם האמיתי״ בכרטיס).",
+      "needs_review": "finance: להשלים ולאשר את הטווח האמיתי של תשואת שכירות ברוטו בישראל (הערכה בלבד: כ-2.5% עד 4%, פריפריה עד כ-5%; ארצי כ-2.7% לפי חישוב עצמי, לא נתון רשמי). הטקסט הנוכחי אינו מצטט מספר אמיתי. ראו real-world.he.json, rw-rental-yield."
+    },
+    {
+      "id": "payback",
+      "order": 8,
+      "term": "החזר השקעה",
+      "level": "family",
+      "short": "החזר השקעה הוא הזמן שלוקח עד שנכס מחזיר לכם את הכסף ששילמתם בהתחלה.",
+      "why": "ככל שההחזר מהיר יותר, הכסף שלכם פחות זמן תקוע בעסקה.",
+      "example": {
+        "cardId": "opp-biz-006",
+        "text": "עגלת הפופקורן: מקדמה של ₪40,000 ותזרים של ₪900 בחודש, כלומר ₪10,800 בשנה, ולכן ההחזר לוקח כ-3.7 שנים. בדירה בקומה תשיעית בלי מעלית, מקדמה של ₪320,000 מול ₪10,800 בשנה, ההחזר לוקח כ-29.6 שנים.",
+        "computed": { "biz006": { "downPayment": 40000, "monthlyCashFlow": 900, "yearly": 10800, "paybackYears": 3.7 }, "apt008": { "downPayment": 320000, "monthlyCashFlow": 900, "yearly": 10800, "paybackYears": 29.6 } }
+      },
+      "gameSimplification": "החישוב מניח שהתזרים נשאר קבוע. בחיים הוא משתנה, ויכול גם לרדת.",
+      "needs_review": null
+    },
+    {
+      "id": "interest",
+      "order": 9,
+      "term": "ריבית",
+      "level": "family",
+      "short": "ריבית היא המחיר של כסף שלוקחים בהלוואה: מחזירים יותר ממה שלקחו.",
+      "why": "ריבית גבוהה הופכת הלוואה ליקרה בהרבה, ולכן כדאי ללוות רק כמה שצריך ולהחזיר כשאפשר.",
+      "example": {
+        "text": "הלוואה של {amount} מהבנק במשחק עולה {monthlyPayment} בחודש. זו ריבית של {rate} בשנה. בכל סיכום שנתיים זה {interest}, והחוב של {amount} נשאר עד שמחזירים אותו. אם מחזירים בסיכום הקרוב משלמים {total}: החוב ועוד {interest} ריבית.",
+        "slotsFrom": "loanTerms(5000)",
+        "computed": { "amount": 5000, "monthlyPayment": 50, "perYear": 600, "interest": 1200, "total": 6200, "rateNominalPct": 12, "perThousand": { "monthly": 10, "perSummary": 240, "total": 1240 } }
+      },
+      "gameSimplification": "במשחק ההלוואה היא ריבית בלבד: כל חודש משלמים {monthlyRate} מהחוב, והחוב עצמו נשאר עד שמחליטים להחזיר אותו. הריבית קבועה ({rate} בשנה) וגבוהה במכוון, כדי להראות שהלוואה עולה כסף. בעולם האמיתי הריבית משתנה לפי הבנק, סוג ההלוואה ומי שלוקח אותה.",
+      "needs_review": "finance: לאשר שהשוואה לריבית אמיתית ('בדרך כלל נמוכה מ-{rate}') נשארת מחוץ לטקסט עד אימות. בהצעה: ממוצע הלוואה לא צמודה למשקי בית כ-8.23% ביולי 2026 (מקור משני, icf.co.il, עודכן 25.8.2026). ראו real-world.he.json, rw-loan-rate."
+    },
+    {
+      "id": "dividend",
+      "order": 10,
+      "term": "דיבידנד",
+      "level": "full",
+      "short": "דיבידנד הוא חלק מהרווח של חברה שמחולק למי שמחזיק במניות שלה.",
+      "why": "דיבידנד הוא הכנסה פסיבית ממניות, אבל חברה לא חייבת לשלם אותו.",
+      "example": {
+        "cardId": "opp-stk-002",
+        "text": "במשחק חם-קר (ELM) משלמת ₪2 דיבידנד למניה בחודש, מי-אביב (MAV) ₪2, ושמש-נגב (SOL) ₪3. מניית מי-אביב עולה ₪300, ולכן 100 מניות עולות ₪30,000 ומכניסות ₪200 בחודש.",
+        "computed": { "ELM": { "price": 500, "dividend": 2 }, "MAV": { "price": 300, "dividend": 2, "qty": 100, "cost": 30000, "monthly": 200, "yearly": 2400, "dividendPctOfPrice": 8 }, "SOL": { "price": 1000, "dividend": 3 } }
+      },
+      "gameSimplification": "במשחק הדיבידנד קבוע ומשולם כל חודש. בעולם האמיתי הוא לא מובטח: חברה יכולה לשנות אותו או להפסיק לשלם, ובדרך כלל משלמת כמה פעמים בשנה ולא כל חודש.",
+      "needs_review": "finance: הדיבידנד במשחק הוא 4.8% (ELM), 8% (MAV) ו-3.6% (SOL) ממחיר המניה בשנה, והמנוע מחשב אותו כסכום למניה לחודש (כמות כפול דיבידנד). הטקסט לא מצטט מספר אמיתי. ראו real-world.he.json, rw-stock-dividend."
+    },
+    {
+      "id": "cushion",
+      "order": 11,
+      "term": "כרית ביטחון",
+      "level": "family",
+      "short": "כרית ביטחון היא כסף שמחזיקים בצד לימים שבהם קורה משהו לא צפוי.",
+      "why": "עם כרית ביטחון אפשר לשלם הוצאה פתאומית בלי לקחת הלוואה ובלי לשלם ריבית.",
+      "example": {
+        "cardId": "exp-002",
+        "text": "טיפול גדול לרכב עולה ₪7,500. למורה יש חיסכון של ₪9,000, וזה מספיק ונשארים ₪1,500. לטבח/ית יש ₪5,000 בלבד, חסרים ₪2,500 וצריך הלוואה, והיא עולה ריבית.",
+        "computed": { "expense": 7500, "teacherSavings": 9000, "teacherLeft": 1500, "cookSavings": 5000, "cookShort": 2500 }
+      },
+      "gameSimplification": null,
+      "needs_review": null
+    },
+    {
+      "id": "net_worth",
+      "order": 12,
+      "term": "שווי נקי",
+      "level": "full",
+      "short": "שווי נקי הוא כל מה שיש לכם, מזומן ונכסים, פחות כל מה שאתם חייבים.",
+      "why": "השווי הנקי מראה אם אתם מתקדמים באמת, גם כשהמזומן עולה ויורד.",
+      "example": {
+        "professionId": "teacher",
+        "text": "בתחילת המשחק למורה יש חיסכון של ₪9,000 וחובות של ₪23,000 (₪18,000 הלוואת רכב ו-₪5,000 כרטיס אשראי), ולכן השווי הנקי הוא מינוס ₪14,000.",
+        "computed": { "savings": 9000, "debts": 23000, "netWorth": -14000 }
+      },
+      "gameSimplification": "במשחק שווי דירה או עסק נספר לפי מחיר הקנייה, ושווי מניה לפי מחירה הנוכחי. בעולם האמיתי מחירי נכסים משתנים כל הזמן.",
+      "needs_review": null
+    },
+    {
+      "id": "diversification",
+      "order": 13,
+      "term": "פיזור",
+      "level": "full",
+      "short": "פיזור הוא לא לשים את כל הכסף במקום אחד אלא לחלק אותו בין כמה נכסים.",
+      "why": "פיזור מקטין את הסיכון שנכס אחד שנכשל יפגע בכל מה שיש לכם, אבל לא מבטל אותו.",
+      "example": {
+        "cardId": "opp-stk-001",
+        "text": "במשחק יש שלוש מניות: חם-קר מזגנים (ELM), מי-אביב (MAV) ושמש-נגב (SOL). בחורף גשום מחיר מניית חם-קר יורד מ-₪500 ל-₪380, אבל דירה או עסק שבבעלותכם ממשיכים להכניס שכירות או רווח.",
+        "computed": { "ELMprice": 500, "ELMafterRainyWinter": 380, "drop": 120 }
+      },
+      "gameSimplification": "במשחק יש מעט נכסים לבחירה. בעולם האמיתי יש הרבה יותר סוגים, ופיזור לא מבטיח רווח.",
+      "needs_review": null
+    }
+  ]
+}

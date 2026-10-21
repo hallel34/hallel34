@@ -1,14 +1,29 @@
 // Save/load: JSON with schemaVersion and migrations. Storage itself is the UI's job.
+// Schema 2 saves a whole match (1-4 players). Schema 1 saves were one bare game state: they load as a one-player match.
 import { SCHEMA_VERSION } from './config.js';
+import { matchFromState } from './match.js';
+import { emptyLearn } from './learn.js';
+import { loanRate } from './selectors.js';
 
+// Each step lifts a save by exactly one schema version.
 const migrations = {
-  // 1: (s) => s  -> example: migrations[n] upgrades from version n to n+1
+  // 1 -> 2: a bare single-player state becomes a one-player match
+  1: (s) => ({ ...matchFromState(s), schemaVersion: 2 }),
+  // 2 -> 3: every player's state gets an empty learning record (old games have no decisions to report on)
+  2: (m) => ({
+    ...m,
+    schemaVersion: 3,
+    players: Array.isArray(m.players)
+      ? m.players.map((p) => (p?.state ? { ...p, state: { ...p.state, schemaVersion: 3, learn: p.state.learn ?? emptyLearn() } } : p))
+      : m.players,
+  }),
 };
 
-export function serialize(state) {
-  return JSON.stringify({ ...state, schemaVersion: SCHEMA_VERSION });
+export function serialize(match) {
+  return JSON.stringify({ ...match, schemaVersion: SCHEMA_VERSION });
 }
 
+/** Returns a match, or null for corrupt / too-new / unknown saves. */
 export function deserialize(json) {
   let s;
   try { s = JSON.parse(json); } catch { return null; }
@@ -18,7 +33,14 @@ export function deserialize(json) {
     const m = migrations[s.schemaVersion];
     if (!m) return null;
     s = m(s);
-    s.schemaVersion += 1;
+  }
+  if (!Array.isArray(s.players) || !s.players.length || s.players.some((p) => !p?.state?.profession)) return null;
+  // Bank loans from before the 1%/month rule have no `rate`: stamp the one their payment implies (10% back then), so a
+  // loan is always labelled with its own rate.
+  for (const p of s.players) {
+    for (const l of Array.isArray(p.state.liabilities) ? p.state.liabilities : []) {
+      if (l?.kind === 'loan' && !Number.isFinite(l.rate)) l.rate = loanRate(l);
+    }
   }
   return s;
 }

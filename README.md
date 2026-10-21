@@ -1,6 +1,6 @@
 # פסיבו (Passivo)
 
-A single-player financial board game. Start in the daily grind ("השגרה") with a salary and expenses, buy assets
+A financial board game for one player, or 2-4 players taking turns on one device (hot-seat). Start in the daily grind ("השגרה") with a salary and expenses, buy assets
 that create passive income, and win when **passive income > total monthly expenses**.
 Hebrew (RTL) first, English-ready. Vite + vanilla JS, no backend, installable offline PWA.
 
@@ -30,7 +30,7 @@ the service worker serves the app offline. Screenshots land in `test-results/`.
 
 Run `npm run build` first. It uses the Chromium that Playwright finds; set `CHROMIUM_PATH` to use another binary
 (the sandbox default is `/opt/pw-browsers/chromium-1194/chrome-linux/chrome`). Options (env): `SMOKE_MODE=family|full`,
-`SMOKE_H=800|640` (viewport height; both must pass),
+`SMOKE_H=800|640` (viewport height; both must pass), `SMOKE_PLAYERS=1|2|3|4` (1 = single player, 2-4 = hot-seat),
 `SMOKE_MOTION=full` (default is reduced motion for speed), `SMOKE_SEED`, `SMOKE_URL` (test a deployed URL).
 In CI run `npx playwright install --with-deps chromium` once.
 
@@ -50,6 +50,21 @@ tests/          Vitest unit tests; tests/e2e/smoke.mjs is the Playwright flow
 
 The engine is the single source of truth: every action is `(state, ...args) => newState`, randomness comes from a
 seeded RNG stored in the state, and the UI only presents engine events.
+
+## Local multiplayer (hot-seat)
+
+Start screen, mode, then "כמה שחקנים?" (1-4, default 1; one player is the classic game). Each player gets a name
+(default "שחקן n", max 12 characters), a colour token with a number, and picks their own profession (the same one is
+allowed). Pass the phone when the sheet "תור של <name>" appears and tap "אני מוכן". The first player whose passive income
+beats their expenses wins; players who hit game over are skipped.
+
+- `src/engine/match.js` is the pure, serializable match layer: `newMatch`, `act(match, fn)` (applies an engine action to the
+  current player), `canEndTurn` / `endTurn` (hands the turn on), `standings`, `rematch`. Player *i* uses `seed + i * 7919`
+  (player 1 keeps the match seed, so single player is identical to the plain game).
+- Saves are schema 2 and hold the whole match; schema 1 saves (a bare single-player state) migrate to a one-player match.
+- Bots: `playMatch(engine, match, ['sensible', ...])` in `src/engine/bots.js`; `npm run simulate` also prints a 4-bot match table.
+- The board HUD has a house button ("חזרה לבית"): an in-page confirm sheet, then the match is saved and the start screen shows
+  the resume button. The browser/Android back button opens the same sheet.
 
 ## Deploy
 
@@ -81,7 +96,12 @@ errors are listed with the card id. Required fields:
 // Opportunity: apartment | business  (price must equal downPayment + mortgage)
 { "id": "opp-apt-099", "deck": "opportunity", "type": "apartment", "modes": ["family", "full"],
   "title": "...", "text": "...",
-  "price": 1800000, "downPayment": 200000, "mortgage": 1600000, "monthlyCashFlow": 4000 }
+  "price": 1800000, "downPayment": 200000, "mortgage": 1600000, "monthlyCashFlow": 3400,
+  // optional, shown on the buy card as "rent - mortgage = cash flow" (validated: rent - loanPayment == monthlyCashFlow);
+  // a business uses "profit" instead of "rent" ("profit - loan payment = cash flow")
+  "rent": 12200, "loanPayment": 8800,
+  // optional: true marks a card that will get an "in the real world" fact later
+  "realWorld": true }
 
 // Opportunity: stock (full mode)
 { "id": "opp-stk-099", "deck": "opportunity", "type": "stock", "modes": ["full"],
@@ -97,6 +117,13 @@ errors are listed with the card id. Required fields:
 ```
 
 Professions live in `src/data/professions.he.json` (salary, savings, perChild, itemised expenses, starting liabilities).
+Starting debts carry `"debt": "car" | "card" | "student"`; their monthly payment must equal principal x the rate of that kind
+(`BASE_DEBT_RATES` in `config.js`: car 2%, card 3%, student 1%, rounded to 10). The validator enforces it.
+
+**Loans (v2).** Bank loans are interest only: `LOAN_PAYMENT_RATE` = 1% of the principal a month (12% a year; 1,000 costs 10 a month,
+240 until the next summary). `loanTerms(amount)` returns the figures the loan dialog shows; every number in the copy is derived from
+the config. Loans can be repaid in both modes. `LOAN_CAP_SALARIES` caps the total bank-loan principal when borrowing to buy
+(loans that cover an expense are never capped). The payday square is called "סיכום שנתיים" and settles `PAYDAY_MONTHS` months.
 After changing numbers run `npm run simulate` to check balance (targets: median 15-25 turns to win).
 Money formatting, card layout and the statement all adapt to the data.
 
@@ -104,11 +131,32 @@ Money formatting, card layout and the statement all adapt to the data.
 - Payback = `downPayment / monthlyCashFlow / 12` years. Good deals: 3-6 years (small), 7-12 (down payment >= 150,000).
 - About 35-40% of the opportunity cards per mode are traps: obvious ones (negative cash flow) and subtle ones
   (positive but payback over 14 years: high fees, balloon payments, over-priced). Traps need no code, just numbers.
-- Family-mode cards use round numbers (prices in 1,000s; down payment, loan and cash flow in 500s).
-- Stocks pay a 0.4-0.8% monthly dividend; give each a different volatility through its `stockPrice` market cards.
+- Family-mode cards use round numbers (prices in 1,000s; down payment and loan in 500s; cash flow, rent, profit and loan payment in 100s).
+- `loanPayment` is the loan's payment (mortgage x 0.55% a month for apartments, business loan x 1.75%, rounded to 100). It is display only: the cash flow is already net of it.
+- Stocks pay a 0.25-0.8% monthly dividend (whole shekels per share); give each a different volatility through its `stockPrice` market cards.
 - Pacing knob: `PAYDAY_MONTHS` in `src/engine/config.js`. A payday square settles that many months of cash flow
   (the board lap stands for a stretch of years), so deal sizes and pace can be tuned without touching the cards' payback.
   `BOARD` in the same file sets how often each square type appears.
+
+## The learning layer (v2 phase B)
+
+Content is JSON in `src/data/learn/` (validated when the game loads and in `npm test`, schema in `src/learn/validate.js`;
+the authoritative rules are in `docs/v2/learn/spec.md`). Adding content never needs code:
+
+| File | What | How to extend |
+|---|---|---|
+| `glossary.he.json` | the 13 concepts of 'המילון של פסיבו' (`level`: `family` shows in both modes, `full` only in full mode) | add an object to `concepts[]`; to make a word a dashed-underline button write `[[term:id\|display]]` in any string of `src/i18n/he.json` (display is optional). Unknown ids fail `npm test` |
+| `feedback.he.json` | the fox line after each decision: `lines["buy.good"].family / .full / .all` (three phrasings rotate, deterministic per game seed) | add a phrasing to a group's array; slots come from `GROUP_SLOTS` in `src/learn/feedback.js` |
+| `guess.he.json` | 'עסקה טובה?' (family mode, apartments and businesses only), traffic-light texts, verdicts, 'עין של משקיע' | edit texts; thresholds are never typed: `PAYBACK_OK_YEARS` / `PAYBACK_SLOW_YEARS` / `INVESTOR_EYE_STREAK` in `config.js` |
+| `report.he.json` | 'מה למדתי' report and the conversation questions (family: three questions of one theme, picked by the report tip, the other themes rotate by the game seed) | add a theme or a question |
+| `real-world.he.json` | 'בעולם האמיתי' fact per card flagged `"realWorld": true` in `cards.he.json` | add a fact whose `cardIds` lists the card. Real-world figures live in `numbers` with `publish: false` and are never rendered (a test enforces it); finance flips it after finding a primary source |
+
+Where it lives: pure rules in `src/engine/learn.js` (rating a deal / a loan, the per-player record `state.learn`, the report counting)
+and `src/learn/` (texts, slots, triggers, report view model); UI in `src/ui/learn.js` (dictionary), `learn-flow.js` + `notes.js`
+(fox note: feedback and first-time explainers), `report.js`, `realworld.js` and the guess flow in `modals.js`. Progress that survives games
+is in localStorage (`passivo.learn.seen`, `passivo.learn.badges`); the explainers and the guess can be switched off in settings
+('הסברים של פסיבו', 'ניחוש לפני קנייה': on by default in family mode, off in full mode). Save schema 3 added `state.learn`; older saves migrate.
+Tuning parameters: `LOAN_COSTLY_PAYMENT_SHARE`, `INVESTOR_EYE_STREAK`, `REPORT_*` in `src/engine/config.js`.
 
 ## The fox (Passivo)
 

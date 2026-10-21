@@ -12,7 +12,10 @@
     "price": 1800000,
     "downPayment": 200000,
     "mortgage": 1600000,
-    "monthlyCashFlow": 4000
+    "monthlyCashFlow": 3400,
+    "rent": 12200,
+    "loanPayment": 8800,
+    "realWorld": true
   },
   {
     "id": "opp-apt-002",
@@ -27,7 +30,9 @@
     "price": 3800000,
     "downPayment": 400000,
     "mortgage": 3400000,
-    "monthlyCashFlow": 6000
+    "monthlyCashFlow": 5100,
+    "rent": 23800,
+    "loanPayment": 18700
   },
   {
     "id": "opp-apt-003",
@@ -42,7 +47,9 @@
     "price": 2800000,
     "downPayment": 280000,
     "mortgage": 2520000,
-    "monthlyCashFlow": 5000
+    "monthlyCashFlow": 4300,
+    "rent": 18200,
+    "loanPayment": 13900
   },
   {
     "id": "opp-apt-004",
@@ -57,7 +64,10 @@
     "price": 1400000,
     "downPayment": 140000,
     "mortgage": 1260000,
-    "monthlyCashFlow": 3000
+    "monthlyCashFlow": 2600,
+    "rent": 9500,
+    "loanPayment": 6900,
+    "realWorld": true
   },
   {
     "id": "opp-apt-005",
@@ -72,7 +82,9 @@
     "price": 4200000,
     "downPayment": 600000,
     "mortgage": 3600000,
-    "monthlyCashFlow": 6000
+    "monthlyCashFlow": 5100,
+    "rent": 24900,
+    "loanPayment": 19800
   },
   {
     "id": "opp-apt-006",
@@ -86,7 +98,9 @@
     "price": 5200000,
     "downPayment": 800000,
     "mortgage": 4400000,
-    "monthlyCashFlow": 8000
+    "monthlyCashFlow": 6800,
+    "rent": 31000,
+    "loanPayment": 24200
   },
   {
     "id": "opp-apt-007",
@@ -100,7 +114,10 @@
     "price": 8400000,
     "downPayment": 1200000,
     "mortgage": 7200000,
-    "monthlyCashFlow": 10000
+    "monthlyCashFlow": 8500,
+    "rent": 48100,
+    "loanPayment": 39600,
+    "realWorld": true
   },
   {
     "id": "opp-biz-001",
@@ -115,7 +132,10 @@
     "price": 320000,
     "downPayment": 160000,
     "mortgage": 160000,
-    "monthlyCashFlow": 3000
+    "monthlyCashFlow": 2700,
+    "profit": 5500,
+    "loanPayment": 2800,
+    "realWorld": true
   },
   {
     "id": "opp-biz-002",
@@ -130,7 +150,9 @@
     "price": 160000,
     "downPayment": 80000,
     "mortgage": 80000,
-    "monthlyCashFlow": 2000
+    "monthlyCashFlow": 1800,
+    "profit": 3200,
+    "loanPayment": 1400
   },
   {
     "id": "opp-biz-003",
@@ -145,7 +167,9 @@
     "price": 240000,
     "downPayment": 120000,
     "mortgage": 120000,
-    "monthlyCashFlow": 2500
+    "monthlyCashFlow": 2300,
+    "profit": 4400,
+    "loanPayment": 2100
   },
   {
     "id": "opp-biz-004",
@@ -160,7 +184,9 @@
     "price": 144000,
     "downPayment": 72000,
     "mortgage": 72000,
-    "monthlyCashFlow": 1500
+    "monthlyCashFlow": 1400,
+    "profit": 2700,
+    "loanPayment": 1300
   },
   {
     "id": "opp-biz-005",
@@ -171,11 +197,13 @@
       "full"
     ],
     "title": "סטודיו ליוגה",
-    "text": "כולם רוצים שלווה, ושניים מהם אפילו משלמים עליה כל חודש. שותף מביא חצי מההשקעה.",
+    "text": "כולם רוצים שלווה, ושניים מהם אפילו משלמים עליה כל חודש. חצי מהעלות במקדמה, וחצי מהבנק בהלוואה.",
     "price": 480000,
     "downPayment": 240000,
     "mortgage": 240000,
-    "monthlyCashFlow": 3500
+    "monthlyCashFlow": 3200,
+    "profit": 7400,
+    "loanPayment": 4200
   },
   {
     "id": "opp-biz-006",
@@ -190,7 +218,9 @@
     "price": 80000,
     "downPayment": 40000,
     "mortgage": 40000,
-    "monthlyCashFlow": 1000
+    "monthlyCashFlow": 900,
+    "profit": 1600,
+    "loanPayment": 700
   },
   {
     "id": "opp-biz-007",
@@ -201,11 +231,13 @@
       "full"
     ],
     "title": "מכבסה שכונתית",
-    "text": "מכונות עובדות לבד, הלקוחות מחכים בנחת ואתם בבית. כמעט פאסיבי.",
+    "text": "מכונות עובדות לבד, הלקוחות מחכים בנחת ואתם בבית. הכנסה כמעט פסיבית.",
     "price": 400000,
     "downPayment": 200000,
     "mortgage": 200000,
-    "monthlyCashFlow": 3000
+    "monthlyCashFlow": 2700,
+    "profit": 6200,
+    "loanPayment": 3500
   },
   {
     "id": "opp-biz-008",
@@ -219,7 +251,9 @@
     "price": 640000,
     "downPayment": 320000,
     "mortgage": 320000,
-    "monthlyCashFlow": 3000
+    "monthlyCashFlow": 2700,
+    "profit": 8300,
+    "loanPayment": 5600
   },
   {
     "id": "opp-apt-008",
@@ -234,7 +268,10 @@
     "price": 3200000,
     "downPayment": 320000,
     "mortgage": 2880000,
-    "monthlyCashFlow": 1000
+    "monthlyCashFlow": 900,
+    "rent": 16700,
+    "loanPayment": 15800,
+    "realWorld": true
   },
   {
     "id": "opp-apt-009",
@@ -249,7 +286,10 @@
     "price": 2000000,
     "downPayment": 200000,
     "mortgage": 1800000,
-    "monthlyCashFlow": -6000
+    "monthlyCashFlow": -6000,
+    "rent": 3900,
+    "loanPayment": 9900,
+    "realWorld": true
   },
   {
     "id": "opp-biz-009",
@@ -264,7 +304,9 @@
     "price": 360000,
     "downPayment": 180000,
     "mortgage": 180000,
-    "monthlyCashFlow": 1000
+    "monthlyCashFlow": 900,
+    "profit": 4100,
+    "loanPayment": 3200
   },
   {
     "id": "opp-biz-010",
@@ -279,7 +321,9 @@
     "price": 200000,
     "downPayment": 100000,
     "mortgage": 100000,
-    "monthlyCashFlow": -6000
+    "monthlyCashFlow": -6000,
+    "profit": -4200,
+    "loanPayment": 1800
   },
   {
     "id": "opp-apt-010",
@@ -293,7 +337,9 @@
     "price": 2400000,
     "downPayment": 240000,
     "mortgage": 2160000,
-    "monthlyCashFlow": -5000
+    "monthlyCashFlow": -5000,
+    "rent": 6900,
+    "loanPayment": 11900
   },
   {
     "id": "opp-biz-011",
@@ -304,11 +350,13 @@
       "full"
     ],
     "title": "מועדון בולינג לא פופולרי",
-    "text": "מגרשי הבולינג ריקים, התשלומים על המכונות מלאים. כבר מנגנים ל\"אולי\".",
+    "text": "המסלולים ריקים, אבל התשלומים על המכונות מגיעים בזמן, כל חודש.",
     "price": 400000,
     "downPayment": 200000,
     "mortgage": 200000,
-    "monthlyCashFlow": -8000
+    "monthlyCashFlow": -8000,
+    "profit": -4500,
+    "loanPayment": 3500
   },
   {
     "id": "opp-apt-011",
@@ -323,7 +371,10 @@
     "price": 4800000,
     "downPayment": 480000,
     "mortgage": 4320000,
-    "monthlyCashFlow": 1500
+    "monthlyCashFlow": 1300,
+    "rent": 25100,
+    "loanPayment": 23800,
+    "realWorld": true
   },
   {
     "id": "opp-apt-012",
@@ -338,7 +389,10 @@
     "price": 2400000,
     "downPayment": 240000,
     "mortgage": 2160000,
-    "monthlyCashFlow": 1000
+    "monthlyCashFlow": 900,
+    "rent": 12800,
+    "loanPayment": 11900,
+    "realWorld": true
   },
   {
     "id": "opp-biz-012",
@@ -353,7 +407,10 @@
     "price": 600000,
     "downPayment": 300000,
     "mortgage": 300000,
-    "monthlyCashFlow": 1500
+    "monthlyCashFlow": 1400,
+    "profit": 6700,
+    "loanPayment": 5300,
+    "realWorld": true
   },
   {
     "id": "opp-apt-013",
@@ -367,7 +424,10 @@
     "price": 7200000,
     "downPayment": 1000000,
     "mortgage": 6200000,
-    "monthlyCashFlow": 3000
+    "monthlyCashFlow": 2600,
+    "rent": 36700,
+    "loanPayment": 34100,
+    "realWorld": true
   },
   {
     "id": "opp-apt-014",
@@ -382,7 +442,9 @@
     "price": 2000000,
     "downPayment": 200000,
     "mortgage": 1800000,
-    "monthlyCashFlow": 4500
+    "monthlyCashFlow": 3800,
+    "rent": 13700,
+    "loanPayment": 9900
   },
   {
     "id": "opp-biz-014",
@@ -397,7 +459,10 @@
     "price": 200000,
     "downPayment": 100000,
     "mortgage": 100000,
-    "monthlyCashFlow": 2000
+    "monthlyCashFlow": 1800,
+    "profit": 3600,
+    "loanPayment": 1800,
+    "realWorld": true
   },
   {
     "id": "opp-biz-013",
@@ -412,7 +477,10 @@
     "price": 240000,
     "downPayment": 120000,
     "mortgage": 120000,
-    "monthlyCashFlow": 500
+    "monthlyCashFlow": 500,
+    "profit": 2600,
+    "loanPayment": 2100,
+    "realWorld": true
   },
   {
     "id": "opp-apt-015",
@@ -426,7 +494,9 @@
     "price": 3200000,
     "downPayment": 360000,
     "mortgage": 2840000,
-    "monthlyCashFlow": 7000
+    "monthlyCashFlow": 6000,
+    "rent": 21600,
+    "loanPayment": 15600
   },
   {
     "id": "opp-biz-015",
@@ -440,7 +510,10 @@
     "price": 800000,
     "downPayment": 400000,
     "mortgage": 400000,
-    "monthlyCashFlow": 5000
+    "monthlyCashFlow": 4500,
+    "profit": 11500,
+    "loanPayment": 7000,
+    "realWorld": true
   },
   {
     "id": "opp-apt-016",
@@ -454,7 +527,10 @@
     "price": 2400000,
     "downPayment": 240000,
     "mortgage": 2160000,
-    "monthlyCashFlow": 5000
+    "monthlyCashFlow": 4300,
+    "rent": 16200,
+    "loanPayment": 11900,
+    "realWorld": true
   },
   {
     "id": "opp-biz-016",
@@ -463,12 +539,14 @@
     "modes": [
       "full"
     ],
-    "title": "בר קוקטיילים בלי רישיון",
-    "text": "הלקוחות נהדרים, המוזיקה רועשת והרישיון מגיע \"בקרוב\". הקנסות והשכירות אוכלים כל שקל, ויש גם צו סגירה אחד תלוי באוויר.",
+    "title": "מסעדת שף עם תפריט טעימות",
+    "text": "רישיון עסק תקין, שף עם כוכב על הדלת ואחת-עשרה מנות קטנות במחיר גדול. השכירות ברחוב היוקרתי והעובדים אוכלים את הרווח, ורוב השולחנות מזמינים מים עם לימון.",
     "price": 800000,
     "downPayment": 400000,
     "mortgage": 400000,
-    "monthlyCashFlow": -6000
+    "monthlyCashFlow": -6000,
+    "profit": 1000,
+    "loanPayment": 7000
   },
   {
     "id": "opp-stk-001",
@@ -481,8 +559,9 @@
     "text": "חברת מזגנים שמרוויחה כל קיץ מחדש. תנודתית: מזנקת בקיץ חם ושוקעת בחורף גשום. דיבידנד קטן, ההימור הוא על המחיר.",
     "symbol": "ELM",
     "price": 500,
-    "dividend": 3,
-    "maxQty": 400
+    "dividend": 2,
+    "maxQty": 400,
+    "realWorld": true
   },
   {
     "id": "opp-stk-002",
@@ -496,7 +575,8 @@
     "symbol": "MAV",
     "price": 300,
     "dividend": 2,
-    "maxQty": 800
+    "maxQty": 800,
+    "realWorld": true
   },
   {
     "id": "opp-stk-003",
@@ -509,8 +589,9 @@
     "text": "שדות סולאריים במדבר. רווחים גדולים בימים טובים והפסדים גדולים בימים רעים, ודיבידנד זעום. מתאימה למי שאוהב אדרנלין.",
     "symbol": "SOL",
     "price": 1000,
-    "dividend": 4,
-    "maxQty": 200
+    "dividend": 3,
+    "maxQty": 200,
+    "realWorld": true
   },
   {
     "id": "exp-001",
@@ -531,7 +612,7 @@
       "full"
     ],
     "title": "הרכב ביקש טיפול גדול",
-    "text": "המוסכניק אמר: \"תראה, זה לא נורא\", וזו היתה הפעם הראשונה שהוא שיקר.",
+    "text": "המוסכניק אמר: \"תראו, זה לא נורא\", וזו הייתה הפעם הראשונה שהוא שיקר.",
     "amount": 7500
   },
   {
@@ -686,7 +767,8 @@
     "title": "זוג צעיר מחפש דירה",
     "text": "הם אוהבים את השכונה, את השמש ואת תנאי המשכנתא. הם מציעים הרבה יותר מהמחיר.",
     "targetType": "apartment",
-    "offerPct": 1.25
+    "offerPct": 1.25,
+    "realWorld": true
   },
   {
     "id": "mkt-002",
@@ -698,7 +780,8 @@
     "title": "משקיע מחו״ל",
     "text": "הוא רוצה לקנות דירה בישראל, ולא מתעניין בפרטים. כמה מוזר.",
     "targetType": "apartment",
-    "offerPct": 1.4
+    "offerPct": 1.4,
+    "realWorld": true
   },
   {
     "id": "mkt-003",
@@ -710,7 +793,8 @@
     "title": "שכן שרוצה להרחיב",
     "text": "הוא משלם מעל המחיר, ובתמורה מבקש רק שלא תספרו לאשתו כמה זה עלה.",
     "targetType": "apartment",
-    "offerPct": 1.15
+    "offerPct": 1.15,
+    "realWorld": true
   },
   {
     "id": "mkt-004",
@@ -722,7 +806,8 @@
     "title": "רשת מזון שרוצה סניף",
     "text": "הם יקנו את העסק שלכם, כולל השם, כולל הלקוחות, כולל הקפה.",
     "targetType": "business",
-    "offerPct": 1.3
+    "offerPct": 1.3,
+    "realWorld": true
   },
   {
     "id": "mkt-005",
@@ -734,7 +819,8 @@
     "title": "שותף לשעבר חוזר",
     "text": "הוא מבטיח שהפעם זה אחרת, ומציע מחיר טוב כדי להוכיח את זה.",
     "targetType": "business",
-    "offerPct": 1.2
+    "offerPct": 1.2,
+    "realWorld": true
   },
   {
     "id": "mkt-006",
@@ -755,7 +841,7 @@
       "full"
     ],
     "effect": "stockPrice",
-    "title": "דו״ח רבעוני מאכזב",
+    "title": "דוח רבעוני מאכזב",
     "text": "מי-אביב דיווחה שהמים היו רטובים פחות מהצפוי. המניה יורדת קצת, כי המים תמיד יהיו שם.",
     "symbol": "MAV",
     "newPrice": 270

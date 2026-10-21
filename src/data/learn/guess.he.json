@@ -1,0 +1,115 @@
+{
+  "version": 2,
+  "notes": {
+    "slots": {
+      "yield": "annual yield with percent sign, e.g. '24%'",
+      "years": "payback phrase WITH unit: 'שנה אחת', 'שנתיים', '4.2 שנים'",
+      "okYears": "green threshold phrase with unit, from config PAYBACK_OK_YEARS (pending CEO update after numbers review)",
+      "slowYears": "yellow threshold phrase with unit, from config PAYBACK_SLOW_YEARS",
+      "streak": "current correct-guess streak",
+      "goal": "streak needed for the badge (INVESTOR_EYE_STREAK)",
+      "right": "number of correct guesses",
+      "of": "number of guesses"
+    },
+    "mapping": "green: 'good' guess is right. red (incl. redNever): 'bad' guess is right. yellow: both answers are accepted (use guessResult.yellowAny); yellow does not extend or break the streak."
+  },
+  "prompt": {
+    "title": "עסקה טובה?",
+    "subtitle": "מה דעתכם, לפני שרואים את המספרים?",
+    "good": "עסקה טובה",
+    "bad": "לא כדאי",
+    "reveal": "הראו לי את המספרים",
+    "hint": "אפשר להשוות לפי כמה שנים לוקח עד שהמקדמה חוזרת",
+    "optOutLabel": "שאלת ״עסקה טובה?״ לפני כל הזדמנות",
+    "optOutHelp": "במצב מלא אפשר לכבות את השאלה בהגדרות"
+  },
+  "reveal": {
+    "yieldLabel": "תשואה בשנה",
+    "yieldValue": "{yield}",
+    "paybackLabel": "החזר השקעה",
+    "paybackValue": "{years}",
+    "paybackNever": "אין החזר",
+    "legendTitle": "מה הצבע אומר",
+    "note": "במשחק התשואה והחזר ההשקעה מחושבים לפי המקדמה, והחישוב מניח שהתזרים נשאר קבוע."
+  },
+  "lights": {
+    "green": {
+      "label": "החזר מהיר",
+      "legend": "ירוק: המקדמה חוזרת תוך {okYears} או פחות",
+      "a11y": "רמזור ירוק, החזר מהיר"
+    },
+    "yellow": {
+      "label": "החזר בינוני",
+      "legend": "צהוב: המקדמה חוזרת אחרי יותר מ-{okYears} ועד {slowYears}",
+      "a11y": "רמזור צהוב, החזר בינוני"
+    },
+    "red": {
+      "label": "החזר איטי או אין החזר",
+      "legend": "אדום: ההחזר ארוך מ-{slowYears}, או שהנכס לא מכניס כסף",
+      "a11y": "רמזור אדום, החזר איטי או שאין החזר"
+    }
+  },
+  "verdict": {
+    "green": [
+      "ירוק! תשואה של {yield} בשנה, והמקדמה חוזרת תוך {years}.",
+      "עסקה חזקה: החזר תוך {years}, ותשואה של {yield} בשנה.",
+      "החזר מהיר, תוך {years}. תשואה של {yield} בשנה היא מספר שמסתכלים עליו."
+    ],
+    "yellow": [
+      "צהוב: תשואה של {yield} בשנה, והמקדמה חוזרת תוך {years}. עסקה בינונית.",
+      "אפשר, אבל לא מהיר: החזר תוך {years}. כדאי להשוות לעסקאות אחרות.",
+      "החזר בינוני, תוך {years}, ותשואה של {yield} בשנה. לא רע ולא מצוין."
+    ],
+    "red": [
+      "אדום: תשואה של {yield} בשנה בלבד, וההחזר ייקח {years}.",
+      "ההחזר ארוך מאוד, {years}. הכסף שלכם יהיה תקוע הרבה זמן.",
+      "תשואה נמוכה של {yield} בשנה והחזר תוך {years}. עדיף לחפש עסקה אחרת."
+    ],
+    "redNever": [
+      "אדום: הנכס לא מכניס כסף אלא מוציא אותו כל חודש. אין החזר בכלל.",
+      "תזרים שלילי: במקום להחזיר את המקדמה, הנכס הזה מגדיל את ההוצאות.",
+      "אין החזר השקעה, כי כל חודש יוצא כסף במקום להיכנס."
+    ]
+  },
+  "stock": {
+    "decision": "Stocks get NO payback traffic light and NO 'עסקה טובה?' guess (spec section 5.1). The stock card shows this explainer instead of the lights.",
+    "title": "מה כדאי לדעת על מניה",
+    "dividendLine": "דיבידנד: {dividend} למניה בחודש, כלומר {dividendYield} ממחיר המניה בשנה",
+    "volatility": "המחיר זז: הוא יכול לעלות ולרדת, ולפעמים בבת אחת. בכרטיס מתואר כמה המניה תנודתית.",
+    "notGuaranteed": "במשחק הדיבידנד קבוע. בעולם האמיתי הוא לא מובטח.",
+    "noLight": "למניות אין רמזור, כי הרווח או ההפסד שלהן תלוי גם בשינויי מחיר ולא רק בדיבידנד.",
+    "slots": {
+      "dividend": "card dividend, formatted money (ELM 2, MAV 2, SOL 3 in the current cards)",
+      "dividendYield": "dividend x 12 / price, one decimal at most, with percent sign (ELM 4.8%, MAV 8%, SOL 3.6% in the current cards). Always called 'דיבידנד' or 'ממחיר המניה', never 'תשואה' or 'החזר'"
+    }
+  },
+  "guessResult": {
+    "correct": [
+      "ניחוש נכון!",
+      "עין חדה, צדקתם!",
+      "בדיוק כך, ניחשתם נכון!"
+    ],
+    "wrong": [
+      "לא הפעם, ואין בעיה. עכשיו אתם יודעים איך לבדוק.",
+      "המספרים מראים משהו אחר. זה בדיוק בשביל ללמוד.",
+      "כמעט! בפעם הבאה בדקו את שנות ההחזר."
+    ],
+    "yellowAny": [
+      "עסקה באמצע, ושתי התשובות סבירות.",
+      "זו עסקה בינונית. אפשר לקחת, ואפשר לחכות.",
+      "לא ברור מאליו, ולכן הרמזור צהוב."
+    ],
+    "skipped": [
+      "בלי ניחוש הפעם. הנה המספרים."
+    ]
+  },
+  "investorEye": {
+    "badgeName": "עין של משקיע",
+    "description": "ניחשתם נכון כמה עסקאות ברצף, לפי התשואה ושנות ההחזר.",
+    "progress": "{streak} מתוך {goal} ניחושים נכונים ברצף",
+    "earned": "קיבלתם את התג ״עין של משקיע״! אתם בודקים עסקאות לפי המספרים.",
+    "earnedShort": "קיבלתם תג: עין של משקיע",
+    "endOfGame": "ניחשתם נכון {right} מתוך {of} עסקאות.",
+    "lockedHint": "ניחשו נכון {goal} עסקאות ברצף כדי לקבל את התג"
+  }
+}

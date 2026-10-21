@@ -8,8 +8,9 @@ import {
 import { validateData } from './validate.js';
 import {
   monthlyCashFlow, hasWon, maxLoan, saleValue, stockPrice, totalIncome,
-  passiveIncome, canSell,
+  passiveIncome, canSell, loanMonthlyPayment,
 } from './selectors.js';
+import { emptyLearn, recordDecision, buyRecord, passRecord, loanRating, isDeal } from './learn.js';
 
 export class EngineError extends Error {}
 
@@ -78,8 +79,9 @@ export function createEngine(data, { validate = true } = {}) {
       seq: 0,
       stats: {
         paydays: 0, dealsBought: 0, dealsSold: 0, loansTaken: 0, donations: 0,
-        expensesPaid: 0, peakPassive: 0, totalPaid: 0,
+        expensesPaid: 0, peakPassive: 0, totalPaid: 0, interestPaid: 0,
       },
+      learn: emptyLearn(), // what the player decided (feedback, guesses, report); never read by a rule
     };
     for (const deck of Object.keys(d.decks)) d.decks[deck] = shuffle(d, eligible(deck, mode));
     settle(d);
@@ -108,6 +110,11 @@ export function createEngine(data, { validate = true } = {}) {
     }
     if (!d.pending && d.cash < 0) d.pending = { kind: 'shortfall' };
     if (d.pending?.kind === 'expense' && d.cash >= d.pending.amount) {
+      const funded = d.pending.funded ?? 'cash'; // 'loan' / 'sale' when it was covered by borrowing / selling first
+      recordDecision(d, {
+        kind: 'expense', cardId: d.pending.card?.id ?? null, amount: d.pending.amount, viaLoan: funded === 'loan', viaSale: funded === 'sale',
+        loanAmount: d.pending.loanTotal ?? 0, green: funded === 'cash',
+      });
       payFromCash(d, d.pending.amount);
       d.stats.expensesPaid += 1;
       d.events.push({ type: 'expensePaid', amount: d.pending.amount, card: d.pending.card });
@@ -141,10 +148,14 @@ export function createEngine(data, { validate = true } = {}) {
 
   // ---------- roll & movement ----------
   function payday(d) {
-    const amount = monthlyCashFlow(d) * PAYDAY_MONTHS;
+    const monthly = monthlyCashFlow(d);
+    const amount = monthly * PAYDAY_MONTHS;
+    // Interest on bank loans over the settled months (starting debts are installments, not counted as interest).
+    const interest = d.liabilities.filter((l) => l.kind === 'loan').reduce((a, l) => a + l.monthlyPayment, 0) * PAYDAY_MONTHS;
     d.cash += amount;
     d.stats.paydays += 1;
-    d.events.push({ type: 'payday', amount, months: PAYDAY_MONTHS });
+    d.stats.interestPaid = (d.stats.interestPaid ?? 0) + interest;
+    d.events.push({ type: 'payday', amount, monthly, months: PAYDAY_MONTHS, interest });
   }
 
   function roll(state, forcedDice) {
@@ -251,9 +262,11 @@ export function createEngine(data, { validate = true } = {}) {
         id: `asset-${d.seq}`, cardId: card.id, type: card.type, title: card.title,
         price: card.price, downPayment: card.downPayment, mortgage: card.mortgage,
         monthlyCashFlow: card.monthlyCashFlow,
+        ...(Number.isFinite(card.loanPayment) ? { loanPayment: card.loanPayment } : {}),
       });
       d.events.push({ type: 'bought', cardId: card.id, cost: card.downPayment, qty: 1 });
     }
+    recordDecision(d, buyRecord(card, card.type === 'stock' ? qty : 1));
     d.stats.dealsBought += 1;
     d.pending = null;
     settle(d);
@@ -263,6 +276,7 @@ export function createEngine(data, { validate = true } = {}) {
   function pass(state) {
     const d = begin(state);
     requirePending(d, 'opportunity');
+    recordDecision(d, passRecord(d.pending.card, d.cash));
     d.pending = null;
     d.events.push({ type: 'passed' });
     settle(d);
@@ -307,6 +321,7 @@ export function createEngine(data, { validate = true } = {}) {
   function declineCharity(state) {
     const d = begin(state);
     requirePending(d, 'charity');
+    d.events.push({ type: 'charityDeclined', cost: d.pending.cost });
     d.pending = null;
     settle(d);
     return d;
@@ -319,10 +334,21 @@ export function createEngine(data, { validate = true } = {}) {
       fail(`loan must be a positive multiple of ${LOAN_STEP}`);
     }
     if (amount > maxLoan(d)) fail('loan limit reached');
+    // Rate the loan on the state before it is taken (spec 2.2). A loan that covers an expense / shortfall is forced, not rated.
+    const p = d.pending;
+    const forced = p?.kind === 'expense' || p?.kind === 'shortfall';
+    const purchase = p?.kind === 'opportunity';
+    const rated = purchase ? isDeal(p.card) : !forced;
+    const rating = rated ? loanRating(d, amount, purchase ? { card: p.card, spend: p.card.downPayment } : {}) : null;
+    recordDecision(d, {
+      kind: 'loan', amount, purpose: forced ? 'forced' : purchase ? 'purchase' : 'voluntary', cardId: purchase ? p.card.id : null,
+      rating, green: rating == null ? null : rating === 'sensible',
+    });
+    if (p?.kind === 'expense') { p.funded = 'loan'; p.loanTotal = (p.loanTotal ?? 0) + amount; }
     d.seq += 1;
     d.liabilities.push({
       id: `loan-${d.seq}`, kind: 'loan', label: 'loan', principal: amount,
-      monthlyPayment: amount * LOAN_PAYMENT_RATE,
+      monthlyPayment: loanMonthlyPayment(amount), rate: LOAN_PAYMENT_RATE,
     });
     d.cash += amount;
     d.stats.loansTaken += 1;
@@ -331,10 +357,9 @@ export function createEngine(data, { validate = true } = {}) {
     return d;
   }
 
-  /** Full mode only. Repay `amount` (multiple of 1000) of a liability. */
+  /** Repay `amount` (multiple of 1000, or the whole remaining principal) of a liability. Both modes. */
   function repayLoan(state, liabilityId, amount) {
     const d = begin(state);
-    if (d.mode !== 'full') fail('repayment is full mode only');
     const l = d.liabilities.find((x) => x.id === liabilityId);
     if (!l) fail('unknown liability');
     const whole = amount === l.principal;
@@ -343,10 +368,11 @@ export function createEngine(data, { validate = true } = {}) {
     if (d.cash < amount) fail('not enough cash');
     d.cash -= amount;
     const remaining = l.principal - amount;
-    l.monthlyPayment = remaining === 0 ? 0 : (l.monthlyPayment * remaining) / l.principal;
+    const before = l.monthlyPayment;
+    l.monthlyPayment = remaining === 0 ? 0 : Math.round(((l.monthlyPayment * remaining) / l.principal) * 100) / 100;
     l.principal = remaining;
     if (remaining === 0) d.liabilities = d.liabilities.filter((x) => x.id !== liabilityId);
-    d.events.push({ type: 'repaid', liabilityId, amount });
+    d.events.push({ type: 'repaid', liabilityId, amount, saved: Math.round((before - l.monthlyPayment) * 100) / 100 });
     settle(d);
     return d;
   }
@@ -373,6 +399,7 @@ export function createEngine(data, { validate = true } = {}) {
     d.cash += proceeds;
     d.stats.dealsSold += 1;
     d.events.push({ type: 'sold', assetId, proceeds });
+    if (d.pending?.kind === 'expense' && d.pending.funded !== 'loan') d.pending.funded = 'sale';
     settle(d);
     return d;
   }

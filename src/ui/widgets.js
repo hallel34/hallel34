@@ -9,18 +9,19 @@ import { countUp, haptic, shake, pulse } from './fx.js';
  * Shrink-to-fit: scales the element's font-size down (never up) so its content never crosses its box.
  * Re-fits when the content or the box changes. The element must be nowrap with overflow hidden (see .stat-value).
  */
-export function fitText(el, { minScale = 0.6 } = {}) {
+export function fitText(el, { minScale = 0.6, box = null } = {}) {
+  // box: when el is an inline-block inside a clipped container, the container's width is the room available
   const fit = () => {
     if (!el.isConnected) return;
     el.style.fontSize = '';
-    const avail = el.clientWidth;
-    const need = el.scrollWidth;
+    const avail = box ? box.clientWidth : el.clientWidth;
+    const need = box ? el.offsetWidth : el.scrollWidth;
     if (avail > 0 && need > avail) {
       const base = parseFloat(getComputedStyle(el).fontSize);
       el.style.fontSize = `${Math.max(base * minScale, Math.floor(base * (avail / need) * 100) / 100)}px`;
     }
   };
-  if (typeof ResizeObserver !== 'undefined') new ResizeObserver(fit).observe(el);
+  if (typeof ResizeObserver !== 'undefined') { const ro = new ResizeObserver(fit); ro.observe(box ?? el); }
   if (typeof MutationObserver !== 'undefined') new MutationObserver(fit).observe(el, { childList: true, subtree: true, characterData: true });
   requestAnimationFrame(fit);
   return el;
@@ -88,6 +89,12 @@ export function meter({ large = false } = {}) {
       last = p;
     },
   };
+}
+
+/** Thin passive-income progress bar for another player's row (pct 0-1). */
+export function miniMeter(pct, valueText, cls = 'or-bar') {
+  return h('div', { class: cls, role: 'progressbar', 'aria-label': t('a11y.passiveMeter'), 'aria-valuemin': '0', 'aria-valuemax': '100', 'aria-valuenow': String(Math.round(pct * 100)), 'aria-valuetext': valueText },
+    h('i', { style: `--fill:${pct}` }));
 }
 
 export function statTile(label, valueNode, { tone = '', big = false } = {}) {

@@ -36,6 +36,12 @@
   --c-violet-700: #5230C2;
   --c-pink-500: #FF9CCB;
   --c-pink-700: #C23B80;
+  /* player tokens (hot-seat multiplayer): ring/badge fills, each >= 4.5:1 against navy ink and >= 3:1 on the board */
+  --pl-1: #F2B53A;
+  --pl-2: #4DA3FF;
+  --pl-3: #4FD6A0;
+  --pl-4: #FF9CCB;
+  --pl-ink: #0F1E46;
   /* legacy aliases (v1/v2 names -> v3 values) */
   --c-plum-900: var(--c-navy-900);
   --c-plum-800: var(--c-navy-900);

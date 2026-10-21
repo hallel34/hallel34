@@ -40,6 +40,27 @@ dark=[ # (label, fg, bg, min)
  ('tile market / bg','#4DA3FF','#0F1E46',3),('tile baby / bg','#FF9CCB','#0F1E46',3),('tile charity / bg','#9B7BFF','#0F1E46',3),
  ('tile icon navy / payday','#0F1E46','#F2B53A',3),('tile icon navy / opp','#0F1E46','#4FD6A0',3),('tile icon navy / baby','#0F1E46','#FF9CCB',3),
  ('tile icon navy / market','#0F1E46','#4DA3FF',3),('tile icon navy / expense','#0F1E46','#F0524A',3),('tile icon navy / charity','#0F1E46','#9B7BFF',3),
+ # hot-seat player tokens: number (navy ink) on each colour, and each colour against the board
+ ('player 1 token ink / gold','#0F1E46','#F2B53A',4.5),('player 2 token ink / sky','#0F1E46','#4DA3FF',4.5),
+ ('player 3 token ink / mint','#0F1E46','#4FD6A0',4.5),('player 4 token ink / pink','#0F1E46','#FF9CCB',4.5),
+ ('player 1 ring / bg (non-text)','#F2B53A','#0F1E46',3),('player 2 ring / bg (non-text)','#4DA3FF','#0F1E46',3),
+ ('player 3 ring / bg (non-text)','#4FD6A0','#0F1E46',3),('player 4 ring / bg (non-text)','#FF9CCB','#0F1E46',3),
+ ('others-strip cash / glass-strong','#F6C453','#%02x%02x%02x'%glassS_dark,4.5),
+ # payday float: dark pill rgba(10,21,51,.86) over the worst-case tile (cream in light, gold in dark)
+ ('float income / pill over gold tile','#5FE0AE','#%02x%02x%02x'%over(h('0A1533'),.86,h('F2B53A')),4.5),
+ ('float expense / pill over gold tile','#FFB3A7','#%02x%02x%02x'%over(h('0A1533'),.86,h('F2B53A')),4.5),
+ ('card text / breakdown tile (white)','#0F1E46','#FFFFFF',4.5),
+ # v2 phase B (learning layer): fox note, traffic light, investor-eye chip, dictionary, report
+ ('note kicker (card-muted) / cream bubble','#46527E','#FFF6E3',4.5),('note text / cream bubble','#0F1E46','#FFF6E3',4.5),
+ ('light green text / green tint','#0B6B43','#E1F8EC',4.5),('light yellow text / yellow tint','#6B4300','#FFF1D0',4.5),('light red text / red tint','#7A1810','#FFE9E5',4.5),
+ ('lamp green icon / lit green','#032A1A','#4FD6A0',3),('lamp yellow icon / lit gold','#2A1700','#F2B53A',3),('lamp red icon / lit coral','#3A0600','#FF8E80',3),
+ ('lit lamp ring / navy pill (non-text)','#FFFFFF','#0F1E46',3),('lit green lamp / navy pill (non-text)','#4FD6A0','#0F1E46',3),
+ ('lit yellow lamp / navy pill (non-text)','#F2B53A','#0F1E46',3),('lit red lamp / navy pill (non-text)','#FF8E80','#0F1E46',3),
+ ('eye chip gold / navy','#FFD479','#0F1E46',4.5),('dictionary "new" badge ink / gold','#2A1700','#F2B53A',4.5),
+ ('report guess line (gold-300) / glass','#FFD479','#%02x%02x%02x'%glass_dark,4.5),
+ ('real-world disclaimer (card-muted) / white tile','#46527E','#FFFFFF',4.5),('guess hint (card-muted) / white tile','#46527E','#FFFFFF',4.5),
+ ('guess skip / white tile','#0F1E46','#FFFFFF',4.5),('guess-bad button text / coral','#2E0502','#FF8A78',4.5),
+ ('term underline target: text / card cream','#0F1E46','#FFF6E3',4.5),
 ]
 light=[
  ('text / bg','#0F1E46','#FBF3E1',4.5),('text / surface','#0F1E46','#FFFFFF',4.5),('text / sunken','#0F1E46','#F1E5C8',4.5),
@@ -56,6 +77,16 @@ light=[
  ('passive fill / track (non-text)','#087F66','#E3E0DB',3),
  ('tile outline navy / bg (tiles keep a 3px navy outline in light)','#0F1E46','#FBF3E1',3),
  ('fox orange 700 text / bg','#B3501A','#FBF3E1',4.5),
+ ('player token ring (navy outline in light) / bg (non-text)','#0F1E46','#FBF3E1',3),
+ ('others-panel cash / cream panel','#7A4A00','#FFFBF2',4.5),
+ ('float income / pill over cream tile','#5FE0AE','#%02x%02x%02x'%over(h('0A1533'),.86,h('FBF3E1')),4.5),
+ ('float expense / pill over cream tile','#FFB3A7','#%02x%02x%02x'%over(h('0A1533'),.86,h('FBF3E1')),4.5),
+ ('card text / breakdown tile (white)','#0F1E46','#FFFFFF',4.5),
+ ('report guess line (fox-ink) / glass','#B3501A','#%02x%02x%02x'%glass_light,4.5),
+ ('dictionary section text / glass','#0F1E46','#%02x%02x%02x'%glass_light,4.5),('dictionary muted / glass','#3F4C78','#%02x%02x%02x'%glass_light,4.5),
+ ('settings help (text-muted) / surface','#3F4C78','#FFFFFF',4.5),
+ ('note kicker (card-muted) / cream bubble','#46527E','#FFF6E3',4.5),
+ ('eye chip gold / navy','#FFD479','#0F1E46',4.5),
 ]
 bad=0; md='--md' in sys.argv
 for name,rows in (('DARK',dark),('LIGHT',light)):

@@ -1,64 +1,162 @@
 // Card modals and dialogs. Each function returns a Promise with the player's choice.
 // They never mutate game state; the play controller applies the result via the engine.
 import { h } from './dom.js';
-import { t } from '../i18n/index.js';
+import { t, tp } from '../i18n/index.js';
 import { openLayer, closeButton } from './modal.js';
 import { icon } from './icons.js';
-import { cornerPop } from './fox.js';
+import { cornerPop, foxImg } from './fox.js';
+import { playerToken, withName } from './players.js';
 import { CARD_REACTION } from './fox-rules.js';
-import { money, moneyText, tn, numberText } from './format.js';
+import { money, moneyText, tn, numberText, signedMoney } from './format.js';
+import { createTermScope, termButton } from './rich.js';
+import { realWorldForCard, realWorldForPlace } from './realworld.js';
+import { learnContent, conceptById } from '../learn/content.js';
+import { revealModel, resultModel, stockNoteModel } from '../learn/guess.js';
+import { pctText, yearsPhrase, yearsValue } from '../learn/slots.js';
 import { button, stepper, statTile } from './widgets.js';
-import { haptic, countUp } from './fx.js';
+import { haptic, countUp, shake } from './fx.js';
 import {
-  monthlyCashFlow, passiveIncome, maxLoan, saleValue, canSell, loanPaydayImpact,
-  paybackYears, paybackTier, PAYDAY_MONTHS,
+  monthlyCashFlow, passiveIncome, maxLoan, loanLimits, saleValue, canSell, loanPaydayImpact,
+  paybackTier, PAYDAY_MONTHS, purchasePlan, loanTerms, dealMetrics,
 } from '../engine/index.js';
-import { LOAN_STEP, LOAN_PAYMENT_RATE } from '../engine/index.js';
+import { LOAN_STEP } from '../engine/index.js';
 
 const BANNERS = import.meta.glob('../assets/card-*.svg', { eager: true, query: '?url', import: 'default' });
 const bannerUrl = (type) => BANNERS[`../assets/card-${type}.svg`] || BANNERS['../assets/card-opportunity.svg'];
 
 // ---------- generic cream card ----------
-function cardShell({ type, art, chip, title, text, body = [], actions, flip = false, label, data = {} }) {
+/**
+ * `ctl` (optional) is filled with handles for cards that change after they open (the 'עסקה טובה?' guess):
+ * ctl.body (the scrolling area), ctl.setActions(list), ctl.setFoot(node|null), ctl.layer.
+ * An action with `run` does something and keeps the card open (the guess buttons); the others close it with their value.
+ */
+function cardShell({ type, art, chip, title, text, body = [], actions, flip = false, label, data = {}, foot = null, ctl = null }) {
   let layer;
   const done = (v) => layer.close(v);
-  const bar = h('div', { class: `card-actions${actions.length === 1 ? ' single' : ''}` },
-    actions.map((a, i) => button(a.label, {
-      variant: a.variant, disabled: a.disabled, cls: a.cls || '',
+  const bar = h('div', { class: 'card-actions' });
+  const makeButton = (a) => {
+    const b = button(a.label, {
+      variant: a.variant, disabled: a.disabled, cls: `${a.cls || ''}${a.blocked ? ' is-blocked' : ''}`.trim(),
       'data-action': a.id, 'data-autofocus': a.autofocus ? '' : null,
-      onClick: () => { haptic('tap'); done(a.getValue ? a.getValue() : a.value); },
-    })));
+      // A blocked action stays focusable and readable (aria-disabled + reason), but never does anything.
+      'aria-disabled': a.blocked ? 'true' : null, 'aria-describedby': a.describedBy || null,
+      onClick: () => {
+        if (a.blocked) { haptic('error'); shake(b); return; }
+        haptic('tap');
+        if (a.run) { a.run(); return; }
+        done(a.getValue ? a.getValue() : a.value);
+      },
+    });
+    return b;
+  };
+  const paintBar = (list) => {
+    bar.className = `card-actions${list.length === 1 ? ' single' : ''}`;
+    bar.replaceChildren(...list.map(makeButton));
+  };
+  paintBar(actions);
+  const footWrap = h('div', { class: 'card-foot' }, foot, bar);
+  const cardBody = h('div', { class: 'card-body', tabindex: '0', role: 'region', 'aria-label': title },
+    h('div', { class: 'card-titles' }, h('h2', { class: 'card-title' }, title), text ? h('p', { class: 'card-text' }, text) : null),
+    body);
   const content = h('div', { class: 'card', 'data-card': type, ...Object.fromEntries(Object.entries(data).map(([k, v]) => [`data-${k}`, v])) },
     h('div', { class: `card-head card-head--${type}` },
       h('img', { class: 'card-banner', src: bannerUrl(type), alt: '', width: 320, height: 140, decoding: 'async', draggable: 'false' }),
       h('span', { class: 'card-chip' }, chip),
       // The fox reacts once the flip has landed (+150ms); never over the title or the numbers grid.
       cornerPop(CARD_REACTION[type] || 'think', { size: 64, delay: (flip ? 400 : 0) + 150 })),
-    h('div', { class: 'card-body' },
-      h('div', { class: 'card-titles' }, h('h2', { class: 'card-title' }, title), text ? h('p', { class: 'card-text' }, text) : null),
-      body),
-    bar);
+    cardBody,
+    // the reason / next step for the primary action sits right above the buttons, so it never scrolls out of view
+    footWrap);
   layer = openLayer(content, { kind: 'modal', label: label || title, dismissable: false, cardFlip: flip, cls: 'layer-card' });
+  if (ctl) {
+    ctl.layer = layer;
+    ctl.card = content;
+    ctl.body = cardBody;
+    ctl.setActions = (list) => {
+      paintBar(list);
+      const first = bar.querySelector('[data-autofocus]') || bar.querySelector('button');
+      first?.focus?.({ preventScroll: true });
+    };
+    ctl.setFoot = (node) => { footWrap.replaceChildren(...(node ? [node] : []), bar); };
+  }
   return layer.closed;
 }
 
 const limitBanner = () => h('div', { class: 'banner banner-warn', role: 'status' }, icon('bank', { size: 24 }), h('span', null, t('loan.limitHint')));
 const grid = (...tiles) => h('div', { class: 'stat-grid' }, tiles);
-/** Whole years, rounded UP, so the shown number always agrees with the tier (8.33y is '9', amber; 8.0y is '8', neutral). */
-export const paybackYearsShown = (years) => Math.max(1, Math.ceil(years - 1e-9));
-function paybackBadge(years, tier) {
+/**
+ * Payback years as the badge shows them: exactly the figure of the reveal (one decimal at most, never crossing a threshold:
+ * 8.04y reads 8.1 and amber, 4.9y reads 4.9 and never "5"). One rounding rule for the card, the reveal, the feedback and the report.
+ */
+export const paybackYearsShown = yearsValue;
+function paybackBadge(years, tier, scope) {
   const label = Number.isFinite(years)
-    ? t('card.payback', { years: numberText(paybackYearsShown(years)) })
-    : t('card.paybackNever');
+    ? tn('card.payback', { years: yearsPhrase(years) }, { scope })
+    : tn('card.paybackNever', {}, { scope });
   return h('div', { class: `payback payback-${tier}`, 'data-payback-tier': tier }, icon(tier === 'ok' ? 'check' : 'expense', { size: 20 }), h('span', null, label));
 }
 const banner = (node, tone = 'info') => h('div', { class: `banner banner-${tone}` }, icon('star', { size: 26 }), h('span', null, node));
+const ltr = (text) => h('bdi', { dir: 'ltr' }, text);
+
+// ---------- 'עסקה טובה?' (L2): prompt, traffic light, verdict ----------
+const LIGHT_ICON = { green: 'check', yellow: 'minus', red: 'close' };
+const RESULT_ICON = { correct: 'check', wrong: 'minus', yellowAny: 'help', skipped: null };
+
+/** The traffic light: three lamps, the lit one carries an icon shape, and a text label (never colour alone). */
+function trafficLight(model) {
+  return h('div', { class: `light light-${model.light}`, role: 'img', 'aria-label': model.a11y, 'data-light': model.light },
+    h('span', { class: 'light-lamps', 'aria-hidden': 'true' },
+      ['red', 'yellow', 'green'].map((c) => h('i', { class: `lamp lamp-${c}${c === model.light ? ' is-on' : ''}` }, c === model.light ? icon(LIGHT_ICON[c], { size: 18, width: 3.6 }) : null))),
+    h('span', { class: 'light-label' }, model.label));
+}
+
+function guessPrompt(ui, onSkip) {
+  return h('section', { class: 'guess-prompt', 'data-guess-block': 'ask' },
+    h('h3', { class: 'guess-title' }, ui.title),
+    h('p', { class: 'guess-sub' }, ui.subtitle),
+    h('p', { class: 'guess-hint' }, ui.hint),
+    button(ui.reveal, { variant: 'secondary', size: 'sm', cls: 'guess-skip', 'data-action': 'guess-skip', onClick: onSkip }));
+}
+
+/** Result of the guess + light + yield / payback + verdict + 'עין של משקיע' chip (aria-live: read out once when it appears). */
+function revealBlock(model, result, eye) {
+  const tone = { green: 'income', yellow: 'slow', red: 'expense' }[model.light];
+  return h('section', { class: 'reveal', 'data-guess-block': 'reveal', 'data-light': model.light, role: 'status' },
+    result.kind !== 'skipped'
+      ? h('p', { class: `guess-result guess-${result.kind}`, 'data-result': result.kind },
+        RESULT_ICON[result.kind] ? icon(RESULT_ICON[result.kind], { size: 20, width: 3 }) : null, h('span', null, result.text))
+      : h('p', { class: 'guess-result guess-skipped', 'data-result': 'skipped' }, h('span', null, result.text)),
+    trafficLight(model),
+    grid(statTile(termButton('yield', model.yieldLabel), ltr(model.yieldText), { tone, big: true }), statTile(termButton('payback', model.paybackLabel), h('bdi', null, model.paybackText), { tone, big: true })),
+    h('p', { class: 'guess-verdict' }, model.verdict),
+    h('p', { class: 'guess-legend' }, h('b', null, `${model.legendTitle}: `), model.legend),
+    eye && result.kind !== 'skipped'
+      ? h('p', { class: `eye-chip${eye.earned ? ' is-earned' : ''}`, 'data-eye': String(eye.streak) }, icon('star', { size: 18, width: 2.8 }), h('span', null, eye.earned ? `${eye.badgeName}. ${eye.text}` : eye.text))
+      : null,
+    eye?.justEarned ? h('p', { class: 'banner eye-earned', role: 'status', 'data-eye-earned': 'true' }, icon('star', { size: 24 }), h('span', null, eye.earnedText)) : null);
+}
+
+/** Stock card: no light, no guess (spec 5.1). Dividend line, volatility, not guaranteed, links to the glossary. */
+function stockNote(c) {
+  const dividendYield = pctText((c.dividend * 12 / c.price) * 100);
+  const m = stockNoteModel(c, { dividendText: moneyText(c.dividend), yieldText: dividendYield });
+  return h('section', { class: 'stock-note', 'data-stock-note': c.symbol },
+    h('h3', { class: 'guess-title' }, m.title),
+    h('p', null, m.dividend),
+    h('p', null, m.volatility),
+    h('p', null, m.notGuaranteed),
+    h('p', { class: 'stock-links' }, termButton('dividend', conceptById('dividend')?.term ?? ''), termButton('diversification', conceptById('diversification')?.term ?? '')));
+}
 
 // ---------- opportunity ----------
-export function opportunityModal(state, { flip = true } = {}) {
+/**
+ * `guess` (family default, full opt-in): { enabled, seed, prior, onGuess(pick, light) -> eye model }.
+ * `prior`: the guess already made for this open card (a reload shows the numbers straight away).
+ */
+export function opportunityModal(state, { flip = true, guess = null } = {}) {
   const c = state.pending.card;
   const passive = passiveIncome(state);
-  const loanAvailable = maxLoan(state) > 0;
+  const scope = createTermScope();
 
   if (c.type === 'stock') {
     const maxAfford = Math.floor(state.cash / c.price);
@@ -75,57 +173,114 @@ export function opportunityModal(state, { flip = true } = {}) {
     });
     const quick = [10, 100].filter((n) => n <= cap).map((n) => h('button', { type: 'button', class: 'chip-btn', onClick: () => st.set(n) }, `×${n}`));
     update();
+    scope.add('dividend'); // the stock note below carries the dividend link
     const body = [
       grid(
         statTile(t('card.perShare'), money(c.price)),
-        statTile(t('card.dividend'), money(c.dividend, { sign: true }), { tone: 'income' }),
+        statTile(tn('card.dividend', {}, { scope }), money(c.dividend, { sign: true }), { tone: 'income' }),
       ),
       canBuy ? h('div', { class: 'stepper-wrap' }, h('span', { class: 'stat-label' }, t('card.quantity')), st.el, quick.length ? h('div', { class: 'qty-quick' }, quick) : null) : null,
       canBuy ? grid(
         statTile(t('card.total'), total, { big: true }),
         statTile(t('card.monthlyIncome'), gain, { tone: 'income', big: true })) : null,
+      stockNote(c),
+      realWorldForCard(c),
     ].filter(Boolean);
-    return finishOpportunity({ c, body, flip, qtyGetter: () => st.value, canAfford: canBuy, need: c.price - state.cash, loanAvailable });
+    return finishOpportunity({ state, c, body, flip, qtyGetter: () => st.value, plan: purchasePlan(state, c.price) });
   }
 
-  const afford = state.cash >= c.downPayment;
-  const years = paybackYears(c.downPayment, c.monthlyCashFlow);
+  const m = dealMetrics(c);
+  const years = m.years;
   const tier = paybackTier(years);
-  const body = [
-    paybackBadge(years, tier),
+  const cardNumbers = ({ light = false } = {}) => [
+    light ? null : paybackBadge(years, tier, scope),
     grid(
-      statTile(t('card.downPayment'), money(c.downPayment), { big: true }),
-      statTile(t('card.monthlyCashFlow'), money(c.monthlyCashFlow, { sign: true }), { tone: c.monthlyCashFlow <= 0 || tier === 'bad' ? 'expense' : (tier === 'slow' ? 'slow' : 'income'), big: true }),
-      statTile(t(c.type === 'business' ? 'card.businessLoan' : 'card.mortgage'), money(c.mortgage)),
+      statTile(tn('card.downPayment', {}, { scope }), money(c.downPayment), { big: true }),
+      statTile(tn('card.monthlyCashFlow', {}, { scope }), money(c.monthlyCashFlow, { sign: true }), { tone: c.monthlyCashFlow <= 0 || tier === 'bad' ? 'expense' : (tier === 'slow' ? 'slow' : 'income'), big: true }),
+      statTile(tn(c.type === 'business' ? 'card.businessLoan' : 'card.mortgage', {}, { scope }), money(c.mortgage)),
       statTile(t('card.price'), money(c.price)),
     ),
+    breakdown(c, scope),
     c.monthlyCashFlow < 0
       ? h('div', { class: 'banner banner-warn' }, icon('expense', { size: 24 }), h('span', null, tn('card.negativeFlow', { amount: money(-c.monthlyCashFlow) })))
-      : banner(tn('card.newPassive', { amount: money(passive + c.monthlyCashFlow) })),
-  ];
-  return finishOpportunity({ c, body, flip, qtyGetter: () => 1, canAfford: afford, need: c.downPayment - state.cash, loanAvailable });
+      : banner(tn('card.newPassive', { amount: money(passive + c.monthlyCashFlow) }, { scope })),
+    realWorldForCard(c),
+  ].filter(Boolean);
+  const plan = purchasePlan(state, c.downPayment);
+
+  // ---- no guess: the numbers straight away (full mode default) ----
+  if (!guess?.enabled) return finishOpportunity({ state, c, body: cardNumbers(), flip, qtyGetter: () => 1, plan });
+
+  // ---- the guess flow (family mode): prompt first, numbers after ----
+  const { guess: ui } = learnContent();
+  const ctl = {};
+  const opts = finishOpportunity({ state, c, body: [], flip, qtyGetter: () => 1, plan, ctl, deferred: true, guessState: 'ask' });
+  const reveal = (pick, prior = null) => {
+    const eye = prior ? guess.eye?.() : guess.onGuess(pick, m.light);
+    const result = resultModel(m.light, pick, { seed: guess.seed });
+    const model = revealModel(c, { seed: guess.seed });
+    ctl.card.dataset.guess = 'done';
+    ctl.card.dataset.light = m.light;
+    ctl.body.querySelector('[data-guess-block="ask"]')?.remove();
+    ctl.body.append(revealBlock(model, result, eye), ...cardNumbers({ light: true }));
+    ctl.setFoot(opts.warn);
+    ctl.setActions(opts.normalActions);
+    ctl.body.querySelector('[data-guess-block="reveal"]')?.scrollIntoView?.({ block: 'nearest' });
+  };
+  if (guess.prior) {
+    queueMicrotask(() => reveal(guess.prior.guess, guess.prior));
+  } else {
+    ctl.body.append(guessPrompt(ui.prompt, () => reveal('skip')));
+    ctl.setActions([
+      { id: 'guess-bad', label: [icon('close', { size: 22, width: 3.4 }), h('span', null, ui.prompt.bad)], variant: 'danger', cls: 'btn-guess', run: () => reveal('bad') },
+      { id: 'guess-good', label: [icon('check', { size: 22, width: 3.4 }), h('span', null, ui.prompt.good)], variant: 'buy', cls: 'btn-guess', autofocus: true, run: () => reveal('good') },
+    ]);
+    ctl.setFoot(null);
+  }
+  return opts.promise;
 }
 
-function finishOpportunity({ c, body, flip, qtyGetter, canAfford, need, loanAvailable }) {
-  const warn = !canAfford
-    ? h('div', { class: 'banner banner-warn', role: 'status' }, icon('bank', { size: 24 }),
-      h('span', null, t('card.notEnough', { amount: moneyText(need) })))
-    : null;
+/** "rent - mortgage = cash flow" (apartments) or "profit - loan payment = cash flow" (businesses), when the card has the fields. */
+function breakdown(c, scope) {
+  const gross = c.type === 'business' ? c.profit : c.rent;
+  if (!Number.isFinite(gross) || !Number.isFinite(c.loanPayment)) return null;
+  return h('div', { class: 'calc-line', 'data-calc': c.type },
+    h('span', { class: 'stat-label' }, t('card.breakdownTitle')),
+    h('p', null, tn(c.type === 'business' ? 'card.profitLine' : 'card.rentLine', {
+      gross: money(gross),
+      payment: money(c.loanPayment), flow: signedMoney(c.monthlyCashFlow),
+    }, { scope })));
+}
+
+function finishOpportunity({ state, c, body, flip, qtyGetter, plan, ctl = null, deferred = false, guessState = 'off' }) {
+  // plan.status: 'ok' (cash covers it) | 'loan' (one loan covers the gap) | 'blocked' (short even after the maximum loan)
+  const hintId = 'buy-hint';
+  const warn = plan.status === 'blocked'
+    ? h('div', { class: 'banner banner-warn', role: 'status', id: hintId, 'data-hint': 'blocked' }, icon('bank', { size: 24 }), h('span', null, t('card.noFundsMax'), loanLimits(state).capBinds ? `. ${t('loan.capBlocked', { salaries: numberText(loanLimits(state).capSalaries) })}` : ''))
+    : plan.status === 'loan'
+      ? h('div', { class: 'banner banner-warn', role: 'status', id: hintId, 'data-hint': 'loan' }, icon('bank', { size: 24 }), h('span', null, t('card.needLoan', { amount: moneyText(plan.need) })))
+      : null;
   const actions = [
     { id: 'pass', label: t('card.pass'), variant: 'secondary', value: { action: 'pass' } },
+    {
+      id: 'buy', label: t('card.buy'), variant: 'buy', autofocus: plan.status !== 'blocked',
+      blocked: plan.status === 'blocked', describedBy: warn ? hintId : null,
+      getValue: () => (plan.status === 'loan'
+        ? { action: 'buyLoan', qty: qtyGetter(), need: plan.need }
+        : { action: 'buy', qty: qtyGetter() }),
+    },
   ];
-  if (!canAfford && loanAvailable) actions.push({ id: 'loan', label: t('card.getLoan'), variant: 'primary', value: { action: 'loan' } });
-  else actions.push({ id: 'buy', label: t('card.buy'), variant: 'buy', disabled: !canAfford, getValue: () => ({ action: 'buy', qty: qtyGetter() }), autofocus: true });
-  const bodyWithWarn = [...body, warn].filter(Boolean);
-  return cardShell({
+  const promise = cardShell({
     type: 'opportunity', art: c.type, chip: `${t('square.opportunity')} · ${t(`type.${c.type}`)}`, title: c.title, text: c.text,
-    body: bodyWithWarn, actions, flip,
+    body, foot: deferred ? null : warn, actions: deferred ? [] : actions, flip, ctl,
     data: {
-      afford: String(canAfford), kind: c.type, cost: String(c.type === 'stock' ? c.price : c.downPayment),
+      afford: String(plan.status === 'ok'), buy: plan.status, kind: c.type, cost: String(plan.cost),
       payback: c.type === 'stock' ? '' : String(Math.round(c.downPayment / Math.max(1, c.monthlyCashFlow))),
       flow: String(c.type === 'stock' ? c.dividend : c.monthlyCashFlow),
+      guess: guessState,
     },
   });
+  return deferred ? { promise, warn, normalActions: actions } : promise;
 }
 
 // ---------- expense (paid or must-pay) ----------
@@ -193,7 +348,8 @@ export function offerModal(state, { flip = true } = {}) {
       statTile(t('card.offerProceeds'), money(p.proceeds, { sign: true }), { tone: p.proceeds >= 0 ? 'income' : 'expense', big: true }),
     ),
     h('div', { class: 'banner banner-info' }, icon('market', { size: 26 }), h('span', null, t('card.offerFor', { asset: asset?.title ?? '' }))),
-  ];
+    realWorldForCard(p.card),
+  ].filter(Boolean);
   return cardShell({
     type: 'market', art: 'market', chip: t('square.market'), title: p.card.title, text: p.card.text, body,
     actions: [
@@ -211,12 +367,14 @@ export function marketInfoModal(state, { card, noMatch, familyOffer, flip = true
   } else if (card.effect === 'stockPrice') {
     body.push(banner(t('market.stockPrice', { symbol: card.symbol, price: moneyText(card.newPrice) })));
     const held = state.assets.find((a) => a.type === 'stock' && a.symbol === card.symbol);
-    if (held) body.push(h('div', { class: 'banner banner-info' }, icon('market', { size: 24 }), h('span', null, t('market.stockHeld', { qty: held.qty, symbol: card.symbol }))));
+    if (held) body.push(h('div', { class: 'banner banner-info' }, icon('market', { size: 24 }), h('span', null, t('market.stockHeld', { shares: tp('plural.sharesOf', held.qty, { symbol: card.symbol }) }))));
   } else if (noMatch) {
     body.push(h('div', { class: 'banner banner-info' }, icon('market', { size: 24 }), h('span', null, t('market.noAsset'))));
   } else if (familyOffer) {
     body.push(h('div', { class: 'banner banner-info' }, icon('market', { size: 24 }), h('span', null, t('market.familyNote'))));
   }
+  const rw = realWorldForCard(card);
+  if (rw) body.push(rw);
   return cardShell({
     type: 'market', art: 'market', chip: t('square.market'), title: card.title, text: card.text, body,
     actions: [{ id: 'ok', label: t('card.ok'), variant: 'primary', value: { action: 'ok' }, autofocus: true }], flip,
@@ -249,10 +407,20 @@ function dialogShell({ title, text, body, actions, label, fox = '' }) {
   return { layer, promise: layer.closed.then((v) => (v === undefined ? null : v)), bar };
 }
 
+/** Why the loan limit is what it is, when the 12-salary ceiling on borrowing to buy is the binding one (else null). */
+function capNote(state) {
+  const lim = loanLimits(state);
+  if (!lim.capBinds) return null;
+  return h('p', { class: 'limit-cap', 'data-loan': 'cap' }, t('loan.capNote', { salaries: numberText(lim.capSalaries), amount: moneyText(lim.capAmount) }));
+}
+
 /** Loan dialog. Resolves with the amount (multiple of 1000) or null. */
-export function loanDialog(state, { required = 0 } = {}) {
+export function loanDialog(state, { required = 0, gain = null } = {}) {
   const max = maxLoan(state);
-  const cf = monthlyCashFlow(state);
+  // For a purchase the figures describe the state right AFTER buying: the asset's cash flow is part of the new flow and
+  // of the next summary (gain = null: the loan is not for a purchase).
+  const purchase = gain != null;
+  const cf = monthlyCashFlow(state) + (gain ?? 0);
   const start = max === 0 ? 0 : Math.min(max, Math.max(LOAN_STEP, Math.ceil(required / LOAN_STEP) * LOAN_STEP));
   const voluntary = required <= 0;
   const spend = voluntary ? 0 : state.cash + required; // what the loan is about to pay for
@@ -262,22 +430,34 @@ export function loanDialog(state, { required = 0 } = {}) {
   const flowOut = h('bdi', { class: 'money', dir: 'ltr' });
   const barFill = h('div', { class: 'limit-fill' });
   const usedLabel = h('span', { class: 'limit-label' });
-  const flowRow = h('div', { class: 'kv' }, h('span', null, t('loan.newFlow')), flowOut);
+  const flowRow = h('div', { class: 'kv', 'data-loan': 'flow' }, h('span', null, t(purchase ? 'loan.newFlowPurchase' : 'loan.newFlow')), flowOut);
+  const interestOut = h('bdi', { class: 'money', dir: 'ltr' });
+  const totalOut = h('bdi', { class: 'money', dir: 'ltr' });
   const paydayOut = h('bdi', { class: 'money', dir: 'ltr' });
   const paydayRow = h('div', { class: 'kv' }, h('span', null, tn('loan.paydayNext', { months: PAYDAY_MONTHS, amount: paydayOut })));
   const warnText = h('span');
   const warn = h('div', { class: 'banner banner-warn', role: 'status', 'data-risky': 'false', hidden: true }, icon('expense', { size: 24 }), warnText);
   let takeBtn = null;
   let shown = start;
+  const scope = createTermScope();
+
+  // rate and "per 1,000" come from the config through loanTerms; nothing is typed into the copy
+  const unit = loanTerms(LOAN_STEP);
+  const rateLine = h('p', { class: 'loan-rate', 'data-loan': 'rate' }, tn('loan.rateLine', {
+    apr: h('bdi', { dir: 'ltr' }, numberText(unit.aprNominal)), unit: money(LOAN_STEP), unitPay: money(unit.monthly),
+  }, { scope }));
 
   const update = (from, to) => {
-    const pay = to * LOAN_PAYMENT_RATE;
+    const terms = loanTerms(to);
+    const pay = terms.monthly;
+    interestOut.textContent = moneyText(terms.perPayday);
+    totalOut.textContent = moneyText(terms.totalAtPayday);
     countUp(from, to, (v) => { amountOut.textContent = moneyText(v); }, 300);
     payOut.textContent = moneyText(pay);
     const nf = cf - pay;
     flowOut.textContent = moneyText(nf, { sign: true });
     flowRow.classList.toggle('is-negative', nf < 0);
-    const imp = loanPaydayImpact(state, to, spend);
+    const imp = loanPaydayImpact(state, to, spend, gain ?? 0);
     paydayOut.textContent = moneyText(imp.payday, { sign: true });
     paydayRow.classList.toggle('is-negative', imp.payday < 0);
     warn.hidden = !imp.risky;
@@ -301,15 +481,20 @@ export function loanDialog(state, { required = 0 } = {}) {
   if (st) update(start, start); else amountOut.textContent = moneyText(0);
 
   const body = max === 0
-    ? [h('div', { class: 'banner banner-warn', role: 'status' }, icon('bank', { size: 24 }), h('span', null, t('loan.limitReached')))]
+    ? [h('div', { class: 'banner banner-warn', role: 'status' }, icon('bank', { size: 24 }), h('span', null, t('loan.limitReached'))), capNote(state)].filter(Boolean)
     : [
       st.el,
+      rateLine,
       h('div', { class: 'kv' }, h('span', null, tn('loan.monthlyPayment', { amount: payOut }))),
+      h('div', { class: 'kv', 'data-loan': 'interest' }, h('span', null, tn('loan.interestUntil', { months: numberText(PAYDAY_MONTHS) }, { scope })), interestOut),
+      h('div', { class: 'kv', 'data-loan': 'total' }, h('span', null, t('loan.totalDue')), totalOut),
       flowRow,
       paydayRow,
       warn,
-      h('div', { class: 'limit' }, h('div', { class: 'limit-bar', 'aria-hidden': 'true' }, barFill), h('div', { class: 'limit-row' }, h('span', null, t('loan.limit')), usedLabel)),
-    ];
+      h('div', { class: 'limit' }, h('div', { class: 'limit-bar', 'aria-hidden': 'true' }, barFill), h('div', { class: 'limit-row' }, h('span', null, t('loan.limit')), usedLabel),
+        capNote(state)),
+      realWorldForPlace('loan-window'),
+    ].filter(Boolean);
   const d = dialogShell({
     title: voluntary ? t('loan.titleVoluntary') : t('loan.title'),
     text: voluntary ? t('loan.textVoluntary', { step: moneyText(LOAN_STEP) }) : t('loan.text', { amount: moneyText(required), step: moneyText(LOAN_STEP) }),
@@ -395,13 +580,14 @@ export function sellSheet(getState, onSell, { shouldClose = () => false } = {}) 
       list.append(h('div', { class: 'sell-row', 'data-asset': a.id },
         h('div', { class: 'sell-info' },
           h('strong', null, a.title),
-          h('span', { class: 'muted' }, a.type === 'stock' ? t('statement.stockLine', { qty: a.qty }) : t(`type.${a.type}`)),
+          h('span', { class: 'muted' }, a.type === 'stock' ? t('statement.stockLine', { shares: tp('plural.shares', a.qty) }) : t(`type.${a.type}`)),
           h('span', null, tn('sell.proceeds', { amount: proceeds }))),
         qtyCtl?.el,
         button(t('sell.sell'), { variant: 'primary', size: 'sm', 'data-action': 'sell', onClick: () => {
           const next = onSell(a.id, a.type === 'stock' ? qty : undefined);
+          // nothing left to sell in the must-pay flow: close straight away (the loan card is next), no "nothing to sell" flash
+          if (next && shouldClose(next)) { layer.close(); return; }
           render();
-          if (next && shouldClose(next)) layer.close();
         } })));
     }
   };
@@ -413,3 +599,47 @@ export function sellSheet(getState, onSell, { shouldClose = () => false } = {}) 
   return layer.closed;
 }
 
+
+// ---------- hot-seat sheets ----------
+/** Pass-the-phone sheet: "תור של <name>" with one primary button. Not dismissable; resolves when the next player is ready. */
+export function handoffSheet({ name, color }) {
+  let layer;
+  const content = h('div', { class: 'sheet handoff-sheet', 'data-handoff': String(color) },
+    h('div', { class: 'handoff-fox' }, foxImg('roll', { height: 96 })),
+    playerToken(color, { cls: 'ptoken-xl' }),
+    h('h2', { class: 'dialog-title handoff-title' }, withName(t('players.handoffTitle', { name: '{name}' }), name)),
+    h('p', { class: 'dialog-text' }, withName(t('players.handoffText', { name: '{name}' }), name)),
+    h('div', { class: 'sheet-cta' }, button(t('players.ready'), { variant: 'primary', size: 'lg', 'data-action': 'ready', 'data-autofocus': '', onClick: () => { haptic('tap'); layer.close(true); } })));
+  layer = openLayer(content, { kind: 'sheet', label: t('players.handoffTitle', { name }), dismissable: false, cls: 'layer-handoff' });
+  return layer.closed;
+}
+
+/** In-page confirm for "back to the start screen" (no native dialogs). Resolves 'home' or null. */
+export function homeConfirmSheet() {
+  let layer;
+  const content = h('div', { class: 'sheet home-sheet' },
+    h('div', { class: 'home-body' },
+      h('h2', { class: 'dialog-title' }, t('game.homeTitle')),
+      h('p', { class: 'dialog-text' }, t('game.homeText'))),
+    h('div', { class: 'sheet-cta home-actions' },
+      button(t('game.homeConfirm'), { variant: 'primary', size: 'lg', 'data-action': 'home-confirm', onClick: () => { haptic('tap'); layer.close('home'); } }),
+      button(t('game.homeStay'), { variant: 'secondary', 'data-action': 'home-stay', 'data-autofocus': '', onClick: () => layer.close(null) })));
+  layer = openLayer(content, { kind: 'sheet', label: t('game.homeTitle'), dismissable: true, cls: 'layer-home' });
+  return layer.closed.then((v) => v ?? null);
+}
+
+/**
+ * A player ran out of road in a hot-seat match; the others carry on. Neutral on purpose: not an expense card, no red,
+ * no blame. The worried fox is the only art, the player's colour token says who it is.
+ */
+export function playerOutModal({ name, color }) {
+  let layer;
+  const content = h('div', { class: 'dialog out-dialog', 'data-out': String(color) },
+    h('div', { class: 'fox-pop out-fox', style: '--pop:92px' }, foxImg('worried', { size: 92 })),
+    h('div', { class: 'out-who' }, playerToken(color, { cls: 'ptoken-xl' })),
+    h('h2', { class: 'dialog-title out-title' }, withName(t('game.outTitle', { name: '{name}' }), name)),
+    h('p', { class: 'dialog-text' }, t('game.outText')),
+    h('div', { class: 'dialog-actions' }, button(t('game.continue'), { variant: 'primary', size: 'lg', 'data-action': 'ok', 'data-autofocus': '', onClick: () => { haptic('tap'); layer.close({ action: 'ok' }); } })));
+  layer = openLayer(content, { kind: 'modal', label: t('game.outTitle', { name }), dismissable: false, cls: 'layer-dialog layer-out' });
+  return layer.closed;
+}
