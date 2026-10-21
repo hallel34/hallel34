@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 240" width="320" height="240" role="img" aria-label="ערימת שטרות ולוח שנה חודשי">
+<defs>
+<g id="n"><rect x="-82" y="-42" width="164" height="84" rx="12" fill="#0F1E46"/><rect x="-82" y="-46" width="164" height="84" rx="12" fill="#5FE0AE" stroke="#0F1E46" stroke-width="3"/><rect x="-70" y="-34" width="140" height="60" rx="7" fill="none" stroke="#0B6B43" stroke-width="2" stroke-dasharray="5 4"/><circle cx="0" cy="-4" r="19" fill="#FFF6E3" stroke="#0B6B43" stroke-width="2.5"/><circle cx="0" cy="-4" r="11" fill="#F2B53A" stroke="#A56A0A" stroke-width="2"/><circle cx="-56" cy="-4" r="7" fill="#FFF6E3" stroke="#0B6B43" stroke-width="2"/><circle cx="56" cy="-4" r="7" fill="#FFF6E3" stroke="#0B6B43" stroke-width="2"/></g>
+<radialGradient id="h" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#F2B53A" stop-opacity=".3"/><stop offset="1" stop-color="#F2B53A" stop-opacity="0"/></radialGradient>
+</defs>
+<ellipse cx="160" cy="110" rx="150" ry="100" fill="url(#h)"/>
+<ellipse cx="150" cy="216" rx="110" ry="12" fill="#091330" opacity=".55"/>
+<use href="#n" x="150" y="178" transform="rotate(-4 150 178)" style="filter:brightness(.8)"/>
+<use href="#n" x="150" y="152" transform="rotate(3 150 152)" style="filter:brightness(.9)"/>
+<use href="#n" x="150" y="124" transform="rotate(-2 150 124)"/>
+<path d="M92 96C110 80 140 76 170 80" fill="none" stroke="#fff" stroke-opacity=".6" stroke-width="3.5" stroke-linecap="round"/>
+<g transform="rotate(6 244 150)">
+<rect x="198" y="106" width="92" height="96" rx="12" fill="#0A1533" opacity=".6" transform="translate(0 5)"/>
+<rect x="198" y="104" width="92" height="96" rx="12" fill="#FFF6E3" stroke="#0F1E46" stroke-width="3"/>
+<path d="M198 116a12 12 0 0 1 12-12h68a12 12 0 0 1 12 12v18H198Z" fill="#F0524A" stroke="#0F1E46" stroke-width="3" stroke-linejoin="round"/>
+<rect x="216" y="94" width="8" height="22" rx="4" fill="#C4D0F0" stroke="#0F1E46" stroke-width="2.5"/><rect x="264" y="94" width="8" height="22" rx="4" fill="#C4D0F0" stroke="#0F1E46" stroke-width="2.5"/>
+<g fill="#8696C8"><circle cx="216" cy="150" r="5"/><circle cx="244" cy="150" r="5"/><circle cx="272" cy="150" r="5"/><circle cx="216" cy="170" r="5"/><circle cx="244" cy="170" r="5"/><circle cx="216" cy="188" r="0"/></g>
+<rect x="262" y="160" width="20" height="20" rx="5" fill="#F2B53A" stroke="#A56A0A" stroke-width="2"/>
+</g>
+</svg>
