@@ -11,6 +11,7 @@
     "test": "vitest run",
     "simulate": "node scripts/simulate.js",
     "smoke": "node tests/e2e/smoke.mjs",
+    "smoke:daily": "node tests/e2e/daily-smoke.mjs",
     "icons": "node scripts/make-icons.mjs"
   },
   "devDependencies": {

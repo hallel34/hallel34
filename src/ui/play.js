@@ -86,7 +86,8 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   const sellSheet = gated(raw.sellSheet);
   const handoffSheet = gated(raw.handoffSheet);
   const playerOutModal = gated(raw.playerOutModal);
-  const { homeConfirmSheet } = raw;
+  const { homeConfirmSheet, giveUpConfirmSheet } = raw;
+  const isDaily = !!match.daily;
 
   const nameOf = (i = match.currentIndex) => playerName(match.players[i], i);
   const colorOf = (i = match.currentIndex) => match.players[i].color;
@@ -303,7 +304,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     if (multi) {
       profEl.textContent = state.profession.title;
       turnEl.textContent = `· ${t('game.turnShort', { turn: state.turn > match.turnMark ? state.turn : state.turn + 1 })}`;
-    } else turnEl.textContent = turnText;
+    } else turnEl.textContent = isDaily ? (state.turn ? t('daily.turnOf', { turn: state.turn, cap: state.daily.turnCap }) : t('game.yourTurn')) : turnText;
     flowChip.replaceChildren(tn('game.perMonth', { amount: money(st.monthlyCashFlow, { sign: true }) }));
     flowChip.classList.toggle('is-negative', st.monthlyCashFlow < 0);
     passiveVal.replaceChildren(money(st.passiveIncome));
@@ -767,11 +768,23 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     if (homeOpen || destroyed || match.status !== 'playing') return;
     homeOpen = true;
     homeGate = new Promise((resolve) => { releaseGate = resolve; });
-    const r = await homeConfirmSheet();
+    const r = await homeConfirmSheet({ daily: isDaily });
     homeOpen = false;
     releaseGate?.(); homeGate = null; releaseGate = null; // queued cards may open now
     if (r === 'home') goHome();
+    else if (r === 'giveup' && await giveUpConfirmSheet()) giveUp();
   }
+  /** Daily challenge: the attempt is used up. The day ends as 'not today' and the result screen follows. */
+  function giveUp() {
+    if (destroyed || !isDaily || state.status !== 'playing') return;
+    state = engine.forfeit(state);
+    commit();
+    closeAllLayers();
+    refreshHud();
+    unseen = [];
+    finishIfOver();
+  }
+
   /** Saves the whole match and returns to the start screen (where the resume button appears). */
   function goHome() {
     if (destroyed) return;

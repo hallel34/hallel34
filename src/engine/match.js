@@ -34,7 +34,7 @@ export function uniqueNames(names) {
  * @param engine createEngine(...) result
  * @param players [{ name?, professionId }] 1-4 entries; an empty name means "use the default label" (UI side)
  */
-export function newMatch(engine, { mode = 'full', players, seed = 1 } = {}) {
+export function newMatch(engine, { mode = 'full', players, seed = 1, daily = null } = {}) {
   if (!Array.isArray(players) || players.length < MIN_PLAYERS || players.length > MAX_PLAYERS) {
     fail(`a match needs ${MIN_PLAYERS}-${MAX_PLAYERS} players`);
   }
@@ -44,12 +44,13 @@ export function newMatch(engine, { mode = 'full', players, seed = 1 } = {}) {
     kind: 'match',
     mode,
     seed,
+    ...(daily ? { daily: { date: String(daily.date) } } : {}), // a daily challenge (one player); normal matches carry no such field
     players: players.map((p, i) => ({
       id: `p${i + 1}`,
       name: names[i],
       color: i + 1, // 1-4: token colour and number badge
       professionId: p.professionId,
-      state: engine.newGame({ mode, professionId: p.professionId, seed: seed + i * SEED_STEP }),
+      state: engine.newGame({ mode, professionId: p.professionId, seed: seed + i * SEED_STEP, ...(daily ? { daily } : {}) }),
     })),
     currentIndex: 0,
     turns: 0, // completed turns across all players

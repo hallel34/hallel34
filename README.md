@@ -42,6 +42,7 @@ src/data/       cards.<locale>.json, professions.<locale>.json (+ index.js that 
 src/i18n/       <locale>.json UI strings (+ index.js: t(), setLocale)
 src/ui/         screens, modals, widgets, effects (die, pawn hop, count-up, coin burst, confetti), fox.js (fox poses + reactions)
 src/styles/     tokens.css (design tokens, dark + light), fonts.css (self-hosted Rubik), base/components/screens.css
+src/daily/      daily challenge (client only): calendar, streak, share text, one-attempt rule, storage
 src/services/   ads.js (stub), storage.js, pwa.js
 src/assets/     SVG art (dice, coins, tiles, pawn, wordmark, icons) + fox/*.webp poses (@1x/@2x) + app icon
 public/         manifest.webmanifest, sw.js (service worker), icons/ (PWA PNGs)
@@ -176,10 +177,32 @@ are not DOM (which crop for which square, when family tips show) are in `src/ui/
 To add a pose: drop `name.webp` (+ `name@2x.webp`) in that folder, add it to `POSES` in `src/ui/fox.js`
 (intrinsic size; `tests/fox.test.js` checks it against the file) and use `foxImg('name', { height })`.
 
+## Daily challenge (v2.5, client only)
+
+A start-screen card ("אתגר יומי") opens one family-mode game per calendar day. There is no server: everything is on the device and works offline.
+
+- **The day** is the LOCAL calendar date `YYYY-MM-DD` (`src/daily/calendar.js`). Players in different time zones get different days around
+  midnight; this is accepted. Day maths uses UTC day numbers, so daylight-saving days never skip or repeat a day.
+- **Same game for everyone.** `dailySeed(date)` hashes the date string (`src/engine/daily.js`). The profession, die k of turn i and the card
+  drawn at turn i are pure functions of `(seed, i)`, never of the rng state, so two players see the same dice and the same cards whatever they
+  buy, pass or borrow. It is an opt-in rules flag (`engine.newGame({ daily: { date } })`); normal games, bots and `npm run simulate` do not use it.
+- **One attempt per day.** Finishing, running into the turn cap (`DAILY_TURN_CAP`, 40: no freedom by then = "לא הצלחתי היום") or giving up
+  (home sheet, two steps) stores the result and uses the attempt. Leaving mid-game keeps a save in its own slot (`passivo.dailySave`, so a normal
+  game in progress is never overwritten) and resumes. `?debug=1` adds a reset button on the card.
+- **Result and share.** The result screen shows turns to freedom, net worth, the learning headline, the streak and badges (3 / 7 / 30 days,
+  kept once earned). "שתפו" builds a WhatsApp text (first line, one coloured square per turn by traffic-light tier, the link) with
+  `navigator.share`, else the clipboard, with a visible "הועתק". It never contains cards, choices or names (`src/daily/share.js`).
+- **Streak** (`src/daily/streak.js`): schema-versioned (`passivo.dailyStreak`, `v: 1`), a missed day resets it with a gentle message.
+- **Ready for a leaderboard.** `dailyResult(state)` is the pure record `{ date, seed, turns, netWorth, professionId, mode, actionsLog }`;
+  `replayDaily(engine, record)` re-runs the engine from the date and the action log, which is exactly what a server check would do.
+
+Tests: `tests/daily.test.js` (unit) and `node tests/e2e/daily-smoke.mjs` after `npm run build` (UI flow at 360x800, 360x640 and 320x568;
+set `AXE_PATH` to an `axe.min.js` to include the accessibility checks). Screenshots go to `qa/screens/daily/`.
+
 ## Debug helpers
 
 Open the app with `?debug=1` (for example `/?debug=1&seed=11`) to get two dev-only buttons on the board
-("ניצחון" / "הפסד") and `window.__passivoDebug.forceWin()` / `forceLose()`. Without the flag nothing is created
+("ניצחון" / "הפסד") and `window.__passivoDebug.forceWin()` / `forceLose()`, and a reset button on the daily challenge card. Without the flag nothing is created
 and the helpers do not exist.
 
 ## Add a language

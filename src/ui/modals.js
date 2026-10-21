@@ -615,7 +615,7 @@ export function handoffSheet({ name, color }) {
 }
 
 /** In-page confirm for "back to the start screen" (no native dialogs). Resolves 'home' or null. */
-export function homeConfirmSheet() {
+export function homeConfirmSheet({ daily = false } = {}) {
   let layer;
   const content = h('div', { class: 'sheet home-sheet' },
     h('div', { class: 'home-body' },
@@ -623,9 +623,25 @@ export function homeConfirmSheet() {
       h('p', { class: 'dialog-text' }, t('game.homeText'))),
     h('div', { class: 'sheet-cta home-actions' },
       button(t('game.homeConfirm'), { variant: 'primary', size: 'lg', 'data-action': 'home-confirm', onClick: () => { haptic('tap'); layer.close('home'); } }),
-      button(t('game.homeStay'), { variant: 'secondary', 'data-action': 'home-stay', 'data-autofocus': '', onClick: () => layer.close(null) })));
+      button(t('game.homeStay'), { variant: 'secondary', 'data-action': 'home-stay', 'data-autofocus': '', onClick: () => layer.close(null) }),
+      // daily challenge: leaving keeps the game (resume later); giving up is a separate, explicit choice
+      daily ? button(t('daily.giveUp'), { variant: 'text', cls: 'btn-giveup', 'data-action': 'daily-giveup', onClick: () => layer.close('giveup') }) : null));
   layer = openLayer(content, { kind: 'sheet', label: t('game.homeTitle'), dismissable: true, cls: 'layer-home' });
   return layer.closed.then((v) => v ?? null);
+}
+
+/** Second step of giving up the daily challenge: it uses up today's attempt. Resolves true / false. */
+export function giveUpConfirmSheet() {
+  let layer;
+  const content = h('div', { class: 'sheet home-sheet' },
+    h('div', { class: 'home-body' },
+      h('h2', { class: 'dialog-title' }, t('daily.giveUpTitle')),
+      h('p', { class: 'dialog-text' }, t('daily.giveUpText'))),
+    h('div', { class: 'sheet-cta home-actions' },
+      button(t('daily.giveUpStay'), { variant: 'primary', size: 'lg', 'data-action': 'giveup-stay', 'data-autofocus': '', onClick: () => layer.close(false) }),
+      button(t('daily.giveUpConfirm'), { variant: 'secondary', 'data-action': 'giveup-confirm', onClick: () => { haptic('tap'); layer.close(true); } })));
+  layer = openLayer(content, { kind: 'sheet', label: t('daily.giveUpTitle'), dismissable: true, cls: 'layer-home' });
+  return layer.closed.then((v) => v === true);
 }
 
 /**

@@ -2,6 +2,9 @@
 // tired fox with a joke bubble (waves hello on first launch only), mode pick, primary CTA, resume.
 import { h, html, sleep } from '../dom.js';
 import { t } from '../../i18n/index.js';
+import { dayKey } from '../../daily/calendar.js';
+import { nextChallengeText, streakText, outcomeText, cardTitleText } from '../daily-format.js';
+import { debugEnabled } from '../debug.js';
 import { foxImg, loadFox, riseIn, squash, warmFox, dirSign } from '../fox.js';
 import { icon } from '../icons.js';
 import { button, iconButton } from '../widgets.js';
@@ -32,12 +35,13 @@ const SKY = `<svg class="sky" aria-hidden="true" focusable="false" viewBox="0 0 
 <g class="windows" opacity=".9"><rect x="42" y="672" width="4" height="5"/><rect x="48" y="686" width="4" height="5"/><rect x="112" y="656" width="4" height="5"/><rect x="120" y="674" width="4" height="5"/><rect x="252" y="664" width="4" height="5"/><rect x="258" y="682" width="4" height="5"/><rect x="326" y="682" width="4" height="5"/><rect x="340" y="700" width="4" height="5"/></g>
 </svg>`;
 
-export function createStart({ save, mode: initialMode, gamesPlayed = 0, onPlay, onResume, onMode }) {
+export function createStart({ save, mode: initialMode, gamesPlayed = 0, daily = null, onPlay, onResume, onMode, onDaily, onDailyReset, onRefresh }) {
   let mode = initialMode;
   setLearnMode(mode);
   const firstLaunch = !readRaw('seenIntro');
   let alive = true;
   let jokeTimer = 0;
+  let dailyTimer = 0;
 
   const modeBtn = (id, name, desc) => {
     const b = h('button', {
@@ -78,10 +82,31 @@ export function createStart({ save, mode: initialMode, gamesPlayed = 0, onPlay, 
 
   const hero = h('div', { class: 'start-hero' }, title, tagline, stage);
 
+  // ---- daily challenge card (v2.5): gold secondary card under the mode cards ----
+  // daily = { date, status: 'new' | 'playing' | 'done', entry, streak: streakView() }
+  const dailyNext = daily?.status === 'done' ? h('span', { class: 'daily-line daily-next' }, nextChallengeText()) : null;
+  const dailyCard = daily ? (() => {
+    const streak = streakText(daily.streak);
+    const status = daily.status === 'done' ? outcomeText(daily.entry.record) : daily.status === 'playing' ? t('daily.cardPlaying') : t('daily.cardNew');
+    return h('button', {
+      type: 'button', class: 'daily-card', 'data-action': 'daily', 'data-status': daily.status, onClick: () => { haptic('tap'); onDaily?.(); },
+    },
+    h('span', { class: 'daily-icon', 'aria-hidden': 'true' }, icon('star', { size: 22, width: 2.4 })),
+    h('span', { class: 'daily-text' },
+      h('span', { class: 'daily-title' }, cardTitleText(daily.date)),
+      h('span', { class: 'daily-line daily-status' }, status),
+      dailyNext,
+      streak ? h('span', { class: 'daily-line daily-streak' }, streak) : null),
+    h('span', { class: 'daily-go', 'aria-hidden': 'true' }, icon('arrow', { size: 22, width: 3 })));
+  })() : null;
+  const dailyReset = daily && debugEnabled() && daily.status !== 'new'
+    ? h('button', { type: 'button', class: 'debug-btn daily-reset', 'data-action': 'daily-reset', onClick: () => onDailyReset?.() }, t('daily.debugReset')) : null;
+
   const bottom = h('div', { class: 'start-bottom' },
     h('div', { class: 'mode-grid', role: 'group', 'aria-label': t('menu.chooseMode') },
       modeBtn('family', t('menu.modeFamily'), t('menu.modeFamilyDesc')),
       modeBtn('full', t('menu.modeFull'), t('menu.modeFullDesc'))),
+    dailyCard, dailyReset,
     button([t('menu.start'), icon('arrow', { size: 24, width: 3 })], { variant: 'primary', size: 'lg', 'data-action': 'start', onClick: () => onPlay(mode) }),
     save ? button(`${t('menu.resume')} · ${resumeInfo(save)}`, { variant: 'secondary', 'data-action': 'resume', onClick: () => onResume() }) : null);
 
@@ -131,7 +156,15 @@ export function createStart({ save, mode: initialMode, gamesPlayed = 0, onPlay, 
       riseIn(slot);
       warmFox(['roll']);
       if (firstLaunch) intro(); else startJokes();
+      if (daily) {
+        // the countdown ticks while the screen is open; a new calendar day (midnight passed) rebuilds the card
+        dailyTimer = setInterval(() => {
+          if (!alive || !el.isConnected) { clearInterval(dailyTimer); return; }
+          if (dayKey() !== daily.date) { onRefresh?.(); return; }
+          if (dailyNext) dailyNext.textContent = nextChallengeText();
+        }, 30000);
+      }
     },
-    destroy() { alive = false; clearInterval(jokeTimer); },
+    destroy() { alive = false; clearInterval(jokeTimer); clearInterval(dailyTimer); },
   };
 }
