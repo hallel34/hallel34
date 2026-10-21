@@ -1,6 +1,6 @@
 // Win and game-over screens.
 import { h, html } from '../dom.js';
-import { t } from '../../i18n/index.js';
+import { t, tp } from '../../i18n/index.js';
 import { foxImg, riseIn } from '../fox.js';
 import { motionOK } from '../prefs.js';
 import { button } from '../widgets.js';
@@ -15,7 +15,7 @@ const rays = () => html(`<svg class="rays" aria-hidden="true" focusable="false" 
   Array.from({ length: 12 }, (_, i) => `<path d="M0 0L-60 -420L60 -420z" transform="rotate(${i * 30})"/>`).join('')
 }</g></svg>`);
 
-const statBox = (value, label) => h('div', { class: 'win-stat' }, h('span', { class: 'win-stat-num' }, numberText(value)), h('span', { class: 'win-stat-label' }, label));
+const statBox = (value, label) => h('div', { class: 'win-stat' }, h('span', { class: 'win-stat-num' }, numberText(value)), h('span', { class: 'win-stat-label' }, tp(`plural.label.${label}`, value)));
 
 /** Tile grid sized to its count (2 or 4 tiles -> 2 columns, otherwise one row) so no tile is orphaned. */
 function winStats(tiles) {
@@ -39,7 +39,7 @@ export function createWin({ match, onAgain, onMenu }) {
   const st = statement(state);
   const m = meter({ large: true });
   m.set(st.passiveIncome, st.totalExpenses, { animate: false });
-  const text = t('win.shareText', { turns: state.turn, passive: moneyText(st.passiveIncome) });
+  const text = t('win.shareText', { turns: tp('plural.turnsIn', state.turn), passive: moneyText(st.passiveIncome) });
   const share = async () => {
     haptic('tap');
     try {
@@ -62,8 +62,8 @@ export function createWin({ match, onAgain, onMenu }) {
         h('div', { class: 'align-end' }, h('span', { class: 'stat-label' }, t('win.expenses')), h('div', { class: 'win-mid tone-expense' }, money(st.totalExpenses)))),
       m.el,
       winStats([
-        statBox(state.turn, t('win.turns')), statBox(state.assets.length, t('win.assets')), statBox(state.kids, t('win.kids')),
-        state.stats.donations ? statBox(state.stats.donations, t('win.donations')) : null,
+        statBox(state.turn, 'turns'), statBox(state.assets.length, 'assets'), statBox(state.kids, 'kids'),
+        state.stats.donations ? statBox(state.stats.donations, 'donations') : null,
       ])),
     h('div', { class: 'end-actions' },
       button(t('win.again'), { variant: 'primary', size: 'lg', 'data-action': 'again', 'data-autofocus': '', onClick: onAgain }),
@@ -94,7 +94,7 @@ export function createOver({ match, onRetry, onMenu }) {
     h('div', { class: 'glass glass-strong end-card' },
       h('p', { class: 'cause' }, t('gameOver.text')),
       winStats([
-        statBox(state.turn, t('stats.turns')), statBox(state.stats.paydays, t('stats.paydays')), statBox(state.stats.dealsBought, t('stats.dealsBought')),
+        statBox(state.turn, 'turns'), statBox(state.stats.paydays, 'paydays'), statBox(state.stats.dealsBought, 'deals'),
       ]),
       h('div', { class: 'win-compare' },
         h('div', null, h('span', { class: 'stat-label' }, t('stats.peakPassive')), h('div', { class: 'win-mid tone-income' }, money(state.stats.peakPassive))),

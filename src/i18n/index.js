@@ -36,3 +36,18 @@ export function t(key, params) {
   }
   return params ? s.replace(/\{(\w+)\}/g, (m, k) => (k in params ? String(params[k]) : m)) : s;
 }
+
+const rules = {};
+/**
+ * Plural-aware text: tp('plural.turns', 1) -> "תור אחד", tp('plural.turns', 3) -> "3 תורות".
+ * The key holds { one, two?, other } (Intl.PluralRules categories of the locale); {n} is replaced by the count.
+ */
+export function tp(key, n, params = {}) {
+  let forms = lookup(bundles[locale], key);
+  if (!forms || typeof forms !== 'object') forms = lookup(bundles[FALLBACK], key);
+  if (!forms || typeof forms !== 'object') return key;
+  const lang = bundles[locale].meta?.lang || locale;
+  const cat = (rules[lang] ||= new Intl.PluralRules(lang)).select(n);
+  const s = forms[cat] ?? forms.other ?? key;
+  return s.replace(/\{(\w+)\}/g, (m, k) => (k === 'n' ? new Intl.NumberFormat(bundles[locale].meta?.numberLocale || lang).format(n) : (k in params ? String(params[k]) : m)));
+}

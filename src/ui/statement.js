@@ -1,6 +1,6 @@
 // Income statement bottom sheet. Family mode keeps it simple (no sell/repay/loan controls).
 import { h } from './dom.js';
-import { t } from '../i18n/index.js';
+import { t, tp } from '../i18n/index.js';
 import { openLayer } from './modal.js';
 import { icon } from './icons.js';
 import { money, moneyText, tn } from './format.js';
@@ -57,7 +57,7 @@ export function openStatement({ getState, ops, title = t('statement.title') }) {
         'asset',
         h('span', { class: 'st-sub', 'data-asset': a.id },
           a.type === 'stock'
-            ? t('statement.stockLine', { qty: a.qty })
+            ? t('statement.stockLine', { shares: tp('plural.shares', a.qty) })
             : `${t(`type.${a.type}`)}${a.mortgage > 0 ? ` · ${t('statement.assetMortgage', { amount: moneyText(a.mortgage) })}` : ''}`),
       ))
       : [h('p', { class: 'st-empty' }, t('statement.noAssets'))];

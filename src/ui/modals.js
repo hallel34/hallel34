@@ -1,7 +1,7 @@
 // Card modals and dialogs. Each function returns a Promise with the player's choice.
 // They never mutate game state; the play controller applies the result via the engine.
 import { h } from './dom.js';
-import { t } from '../i18n/index.js';
+import { t, tp } from '../i18n/index.js';
 import { openLayer, closeButton } from './modal.js';
 import { icon } from './icons.js';
 import { cornerPop, foxImg } from './fox.js';
@@ -227,7 +227,7 @@ export function marketInfoModal(state, { card, noMatch, familyOffer, flip = true
   } else if (card.effect === 'stockPrice') {
     body.push(banner(t('market.stockPrice', { symbol: card.symbol, price: moneyText(card.newPrice) })));
     const held = state.assets.find((a) => a.type === 'stock' && a.symbol === card.symbol);
-    if (held) body.push(h('div', { class: 'banner banner-info' }, icon('market', { size: 24 }), h('span', null, t('market.stockHeld', { qty: held.qty, symbol: card.symbol }))));
+    if (held) body.push(h('div', { class: 'banner banner-info' }, icon('market', { size: 24 }), h('span', null, t('market.stockHeld', { shares: tp('plural.sharesOf', held.qty, { symbol: card.symbol }) }))));
   } else if (noMatch) {
     body.push(h('div', { class: 'banner banner-info' }, icon('market', { size: 24 }), h('span', null, t('market.noAsset'))));
   } else if (familyOffer) {
@@ -411,13 +411,14 @@ export function sellSheet(getState, onSell, { shouldClose = () => false } = {}) 
       list.append(h('div', { class: 'sell-row', 'data-asset': a.id },
         h('div', { class: 'sell-info' },
           h('strong', null, a.title),
-          h('span', { class: 'muted' }, a.type === 'stock' ? t('statement.stockLine', { qty: a.qty }) : t(`type.${a.type}`)),
+          h('span', { class: 'muted' }, a.type === 'stock' ? t('statement.stockLine', { shares: tp('plural.shares', a.qty) }) : t(`type.${a.type}`)),
           h('span', null, tn('sell.proceeds', { amount: proceeds }))),
         qtyCtl?.el,
         button(t('sell.sell'), { variant: 'primary', size: 'sm', 'data-action': 'sell', onClick: () => {
           const next = onSell(a.id, a.type === 'stock' ? qty : undefined);
+          // nothing left to sell in the must-pay flow: close straight away (the loan card is next), no "nothing to sell" flash
+          if (next && shouldClose(next)) { layer.close(); return; }
           render();
-          if (next && shouldClose(next)) layer.close();
         } })));
     }
   };
@@ -458,11 +459,18 @@ export function homeConfirmSheet() {
   return layer.closed.then((v) => v ?? null);
 }
 
-/** A player ran out of road in a hot-seat match; the others carry on. */
+/**
+ * A player ran out of road in a hot-seat match; the others carry on. Neutral on purpose: not an expense card, no red,
+ * no blame. The worried fox is the only art, the player's colour token says who it is.
+ */
 export function playerOutModal({ name, color }) {
-  return cardShell({
-    type: 'expense', art: 'expense', chip: t('square.expense'), title: t('game.outTitle', { name }), text: t('game.outText'),
-    body: [h('div', { class: 'banner banner-info' }, playerToken(color), h('span', null, name))],
-    actions: [{ id: 'ok', label: t('game.continue'), variant: 'primary', value: { action: 'ok' }, autofocus: true }], flip: false,
-  });
+  let layer;
+  const content = h('div', { class: 'dialog out-dialog', 'data-out': String(color) },
+    h('div', { class: 'fox-pop out-fox', style: '--pop:92px' }, foxImg('worried', { size: 92 })),
+    h('div', { class: 'out-who' }, playerToken(color, { cls: 'ptoken-xl' })),
+    h('h2', { class: 'dialog-title out-title' }, t('game.outTitle', { name })),
+    h('p', { class: 'dialog-text' }, t('game.outText')),
+    h('div', { class: 'dialog-actions' }, button(t('game.continue'), { variant: 'primary', size: 'lg', 'data-action': 'ok', 'data-autofocus': '', onClick: () => { haptic('tap'); layer.close({ action: 'ok' }); } })));
+  layer = openLayer(content, { kind: 'modal', label: t('game.outTitle', { name }), dismissable: false, cls: 'layer-dialog layer-out' });
+  return layer.closed;
 }

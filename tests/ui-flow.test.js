@@ -77,7 +77,7 @@ describe('home button', () => {
   it('is an in-page sheet (no native dialogs), saves the whole match, and answers popstate', () => {
     const play = read('src/ui/play.js');
     expect(play).toMatch(/iconButton\('home', t\('game\.home'\)/);
-    expect(play).toMatch(/store\.save\(match\);\s*nav\.menu\(\)/);
+    expect(play).toMatch(/store\.save\(match\);\s*teardown\(\);[^\n]*\n\s*nav\.menu\(\)/);
     expect(play).toMatch(/addEventListener\('popstate'/);
     for (const f of ['src/ui/play.js', 'src/ui/modals.js', 'src/ui/app.js']) expect(read(f)).not.toMatch(/window\.confirm\(|[^.\w]confirm\(/);
   });
@@ -88,7 +88,7 @@ describe('hot-seat copy', () => {
     expect(he.players.title).toBe('כמה שחקנים?');
     expect(he.players.defaultName.replace('{n}', '1')).toBe('שחקן 1');
     expect(he.players.handoffTitle.replace('{name}', 'דנה')).toBe('תור של דנה');
-    expect(he.players.ready).toBe('אני מוכן');
+    expect(he.players.ready).toBe('מוכנים');
     expect(he.players.changeSettings).toBe('שנו הגדרות');
     expect(he.win.again).toBe('שחק שוב');
   });

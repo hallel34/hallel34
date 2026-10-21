@@ -1,10 +1,10 @@
 // Board screen + game flow controller. The engine is the source of truth; this file only
 // presents engine events (die, hops, cash) and applies the player's choices through the engine.
 import { h, html } from './dom.js';
-import { t } from '../i18n/index.js';
+import { t, tp } from '../i18n/index.js';
 import {
   BOARD, EngineError, statement, monthlyCashFlow, currentState, setCurrentState, endTurn, canEndTurn, isMultiplayer, passiveIncome,
-  totalExpenses,
+  totalExpenses, resumePlan, lastPlayerStanding, nextActiveIndex,
 } from '../engine/index.js';
 import { icon } from './icons.js';
 import { money, moneyText, tn } from './format.js';
@@ -14,15 +14,12 @@ import { motionOK } from './prefs.js';
 import {
   haptic, sound, animate, cssMs, cssPx, floatText, coinBurst, shake, pulse, pause,
 } from './fx.js';
-import {
-  opportunityModal, expenseModal, shortfallModal, charityModal, offerModal, marketInfoModal,
-  babyModal, loanDialog, repayDialog, sellSheet, handoffSheet, homeConfirmSheet, playerOutModal,
-} from './modals.js';
+import * as raw from './modals.js';
 import { openStatement } from './statement.js';
 import { openSettings } from './settings.js';
-import { ringPos, avatarColor, pawnOffsets, progressPct } from './layout.js';
+import { ringPos, avatarColor, pawnOffsets, progressPct, CROWD_FROM } from './layout.js';
 import { playerToken, playerName } from './players.js';
-import { closeAllLayers } from './modal.js';
+import { closeAllLayers, destroyAllLayers } from './modal.js';
 import { debugEnabled, mountDebugTools } from './debug.js';
 import { foxImg, createReactor, warmFox, dirSign } from './fox.js';
 import { REACTIONS, LAND_REACTION, tipIndexForTurn } from './fox-rules.js';
@@ -47,13 +44,39 @@ const SKYLINE = `<svg class="board-skyline" aria-hidden="true" focusable="false"
  * @param store  { save(match), clear() }
  * `state` below is always the ACTIVE player's engine state; every dialog and action works on that player.
  */
-export function createPlay({ engine, match: initialMatch, nav, store, professionIds = [], fresh = false }) {
+export function createPlay({ engine, match: initialMatch, nav, store: rawStore, professionIds = [], fresh = false }) {
   let match = initialMatch;
   let state = currentState(match);
   const multi = isMultiplayer(match);
   let busy = false;
   let destroyed = false;
   let btnMode = 'roll'; // roll | rolling | working | continue
+  // A destroyed controller (after "home", or when another screen replaced it) must never touch the save again:
+  // late taps, timers and promise continuations all end up here.
+  const store = {
+    save: (m) => { if (!destroyed) rawStore.save(m); },
+    clear: () => { if (!destroyed) rawStore.clear(); },
+  };
+  // While the "back to home?" sheet is open, cards and dialogs wait (a card must never stack under that sheet).
+  let homeGate = null;
+  const gated = (fn) => async (...args) => {
+    while (homeGate && !destroyed) await homeGate;
+    if (destroyed) return undefined;
+    return fn(...args);
+  };
+  const opportunityModal = gated(raw.opportunityModal);
+  const expenseModal = gated(raw.expenseModal);
+  const shortfallModal = gated(raw.shortfallModal);
+  const charityModal = gated(raw.charityModal);
+  const offerModal = gated(raw.offerModal);
+  const marketInfoModal = gated(raw.marketInfoModal);
+  const babyModal = gated(raw.babyModal);
+  const loanDialog = gated(raw.loanDialog);
+  const repayDialog = gated(raw.repayDialog);
+  const sellSheet = gated(raw.sellSheet);
+  const handoffSheet = gated(raw.handoffSheet);
+  const playerOutModal = gated(raw.playerOutModal);
+  const { homeConfirmSheet } = raw;
 
   const nameOf = (i = match.currentIndex) => playerName(match.players[i], i);
   const colorOf = (i = match.currentIndex) => match.players[i].color;
@@ -61,7 +84,8 @@ export function createPlay({ engine, match: initialMatch, nav, store, profession
   // ---------- HUD ----------
   const avatar = h('div', { class: 'avatar', 'aria-hidden': 'true' });
   const hudProf = h('span', { class: 'hud-prof' });
-  const turnEl = h('span', { 'aria-live': 'polite' });
+  const profEl = h('span', { class: 'hud-job', hidden: !multi }); // hot-seat: the player's profession (ellipsis lives here, never on the name)
+  const turnEl = h('span', { class: 'hud-turn', 'aria-live': 'polite' });
   const babies = h('span', { class: 'hud-babies', role: 'img', 'aria-label': t('game.kids', { n: 0 }) });
   const charityChip = h('span', { class: 'chip chip-charity', 'data-active': 'false' });
   const cash = cashDisplay(state.cash);
@@ -77,8 +101,8 @@ export function createPlay({ engine, match: initialMatch, nav, store, profession
 
   const hud = h('header', { class: 'hud glass' },
     h('div', { class: 'hud-top' },
-      avatar,
-      h('div', { class: 'hud-id' }, hudProf, h('span', { class: 'hud-sub' }, turnEl, babies)),
+      h('div', { class: 'hud-avatar' }, avatar, babies), // kids: a small badge on the avatar, so the text column keeps all its width
+      h('div', { class: 'hud-id' }, hudProf, h('span', { class: 'hud-sub' }, profEl, turnEl)),
       h('div', { class: 'hud-btns' }, stmtBtn, homeBtn, settingsBtn)),
     h('div', { class: 'hud-cash' },
       h('img', { class: 'hud-coin', src: coinUrl, alt: '', width: 30, height: 30 }),
@@ -169,6 +193,7 @@ export function createPlay({ engine, match: initialMatch, nav, store, profession
     const offs = pawnOffsets(slots.length);
     slots.forEach((sl, k) => { sl.style.setProperty('--ox', `${offs[k].x}px`); sl.style.setProperty('--oy', `${offs[k].y}px`); });
     if (slots.length) tile.dataset.pawns = String(slots.length); else delete tile.dataset.pawns;
+    tile.classList.toggle('is-crowded', slots.length >= CROWD_FROM);
   }
   /** Moves player i's pawn to tile idx (instantly; hopTo animates). */
   function placePawn(i, idx) {
@@ -225,10 +250,12 @@ export function createPlay({ engine, match: initialMatch, nav, store, profession
       const ps = match.players[i].state;
       const pct = progressPct(passiveIncome(ps), totalExpenses(ps));
       return h('li', { class: `others-row pc-${colorOf(i)}${ps.status === 'lost' ? ' is-out' : ''}`, 'data-player': String(i) },
-        h('div', { class: 'or-top' }, playerToken(colorOf(i)), h('strong', { class: 'or-name' }, nameOf(i)),
-          h('span', { class: 'or-cash' }, money(ps.cash)), h('span', { class: 'or-flow' }, tn('game.perMonth', { amount: money(monthlyCashFlow(ps), { sign: true }) }))),
-        miniMeter(pct, t('game.otherRow', { name: nameOf(i), cash: moneyText(ps.cash), pct: Math.round(pct * 100) })),
-        h('div', { class: 'or-pct' }, `${Math.round(pct * 100)}%`));
+        // two lines: [token  name ........ cash] / [progress bar  %  per-month flow] so the name always keeps room
+        h('div', { class: 'or-top' }, playerToken(colorOf(i)), h('strong', { class: 'or-name' }, nameOf(i)), h('span', { class: 'or-cash' }, money(ps.cash))),
+        h('div', { class: 'or-sub' },
+          miniMeter(pct, t('game.otherRow', { name: nameOf(i), cash: moneyText(ps.cash), pct: Math.round(pct * 100) })),
+          h('span', { class: 'or-pct' }, `${Math.round(pct * 100)}%`),
+          h('span', { class: 'or-flow' }, tn('game.perMonth', { amount: money(monthlyCashFlow(ps), { sign: true }) }))));
     }));
   }
   function toggleOthers(open) {
@@ -243,19 +270,23 @@ export function createPlay({ engine, match: initialMatch, nav, store, profession
     paintPlayer();
     const turnText = state.turn ? t('game.turn', { turn: state.turn }) : t('game.yourTurn');
     // hot-seat: the number of the turn being played (the next one until the player has rolled)
-    turnEl.textContent = multi ? `${t('game.turnShort', { turn: state.turn > match.turnMark ? state.turn : state.turn + 1 })} · ${state.profession.title}` : turnText;
+    if (multi) {
+      profEl.textContent = state.profession.title;
+      turnEl.textContent = `· ${t('game.turnShort', { turn: state.turn > match.turnMark ? state.turn : state.turn + 1 })}`;
+    } else turnEl.textContent = turnText;
     flowChip.replaceChildren(tn('game.perMonth', { amount: money(st.monthlyCashFlow, { sign: true }) }));
     flowChip.classList.toggle('is-negative', st.monthlyCashFlow < 0);
     passiveVal.replaceChildren(money(st.passiveIncome));
     expenseVal.replaceChildren(money(st.totalExpenses));
     m.set(st.passiveIncome, st.totalExpenses);
-    babies.replaceChildren(...Array.from({ length: state.kids }, () => icon('baby', { size: 18, width: 2.2 })));
+    // one baby icon plus the count (up to three icons would not fit next to the buttons on a 320px screen)
+    babies.replaceChildren(...(state.kids ? [icon('baby', { size: 18, width: 2.2 }), h('b', null, String(state.kids))] : []));
     babies.setAttribute('aria-label', t('game.kids', { n: state.kids }));
     babies.hidden = state.kids === 0;
     // The chip keeps its slot (visibility, not display) so the board centre never changes height.
     charityChip.dataset.active = String(state.charityTurns > 0);
     charityChip.setAttribute('aria-hidden', String(state.charityTurns <= 0));
-    if (state.charityTurns > 0) charityChip.replaceChildren(icon('charity', { size: 16, width: 2.6 }), ` ${t('game.charityBoost', { turns: state.charityTurns })}`);
+    if (state.charityTurns > 0) charityChip.replaceChildren(icon('charity', { size: 16, width: 2.6 }), ` ${t('game.charityBoost', { turns: tp('plural.turnsLeft', state.charityTurns) })}`);
     el.dataset.turn = String(state.turn);
     el.dataset.cash = String(state.cash);
     el.dataset.phase = state.phase;
@@ -308,14 +339,25 @@ export function createPlay({ engine, match: initialMatch, nav, store, profession
    */
   function settleButton() {
     if (destroyed) return;
-    if (!multi && canEndTurn(match) && state.status === 'playing') { match = endTurn(match); store.save(match); }
+    // One player (or the last one standing): the turn closes silently and the roll button returns, no hand-over.
+    if ((!multi || lastPlayerStanding(match)) && canEndTurn(match) && state.status === 'playing') {
+      match = endTurn(match); store.save(match); state = currentState(match); refreshHud();
+    }
     if (multi && state.status === 'playing' && canEndTurn(match)) {
       busy = false;
       paintButton('continue');
       el.classList.remove('is-busy');
       setPose('roll');
-      setStatus(t('game.statusBack'));
+      setStatus(afterTurnStatus());
     } else setBusy(false);
+  }
+  /** Status line once a turn has played out: who is next in hot-seat, otherwise the roll prompt. */
+  function afterTurnStatus() {
+    if (multi && !lastPlayerStanding(match)) {
+      const next = nextActiveIndex(match);
+      if (next >= 0 && next !== match.currentIndex) return t('game.statusNext', { name: nameOf(next) });
+    }
+    return t('game.statusBack');
   }
   /** On tap: tilt -6deg to 4deg over 200ms and nudge 8px toward the board centre, then fade out (CSS). */
   function rollLeaves() {
@@ -330,6 +372,7 @@ export function createPlay({ engine, match: initialMatch, nav, store, profession
 
   /** Runs an engine action. On EngineError: shake + haptic, state unchanged. Returns true on success. */
   function apply(fn) {
+    if (destroyed) return false; // a late tap on a card that outlived the screen
     try {
       state = fn(state);
     } catch (e) {
@@ -467,9 +510,10 @@ export function createPlay({ engine, match: initialMatch, nav, store, profession
   }
 
   /** Pass-the-phone: switch to the next player, then ask them to confirm they are ready. */
-  async function passTo() {
+  async function passTo(prevIndex) {
     switchPlayer();
-    await showHandoff();
+    // The same player again (everyone else is out): nobody to hand the phone to.
+    if (match.currentIndex !== prevIndex) await showHandoff();
   }
   async function showHandoff() {
     if (!multi || destroyed) return;
@@ -481,9 +525,10 @@ export function createPlay({ engine, match: initialMatch, nav, store, profession
     if (busy || destroyed || btnMode !== 'continue' || !canEndTurn(match)) return;
     busy = true;
     paintButton('working');
+    const prev = match.currentIndex;
     match = endTurn(match);
     store.save(match);
-    await passTo();
+    await passTo(prev);
     if (destroyed) return;
     busy = false;
     settleButton();
@@ -495,10 +540,11 @@ export function createPlay({ engine, match: initialMatch, nav, store, profession
     paintButton('working');
     await playerOutModal({ name: nameOf(), color: colorOf() });
     if (destroyed) return;
+    const prev = match.currentIndex;
     match = endTurn(match);
     store.save(match);
     if (match.status !== 'playing') { await finishIfOver(); return; }
-    await passTo();
+    await passTo(prev);
     if (destroyed) return;
     busy = false;
     settleButton();
@@ -538,7 +584,7 @@ export function createPlay({ engine, match: initialMatch, nav, store, profession
     await sellSheet(
       () => state,
       (id, qty) => { apply((s) => engine.sellAsset(s, id, qty)); return state; },
-      { shouldClose: (s) => s.status !== 'playing' || s.phase !== 'mustPay' },
+      { shouldClose: (s) => s.status !== 'playing' || s.phase !== 'mustPay' || s.assets.length === 0 },
     );
   }
 
@@ -583,7 +629,7 @@ export function createPlay({ engine, match: initialMatch, nav, store, profession
       await pause(120);
     }
     await syncCash();
-    if (state.status === 'playing') setStatus(t('game.statusBack'));
+    if (!destroyed && state.status === 'playing') setStatus(afterTurnStatus());
   }
 
   let ending = false;
@@ -633,18 +679,31 @@ export function createPlay({ engine, match: initialMatch, nav, store, profession
 
   // ---------- back to the start screen ----------
   let homeOpen = false;
+  let releaseGate = null;
   async function askHome() {
     if (homeOpen || destroyed || match.status !== 'playing') return;
     homeOpen = true;
+    homeGate = new Promise((resolve) => { releaseGate = resolve; });
     const r = await homeConfirmSheet();
     homeOpen = false;
+    releaseGate?.(); homeGate = null; releaseGate = null; // queued cards may open now
     if (r === 'home') goHome();
   }
   /** Saves the whole match and returns to the start screen (where the resume button appears). */
   function goHome() {
     if (destroyed) return;
     store.save(match);
+    teardown(); // every open card / dialog / sheet is removed and this controller goes inert before the start screen mounts
     nav.menu();
+  }
+  function teardown() {
+    destroyed = true;
+    clearTimeout(tipTimer);
+    reactor.hide();
+    debugTools?.remove();
+    window.removeEventListener('popstate', onPop);
+    releaseGate?.(); homeGate = null;
+    destroyAllLayers();
   }
   // Android back button / browser back: opens the same confirm sheet instead of leaving the game.
   const marker = { passivo: 'board' };
@@ -661,15 +720,17 @@ export function createPlay({ engine, match: initialMatch, nav, store, profession
     /** Called once the screen is mounted. Resumes a pending decision if the save had one. */
     async start() {
       warmFox(REACTIONS);
-      if (match.status !== 'playing' || state.status !== 'playing') return;
-      if (state.pending) {
+      const plan = resumePlan(match);
+      if (plan === 'finish') { setBusy(false); await finishIfOver(); return; }
+      if (plan === 'out') { await outFlow(); return; } // the current player is already out: announce it and hand over (or end the match)
+      if (plan === 'resolve') {
         setBusy(true);
         await resolvePending();
         await afterTurn();
         return;
       }
-      if (canEndTurn(match)) { settleButton(); return; } // rolled and resolved: hot-seat waits for "continue", single player rolls on
-      if (multi) {
+      if (plan === 'settle') { settleButton(); return; } // rolled and resolved: hot-seat waits for "continue", single player rolls on
+      if (multi && !lastPlayerStanding(match)) {
         // Fresh match or a resume between turns: confirm whose turn it is before anyone can roll.
         setBusy(true);
         pushLog(t('game.playerTurn', { name: nameOf() }));
@@ -679,7 +740,7 @@ export function createPlay({ engine, match: initialMatch, nav, store, profession
       }
       maybeTip();
     },
-    destroy() { destroyed = true; clearTimeout(tipTimer); reactor.hide(); debugTools?.remove(); window.removeEventListener('popstate', onPop); },
+    destroy: () => teardown(),
     get state() { return state; },
     get match() { return match; },
     monthlyCashFlow: () => monthlyCashFlow(state),

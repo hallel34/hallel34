@@ -1,6 +1,6 @@
 // Final standings list (hot-seat): each player's passive income, expenses, net worth and turns. Winner highlighted.
 import { h } from './dom.js';
-import { t } from '../i18n/index.js';
+import { t, tp } from '../i18n/index.js';
 import { icon } from './icons.js';
 import { money, moneyText, numberText } from './format.js';
 import { playerToken, playerName } from './players.js';
@@ -22,12 +22,12 @@ export function standingsList(match) {
       playerToken(r.color),
       h('strong', { class: 'stand-name' }, name),
       r.status === 'lost' ? h('span', { class: 'stand-tag' }, t('standings.out')) : null,
-      h('span', { class: 'stand-turns' }, `${numberText(r.turns)} ${t('standings.turns')}`)),
+      h('span', { class: 'stand-turns' }, tp('plural.turns', r.turns))),
     h('div', { class: 'stand-nums' },
       cell(t('standings.passive'), money(r.passive)),
       cell(t('standings.expenses'), money(r.expenses)),
       cell(t('standings.netWorth'), money(r.netWorth)))));
-    list.lastChild.setAttribute('aria-label', t('standings.row', { name, place: r.place, passive: moneyText(r.passive), expenses: moneyText(r.expenses), net: moneyText(r.netWorth), turns: r.turns }));
+    list.lastChild.setAttribute('aria-label', t('standings.row', { name, place: r.place, passive: moneyText(r.passive), expenses: moneyText(r.expenses), net: moneyText(r.netWorth), turns: tp('plural.turns', r.turns) }));
   }
   return list;
 }

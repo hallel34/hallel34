@@ -30,6 +30,18 @@ export function openLayer(content, { kind = 'modal', label = '', dismissable = t
 
   const api = {
     el, panel, closed,
+    /** Removes the layer at once (no exit animation) and resolves `closed`; used when the whole screen is torn down. */
+    destroy(result) {
+      if (api.done) return;
+      api.done = true;
+      const i = stack.indexOf(api);
+      if (i >= 0) stack.splice(i, 1);
+      el.remove();
+      const nextBelow = stack[stack.length - 1];
+      if (nextBelow) nextBelow.el.removeAttribute('inert');
+      else document.getElementById('app')?.removeAttribute('inert');
+      resolve(result);
+    },
     async close(result) {
       if (api.done) return;
       api.done = true;
@@ -92,3 +104,13 @@ export const layerDepth = () => stack.length;
 
 /** Closes every open layer (used by the ?debug=1 helpers). */
 export const closeAllLayers = () => [...stack].reverse().forEach((l) => l.close(undefined));
+
+/**
+ * Tears down every open layer immediately (cards, dialogs, sheets): they leave the DOM synchronously, so nothing
+ * can be tapped afterwards, and their promises resolve with undefined (flows treat that as "closed").
+ */
+export function destroyAllLayers() {
+  [...stack].reverse().forEach((l) => l.destroy(undefined));
+  root()?.replaceChildren(); // also layers that are mid exit animation
+  document.getElementById('app')?.removeAttribute('inert');
+}

@@ -298,6 +298,165 @@ async function testHome(page, label) {
   check(before.turn === after.turn && before.players === after.players, `home then resume restores the match (${label}: turn ${before.turn}->${after.turn}, players ${before.players}; "${resumeText}")`);
 }
 
+
+/** QA round 5 regressions: teardown on "home", resuming with an out player, others panel, crowded tile, plain-text status. */
+async function testRound5(page) {
+  const read = (p) => JSON.parse(readFileSync(new URL(`../../src/data/${p}`, import.meta.url), 'utf8'));
+  const engine = createEngine({ professions: read('professions.he.json'), cards: read('cards.he.json') });
+  const crew = ['דנה', 'Bob', 'יוסי', 'נועה'];
+  const profs = ['teacher', 'engineer', 'driver', 'nurse'];
+  const mk = (n, mode = MODE) => newMatch(engine, { mode, seed: 5, players: crew.slice(0, n).map((name, i) => ({ name, professionId: profs[i] })) });
+  const bankrupt = (m, i) => {
+    const st = structuredClone(m.players[i].state);
+    st.cash = 100; st.liabilities.push({ id: 'x', kind: 'loan', label: 'loan', principal: 90000, monthlyPayment: 9000 });
+    const lost = engine.roll(st, [2]);
+    return { ...m, players: m.players.map((pl, k) => (k === i ? { ...pl, state: lost } : pl)) };
+  };
+  const load = async (m) => {
+    await page.evaluate((json) => localStorage.setItem('passivo.save', json), serialize(m));
+    await page.goto(`${URL_BASE}?seed=3`);
+    await page.waitForSelector('[data-action="resume"]');
+    await page.locator('[data-action="resume"]').click();
+    await page.waitForSelector('[data-screen]');
+    await page.waitForTimeout(700);
+  };
+  const layers = () => page.evaluate(() => document.querySelectorAll('#modal-root .layer').length);
+  const saved = () => page.evaluate(() => JSON.parse(localStorage.getItem('passivo.save')));
+
+  // ---- P1-1: home (via the browser back path) with a card open leaves no orphan and does not touch the save
+  let card = null;
+  for (let seed = 1; seed < 200 && !card; seed++) {
+    const m = act(newMatch(engine, { mode: MODE, players: [{ professionId: 'teacher' }], seed }), (s) => engine.roll(s, [1]));
+    if (currentState(m).pending?.card && currentState(m).pending.card.type !== 'stock') card = m;
+  }
+  await load(card);
+  await page.waitForSelector('.card[data-card="opportunity"]');
+  const before = await saved();
+  await page.goBack().catch(() => {});
+  await page.waitForSelector('.home-sheet');
+  await page.waitForTimeout(350);
+  await page.locator('[data-action="home-confirm"]').click();
+  await page.waitForSelector('[data-screen="start"]');
+  await page.waitForTimeout(700);
+  check(await layers() === 0, 'home tears down every layer (no orphan card on the start screen)');
+  check(await page.locator('#modal-root [data-action="buy"]').count() === 0, 'no orphan buy button after home');
+  const after = await saved();
+  check(after.players[0].state.cash === before.players[0].state.cash && after.players[0].state.assets.length === 0 && after.players[0].state.pending?.kind === 'opportunity', 'save untouched by the closed card (still pending)');
+  await page.locator('[data-action="resume"]').click({ timeout: 3000 });
+  await page.waitForSelector('.card[data-card="opportunity"]');
+  check(true, 'resume button is tappable after home and brings the card back');
+
+  // statement + loan dialog open when going home
+  await page.goBack().catch(() => {});
+  await page.waitForSelector('.home-sheet');
+  await page.locator('[data-action="home-stay"]').click();
+  await page.waitForSelector('.home-sheet', { state: 'detached' });
+
+  // ---- P1-2: resume with the current player already out
+  let m3 = mk(3);
+  m3 = bankrupt(m3, 0);
+  await load(m3);
+  let top = await page.locator('#modal-root .layer').last().innerText();
+  check(top.includes('דנה – מחוץ למשחק') && !top.includes('הוצאה לא צפויה'), `resume with an out player shows the neutral out dialog ("${top.split('\n')[0]}")`);
+  check(await page.locator('#modal-root .layer .out-fox img.pose-worried').count() === 1, 'out dialog uses the worried fox');
+  await page.screenshot({ path: `${OUT}/r5-player-out-${HEIGHT}.png` });
+  await page.locator('[data-action="ok"]').click();
+  await page.waitForSelector('.handoff-sheet');
+  top = await page.locator('.handoff-sheet').innerText();
+  check(top.includes('תור של Bob'), 'after the out dialog the phone is handed to the next active player');
+  await page.locator('[data-action="ready"]').click();
+  await page.waitForTimeout(500);
+  check(await page.locator('.btn-roll').isEnabled() && (await page.locator('.screen-board').getAttribute('data-player')) === '2', 'the next player can roll');
+  check((await saved()).currentIndex === 1, 'save moved on to player 2');
+
+  // all remaining players out -> all-out screen
+  let m2 = bankrupt(bankrupt(mk(2), 0), 1);
+  m2 = { ...m2, status: 'playing' };
+  await load(m2);
+  await page.locator('[data-action="ok"]').click();
+  await page.waitForSelector('[data-screen="over"]', { timeout: 6000 });
+  check((await page.locator('h1.title').innerText()).includes('כולם מחוץ למשחק'), 'everyone out -> all-out screen');
+  await noVScroll(page, 'all-out screen');
+
+  // only one active player left: no hand-over to themselves, no continue button
+  let m3b = bankrupt(bankrupt(mk(3), 0), 1);
+  await load(m3b);
+  await page.locator('[data-action="ok"]').click();
+  await page.waitForSelector('.handoff-sheet');
+  await page.locator('[data-action="ready"]').click();
+  await page.waitForTimeout(400);
+  let rolls = 0; let handoffs = 0; let continues = 0;
+  for (let i = 0; i < 200 && rolls < 3; i++) {
+    const act1 = await page.evaluate(decide, 'sensible');
+    if (act1.done) break;
+    if (act1.wait) { await page.waitForTimeout(60); continue; }
+    if (act1.click.includes('"ready"') || /ready/.test(act1.click)) handoffs++;
+    if (/continue/.test(act1.click)) continues++;
+    if (/roll/.test(act1.click)) rolls++;
+    await page.locator(act1.click).first().click({ timeout: 3000 }).catch(() => {});
+    await page.waitForTimeout(40);
+  }
+  check(handoffs === 0 && continues === 0 && rolls >= 3, `last player standing plays on without hand-overs (rolls ${rolls}, handoffs ${handoffs}, continues ${continues})`);
+
+  // ---- hot-seat status names the next roller
+  let hs = mk(2);
+  await load(hs);
+  await page.locator('[data-action="ready"]').click();
+  for (let i = 0; i < 300; i++) {
+    const act1 = await page.evaluate(decide, 'sensible');
+    if (act1.done || /continue/.test(act1.click || '')) break;
+    if (act1.wait) { await page.waitForTimeout(60); continue; }
+    await page.locator(act1.click).first().click({ timeout: 3000 }).catch(() => {});
+    await page.waitForTimeout(40);
+  }
+  const status = await page.locator('.board-status').innerText();
+  check(status.includes('תור של Bob') && !status.includes('הקוביה מחכה'), `after a hot-seat turn the status names the next roller ("${status}")`);
+
+  // ---- others panel and crowded tile, 4 players
+  await load(mk(4));
+  await page.locator('[data-action="ready"]').click();
+  await page.waitForTimeout(500);
+  const strip = await page.evaluate(() => [...document.querySelectorAll('.os-cash')].map((e) => ({ t: e.textContent, clipped: e.scrollWidth > e.clientWidth + 0.5 })));
+  check(strip.length === 3 && strip.every((x) => !x.clipped), `compact strip shows every cash amount in full (${JSON.stringify(strip)})`);
+  const crowd = await page.evaluate(() => {
+    const t = document.querySelector('.tile[data-i="0"]').getBoundingClientRect();
+    const bs = [...document.querySelectorAll('.tile[data-i="0"] .pawn-badge')].map((e) => { const r = e.getBoundingClientRect(); return { w: r.width, in: r.left >= t.left - 0.5 && r.right <= t.right + 0.5 && r.top >= t.top - 0.5 && r.bottom <= t.bottom + 0.5, vis: getComputedStyle(e).display !== 'none' }; });
+    return bs;
+  });
+  check(crowd.length === 4 && crowd.every((b) => b.in && b.vis && b.w >= 14), `4 pawns on one tile: four visible badges, all inside the tile (${JSON.stringify(crowd)})`);
+  await page.screenshot({ path: `${OUT}/r5-crowded-tile-${HEIGHT}.png`, clip: { x: 0, y: 150, width: 360, height: 200 } });
+  await page.locator('.others-strip').click();
+  await page.waitForTimeout(400);
+  const rows = await page.evaluate(() => {
+    const panel = document.querySelector('#others-panel');
+    return {
+      names: [...document.querySelectorAll('.or-name')].map((e) => ({ t: e.textContent, w: Math.round(e.getBoundingClientRect().width), clipped: e.scrollWidth > e.clientWidth + 0.5 })),
+      cash: [...document.querySelectorAll('.or-cash')].map((e) => e.getBoundingClientRect().right <= panel.getBoundingClientRect().right && e.getBoundingClientRect().left >= panel.getBoundingClientRect().left),
+      fits: panel.scrollHeight <= panel.clientHeight + 1,
+    };
+  });
+  check(rows.names.length === 3 && rows.names.every((n) => n.w >= 40 && !n.clipped), `others panel shows the full names (${JSON.stringify(rows.names)})`);
+  check(rows.cash.every(Boolean) && rows.fits, `others panel: cash not clipped and all rows fit without scrolling (fits=${rows.fits})`);
+  await page.screenshot({ path: `${OUT}/r5-others-panel-${HEIGHT}.png` });
+  await noHScroll(page, 'others panel');
+
+  // ---- duplicate names get numbered
+  await page.goto(`${URL_BASE}?seed=3`);
+  await page.waitForSelector('[data-screen="start"]');
+  await page.locator('[data-action="start"]').click();
+  await page.waitForSelector('[data-screen="players"]');
+  await page.locator('[aria-label="שחקן נוסף"]').click();
+  await page.locator('.name-input').nth(0).fill('דנה');
+  await page.locator('.name-input').nth(1).fill('דנה');
+  await page.locator('[data-action="players-next"]').click();
+  await page.waitForSelector('[data-screen="pick"]');
+  await page.locator('.prof-card').first().click();
+  await page.locator('[data-action="go"]').click();
+  await page.waitForSelector('[data-screen="pick"]');
+  check((await page.locator('.screen-title').first().innerText()).includes('דנה 2'), 'second player named "דנה" becomes "דנה 2"');
+  await page.goto(`${URL_BASE}?seed=3`);
+}
+
 /** Opportunity card with the three buy states, built from a hand-made save (deterministic). */
 async function testBuyStates(page) {
   const read = (p) => JSON.parse(readFileSync(new URL(`../../src/data/${p}`, import.meta.url), 'utf8'));
@@ -589,6 +748,7 @@ async function main() {
     check(await page.locator('[data-action="resume"]').count() === 0, 'no resume button after a finished game');
   }
   if (PLAYERS === 1) { await testBuyStates(page); await testLegacySave(page); }
+  await testRound5(page);
 
   // light theme + start screen
   await page.locator('.topbar .icon-btn').last().click();

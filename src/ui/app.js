@@ -11,6 +11,7 @@ import { createPlay } from './play.js';
 import { createWin, createOver } from './screens/end.js';
 import { showInterstitial } from '../services/ads.js';
 import { getLocale } from '../i18n/index.js';
+import { destroyAllLayers } from './modal.js';
 
 export function createApp(host) {
   const data = loadData(getLocale());
@@ -30,12 +31,13 @@ export function createApp(host) {
     const raw = readRaw('save');
     if (!raw) return null;
     const m = deserialize(raw);
-    if (!m || m.status !== 'playing' || !m.players.every((p) => engine.data.professions.some((x) => x.id === p.state.profession?.id))) return null;
+    if (!m || !['playing', 'lost', 'won'].includes(m.status) || !m.players.every((p) => engine.data.professions.some((x) => x.id === p.state.profession?.id))) return null;
     return m;
   }
 
   function mount(screen, { start } = {}) {
     active?.destroy?.();
+    destroyAllLayers(); // no card, dialog or sheet of the previous screen may survive into the next one
     active = screen;
     clear(host);
     host.append(screen.el || screen);
@@ -73,7 +75,12 @@ export function createApp(host) {
       gamesPlayed: gamesPlayed(),
       onMode: (m) => { mode = m; writeRaw('mode', m); },
       onPlay: (m) => { mode = m; writeRaw('mode', m); goPlayers(); },
-      onResume: () => { const m = loadSave(); if (m) goPlay(m); },
+      onResume: () => {
+        const m = loadSave();
+        if (!m) return;
+        // a match that already ended (saved just before the end screen) resumes on its end screen
+        if (m.status === 'won') goWin(m); else if (m.status === 'lost') goOver(m); else goPlay(m);
+      },
     });
     mount(start, { start: () => start.start() });
   }

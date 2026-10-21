@@ -74,8 +74,9 @@
     "othersOpen": "הצגת כל השחקנים",
     "othersClose": "סגירה",
     "otherRow": "{name}: מזומן {cash}, {pct}% מהדרך לחופש",
-    "outTitle": "{name} יצא מהמשחק",
-    "outText": "נגמרו המזומן וההלוואות והתזרים שלילי. המשחק ממשיך בלי השחקן הזה",
+    "outChip": "מחוץ למשחק",
+    "outTitle": "{name} – מחוץ למשחק",
+    "outText": "נגמרו המזומן וההלוואות והתזרים שלילי. המשחק ממשיך עם מי שנשאר",
     "turn": "תור {turn}",
     "turnApprox": "תור {turn} מתוך כ-{total}",
     "cash": "מזומן",
@@ -84,6 +85,7 @@
     "statusRolled": "הטלתם {steps} — אתם על משבצת {square}",
     "statusMoving": "בדרך...",
     "statusBack": "ממשיכים. הקוביה מחכה",
+    "statusNext": "ממשיכים. תור של {name}",
     "statement": "דוח הכנסות והוצאות",
     "perMonth": "{amount} לחודש",
     "passive": "הכנסה פסיבית",
@@ -110,7 +112,7 @@
     "logMove": "הטלתם {steps}: {square}",
     "baby": "נולד תינוק! ההוצאות החודשיות עולות ב-{amount}",
     "babyMax": "המשפחה כבר מלאה. מזל טוב בכל זאת",
-    "charityBoost": "שתי קוביות ל-{turns} תורות",
+    "charityBoost": "שתי קוביות · {turns}",
     "noMatchingAsset": "אין לכם נכס שמתאים להצעה",
     "milestone": "{pct}% מהדרך לחופש!",
     "boardLabel": "לוח המשחק, אתם במשבצת {n} מתוך {total}: {square}"
@@ -133,7 +135,7 @@
     "pickStep": "שחקן {n} מתוך {total}",
     "handoffTitle": "תור של {name}",
     "handoffText": "העבירו את המכשיר אל {name}",
-    "ready": "אני מוכן",
+    "ready": "מוכנים",
     "changeSettings": "שנו הגדרות"
   },
   "square": {
@@ -199,7 +201,7 @@
     "stockPrice": "מחיר {symbol} עכשיו {price}",
     "noAsset": "אין לכם נכס מתאים להצעה, אז הפעם בלי עסקה",
     "familyNote": "בגרסת המשפחה אין מכירות. ממשיכים בשמחה",
-    "stockHeld": "יש לכם {qty} מניות {symbol}"
+    "stockHeld": "יש לכם {shares}"
   },
   "charity": {
     "title": "תרומה",
@@ -232,7 +234,7 @@
     "goalLine": "היעד: הכנסה פסיבית מעל ההוצאות",
     "paydayLine": "יום משכורת = {months} × תזרים חודשי = {amount}",
     "principal": "קרן {amount}",
-    "stockLine": "{qty} מניות",
+    "stockLine": "{shares}",
     "cash": "מזומן",
     "titleFor": "דוח חודשי · {name}",
     "mortgageLabel": "משכנתא: {asset}",
@@ -293,21 +295,36 @@
     "again": "שחק שוב",
     "change": "שנו מצב או מקצוע",
     "share": "שתפו את התוצאה",
-    "shareText": "הגעתי לחופש כלכלי ב-{turns} תורות ב״פסיבו״! הכנסה פסיבית: {passive}",
+    "shareText": "הגעתי לחופש כלכלי {turns} ב״פסיבו״! הכנסה פסיבית: {passive}",
     "copied": "הועתק ללוח"
+  },
+  "plural": {
+    "turns": { "one": "תור אחד", "other": "{n} תורות" },
+    "turnsLeft": { "one": "עוד תור אחד", "other": "עוד {n} תורות" },
+    "turnsIn": { "one": "בתור אחד", "other": "ב-{n} תורות" },
+    "shares": { "one": "מניה אחת", "other": "{n} מניות" },
+    "label": {
+      "turns": { "one": "תור", "other": "תורות" },
+      "assets": { "one": "נכס", "other": "נכסים" },
+      "kids": { "one": "ילד", "other": "ילדים" },
+      "donations": { "one": "תרומה", "other": "תרומות" },
+      "paydays": { "one": "יום משכורת", "other": "ימי משכורת" },
+      "deals": { "one": "עסקה", "other": "עסקאות" }
+    },
+    "sharesOf": { "one": "מניה אחת של {symbol}", "other": "{n} מניות של {symbol}" }
   },
   "standings": {
     "title": "דירוג",
     "winnerTitle": "הניצחון של {name}!",
-    "winnerText": "הראשון שהכנסתו הפסיבית עקפה את ההוצאות",
+    "winnerText": "ההכנסה הפסיבית הראשונה שעקפה את ההוצאות",
     "passive": "פסיבית",
     "expenses": "הוצאות",
     "netWorth": "שווי נקי",
     "turns": "תורות",
-    "out": "יצא מהמשחק",
+    "out": "מחוץ למשחק",
     "place": "מקום {n}",
-    "row": "{name}, מקום {place}: הכנסה פסיבית {passive}, הוצאות {expenses}, שווי נקי {net}, {turns} תורות",
-    "allOutTitle": "כולם יצאו מהמשחק",
+    "row": "{name}, מקום {place}: הכנסה פסיבית {passive}, הוצאות {expenses}, שווי נקי {net}, {turns}",
+    "allOutTitle": "כולם מחוץ למשחק",
     "allOutText": "לכל השחקנים נגמרו המזומן וההלוואות"
   },
   "gameOver": {

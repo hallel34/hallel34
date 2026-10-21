@@ -11,6 +11,26 @@ const fail = (msg) => { throw new EngineError(msg); };
 export const cleanName = (name) => String(name ?? '').replace(/\s+/g, ' ').trim().slice(0, NAME_MAX);
 
 /**
+ * Makes typed names unique (case-insensitive): a repeat gets " 2", " 3"... Empty names stay empty (the UI shows a default label).
+ * ['דנה','דנה','דנה'] -> ['דנה','דנה 2','דנה 3']
+ */
+export function uniqueNames(names) {
+  const seen = new Set();
+  const key = (n) => n.toLocaleLowerCase();
+  return names.map((raw) => {
+    const name = cleanName(raw);
+    if (!name) return '';
+    let out = name;
+    for (let k = 2; seen.has(key(out)); k++) {
+      const suffix = ` ${k}`;
+      out = `${name.slice(0, NAME_MAX - suffix.length).trimEnd()}${suffix}`;
+    }
+    seen.add(key(out));
+    return out;
+  });
+}
+
+/**
  * @param engine createEngine(...) result
  * @param players [{ name?, professionId }] 1-4 entries; an empty name means "use the default label" (UI side)
  */
@@ -18,6 +38,7 @@ export function newMatch(engine, { mode = 'full', players, seed = 1 } = {}) {
   if (!Array.isArray(players) || players.length < MIN_PLAYERS || players.length > MAX_PLAYERS) {
     fail(`a match needs ${MIN_PLAYERS}-${MAX_PLAYERS} players`);
   }
+  const names = uniqueNames(players.map((p) => p.name));
   return {
     schemaVersion: SCHEMA_VERSION,
     kind: 'match',
@@ -25,7 +46,7 @@ export function newMatch(engine, { mode = 'full', players, seed = 1 } = {}) {
     seed,
     players: players.map((p, i) => ({
       id: `p${i + 1}`,
-      name: cleanName(p.name),
+      name: names[i],
       color: i + 1, // 1-4: token colour and number badge
       professionId: p.professionId,
       state: engine.newGame({ mode, professionId: p.professionId, seed: seed + i * SEED_STEP }),
@@ -71,6 +92,27 @@ export function canEndTurn(m) {
   if (s.status === 'lost') return true;
   return s.status === 'playing' && s.phase === 'roll' && s.turn > m.turnMark;
 }
+
+/**
+ * What the screen must do when a (new or resumed) match is shown:
+ *  'finish'  the match is over (won / everyone out)      -> go to the end screen
+ *  'out'     the current player is already out          -> run the out flow (announce, hand over, or end the match)
+ *  'resolve' the current player has an open decision    -> reopen it
+ *  'settle'  the current player rolled and resolved     -> wait for "continue" (or close the turn)
+ *  'ready'   a fresh turn                               -> roll (hot-seat: confirm whose turn it is first)
+ */
+export function resumePlan(m) {
+  if (m.status !== 'playing') return 'finish';
+  const s = currentState(m);
+  if (s.status === 'lost') return 'out';
+  if (s.status !== 'playing') return 'finish';
+  if (s.pending) return 'resolve';
+  if (canEndTurn(m)) return 'settle';
+  return 'ready';
+}
+
+/** Hot-seat with a single player left in the game: they play on without any pass-the-phone steps. */
+export const lastPlayerStanding = (m) => m.players.length > 1 && activeCount(m) === 1;
 
 /** Index of the next player still in the game after `from` (cyclic), or -1. */
 export function nextActiveIndex(m, from = m.currentIndex) {

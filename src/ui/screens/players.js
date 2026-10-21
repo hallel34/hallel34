@@ -3,7 +3,7 @@ import { h } from '../dom.js';
 import { t } from '../../i18n/index.js';
 import { button, iconButton, stepper } from '../widgets.js';
 import { haptic } from '../fx.js';
-import { MIN_PLAYERS, MAX_PLAYERS, NAME_MAX } from '../../engine/index.js';
+import { MIN_PLAYERS, MAX_PLAYERS, NAME_MAX, uniqueNames } from '../../engine/index.js';
 import { playerToken, playerName } from '../players.js';
 
 /**
@@ -50,7 +50,8 @@ export function createPlayers({ count = 1, names = [], onBack, onNext }) {
   paint();
 
   function finish() {
-    const out = n === 1 ? [''] : Array.from({ length: n }, (_, i) => (values[i] || '').replace(/\s+/g, ' ').trim().slice(0, NAME_MAX) || playerName({ name: '' }, i));
+    // final names: empty -> the default label, repeats get " 2", " 3" (two players must never share a name)
+    const out = n === 1 ? [''] : uniqueNames(Array.from({ length: n }, (_, i) => (values[i] || '').replace(/\s+/g, ' ').trim().slice(0, NAME_MAX) || playerName({ name: '' }, i)));
     onNext({ count: n, names: out });
   }
 
