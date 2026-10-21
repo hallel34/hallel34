@@ -51,7 +51,7 @@ const SKYLINE = `<svg class="board-skyline" aria-hidden="true" focusable="false"
  * @param engine createEngine(...) result
  * @param match  starting match (new or resumed): 1-4 players, each with their own engine state
  * @param nav    { menu(), win(match), over(match) }
- * @param store  { save(match), clear() }
+ * @param store  { save(match), clear(match) } (slot comes from the match)
  * `state` below is always the ACTIVE player's engine state; every dialog and action works on that player.
  */
 export function createPlay({ engine, match: initialMatch, nav, store: rawStore, professionIds = [], fresh = false }) {
@@ -65,7 +65,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   // late taps, timers and promise continuations all end up here.
   const store = {
     save: (m) => { if (!destroyed) rawStore.save(m); },
-    clear: () => { if (!destroyed) rawStore.clear(); },
+    clear: (m) => { if (!destroyed) rawStore.clear(m); },
   };
   // While the "back to home?" sheet is open, cards and dialogs wait (a card must never stack under that sheet).
   let homeGate = null;
@@ -719,7 +719,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   async function finishIfOver() {
     if (destroyed || ending || match.status === 'playing') return;
     ending = true;
-    store.clear();
+    store.clear(match);
     await pause(500);
     if (destroyed) return;
     if (match.status === 'won') nav.win(match); else nav.over(match);

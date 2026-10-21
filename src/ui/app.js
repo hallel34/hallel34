@@ -5,6 +5,7 @@ import {
 } from '../engine/index.js';
 import { loadData } from '../data/index.js';
 import { readRaw, writeRaw, remove } from '../services/storage.js';
+import { createMatchStore } from '../services/match-store.js';
 import { createStart } from './screens/start.js';
 import { createPick } from './screens/pick.js';
 import { createPlayers } from './screens/players.js';
@@ -32,11 +33,8 @@ export function createApp(host) {
   // Hot-seat setup being built: count, names, and each player's chosen profession.
   let setup = { count: 1, names: [''], professionIds: [] };
 
-  const store = {
-    // a daily challenge keeps its own slot, so starting it never overwrites a normal game in progress
-    save: (s) => writeRaw(s.daily ? 'dailySave' : 'save', serialize(s)),
-    clear: (s) => remove(s?.daily ? 'dailySave' : 'save'),
-  };
+  // a daily challenge keeps its own slot, so starting it never overwrites a normal game in progress; the slot always comes from the match
+  const store = createMatchStore({ write: writeRaw, remove, serialize });
 
   function loadSave() {
     const raw = readRaw('save');
@@ -197,7 +195,7 @@ export function createApp(host) {
 
   async function goWin(m) {
     if (m.daily) { finishDaily(m); return; }
-    store.clear();
+    store.clear(m);
     countGame();
     const multi = isMultiplayer(m);
     const win = createWin({
@@ -211,7 +209,7 @@ export function createApp(host) {
 
   function goOver(m) {
     if (m.daily) { finishDaily(m); return; }
-    store.clear();
+    store.clear(m);
     countGame();
     const multi = isMultiplayer(m);
     const over = createOver({
