@@ -101,7 +101,7 @@
 :root[data-theme="light"] .hud-babies { color: var(--c-pink-700); }
 .hud-cash { display: flex; align-items: center; flex-wrap: nowrap; gap: 8px; min-inline-size: 0; }
 .hud-coin { flex: none; }
-.cash-wrap { min-inline-size: 0; flex: 0 1 auto; overflow: hidden; white-space: nowrap; }
+.cash-wrap { min-inline-size: 0; flex: 1 1 0; overflow: hidden; white-space: nowrap; }
 .hud .cash-wrap { padding-block: 2px; }
 .cash-num { font-size: clamp(1.5rem, 8vw, 1.875rem); line-height: 1; font-weight: var(--fw-black); color: var(--cash-color); display: inline-block; }
 .hud .cash-num[data-len="8"] { font-size: 1.625rem; }
