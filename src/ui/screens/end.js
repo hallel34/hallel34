@@ -10,10 +10,9 @@ import { confetti, haptic, sound, toast, animate } from '../fx.js';
 import { statement, isMultiplayer } from '../../engine/index.js';
 import { standingsList } from '../standings.js';
 import { playerName, withName } from '../players.js';
-import { openReport } from '../report.js';
 import { icon } from '../icons.js';
 
-const reportButton = (match) => button([icon('book', { size: 22, width: 2.4 }), t('learn.reportOpen')], { variant: 'secondary', cls: 'btn-report', 'data-action': 'report', onClick: () => openReport({ match }) });
+const reportButton = (match) => button([icon('book', { size: 22, width: 2.4 }), t('learn.reportOpen')], { variant: 'secondary', cls: 'btn-report', 'data-action': 'report', onClick: async () => { const { openReport } = await import('../report.js'); openReport({ match }); } });
 
 const rays = () => html(`<svg class="rays" aria-hidden="true" focusable="false" viewBox="-300 -300 600 600"><g fill="#FFE27A" opacity=".16">${
   Array.from({ length: 12 }, (_, i) => `<path d="M0 0L-60 -420L60 -420z" transform="rotate(${i * 30})"/>`).join('')

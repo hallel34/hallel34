@@ -19,7 +19,7 @@ import { openStatement } from './statement.js';
 import { openSettings } from './settings.js';
 import { ringPos, avatarColor, pawnOffsets, progressPct, CROWD_FROM } from './layout.js';
 import { playerToken, playerName, nameBdi } from './players.js';
-import { closeAllLayers, destroyAllLayers } from './modal.js';
+import { closeAllLayers, destroyAllLayers, closeTopLayer } from './modal.js';
 import { debugEnabled, mountDebugTools } from './debug.js';
 import { foxImg, createReactor, warmFox, dirSign } from './fox.js';
 import { createLearnFlow } from './learn-flow.js';
@@ -795,6 +795,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   const onPop = () => {
     if (destroyed) return;
     history.pushState(marker, '');
+    if (closeTopLayer()) return; // back closes the open sheet / dialog first; only a bare board offers "return home"
     askHome();
   };
   window.addEventListener('popstate', onPop);

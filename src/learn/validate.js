@@ -71,7 +71,17 @@ export function validateLearn({ glossary, feedback, report, guess, realWorld }, 
   for (const k of ['title']) if (!isStr(report?.[k])) err(`report.${k}`);
   for (const k of ['win', 'lose']) if (!isStr(report?.subtitle?.[k])) err(`report.subtitle.${k}`);
   for (const k of ['bestDeal', 'worstDeal', 'interest', 'greenDecisions', 'concepts']) if (!report?.sections?.[k]) err(`report.sections.${k}`);
-  for (const k of ['highInterest', 'noCushion', 'manyRed', 'noDiversify', 'allGood', 'fallback']) if (!isStr(report?.nextStep?.tips?.[k])) err(`report.nextStep.tips.${k}`);
+  for (const k of ['highInterest', 'noCushion', 'manyRed', 'noDiversify', 'allGood', 'fallback']) {
+    const v = report?.nextStep?.tips?.[k]; // one text, or { family, full } (or { all })
+    const ok = isStr(v) || (v && typeof v === 'object' && Object.values(v).length > 0 && Object.values(v).every(isStr));
+    if (!ok) err(`report.nextStep.tips.${k}`);
+  }
+  const B = report?.sections?.bestDeal ?? {};
+  for (const k of ['title', 'template', 'negativeOnly', 'stocksOnly', 'empty']) if (!isStr(B[k])) err(`report.sections.bestDeal.${k}`);
+  const C = report?.sections?.concepts ?? {};
+  if (C.count && !['one', 'other'].every((k) => isStr(C.count[k]))) err('report.sections.concepts.count: one + other');
+  const P = report?.sections?.greenDecisions?.templatePlural;
+  if (P && !['one', 'other'].every((k) => isStr(P[k]))) err('report.sections.greenDecisions.templatePlural: one + other');
   for (const mode of ['family', 'full']) {
     const themes = report?.conversation?.[mode];
     if (!themes || !Object.keys(themes).length) err(`report.conversation.${mode}`);

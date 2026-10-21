@@ -8,7 +8,9 @@ const visible = (f) => f.status !== 'hidden';
 /** The fact card for an opportunity / market card id (flagged realWorld in the cards file), or null. */
 export const factForCard = (cardId) => learnContent().realWorld.facts.find((f) => visible(f) && f.cardIds.includes(cardId)) ?? null;
 /** Facts attached to a concept (shown inside the dictionary entry). */
-export const factsForConcept = (conceptId) => learnContent().realWorld.facts.filter((f) => visible(f) && f.concept === conceptId);
+export const DICTIONARY_MAX_FACTS = 2;
+export const factsForConcept = (conceptId) => learnContent().realWorld.facts
+  .filter((f) => visible(f) && f.concept === conceptId && f.dictionary !== false).slice(0, DICTIONARY_MAX_FACTS);
 /** The general fact of a place (`appliesTo`), e.g. 'loan-window'. */
 export const factForPlace = (place) => learnContent().realWorld.facts.find((f) => visible(f) && f.appliesTo === place) ?? null;
 

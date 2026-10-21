@@ -29,7 +29,7 @@ export function openLayer(content, { kind = 'modal', label = '', dismissable = t
   else document.getElementById('app')?.setAttribute('inert', '');
 
   const api = {
-    el, panel, closed,
+    el, panel, closed, dismissable, kind,
     /** Removes the layer at once (no exit animation) and resolves `closed`; used when the whole screen is torn down. */
     destroy(result) {
       if (api.done) return;
@@ -101,6 +101,17 @@ export const closeButton = (onClick, cls = '') =>
   h('button', { type: 'button', class: `icon-btn ${cls}`, 'aria-label': t('common.close'), onClick }, icon('close', { size: 22 }));
 
 export const layerDepth = () => stack.length;
+
+/**
+ * The system / browser back button: closes the top layer when the player may dismiss it (a sheet, a dialog) and returns true.
+ * Returns false when nothing is open or the top layer is a decision card that cannot be dismissed.
+ */
+export function closeTopLayer() {
+  const top = stack[stack.length - 1];
+  if (!top || !top.dismissable) return false;
+  top.close(undefined);
+  return true;
+}
 
 /** Closes every open layer (used by the ?debug=1 helpers). */
 export const closeAllLayers = () => [...stack].reverse().forEach((l) => l.close(undefined));

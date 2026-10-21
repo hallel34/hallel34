@@ -72,7 +72,7 @@ export function createLearnFlow({ zone, mode, seed, getState, setState, onActive
     queue = queue.filter((x) => x.id !== id);
     const ui = glossaryUi();
     notes.push({
-      kind: 'explain', queued: item, concept: conceptById(id), label: ui.explainTitle, gotIt: ui.gotIt, whyLabel: ui.whyLabel,
+      kind: 'explain', queued: item, urgent: (item.starved ?? 0) >= 1, concept: conceptById(id), label: ui.explainTitle, gotIt: ui.gotIt, whyLabel: ui.whyLabel,
       onMore: (cid) => openDictionary({ termId: cid }),
       onHide: ({ reason, ms }) => {
         const unread = reason === 'cleared' && ms < READ_MS;
@@ -89,7 +89,8 @@ export function createLearnFlow({ zone, mode, seed, getState, setState, onActive
     newTurn() {
       shownThisTurn = false;
       // an explainer that was queued but never shown (the player rolled on) goes back to the front of the queue
-      const dropped = notes.clear().map((i) => i.queued);
+      // never shown (a feedback note was in front, or a card was open): it waits again, but its next turn is urgent
+      const dropped = notes.clear().map((i) => ({ ...i.queued, starved: (i.queued.starved ?? 0) + 1 }));
       queue = [...dropped, ...queue.filter((x) => !dropped.some((d) => d.id === x.id))];
     },
     get queued() { return queue.map((x) => x.id); },

@@ -145,8 +145,10 @@ export function maxLoan(s) {
  * `spend` is what the loan is taken to pay right away (a card's price, an expense).
  * `risky` is true when the cash after that payday would be negative (an unaffordable settlement).
  */
-export function loanPaydayImpact(s, amount, spend = 0) {
-  const flow = monthlyCashFlow(s) - loanMonthlyPayment(amount);
+export function loanPaydayImpact(s, amount, spend = 0, gain = 0) {
+  // `gain`: monthly cash flow of the asset the loan buys (already net of its own mortgage); 0 when not buying. The figures
+  // then describe the real state right after the purchase.
+  const flow = monthlyCashFlow(s) + gain - loanMonthlyPayment(amount);
   const payday = flow * PAYDAY_MONTHS;
   const cashAfter = s.cash + amount - spend + payday; // `spend`: cash the loan is about to pay for
   return { flow, payday, cashAfter, risky: cashAfter < 0 };

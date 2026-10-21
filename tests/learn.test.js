@@ -631,15 +631,15 @@ describe('report (L4)', () => {
     expect(conversationOrder('family', 'fallback', themes, 7)).toEqual(conversationOrder('family', 'fallback', themes, 7));
     expect(new Set(conversationOrder('family', 'fallback', themes, 1))).toEqual(new Set(themes));
   });
-  it('the view model: texts are filled, family gets 3 questions, concepts come from the game + device', () => {
+  it('the view model: texts are filled, family gets 3 questions, concepts count this game only', () => {
     const s = stateWith([dec({ title: 'סטודיו', years: 4.9, yieldPct: 20.4 })], { status: 'won' });
     s.learn.concepts = ['asset'];
-    const v = reportView(s, { seen: ['yield'], seed: 4 });
+    const v = reportView(s, { seed: 4 });
     const text = JSON.stringify(v);
     expect(text).not.toMatch(/\{\w+\}/);
     expect(v.sections.find((x) => x.id === 'bestDeal').text).toBe('סטודיו: החזר תוך 4.9 שנים, תשואה של 20.4% בשנה.');
     expect(v.sections.find((x) => x.id === 'interest').text).toBe(content.report.sections.interest.zero);
-    expect(v.sections.find((x) => x.id === 'concepts').unlocked.sort()).toEqual(['asset', 'yield']);
+    expect(v.sections.find((x) => x.id === 'concepts').unlocked.sort()).toEqual(['asset']);
     expect(v.conversation.questions).toHaveLength(3);
     expect(v.subtitle).toBe(content.report.subtitle.win);
     expect(v.fox.text).toBeTruthy();

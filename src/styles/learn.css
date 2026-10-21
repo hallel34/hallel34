@@ -158,3 +158,11 @@
   .screen-over .tip { display: none; }
   .screen-over .over-fox .fox { block-size: min(200px, 17dvh); }
 }
+
+/* On very short screens (320x568) the roll zone is ~60px tall: an explainer (fox, text, two 48px buttons) cannot fit in it and
+   used to grow up over the bottom row of tiles. It now takes the zone AND the roll button's row (the button is hidden under it
+   until "הבנתי" / "עוד" is tapped), so nothing on the board is covered. */
+@media (max-height: 600px) {
+  .note-explain { inset-block-end: -68px; min-block-size: 0; }
+  .screen-board:has(.note-explain) .board-actions { visibility: hidden; }
+}

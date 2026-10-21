@@ -87,7 +87,16 @@ export function createNotes({ zone, onActive, onDismiss }) {
 
   return {
     /** item: { kind: 'feedback', body: Node|string, plain, pose, tone, group } | { kind: 'explain', concept, label, gotIt, whyLabel, onShow, onMore } */
-    push(item) { queue.push(item); onActive?.(true); pump(); },
+    push(item) {
+      // An urgent item (an explainer that was already pushed aside once) takes the screen at once instead of waiting behind
+      // a feedback note, so a player who rolls fast still meets every concept within two turns.
+      if (item.urgent) {
+        queue.unshift(item);
+        if (current && current.item.kind !== 'explain') hideCurrent({ next: false, reason: 'replaced' });
+      } else queue.push(item);
+      onActive?.(true);
+      pump();
+    },
     /** Dismiss what is shown and drop the queue (a new roll, a screen change). Unshown explainers are not lost: they stay in the flow's queue. */
     clear() {
       clearTimeout(retry);

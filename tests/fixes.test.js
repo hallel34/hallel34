@@ -8,12 +8,14 @@ const he = JSON.parse(readFileSync(new URL('../src/i18n/he.json', import.meta.ur
 const read = (p) => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
 
 describe('payback display is consistent with its tier', () => {
-  it('rounds up, so a year count above 8 is never shown as a neutral "8"', () => {
-    expect(paybackYearsShown(8.33)).toBe(9);
+  it('one decimal like the reveal, never crossing a threshold: 8.04 is "8.1" (amber), 4.9 stays "4.9"', () => {
+    expect(paybackYearsShown(8.33)).toBe(8.3);
+    expect(paybackYearsShown(8.04)).toBe(8.1);
+    expect(paybackYearsShown(4.9)).toBe(4.9);
     expect(paybackTier(8.33)).toBe('slow');
     expect(paybackYearsShown(8)).toBe(8);
     expect(paybackTier(8)).toBe('ok');
-    expect(paybackYearsShown(0.2)).toBe(1);
+    expect(paybackYearsShown(0.2)).toBe(0.2);
   });
   it('shown years <= 8 iff tier is ok, and <= 14 iff tier is not bad (every 0.05 step)', () => {
     for (let i = 2; i < 600; i++) {

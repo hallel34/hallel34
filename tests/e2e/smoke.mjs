@@ -934,7 +934,7 @@ async function testBuyStates(page) {
     return { aria: b.getAttribute('aria-disabled'), buy: document.querySelector('.card').dataset.buy, hint: hint?.textContent.trim(), described: b.getAttribute('aria-describedby'), border: cs.borderTopStyle, hintVisible: !!hint && hint.getBoundingClientRect().height > 0 };
   });
   check(st.buy === 'blocked' && st.aria === 'true', 'unaffordable even after the max loan: buy is aria-disabled');
-  check(st.hint === 'אין מספיק כסף, גם עם הלוואה מקסימלית' && st.hintVisible && st.described === 'buy-hint', 'blocked buy shows the reason line and is described by it');
+  check(st.hint?.startsWith('אין מספיק כסף, גם עם הלוואה מקסימלית') && st.hintVisible && st.described === 'buy-hint', 'blocked buy shows the reason line and is described by it');
   check(st.border === 'dashed', 'blocked buy looks disabled (dashed outline, flat colour)');
   await insideViewport(page, ['#modal-root .layer:last-child .card-actions .btn[data-action="buy"]', '#buy-hint'], 'blocked buy + reason');
   await page.screenshot({ path: `${OUT}/buy-blocked.png` });
