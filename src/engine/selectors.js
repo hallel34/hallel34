@@ -1,6 +1,7 @@
 // Derived values. Never stored in state.
 import {
-  LOAN_STEP, LOAN_PAYMENT_RATE, LOAN_LIMIT_SALARY_PCT, MORTGAGE_PAYMENT_RATE, SELL_FACTOR, PAYDAY_MONTHS, PAYBACK_OK_YEARS, PAYBACK_SLOW_YEARS,
+  LOAN_STEP, LOAN_PAYMENT_RATE, LOAN_LIMIT_SALARY_PCT, MORTGAGE_PAYMENT_RATE, BUSINESS_LOAN_PAYMENT_RATE, SELL_FACTOR,
+  PAYDAY_MONTHS, PAYBACK_OK_YEARS, PAYBACK_SLOW_YEARS, MONTHS_PER_YEAR, LOAN_APR_NOMINAL, LOAN_CAP_SALARIES,
 } from './config.js';
 
 const sum = (arr, f) => arr.reduce((a, x) => a + f(x), 0);
@@ -27,11 +28,23 @@ export function statement(s) {
     cash: s.cash,
     kids: s.kids,
     liabilities: liabilityReport(s),
+    balance: balanceSheet(s),
   };
 }
 
-/** Display-only monthly payment of an asset's mortgage (already inside the asset's net cash flow). */
-export const mortgagePayment = (asset) => Math.round((asset.mortgage * MORTGAGE_PAYMENT_RATE) / 10) * 10;
+/**
+ * Display-only monthly payment of an asset's mortgage / business loan (already inside the asset's net cash flow).
+ * A card may carry its own `loanPayment` (the asset keeps it); otherwise it is the configured rate, rounded to 10.
+ */
+export const assetLoanPayment = (asset) => {
+  if (Number.isFinite(asset.loanPayment)) return asset.loanPayment;
+  const rate = asset.type === 'business' ? BUSINESS_LOAN_PAYMENT_RATE : MORTGAGE_PAYMENT_RATE;
+  return Math.round((asset.mortgage * rate) / 10) * 10;
+};
+export const mortgagePayment = assetLoanPayment;
+
+/** Starting-debt payment for a principal of the given kind (see BASE_DEBT_RATES), rounded to 10. */
+export const baseDebtPayment = (principal, rate) => Math.round((principal * rate) / 10) * 10;
 
 /**
  * Every liability the player owes, in one list: starting debts, bank loans and the mortgages that came with assets.
@@ -43,9 +56,11 @@ export function liabilityReport(s) {
     id: l.id, kind: l.kind === 'base' ? 'base' : 'loan', label: l.label, principal: l.principal,
     monthlyPayment: l.monthlyPayment, includedInAssets: false,
   }));
+  // An apartment's loan is a mortgage; a business's is a business loan (kind 'bizloan'). Both are already in the asset's flow.
   const mortgages = s.assets.filter((a) => a.type !== 'stock' && a.mortgage > 0).map((a) => ({
-    id: `mortgage-${a.id}`, kind: 'mortgage', assetId: a.id, assetTitle: a.title, assetType: a.type, label: a.title,
-    principal: a.mortgage, monthlyPayment: mortgagePayment(a), includedInAssets: true,
+    id: `${a.type === 'business' ? 'bizloan' : 'mortgage'}-${a.id}`, kind: a.type === 'business' ? 'bizloan' : 'mortgage',
+    assetId: a.id, assetTitle: a.title, assetType: a.type, label: a.title,
+    principal: a.mortgage, monthlyPayment: assetLoanPayment(a), includedInAssets: true,
   }));
   const items = [...debts, ...mortgages];
   const sumOf = (list, f) => list.reduce((a, x) => a + f(x), 0);
@@ -71,11 +86,36 @@ export function purchasePlan(s, cost) {
   return { cost, need, loanRoom, status, loanAmount: need === 0 ? 0 : Math.ceil(need / LOAN_STEP) * LOAN_STEP };
 }
 
+/** Bank-loan principal owed right now (kind 'loan'; starting debts are not counted). */
+export const bankLoanPrincipal = (s) => sum(s.liabilities.filter((l) => l.kind === 'loan'), (l) => l.principal);
+
+/** Monthly payment of a bank loan of `amount` (interest only). Rounded to the cent so floats never leak into the UI. */
+export const loanMonthlyPayment = (amount) => Math.round(amount * LOAN_PAYMENT_RATE * 100) / 100;
+
+/**
+ * What a bank loan of `amount` costs. Interest only: the principal comes back whole when repaid.
+ * perPayday = interest until the next payday settlement (PAYDAY_MONTHS months).
+ */
+export function loanTerms(amount) {
+  const monthly = loanMonthlyPayment(amount);
+  const perYear = monthly * MONTHS_PER_YEAR;
+  const perPayday = monthly * PAYDAY_MONTHS;
+  return {
+    amount, monthly, perYear, perPayday, totalAtPayday: amount + perPayday, months: PAYDAY_MONTHS,
+    aprNominal: LOAN_APR_NOMINAL,
+    aprEffective: Math.round(((1 + LOAN_PAYMENT_RATE) ** MONTHS_PER_YEAR - 1) * 1e6) / 1e4,
+  };
+}
+
 /** Largest new loan (multiple of LOAN_STEP) allowed; 0 when limit reached. */
 export function maxLoan(s) {
   const floor = -s.profession.salary * LOAN_LIMIT_SALARY_PCT;
   const room = monthlyCashFlow(s) - floor; // payment budget
-  const steps = Math.floor(room / (LOAN_STEP * LOAN_PAYMENT_RATE));
+  let steps = Math.floor(room / (LOAN_STEP * LOAN_PAYMENT_RATE) + 1e-9);
+  if (LOAN_CAP_SALARIES != null) {
+    const capRoom = s.profession.salary * LOAN_CAP_SALARIES - bankLoanPrincipal(s);
+    steps = Math.min(steps, Math.floor(capRoom / LOAN_STEP));
+  }
   return Math.max(0, steps * LOAN_STEP);
 }
 
@@ -85,7 +125,7 @@ export function maxLoan(s) {
  * `risky` is true when the cash after that payday would be negative (an unaffordable settlement).
  */
 export function loanPaydayImpact(s, amount, spend = 0) {
-  const flow = monthlyCashFlow(s) - amount * LOAN_PAYMENT_RATE;
+  const flow = monthlyCashFlow(s) - loanMonthlyPayment(amount);
   const payday = flow * PAYDAY_MONTHS;
   const cashAfter = s.cash + amount - spend + payday; // `spend`: cash the loan is about to pay for
   return { flow, payday, cashAfter, risky: cashAfter < 0 };
@@ -116,6 +156,20 @@ export function netWorth(s) {
   const assets = sum(s.assets, (a) =>
     a.type === 'stock' ? a.qty * stockPrice(s, a.symbol, a.avgCost) : a.price - a.mortgage);
   return s.cash + assets - sum(s.liabilities, (l) => l.principal);
+}
+
+/**
+ * Balance sheet for the statement: what you own (cash + assets at purchase value / market price) against what you owe
+ * (starting debts, bank loans, mortgages and business loans). netWorth = assets - liabilities (same as netWorth()).
+ */
+export function balanceSheet(s) {
+  const items = s.assets.map((a) => ({
+    id: a.id, title: a.title, type: a.type,
+    value: a.type === 'stock' ? a.qty * stockPrice(s, a.symbol, a.avgCost) : a.price,
+  }));
+  const assetsTotal = s.cash + sum(items, (x) => x.value);
+  const liabilitiesTotal = liabilityReport(s).totals.principal;
+  return { cash: s.cash, items, assetsTotal, liabilitiesTotal, netWorth: assetsTotal - liabilitiesTotal };
 }
 
 export const isOver = (s) => s.status !== 'playing';

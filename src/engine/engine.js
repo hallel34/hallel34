@@ -8,7 +8,7 @@ import {
 import { validateData } from './validate.js';
 import {
   monthlyCashFlow, hasWon, maxLoan, saleValue, stockPrice, totalIncome,
-  passiveIncome, canSell,
+  passiveIncome, canSell, loanMonthlyPayment,
 } from './selectors.js';
 
 export class EngineError extends Error {}
@@ -78,7 +78,7 @@ export function createEngine(data, { validate = true } = {}) {
       seq: 0,
       stats: {
         paydays: 0, dealsBought: 0, dealsSold: 0, loansTaken: 0, donations: 0,
-        expensesPaid: 0, peakPassive: 0, totalPaid: 0,
+        expensesPaid: 0, peakPassive: 0, totalPaid: 0, interestPaid: 0,
       },
     };
     for (const deck of Object.keys(d.decks)) d.decks[deck] = shuffle(d, eligible(deck, mode));
@@ -141,10 +141,14 @@ export function createEngine(data, { validate = true } = {}) {
 
   // ---------- roll & movement ----------
   function payday(d) {
-    const amount = monthlyCashFlow(d) * PAYDAY_MONTHS;
+    const monthly = monthlyCashFlow(d);
+    const amount = monthly * PAYDAY_MONTHS;
+    // Interest on bank loans over the settled months (starting debts are installments, not counted as interest).
+    const interest = d.liabilities.filter((l) => l.kind === 'loan').reduce((a, l) => a + l.monthlyPayment, 0) * PAYDAY_MONTHS;
     d.cash += amount;
     d.stats.paydays += 1;
-    d.events.push({ type: 'payday', amount, months: PAYDAY_MONTHS });
+    d.stats.interestPaid = (d.stats.interestPaid ?? 0) + interest;
+    d.events.push({ type: 'payday', amount, monthly, months: PAYDAY_MONTHS, interest });
   }
 
   function roll(state, forcedDice) {
@@ -251,6 +255,7 @@ export function createEngine(data, { validate = true } = {}) {
         id: `asset-${d.seq}`, cardId: card.id, type: card.type, title: card.title,
         price: card.price, downPayment: card.downPayment, mortgage: card.mortgage,
         monthlyCashFlow: card.monthlyCashFlow,
+        ...(Number.isFinite(card.loanPayment) ? { loanPayment: card.loanPayment } : {}),
       });
       d.events.push({ type: 'bought', cardId: card.id, cost: card.downPayment, qty: 1 });
     }
@@ -322,7 +327,7 @@ export function createEngine(data, { validate = true } = {}) {
     d.seq += 1;
     d.liabilities.push({
       id: `loan-${d.seq}`, kind: 'loan', label: 'loan', principal: amount,
-      monthlyPayment: amount * LOAN_PAYMENT_RATE,
+      monthlyPayment: loanMonthlyPayment(amount), rate: LOAN_PAYMENT_RATE,
     });
     d.cash += amount;
     d.stats.loansTaken += 1;
@@ -331,10 +336,9 @@ export function createEngine(data, { validate = true } = {}) {
     return d;
   }
 
-  /** Full mode only. Repay `amount` (multiple of 1000) of a liability. */
+  /** Repay `amount` (multiple of 1000, or the whole remaining principal) of a liability. Both modes. */
   function repayLoan(state, liabilityId, amount) {
     const d = begin(state);
-    if (d.mode !== 'full') fail('repayment is full mode only');
     const l = d.liabilities.find((x) => x.id === liabilityId);
     if (!l) fail('unknown liability');
     const whole = amount === l.principal;
@@ -343,7 +347,7 @@ export function createEngine(data, { validate = true } = {}) {
     if (d.cash < amount) fail('not enough cash');
     d.cash -= amount;
     const remaining = l.principal - amount;
-    l.monthlyPayment = remaining === 0 ? 0 : (l.monthlyPayment * remaining) / l.principal;
+    l.monthlyPayment = remaining === 0 ? 0 : Math.round(((l.monthlyPayment * remaining) / l.principal) * 100) / 100;
     l.principal = remaining;
     if (remaining === 0) d.liabilities = d.liabilities.filter((x) => x.id !== liabilityId);
     d.events.push({ type: 'repaid', liabilityId, amount });
