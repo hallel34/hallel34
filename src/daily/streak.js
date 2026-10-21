@@ -23,6 +23,9 @@ export function parseStreak(raw) {
 /** The streak after the challenge of `date` was played. The same day twice changes nothing; a gap restarts at 1. */
 export function recordPlay(streak, date) {
   const s = parseStreak(streak);
+  // a stored 'last' more than a day ahead of the date being played cannot be real (clock moved forward and back, or a restored
+  // backup): it is ignored instead of freezing the streak. One day ahead is a clock set back a little: nothing changes then.
+  if (s.last != null && dayNumber(s.last) > dayNumber(date) + 1) return recordPlay({ ...s, last: null, count: 0 }, date);
   if (s.last != null && dayNumber(date) <= dayNumber(s.last)) return s;
   const count = s.last != null && dayNumber(date) - dayNumber(s.last) === 1 ? s.count + 1 : 1;
   const badges = [...new Set([...s.badges, ...STREAK_BADGES.filter((b) => count >= b)])].sort((a, b) => a - b);
@@ -34,7 +37,7 @@ export function recordPlay(streak, date) {
  *  state 'none'    never played
  *  state 'today'   played today (count = the streak, safe until tomorrow's challenge)
  *  state 'pending' played yesterday, not yet today: the streak is alive, today's play extends it
- *  state 'broken'  a streak existed and a day was missed: count is 0 now (a gentle restart message)
+ *  state 'broken'  a streak existed and a day was missed: count is 0 now; prev = the ended streak, missed = days skipped
  */
 export function streakView(streak, today) {
   const s = parseStreak(streak);
@@ -42,8 +45,11 @@ export function streakView(streak, today) {
   if (s.last == null) return { ...base, state: 'none', count: 0 };
   if (s.last === today) return { ...base, state: 'today', count: s.count };
   if (s.last === addDays(today, -1)) return { ...base, state: 'pending', count: s.count };
-  if (dayNumber(s.last) > dayNumber(today)) return { ...base, state: 'today', count: s.count }; // clock set back: keep what we have
-  return { ...base, state: s.count > 0 ? 'broken' : 'none', count: 0 };
+  const ahead = dayNumber(s.last) - dayNumber(today);
+  if (ahead === 1) return { ...base, state: 'today', count: s.count }; // clock set back by a day: keep what we have
+  if (ahead > 1) return { ...base, state: 'none', count: 0 }; // 'last' too far in the future (tampering / restore): ignored, the streak is not frozen
+  // missed = whole days skipped since the last play, prev = the streak that ended
+  return { ...base, state: s.count > 0 ? 'broken' : 'none', count: 0, prev: s.count, missed: -ahead - 1 };
 }
 
 /** Badges earned by the play that turned `before` into `after`. */

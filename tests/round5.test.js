@@ -107,7 +107,7 @@ describe('P1-1: the play screen tears everything down before the start screen mo
   });
   it('a destroyed controller cannot write: the store is wrapped, apply() refuses and every modal is gated', () => {
     expect(play).toMatch(/save: \(m\) => \{ if \(!destroyed\) rawStore\.save\(m\); \}/);
-    expect(play).toMatch(/clear: \(\) => \{ if \(!destroyed\) rawStore\.clear\(\); \}/);
+    expect(play).toMatch(/clear: \(m\) => \{ if \(!destroyed\) rawStore\.clear\(m\); \}/);
     expect(play).toMatch(/function apply\(fn\) \{\s*if \(destroyed\) return false;/);
     expect(play).toMatch(/if \(destroyed\) return undefined;/);
   });

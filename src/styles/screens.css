@@ -389,7 +389,11 @@
   .daily-title { font-size: 1rem; }
 }
 
-.screen-daily { gap: var(--sp-3); padding-block-end: max(20px, env(safe-area-inset-bottom)); }
+.screen-daily { gap: var(--sp-3); padding-block-end: max(20px, env(safe-area-inset-bottom)); block-size: 100dvh; min-block-size: 0; }
+/* the result card scrolls inside itself; the hero and the actions (share, back) stay put and always inside the viewport */
+.screen-daily .daily-hero { flex: none; }
+.screen-daily .daily-card-result { flex: 0 1 auto; min-block-size: 0; overflow-y: auto; overscroll-behavior: contain; }
+.screen-daily .daily-actions { flex: none; margin-block-start: 0; }
 .daily-hero { padding-block-start: 4px; }
 .daily-fox { display: grid; place-items: center; min-block-size: 96px; }
 .daily-h1 { font-size: clamp(1.625rem, 4.6dvh, 2.25rem); margin-block-start: 4px; text-align: center; }
@@ -428,5 +432,9 @@
   .screen-start .wordmark img { inline-size: clamp(96px, 20dvh, 232px); }
   .screen-start .fox-stage { min-block-size: 96px; }
   .daily-streak { display: none; }
+  .screen-daily { gap: 8px; padding-block-end: max(12px, env(safe-area-inset-bottom)); }
+  .daily-sub { display: none; }
+  .daily-fox { min-block-size: 56px; }
+  .daily-fox .hammock { max-block-size: 64px; }
   .daily-card[data-status="done"] .daily-streak { display: block; }
 }

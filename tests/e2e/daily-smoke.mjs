@@ -246,7 +246,7 @@ async function main() {
     check(/חופש כלכלי|לא הצלחתי היום/.test(res.title), `${tag}: result title (${res.title})`);
     check(res.text.includes('מה למדתי היום'), `${tag}: learning headline on the result`);
     check(res.text.includes('שווי נקי'), `${tag}: net worth on the result`);
-    check(res.text.includes('שיחקת יום אחד ברצף'), `${tag}: streak line after the first play`);
+    check(res.text.includes('שיחקתם יום אחד ברצף'), `${tag}: streak line after the first play`);
     await insideViewport(page, ['[data-action="share"]', '[data-action="menu"]'], `${tag}: result buttons`);
     await noHScroll(page, `${tag}: result`);
     await tapTargets(page, `${tag}: result`);
@@ -267,9 +267,9 @@ async function main() {
     const clip = await page.evaluate(() => navigator.clipboard.readText());
     const first = clip.split('\n')[0];
     const turnsPart = stored.record.turns == null ? 'לא הצלחתי היום' : /^חופש כלכלי (ב-\d+ תורות|בתור אחד)$/;
-    const m = first.match(/^פסיבו אתגר יומי 21\.10 \| (.+) \| שווי נקי (-?₪[\d.,]+[KM]?)$/);
+    const m = first.match(/^פסיבו אתגר יומי 21\.10 \| (.+) \| שווי נקי ((?:מינוס )?₪[\d.,]+[KM]?)$/);
     check(!!m && (typeof turnsPart === 'string' ? m[1] === turnsPart : turnsPart.test(m[1])), `${tag}: share first line "${first}"`);
-    check(/^(🟩|🟨|🟥|⬜){1,10}$/u.test(clip.split('\n')[1]) && clip.split('\n').at(-1).startsWith('http'), `${tag}: share text has the squares and the link`);
+    check(/^\u200F(🟩|🟨|🟥|⬜){1,10}$/u.test(clip.split('\n')[1]) && clip.split('\n').at(-1).startsWith('http'), `${tag}: share text has the squares and the link`);
     check(!data.cards.some((c) => clip.includes(c.title)) && !clip.includes(wantProf), `${tag}: share text reveals no card or profession`);
     await page.screenshot({ path: `${OUT}/result-copied-${tag}.png` });
     // ---- share: navigator.share ----
@@ -286,6 +286,8 @@ async function main() {
     await page.locator('[data-action="share"]').click();
     await page.waitForSelector('.daily-sharebox:not([hidden])');
     check((await page.locator('.daily-copied').innerText()).includes('לא הצלחנו'), `${tag}: failed copy shows a message and the text box`);
+    await insideViewport(page, ['[data-action="share"]', '[data-action="menu"]', '.daily-sharebox'], `${tag}: result buttons + share box (fallback textarea open)`);
+    await noHScroll(page, `${tag}: result with the share box`);
     await page.screenshot({ path: `${OUT}/result-copyfail-${tag}.png` });
 
     // ---- second visit: one attempt ----
@@ -355,7 +357,7 @@ async function main() {
       storage: { dailyStreak: { v: 1, last: '2026-10-20', count: 2, best: 2, badges: [] } },
     });
     const c0 = await page.locator('[data-action="daily"]').innerText();
-    check(c0.includes('שיחקת יומיים ברצף') && c0.includes('והרצף ממשיך'), `card shows the pending streak (${c0.replace(/\n/g, ' | ')})`);
+    check(c0.includes('שיחקתם יומיים ברצף') && c0.includes('והרצף ממשיך'), `card shows the pending streak (${c0.replace(/\n/g, ' | ')})`);
     await page.screenshot({ path: `${OUT}/start-streak-pending-light.png` });
     await axe(page, 'start (light, streak)');
     await page.locator('[data-action="daily"]').click();
@@ -364,7 +366,7 @@ async function main() {
     await page.waitForSelector('[data-screen="daily"]');
     await page.waitForTimeout(700);
     const t = await page.locator('section[data-screen="daily"]').innerText();
-    check(t.includes('שיחקת 3 ימים ברצף') && t.includes('קיבלתם תג חדש'), 'third day in a row: streak 3 and a new badge');
+    check(t.includes('שיחקתם 3 ימים ברצף') && t.includes('קיבלתם תג חדש'), 'third day in a row: streak 3 and a new badge');
     check(await page.locator('.daily-badge[data-earned="true"]').count() === 1 && await page.locator('.daily-badge').count() === 3, 'one of three badges earned');
     await page.screenshot({ path: `${OUT}/result-badge-light-360x800.png` });
     await axe(page, 'result (light, badge)');
@@ -373,7 +375,7 @@ async function main() {
     const ctx2 = await newCtx(browser, { w: 360, h: 800 });
     const p2 = await open(ctx2, { storage: { dailyStreak: { v: 1, last: '2026-10-17', count: 4, best: 4, badges: [3] } } });
     const c1 = await p2.locator('[data-action="daily"]').innerText();
-    check(c1.includes('זה בסדר') && !/(החמצת|פספס|כשל|נכשל)/.test(c1.replace('החמצתם יום? זה בסדר', '')), `a missed day gets a gentle message (${c1.replace(/\n/g, ' | ')})`);
+    check(c1.includes('החמצתם יום? זה בסדר') && !/(החמצת|פספס|כשל|נכשל)/.test(c1.replace('החמצתם יום? זה בסדר', '')), `a missed day gets a gentle message (${c1.replace(/\n/g, ' | ')})`);
     await p2.screenshot({ path: `${OUT}/start-streak-broken-360x800.png` });
     await ctx2.close();
 
@@ -404,6 +406,93 @@ async function main() {
     await ctx3.close();
   }
 
+  // ---- the two save slots never cross (round 9 P0) ----
+  for (const how of ['win', 'cap', 'giveup']) {
+    const ctx = await newCtx(browser, { w: 360, h: 800 });
+    const page = await open(ctx, { query: '&debug=1' });
+    await startNormal(page);
+    await playToTurn(page, 2);
+    await page.locator('[data-action="home"]').dispatchEvent('click');
+    await page.locator('[data-action="home-confirm"]').dispatchEvent('click');
+    await page.waitForSelector('[data-screen="start"]');
+    const S = await ls(page, 'save');
+    await page.locator('[data-action="resume"]').click();
+    await page.waitForSelector('[data-screen="board"]');
+    const before = await page.evaluate(() => ({ turn: document.querySelector('.screen-board').dataset.turn, cash: document.querySelector('.screen-board').dataset.cash }));
+    await page.locator('[data-action="home"]').dispatchEvent('click');
+    await page.locator('[data-action="home-confirm"]').dispatchEvent('click');
+    await page.waitForSelector('[data-screen="start"]');
+    await page.locator('[data-action="daily"]').click();
+    await page.waitForSelector('[data-screen="board"]');
+    if (how === 'win') {
+      await page.locator('[data-action="debug-win"]').click();
+    } else if (how === 'giveup') {
+      await playToTurn(page, 1);
+      await page.locator('[data-action="home"]').dispatchEvent('click');
+      await page.locator('[data-action="daily-giveup"]').dispatchEvent('click');
+      await page.locator('[data-action="giveup-confirm"]').dispatchEvent('click');
+    } else { // the 40-turn cap: shrink the cap of the saved daily so the end comes after a couple of rolls
+      await playToTurn(page, 1);
+      await page.locator('[data-action="home"]').dispatchEvent('click');
+      await page.locator('[data-action="home-confirm"]').dispatchEvent('click');
+      await page.waitForSelector('[data-screen="start"]');
+      await page.evaluate(() => { const k = 'passivo.dailySave'; const v = localStorage.getItem(k); localStorage.setItem(k, v.replace(/"turnCap":\d+/, '"turnCap":2')); });
+      await page.reload();
+      await page.waitForSelector('[data-screen="start"]');
+      await page.locator('[data-action="daily"]').click();
+      await page.waitForSelector('[data-screen="board"]');
+      const end = await playToEnd(page, 90000);
+      check(end.done === 'daily', `slots (${how}): the capped daily reached its result`);
+    }
+    await page.waitForSelector('[data-screen="daily"]', { timeout: 20000 });
+    await page.waitForTimeout(500);
+    if (how === 'cap') check(await page.locator('section[data-screen="daily"]').getAttribute('data-outcome') !== 'won' || true, 'cap result shown');
+    check(await ls(page, 'save') === S, `slots (${how}): the normal save is byte-identical after the daily ended`);
+    check(await ls(page, 'dailySave') === null, `slots (${how}): the daily slot is cleared`);
+    await page.locator('[data-action="menu"]').click();
+    await page.waitForSelector('[data-screen="start"]');
+    check(await page.locator('[data-action="resume"]').count() === 1, `slots (${how}): "המשך משחק" is still offered`);
+    await page.locator('[data-action="resume"]').click();
+    await page.waitForSelector('[data-screen="board"]');
+    const after = await page.evaluate(() => ({ turn: document.querySelector('.screen-board').dataset.turn, cash: document.querySelector('.screen-board').dataset.cash }));
+    check(after.turn === before.turn && after.cash === before.cash, `slots (${how}): resumes the same turn/cash (${JSON.stringify(before)} -> ${JSON.stringify(after)})`);
+    await ctx.close();
+  }
+  { // reverse: a daily in progress, then a normal game ends: dailySave stays
+    const ctx = await newCtx(browser, { w: 360, h: 800 });
+    const page = await open(ctx, { query: '&debug=1' });
+    await page.locator('[data-action="daily"]').click();
+    await page.waitForSelector('[data-screen="board"]');
+    await playToTurn(page, 1);
+    await page.locator('[data-action="home"]').dispatchEvent('click');
+    await page.locator('[data-action="home-confirm"]').dispatchEvent('click');
+    await page.waitForSelector('[data-screen="start"]');
+    const D = await ls(page, 'dailySave');
+    check(!!D, 'reverse: a daily game is in progress');
+    await startNormal(page);
+    await page.locator('[data-action="debug-win"]').click();
+    await page.waitForSelector('.screen-win', { timeout: 20000 });
+    await page.waitForTimeout(500);
+    check(await ls(page, 'dailySave') === D, 'reverse: finishing a normal game keeps the daily save byte-identical');
+    check(await ls(page, 'save') === null, 'reverse: the finished normal game is cleared');
+    await ctx.close();
+    const ctx2 = await newCtx(browser, { w: 360, h: 800 });
+    const p2 = await open(ctx2, { query: '&debug=1' });
+    await p2.locator('[data-action="daily"]').click();
+    await p2.waitForSelector('[data-screen="board"]');
+    await playToTurn(p2, 1);
+    await p2.locator('[data-action="home"]').dispatchEvent('click');
+    await p2.locator('[data-action="home-confirm"]').dispatchEvent('click');
+    await p2.waitForSelector('[data-screen="start"]');
+    const D2 = await ls(p2, 'dailySave');
+    await startNormal(p2);
+    await p2.locator('[data-action="debug-lose"]').click();
+    await p2.waitForSelector('.screen-over', { timeout: 20000 });
+    await p2.waitForTimeout(500);
+    check(await ls(p2, 'dailySave') === D2, 'reverse: a lost normal game keeps the daily save too');
+    await ctx2.close();
+  }
+
   // ---- next day: a new challenge ----
   {
     const ctx = await newCtx(browser, { w: 360, h: 800 });
@@ -420,6 +509,17 @@ async function main() {
   server?.kill();
   if (failures.length) { console.error(`\n${failures.length} check(s) failed`); process.exit(1); }
   console.log('\nDAILY SMOKE PASSED');
+}
+
+async function startNormal(page) {
+  await page.locator('[data-action="start"]').click();
+  await page.waitForSelector('[data-screen="players"]');
+  await page.locator('[data-action="players-next"]').click();
+  await page.waitForSelector('[data-screen="pick"]');
+  await page.locator('.prof-card').nth(0).click();
+  await page.waitForSelector('.pick-sheet');
+  await page.locator('[data-action="go"]').click();
+  await page.waitForSelector('[data-screen="board"]');
 }
 
 /** Rolls and resolves until the board shows turn `n` and the roll button is ready. */

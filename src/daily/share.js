@@ -3,9 +3,10 @@
 import { t, tp } from '../i18n/index.js';
 import { shortDate } from './calendar.js';
 
-/** 1234567 -> '₪1.2M', 850000 -> '₪850K', 900 -> '₪900', -300 -> '-₪300'. Rounded, never a fake decimal. */
+/** 1234567 -> '₪1.2M', 850000 -> '₪850K', 900 -> '₪900', -300 -> 'מינוס ₪300'. Rounded, never a fake decimal. */
 export function compactMoney(n) {
-  const sign = n < 0 ? '-' : '';
+  // 'מינוס ₪24K' in words: a trailing or leading '-' flips next to Hebrew text in RTL
+  const sign = n < 0 ? `${t('daily.shareLines.minus')} ` : '';
   const a = Math.abs(Math.round(n));
   const num = (x) => new Intl.NumberFormat('en', { maximumFractionDigits: 1 }).format(x);
   const cur = t('common.currency');
@@ -15,11 +16,13 @@ export function compactMoney(n) {
 }
 
 /** 'gyrn' -> emoji blocks, `perRow` per line. */
+export const RLM = '\u200F';
+
 export function squaresRows(lights, perRow = 10) {
   const sym = { g: t('daily.shareLines.green'), y: t('daily.shareLines.yellow'), r: t('daily.shareLines.red'), n: t('daily.shareLines.none') };
   const cells = [...lights].map((c) => sym[c] ?? sym.n);
   const rows = [];
-  for (let i = 0; i < cells.length; i += perRow) rows.push(cells.slice(i, i + perRow).join(''));
+  for (let i = 0; i < cells.length; i += perRow) rows.push(RLM + cells.slice(i, i + perRow).join(''));
   return rows;
 }
 

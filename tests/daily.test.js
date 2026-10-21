@@ -307,7 +307,7 @@ describe('streak (D4)', () => {
   });
   it('an older date (clock set back) does not change the streak', () => {
     const s = play(emptyStreak(), '2026-10-21', '2026-10-22');
-    expect(play(s, '2026-10-20')).toEqual(s);
+    expect(play(s, '2026-10-21')).toEqual(s); // one day back; further back is tampering (see below)
   });
   it('view: never played, played today, played yesterday, missed a day', () => {
     expect(streakView(emptyStreak(), '2026-10-21')).toMatchObject({ state: 'none', count: 0 });
@@ -316,6 +316,22 @@ describe('streak (D4)', () => {
     expect(streakView(s, '2026-10-22')).toMatchObject({ state: 'pending', count: 3 });
     expect(streakView(s, '2026-10-23')).toMatchObject({ state: 'broken', count: 0, best: 3, badges: [3] });
     expect(streakView(s, '2026-10-20')).toMatchObject({ state: 'today' }); // clock set back: keep what we have
+  });
+  it('a stored last more than a day ahead is ignored (clock tampering / restore), not frozen', () => {
+    const s = { v: 1, last: '2027-03-01', count: 5, best: 5, badges: [3] };
+    expect(streakView(s, '2026-10-21')).toMatchObject({ state: 'none', count: 0, best: 5 });
+    const after = recordPlay(s, '2026-10-21');
+    expect(after).toMatchObject({ last: '2026-10-21', count: 1, best: 5, badges: [3] });
+    expect(streakView(after, '2026-10-22')).toMatchObject({ state: 'pending', count: 1 });
+    // one day ahead stays what it was (a clock set back a little)
+    const near = { v: 1, last: '2026-10-22', count: 2, best: 2, badges: [] };
+    expect(recordPlay(near, '2026-10-21')).toEqual(near);
+    expect(streakView(near, '2026-10-21')).toMatchObject({ state: 'today', count: 2 });
+  });
+  it('view reports how long the ended streak was and how many days were missed', () => {
+    const s = { v: 1, last: '2026-10-19', count: 3, best: 3, badges: [3] };
+    expect(streakView(s, '2026-10-21')).toMatchObject({ state: 'broken', prev: 3, missed: 1 });
+    expect(streakView(s, '2026-10-30')).toMatchObject({ state: 'broken', prev: 3, missed: 10 });
   });
   it('is schema-versioned: unknown versions and corrupt data start over', () => {
     expect(parseStreak({ v: 99, last: '2026-10-21', count: 5 })).toEqual(emptyStreak());
@@ -339,7 +355,7 @@ describe('share text (D2)', () => {
     expect(lines[0]).toBe('פסיבו אתגר יומי 21.10 | חופש כלכלי ב-17 תורות | שווי נקי ₪1.2M');
     const full = buildShareText(entry(), url).split('\n');
     expect(full[0]).toBe('פסיבו אתגר יומי 21.10 | חופש כלכלי ב-17 תורות | שווי נקי ₪1.2M');
-    expect(full[1]).toBe('🟩🟨🟥⬜🟩🟩');
+    expect(full[1]).toBe('\u200F🟩🟨🟥⬜🟩🟩'); // RLM at the start of each emoji row
     expect(full.at(-1)).toBe(url);
   });
   it('uses the plural helper for one turn and says "not today" without freedom', () => {
@@ -348,7 +364,7 @@ describe('share text (D2)', () => {
     expect(fail).toBe('פסיבו אתגר יומי 21.10 | לא הצלחתי היום | שווי נקי ₪90K');
   });
   it('wraps the squares in rows of ten', () => {
-    expect(squaresRows('g'.repeat(23))).toEqual(['🟩'.repeat(10), '🟩'.repeat(10), '🟩'.repeat(3)]);
+    expect(squaresRows('g'.repeat(23))).toEqual(['\u200F' + '🟩'.repeat(10), '\u200F' + '🟩'.repeat(10), '\u200F' + '🟩'.repeat(3)]);
     expect(squaresRows('')).toEqual([]);
   });
   it('compact money', () => {
@@ -358,8 +374,10 @@ describe('share text (D2)', () => {
     expect(compactMoney(12400)).toBe('₪12K');
     expect(compactMoney(9500)).toBe('₪9,500');
     expect(compactMoney(0)).toBe('₪0');
-    expect(compactMoney(-300)).toBe('-₪300');
-    expect(compactMoney(-1500000)).toBe('-₪1.5M');
+    expect(compactMoney(-300)).toBe('מינוס ₪300');
+    expect(compactMoney(-24000)).toBe('מינוס ₪24K');
+    expect(compactMoney(-1500000)).toBe('מינוס ₪1.5M');
+    expect(buildShareText(entry({ netWorth: -24000 }), url).split('\n')[0]).toBe('פסיבו אתגר יומי 21.10 | חופש כלכלי ב-17 תורות | שווי נקי מינוס ₪24K');
   });
   it('a real game reveals no card titles, no profession, no player names', () => {
     const { s } = play('2026-10-21', 'sensible');
@@ -462,7 +480,7 @@ describe('strings', () => {
   it('has every daily key, with plural forms for the helpers', () => {
     for (const k of ['title', 'cardNew', 'cardPlaying', 'streakBroken', 'copied', 'share', 'giveUp', 'shareLines']) expect(he.daily[k]).toBeTruthy();
     for (const k of ['hours', 'minutes', 'streakDays', 'badgeDays', 'turnsIn']) expect(he.plural[k].other).toContain('{n}');
-    expect(he.plural.streakDays.other.replace('{n}', '5')).toBe('שיחקת 5 ימים ברצף');
+    expect(he.plural.streakDays.other.replace('{n}', '5')).toBe('שיחקתם 5 ימים ברצף');
   });
   it('the board has the squares the stream relies on', () => {
     expect(BOARD).toContain('opportunity');

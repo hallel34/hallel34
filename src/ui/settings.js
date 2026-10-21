@@ -70,6 +70,7 @@ export function openHowTo() {
     h('div', { class: 'dialog-head' }, h('h2', { class: 'dialog-title' }, t('howto.title')), closeButton(() => layer.close())),
     h('ol', { class: 'howto' }, [1, 2, 3, 4].map((n) => h('li', null, tn(`howto.step${n}`, { months: PAYDAY_MONTHS }, { scope })))),
     h('p', { class: 'howto-note', 'data-howto': 'note' }, t('howto.note')),
+    h('p', { class: 'howto-note', 'data-howto': 'daily' }, t('howto.dailyNote')),
     h('div', { class: 'dialog-actions' }, button(t('card.ok'), { variant: 'primary', 'data-autofocus': '', onClick: () => layer.close() })));
   layer = openLayer(content, { kind: 'modal', label: t('howto.title'), cls: 'layer-dialog' });
   return layer.closed;

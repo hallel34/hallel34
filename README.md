@@ -192,7 +192,9 @@ A start-screen card ("אתגר יומי") opens one family-mode game per calenda
 - **Result and share.** The result screen shows turns to freedom, net worth, the learning headline, the streak and badges (3 / 7 / 30 days,
   kept once earned). "שתפו" builds a WhatsApp text (first line, one coloured square per turn by traffic-light tier, the link) with
   `navigator.share`, else the clipboard, with a visible "הועתק". It never contains cards, choices or names (`src/daily/share.js`).
-- **Streak** (`src/daily/streak.js`): schema-versioned (`passivo.dailyStreak`, `v: 1`), a missed day resets it with a gentle message.
+- **Streak** (`src/daily/streak.js`): schema-versioned (`passivo.dailyStreak`, `v: 1`), a missed day resets it (the "החמצתם יום?" line only after a streak of 2+ and 1-3 missed days, otherwise a neutral welcome back). A stored last play more than a day ahead of today is treated as clock tampering and ignored.
+- **Saves never cross.** `src/services/match-store.js`: `store.save(match)` / `store.clear(match)` pick the slot (`save` or `dailySave`) from the match and throw without one; a unit test checks every call is explicit.
+- **Charity changes the route.** Donating gives two dice for 3 turns, so the later squares differ from other players' (die 0 of every turn stays identical). The charity card and the how-to say so: "תרומה משנה את המסלול שלכם בגלל הקובייה הנוספת".
 - **Ready for a leaderboard.** `dailyResult(state)` is the pure record `{ date, seed, turns, netWorth, professionId, mode, actionsLog }`;
   `replayDaily(engine, record)` re-runs the engine from the date and the action log, which is exactly what a server check would do.
 

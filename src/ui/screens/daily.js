@@ -11,7 +11,7 @@ import { STREAK_BADGES } from '../../daily/streak.js';
 import { shortDate } from '../../daily/calendar.js';
 import { buildShareText } from '../../daily/share.js';
 import { greenText } from '../../learn/report.js';
-import { nextChallengeText, streakText, badgeLabel } from '../daily-format.js';
+import { nextChallengeText, streakText, badgeLabel, headlineGreen } from '../daily-format.js';
 
 /** Share through the system sheet, else the clipboard (click handler only). Resolves 'shared' | 'copied' | 'failed' | 'cancelled'. */
 export async function shareText(text, { nav = globalThis.navigator, doc = globalThis.document } = {}) {
@@ -68,7 +68,7 @@ export function createDailyResult({ entry, professionTitle = '', streak, newBadg
     haptic('tap');
     const r = await shareText(text);
     if (r === 'copied') say(t('daily.copied'));
-    else if (r === 'failed') { say(t('daily.copyFailed'), 8000); box.hidden = false; box.focus({ preventScroll: true }); box.select(); }
+    else if (r === 'failed') { say(t('daily.copyFailed'), 8000); box.hidden = false; box.focus({ preventScroll: true }); box.select(); box.scrollIntoView?.({ block: 'nearest' }); }
   };
 
   const el = h('section', { class: `screen screen-daily ${won ? 'screen-win' : 'screen-over'}`, 'data-screen': 'daily', 'data-outcome': entry.outcome },
@@ -80,13 +80,13 @@ export function createDailyResult({ entry, professionTitle = '', streak, newBadg
       h('div', { class: 'win-compare' },
         h('div', null, h('span', { class: 'stat-label' }, t('daily.netWorth')), h('div', { class: 'win-mid daily-net' }, money(record.netWorth))),
         h('div', { class: 'align-end' }, h('span', { class: 'stat-label' }, t('daily.resultSub', { date: shortDate(record.date) })), h('div', { class: 'daily-prof' }, professionTitle))),
-      h('p', { class: 'daily-learn' }, h('b', null, `${t('daily.learned')}: `), greenText(entry.green)),
+      h('p', { class: 'daily-learn' }, h('b', null, `${t('daily.learned')}: `), greenText(headlineGreen(entry.green))),
       streakLine ? h('p', { class: 'daily-streakline' }, h('span', { class: 'daily-flame', 'aria-hidden': 'true' }, icon('star', { size: 18, width: 2.4 })), streakLine) : null,
       h('ul', { class: 'daily-badges', 'aria-label': t('daily.badges') }, STREAK_BADGES.map(badge)),
       newBadges.length ? h('p', { class: 'daily-newbadge', role: 'status' }, t('daily.badgeEarned', { badge: badgeLabel(newBadges[newBadges.length - 1]) })) : null,
-      next),
+      next, box),
     h('div', { class: 'end-actions daily-actions' },
-      confirm, box,
+      confirm,
       button([icon('share', { size: 22, width: 2.6 }), t('daily.share')], { variant: 'primary', size: 'lg', 'data-action': 'share', 'data-autofocus': '', onClick: share }),
       button(t('daily.menu'), { variant: 'secondary', 'data-action': 'menu', onClick: onMenu })));
 

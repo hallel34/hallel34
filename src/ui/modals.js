@@ -325,7 +325,7 @@ export function charityModal(state, { flip = true } = {}) {
   const afford = state.cash >= cost;
   const body = [
     grid(statTile(t('charity.cost'), money(cost), { big: true }), statTile(t('card.cashNow'), money(state.cash))),
-    h('div', { class: 'banner banner-info' }, icon('charity', { size: 26 }), h('span', null, t('charity.boost'))),
+    h('div', { class: 'banner banner-info' }, icon('charity', { size: 26 }), h('span', null, t(state.daily ? 'charity.boostDaily' : 'charity.boost'))),
     afford ? null : h('div', { class: 'banner banner-warn', role: 'status' }, icon('bank', { size: 24 }), h('span', null, t('card.notEnough', { amount: moneyText(cost - state.cash) }))),
   ];
   return cardShell({
