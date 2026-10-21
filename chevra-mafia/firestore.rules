@@ -1,0 +1,9 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // גרסה 1 – פתוח. להחמיר לפני השקה (ראה docs/ROADMAP.md)
+    match /rooms/{code} {
+      allow read, write: if true;
+    }
+  }
+}
