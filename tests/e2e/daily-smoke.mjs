@@ -267,7 +267,7 @@ async function main() {
     const clip = await page.evaluate(() => navigator.clipboard.readText());
     const first = clip.split('\n')[0];
     const turnsPart = stored.record.turns == null ? 'לא הצלחתי היום' : /^חופש כלכלי (ב-\d+ תורות|בתור אחד)$/;
-    const m = first.match(/^פסיבו אתגר יומי 21\.10 \| (.+) \| שווי נקי ((?:מינוס )?₪[\d.,]+[KM]?)$/);
+    const m = first.match(/^פסיבו אתגר יומי 21\.10 \| (.+) \| שווי נקי \u2066((?:מינוס )?₪[\d.,]+[KM]?)\u2069$/);
     check(!!m && (typeof turnsPart === 'string' ? m[1] === turnsPart : turnsPart.test(m[1])), `${tag}: share first line "${first}"`);
     check(/^\u200F(🟩|🟨|🟥|⬜){1,10}$/u.test(clip.split('\n')[1]) && clip.split('\n').at(-1).startsWith('http'), `${tag}: share text has the squares and the link`);
     check(!data.cards.some((c) => clip.includes(c.title)) && !clip.includes(wantProf), `${tag}: share text reveals no card or profession`);
