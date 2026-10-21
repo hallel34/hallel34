@@ -31,13 +31,14 @@ describe('win screen actions', () => {
     expect(he.win.again).toBe('שחק שוב');
     expect(he.win.change).toBeTruthy();
     const src = read('src/ui/screens/end.js');
-    expect(src).toMatch(/createWin\(\{ state, onAgain, onMenu \}\)/);
+    expect(src).toMatch(/createWin\(\{ match, onAgain, onMenu \}\)/);
     expect(src).toMatch(/win\.again[^\n]*variant: 'primary'/);
     expect(src).toMatch(/win\.change[^\n]*variant: 'secondary'/);
     expect(src).toMatch(/win\.share[^\n]*variant: 'text'/);
   });
   it('play again restarts with the same mode and profession', () => {
-    expect(read('src/ui/app.js')).toMatch(/onAgain: \(\) => startNew\(s\.mode \|\| last\.mode, s\.profession\?\.id \|\| last\.professionId\)/);
+    expect(read('src/ui/app.js')).toMatch(/onAgain: \(\) => again\(m\)/);
+    expect(read('src/ui/app.js')).toMatch(/rematch\(engine, m, nextSeed\(\)\)/);
   });
 });
 

@@ -1,5 +1,12 @@
 // Tunable rule constants. Pure data, no DOM.
-export const SCHEMA_VERSION = 1;
+// 2: saves hold a whole match (1-4 players). Version 1 saves were a single game state (migrated on load).
+export const SCHEMA_VERSION = 2;
+export const MIN_PLAYERS = 1;
+export const MAX_PLAYERS = 4;
+export const NAME_MAX = 12;
+// Display only: the monthly payment shown for an asset's mortgage. The asset's monthlyCashFlow is already net of it,
+// so it never enters the game maths (win check, payday, loan limit).
+export const MORTGAGE_PAYMENT_RATE = 0.005;
 
 // 24-square loop. 5 paydays, 9 opportunities, 3 expenses, 3 market,
 // 2 baby, 2 charity.

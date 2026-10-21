@@ -40,6 +40,12 @@ dark=[ # (label, fg, bg, min)
  ('tile market / bg','#4DA3FF','#0F1E46',3),('tile baby / bg','#FF9CCB','#0F1E46',3),('tile charity / bg','#9B7BFF','#0F1E46',3),
  ('tile icon navy / payday','#0F1E46','#F2B53A',3),('tile icon navy / opp','#0F1E46','#4FD6A0',3),('tile icon navy / baby','#0F1E46','#FF9CCB',3),
  ('tile icon navy / market','#0F1E46','#4DA3FF',3),('tile icon navy / expense','#0F1E46','#F0524A',3),('tile icon navy / charity','#0F1E46','#9B7BFF',3),
+ # hot-seat player tokens: number (navy ink) on each colour, and each colour against the board
+ ('player 1 token ink / gold','#0F1E46','#F2B53A',4.5),('player 2 token ink / sky','#0F1E46','#4DA3FF',4.5),
+ ('player 3 token ink / mint','#0F1E46','#4FD6A0',4.5),('player 4 token ink / pink','#0F1E46','#FF9CCB',4.5),
+ ('player 1 ring / bg (non-text)','#F2B53A','#0F1E46',3),('player 2 ring / bg (non-text)','#4DA3FF','#0F1E46',3),
+ ('player 3 ring / bg (non-text)','#4FD6A0','#0F1E46',3),('player 4 ring / bg (non-text)','#FF9CCB','#0F1E46',3),
+ ('others-strip cash / glass-strong','#F6C453','#%02x%02x%02x'%glassS_dark,4.5),
 ]
 light=[
  ('text / bg','#0F1E46','#FBF3E1',4.5),('text / surface','#0F1E46','#FFFFFF',4.5),('text / sunken','#0F1E46','#F1E5C8',4.5),
@@ -56,6 +62,8 @@ light=[
  ('passive fill / track (non-text)','#087F66','#E3E0DB',3),
  ('tile outline navy / bg (tiles keep a 3px navy outline in light)','#0F1E46','#FBF3E1',3),
  ('fox orange 700 text / bg','#B3501A','#FBF3E1',4.5),
+ ('player token ring (navy outline in light) / bg (non-text)','#0F1E46','#FBF3E1',3),
+ ('others-panel cash / cream panel','#7A4A00','#FFFBF2',4.5),
 ]
 bad=0; md='--md' in sys.argv
 for name,rows in (('DARK',dark),('LIGHT',light)):

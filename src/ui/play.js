@@ -2,10 +2,13 @@
 // presents engine events (die, hops, cash) and applies the player's choices through the engine.
 import { h, html } from './dom.js';
 import { t } from '../i18n/index.js';
-import { BOARD, EngineError, statement, monthlyCashFlow } from '../engine/index.js';
+import {
+  BOARD, EngineError, statement, monthlyCashFlow, currentState, setCurrentState, endTurn, canEndTurn, isMultiplayer, passiveIncome,
+  totalExpenses,
+} from '../engine/index.js';
 import { icon } from './icons.js';
 import { money, moneyText, tn } from './format.js';
-import { button, iconButton, meter, cashDisplay } from './widgets.js';
+import { button, iconButton, meter, cashDisplay, miniMeter } from './widgets.js';
 import { createDice } from './die.js';
 import { motionOK } from './prefs.js';
 import {
@@ -13,11 +16,12 @@ import {
 } from './fx.js';
 import {
   opportunityModal, expenseModal, shortfallModal, charityModal, offerModal, marketInfoModal,
-  babyModal, loanDialog, repayDialog, sellSheet,
+  babyModal, loanDialog, repayDialog, sellSheet, handoffSheet, homeConfirmSheet, playerOutModal,
 } from './modals.js';
 import { openStatement } from './statement.js';
 import { openSettings } from './settings.js';
-import { ringPos, avatarColor } from './layout.js';
+import { ringPos, avatarColor, pawnOffsets, progressPct } from './layout.js';
+import { playerToken, playerName } from './players.js';
 import { closeAllLayers } from './modal.js';
 import { debugEnabled, mountDebugTools } from './debug.js';
 import { foxImg, createReactor, warmFox, dirSign } from './fox.js';
@@ -38,18 +42,25 @@ const SKYLINE = `<svg class="board-skyline" aria-hidden="true" focusable="false"
 
 /**
  * @param engine createEngine(...) result
- * @param state  starting engine state (new or resumed)
- * @param nav    { menu(), win(state), over(state) }
- * @param store  { save(state), clear() }
+ * @param match  starting match (new or resumed): 1-4 players, each with their own engine state
+ * @param nav    { menu(), win(match), over(match) }
+ * @param store  { save(match), clear() }
+ * `state` below is always the ACTIVE player's engine state; every dialog and action works on that player.
  */
-export function createPlay({ engine, state: initial, nav, store, professionIds = [] }) {
-  let state = initial;
+export function createPlay({ engine, match: initialMatch, nav, store, professionIds = [], fresh = false }) {
+  let match = initialMatch;
+  let state = currentState(match);
+  const multi = isMultiplayer(match);
   let busy = false;
   let destroyed = false;
+  let btnMode = 'roll'; // roll | rolling | working | continue
+
+  const nameOf = (i = match.currentIndex) => playerName(match.players[i], i);
+  const colorOf = (i = match.currentIndex) => match.players[i].color;
 
   // ---------- HUD ----------
-  const avatar = h('div', { class: 'avatar', 'aria-hidden': 'true' }, state.profession.title.trim()[0]);
-  avatar.style.background = avatarColor(state.profession.id, professionIds);
+  const avatar = h('div', { class: 'avatar', 'aria-hidden': 'true' });
+  const hudProf = h('span', { class: 'hud-prof' });
   const turnEl = h('span', { 'aria-live': 'polite' });
   const babies = h('span', { class: 'hud-babies', role: 'img', 'aria-label': t('game.kids', { n: 0 }) });
   const charityChip = h('span', { class: 'chip chip-charity', 'data-active': 'false' });
@@ -58,15 +69,17 @@ export function createPlay({ engine, state: initial, nav, store, professionIds =
   const passiveVal = h('b', { class: 'tone-income' });
   const expenseVal = h('b', { class: 'tone-expense' });
   const m = meter();
-  const settingsBtn = iconButton('gear', t('game.settings'), () => openSettings({ onQuit: () => nav.menu(), version: __APP_VERSION__ }), 'icon-btn-glass');
+  const settingsBtn = iconButton('gear', t('game.settings'), () => openSettings({ onQuit: () => goHome(), version: __APP_VERSION__ }), 'icon-btn-glass');
   const stmtBtn = iconButton('statement', t('game.statement'), () => openStmt(), 'icon-btn-glass');
   stmtBtn.dataset.action = 'statement';
+  const homeBtn = iconButton('home', t('game.home'), () => askHome(), 'icon-btn-glass');
+  homeBtn.dataset.action = 'home';
 
   const hud = h('header', { class: 'hud glass' },
     h('div', { class: 'hud-top' },
       avatar,
-      h('div', { class: 'hud-id' }, h('span', { class: 'hud-prof' }, state.profession.title), h('span', { class: 'hud-sub' }, turnEl, babies)),
-      h('div', { class: 'hud-btns' }, stmtBtn, settingsBtn)),
+      h('div', { class: 'hud-id' }, hudProf, h('span', { class: 'hud-sub' }, turnEl, babies)),
+      h('div', { class: 'hud-btns' }, stmtBtn, homeBtn, settingsBtn)),
     h('div', { class: 'hud-cash' },
       h('img', { class: 'hud-coin', src: coinUrl, alt: '', width: 30, height: 30 }),
       h('span', { class: 'cash-wrap', 'aria-label': t('game.cash') }, cash.el),
@@ -82,16 +95,29 @@ export function createPlay({ engine, state: initial, nav, store, professionIds =
     return h('div', { class: `tile tile-${sq}`, 'aria-hidden': 'true', 'data-i': i, vars: { '--c': col, '--r': row } },
       h('img', { src: squareUrl(sq), alt: '', width: 42, height: 42, draggable: 'false' }));
   });
-  const pawn = h('img', { class: 'pawn', src: pawnUrl, alt: '', width: 36, height: 40, draggable: 'false' });
+  // One pawn per player. Pawns sharing a tile are offset (see pawnOffsets) so each stays visible.
+  const pawns = match.players.map((p, i) => h('div', { class: `pawn-slot pc-${p.color}`, 'data-player': String(i), 'aria-hidden': 'true' },
+    h('img', { class: 'pawn', src: pawnUrl, alt: '', width: 36, height: 40, draggable: 'false' }),
+    multi ? h('i', { class: 'pawn-badge' }, String(p.color)) : null));
+  const pawnAt = match.players.map((p) => p.state.position);
+  const activePawn = () => pawns[match.currentIndex];
   const dice = createDice();
   dice.setValues(state.lastRoll?.dice || [1]);
   const status = h('p', { class: 'board-status', 'aria-live': 'polite' }, t('game.statusStart'));
-  const center = h('div', { class: 'board-center' }, dice.el, status, charityChip);
-  const board = h('div', { class: 'board', role: 'group' }, html(SKYLINE), ...tiles, center);
+  // Hot-seat: compact strip with the other players (tap to expand into a panel over the board, never over the roll button).
+  const othersCells = h('span', { class: 'os-cells' }); // each cell starts with a visually hidden player name, so the button's name contains its visible text
+  const othersBtn = multi ? h('button', { type: 'button', class: 'others-strip', 'aria-expanded': 'false', 'aria-controls': 'others-panel', 'data-action': 'others', onClick: () => toggleOthers() }, h('span', { class: 'vh' }, `${t('game.othersOpen')}: `), othersCells) : null;
+  const othersList = h('ul', { class: 'others-list' });
+  const othersClose = h('button', { type: 'button', class: 'icon-btn others-close', 'aria-label': t('game.othersClose'), onClick: () => toggleOthers(false) }, icon('close', { size: 22 }));
+  const othersPanel = multi ? h('div', { class: 'others-panel glass glass-strong', id: 'others-panel', role: 'region', 'aria-label': t('game.others'), hidden: true },
+    h('div', { class: 'others-head' }, h('strong', null, t('game.others')), othersClose), othersList) : null;
+  const center = h('div', { class: 'board-center' }, dice.el, status, charityChip, othersBtn);
+  const board = h('div', { class: `board${multi ? ' board-multi' : ''}`, role: 'group' }, html(SKYLINE), ...tiles, center, othersPanel);
   let currentTile = null;
 
   const rollLabel = h('span', null, t('game.roll'));
-  const rollBtn = button([h('img', { src: dieUrl, alt: '', width: 30, height: 30, class: 'btn-die' }), rollLabel], { variant: 'primary', cls: 'btn-roll', 'data-action': 'roll', onClick: () => turn() });
+  const dieIcon = h('img', { src: dieUrl, alt: '', width: 30, height: 30, class: 'btn-die' });
+  const rollBtn = button([dieIcon, rollLabel], { variant: 'primary', cls: 'btn-roll', 'data-action': 'roll', onClick: () => (btnMode === 'continue' ? continueTurn() : turn()) });
   const actions = h('div', { class: 'board-actions' }, rollBtn);
 
   // Roll zone (above the roll button): fox roll pose + latest-event chip; family tips replace them.
@@ -137,19 +163,87 @@ export function createPlay({ engine, state: initial, nav, store, professionIds =
   // Tap anywhere dismisses the tip (the roll button still works on the same tap).
   el.addEventListener('pointerdown', () => hideTip());
 
-  function place(idx) {
+  /** Lays out every pawn on one tile: a lone pawn is centred, shared tiles spread them out. */
+  function layoutTile(tile) {
+    const slots = [...tile.querySelectorAll('.pawn-slot')].sort((x, y) => Number(x.dataset.player) - Number(y.dataset.player));
+    const offs = pawnOffsets(slots.length);
+    slots.forEach((sl, k) => { sl.style.setProperty('--ox', `${offs[k].x}px`); sl.style.setProperty('--oy', `${offs[k].y}px`); });
+    if (slots.length) tile.dataset.pawns = String(slots.length); else delete tile.dataset.pawns;
+  }
+  /** Moves player i's pawn to tile idx (instantly; hopTo animates). */
+  function placePawn(i, idx) {
+    const from = tiles[pawnAt[i]];
+    pawnAt[i] = idx;
+    tiles[idx].append(pawns[i]);
+    if (from && from !== tiles[idx]) layoutTile(from);
+    layoutTile(tiles[idx]);
+  }
+  function markActive() {
+    pawns.forEach((p, i) => p.classList.toggle('is-active', i === match.currentIndex));
     currentTile?.classList.remove('is-current');
-    currentTile = tiles[idx];
+    currentTile = tiles[pawnAt[match.currentIndex]];
     currentTile.classList.add('is-current');
-    currentTile.append(pawn);
+    const idx = pawnAt[match.currentIndex];
     board.setAttribute('aria-label', t('game.boardLabel', { n: idx + 1, total: BOARD.length, square: t(`square.${BOARD[idx]}`) }));
   }
-  place(state.position);
+  function place(idx) {
+    placePawn(match.currentIndex, idx);
+    markActive();
+  }
+  match.players.forEach((p, i) => placePawn(i, p.state.position));
+  markActive();
 
   let lastPct = 0;
+  function paintPlayer() {
+    // Active player's identity: colour ring + name in the HUD (a single player keeps the profession look).
+    if (multi) {
+      avatar.textContent = String(colorOf());
+      avatar.className = `avatar pc-${colorOf()}`;
+      hudProf.textContent = nameOf();
+      hud.dataset.pc = String(colorOf());
+    } else {
+      avatar.textContent = state.profession.title.trim()[0];
+      avatar.style.background = avatarColor(state.profession.id, professionIds);
+      hudProf.textContent = state.profession.title;
+    }
+    el.dataset.player = String(match.currentIndex + 1);
+  }
+  function refreshOthers() {
+    if (!multi) return;
+    const order = match.players.map((p, i) => i).filter((i) => i !== match.currentIndex);
+    // turn order: the players after the active one first
+    order.sort((x, y) => ((x - match.currentIndex + match.players.length) % match.players.length) - ((y - match.currentIndex + match.players.length) % match.players.length));
+    othersCells.replaceChildren(...order.map((i) => {
+      const ps = match.players[i].state;
+      return h('span', { class: `os-cell pc-${colorOf(i)}${ps.status === 'lost' ? ' is-out' : ''}`, 'data-player': String(i) },
+        h('span', { class: 'vh' }, `${nameOf(i)} `),
+        h('bdi', { class: 'money os-cash', dir: 'ltr' }, moneyText(ps.cash)),
+        h('span', { class: 'os-top' }, playerToken(colorOf(i)),
+          h('span', { class: 'os-bar' }, h('i', { style: `--fill:${progressPct(passiveIncome(ps), totalExpenses(ps))}` }))));
+    }));
+    othersList.replaceChildren(...order.map((i) => {
+      const ps = match.players[i].state;
+      const pct = progressPct(passiveIncome(ps), totalExpenses(ps));
+      return h('li', { class: `others-row pc-${colorOf(i)}${ps.status === 'lost' ? ' is-out' : ''}`, 'data-player': String(i) },
+        h('div', { class: 'or-top' }, playerToken(colorOf(i)), h('strong', { class: 'or-name' }, nameOf(i)),
+          h('span', { class: 'or-cash' }, money(ps.cash)), h('span', { class: 'or-flow' }, tn('game.perMonth', { amount: money(monthlyCashFlow(ps), { sign: true }) }))),
+        miniMeter(pct, t('game.otherRow', { name: nameOf(i), cash: moneyText(ps.cash), pct: Math.round(pct * 100) })),
+        h('div', { class: 'or-pct' }, `${Math.round(pct * 100)}%`));
+    }));
+  }
+  function toggleOthers(open) {
+    if (!multi) return;
+    const want = open ?? othersPanel.hidden;
+    othersPanel.hidden = !want;
+    othersBtn.setAttribute('aria-expanded', String(want));
+    if (want) { refreshOthers(); othersClose.focus({ preventScroll: true }); if (motionOK()) animate(othersPanel, [{ opacity: 0, transform: 'scale(.96)' }, { opacity: 1, transform: 'scale(1)' }], { duration: 180, easing: 'ease-out' }); } else othersBtn.focus({ preventScroll: true });
+  }
   function refreshHud() {
     const st = statement(state);
-    turnEl.textContent = state.turn ? t('game.turn', { turn: state.turn }) : t('game.yourTurn');
+    paintPlayer();
+    const turnText = state.turn ? t('game.turn', { turn: state.turn }) : t('game.yourTurn');
+    // hot-seat: the number of the turn being played (the next one until the player has rolled)
+    turnEl.textContent = multi ? `${t('game.turnShort', { turn: state.turn > match.turnMark ? state.turn : state.turn + 1 })} · ${state.profession.title}` : turnText;
     flowChip.replaceChildren(tn('game.perMonth', { amount: money(st.monthlyCashFlow, { sign: true }) }));
     flowChip.classList.toggle('is-negative', st.monthlyCashFlow < 0);
     passiveVal.replaceChildren(money(st.passiveIncome));
@@ -168,16 +262,36 @@ export function createPlay({ engine, state: initial, nav, store, professionIds =
     el.dataset.passive = String(st.passiveIncome);
     el.dataset.expenses = String(st.totalExpenses);
     el.dataset.position = String(state.position);
+    el.dataset.players = String(match.players.length);
+    el.dataset.assets = String(state.assets.length);
+    el.dataset.mortgages = String(state.assets.filter((a) => a.mortgage > 0).length);
+    refreshOthers();
   }
   refreshHud();
   lastPct = (() => { const st = statement(state); return st.totalExpenses > 0 ? st.passiveIncome / st.totalExpenses : 0; })();
 
+  /** The engine state of the active player is saved into the match, then the whole match is persisted. */
+  function commit() {
+    match = setCurrentState(match, state);
+    store.save(match);
+  }
+
   const setStatus = (text) => { status.textContent = text; };
-  function setBusy(b) {
+
+  // The primary button always says what is happening: roll / rolling / advancing (disabled), or continue (enabled).
+  const BTN_LABEL = { roll: 'game.roll', rolling: 'game.rolling', working: 'game.advancing', continue: 'game.continue' };
+  function paintButton(mode) {
+    btnMode = mode;
+    rollLabel.textContent = t(BTN_LABEL[mode]);
+    rollBtn.disabled = mode === 'rolling' || mode === 'working';
+    rollBtn.dataset.action = mode === 'continue' ? 'continue' : 'roll';
+    dieIcon.hidden = mode === 'continue';
+    el.dataset.btn = mode;
+  }
+  function setBusy(b, mode = 'working') {
     const was = busy;
     busy = b;
-    rollBtn.disabled = b;
-    rollLabel.textContent = b ? t('game.rolling') : t('game.roll');
+    paintButton(b ? mode : 'roll');
     el.classList.toggle('is-busy', b);
     if (b) {
       clearTimeout(tipTimer);
@@ -187,6 +301,21 @@ export function createPlay({ engine, state: initial, nav, store, professionIds =
       // The fox returns 250ms after the button re-enables (or the tip shows instead).
       setTimeout(() => { if (!destroyed && !busy) { setPose('roll'); maybeTip(); } }, motionOK() ? 250 : 0);
     }
+  }
+  /**
+   * Called whenever a turn has fully played out (or a game is resumed): puts the button into a state the player can act on.
+   * Single player: the turn is closed silently and the roll button returns. Hot-seat: "continue" hands the phone on.
+   */
+  function settleButton() {
+    if (destroyed) return;
+    if (!multi && canEndTurn(match) && state.status === 'playing') { match = endTurn(match); store.save(match); }
+    if (multi && state.status === 'playing' && canEndTurn(match)) {
+      busy = false;
+      paintButton('continue');
+      el.classList.remove('is-busy');
+      setPose('roll');
+      setStatus(t('game.statusBack'));
+    } else setBusy(false);
   }
   /** On tap: tilt -6deg to 4deg over 200ms and nudge 8px toward the board centre, then fade out (CSS). */
   function rollLeaves() {
@@ -209,7 +338,7 @@ export function createPlay({ engine, state: initial, nav, store, professionIds =
       shake(el.querySelector('.hud'));
       return false;
     }
-    store.save(state);
+    commit();
     refreshHud();
     for (const ev of state.events) {
       if (ev.type === 'bought') {
@@ -241,6 +370,7 @@ export function createPlay({ engine, state: initial, nav, store, professionIds =
 
   // ---------- hop ----------
   async function hopTo(idx) {
+    const pawn = activePawn();
     const a = pawn.getBoundingClientRect();
     place(idx);
     if (!motionOK()) { await pause(10); return; }
@@ -270,24 +400,37 @@ export function createPlay({ engine, state: initial, nav, store, professionIds =
   // ---------- turn ----------
   async function turn() {
     if (busy || destroyed || state.phase !== 'roll' || state.status !== 'playing') return;
-    setBusy(true);
+    setBusy(true, 'rolling');
     haptic('roll'); sound('roll');
     let next;
     try { next = engine.roll(state); } catch (e) { console.error(e); setBusy(false); return; }
+    try {
+      await playTurn(next);
+    } catch (e) {
+      // Never leave the player on a disabled button: whatever failed, hand control back in a valid state.
+      console.error(e);
+      if (!destroyed) { if (state.pending) { setBusy(true); await resolvePending(); } await afterTurn(); }
+    }
+  }
+
+  async function playTurn(next) {
     const move = next.events.find((e) => e.type === 'move');
     setStatus(t('game.statusMoving'));
     await dice.roll(move.dice);
     const paydays = next.events.filter((e) => e.type === 'payday');
     let pi = 0;
     for (const idx of move.path) {
+      if (destroyed) return;
       await hopTo(idx);
       if (BOARD[idx] === 'payday' && paydays[pi]) { const pd = paydays[pi++]; await paydayFx(pd.amount, pd.months); }
     }
+    if (destroyed) return;
+    paintButton('working'); // the dice have stopped; the label now says we are moving on (cards, payday) instead of rolling
     haptic('land'); sound('land');
     setStatus(t('game.statusRolled', { steps: move.steps, square: t(`square.${BOARD[move.to]}`) }));
     pushLog(t('game.logMove', { steps: move.steps, square: t(`square.${BOARD[move.to]}`) }));
     state = next;
-    store.save(state);
+    commit();
     refreshHud();
     // The fox reacts to the square first, then the card (which carries its own reaction) opens.
     const landed = LAND_REACTION[BOARD[move.to]];
@@ -298,8 +441,67 @@ export function createPlay({ engine, state: initial, nav, store, professionIds =
     }
     await handleEvents(next);
     await resolvePending();
-    setBusy(false);
-    await finishIfOver();
+    await afterTurn();
+  }
+
+  /** The turn's events are all resolved: end the match, send a player home, or let the player continue / roll again. */
+  async function afterTurn() {
+    if (destroyed) return;
+    if (match.status !== 'playing') { setBusy(false); await finishIfOver(); return; }
+    if (state.status === 'lost') { await outFlow(); return; }
+    settleButton();
+  }
+
+  /** Switches the screen to the (new) current player of the match. */
+  function switchPlayer() {
+    state = currentState(match);
+    refreshHud();
+    markActive();
+    cash.set(state.cash);
+    dice.setValues(state.lastRoll?.dice || [1]);
+    lastPct = (() => { const st = statement(state); return st.totalExpenses > 0 ? st.passiveIncome / st.totalExpenses : 0; })();
+    setStatus(t('game.statusStart'));
+    pushLog(t('game.playerTurn', { name: nameOf() }));
+    hideTip();
+    toggleOthers(false);
+  }
+
+  /** Pass-the-phone: switch to the next player, then ask them to confirm they are ready. */
+  async function passTo() {
+    switchPlayer();
+    await showHandoff();
+  }
+  async function showHandoff() {
+    if (!multi || destroyed) return;
+    await handoffSheet({ name: nameOf(), color: colorOf() });
+  }
+
+  /** "Continue": the player has seen the outcome; the turn passes to the next player. */
+  async function continueTurn() {
+    if (busy || destroyed || btnMode !== 'continue' || !canEndTurn(match)) return;
+    busy = true;
+    paintButton('working');
+    match = endTurn(match);
+    store.save(match);
+    await passTo();
+    if (destroyed) return;
+    busy = false;
+    settleButton();
+  }
+
+  /** Hot-seat: this player is out. Tell everyone, then hand over to the next player still in the game. */
+  async function outFlow() {
+    busy = true;
+    paintButton('working');
+    await playerOutModal({ name: nameOf(), color: colorOf() });
+    if (destroyed) return;
+    match = endTurn(match);
+    store.save(match);
+    if (match.status !== 'playing') { await finishIfOver(); return; }
+    await passTo();
+    if (destroyed) return;
+    busy = false;
+    settleButton();
   }
 
   async function handleEvents(s) {
@@ -352,7 +554,11 @@ export function createPlay({ engine, state: initial, nav, store, professionIds =
         if (!r) break; // closed by debug force
         if (r.action === 'buy') apply((s) => engine.buy(s, r.qty));
         else if (r.action === 'pass') apply((s) => engine.pass(s));
-        else if (r.action === 'loan') await loanFlow(Math.max(0, (p.card.type === 'stock' ? p.card.price : p.card.downPayment) - state.cash));
+        else if (r.action === 'buyLoan') {
+          // Short of cash but one loan covers the gap: ask for exactly that loan, then complete the purchase.
+          // Cancelling the loan dialog leaves the card open (the loop below shows it again).
+          if (await loanFlow(r.need)) apply((s) => engine.buy(s, r.qty));
+        }
       } else if (p.kind === 'expense') {
         r = await expenseModal(state, { card: p.card, amount: p.amount, paid: false, flip });
         if (!r) break; // closed by debug force
@@ -382,18 +588,20 @@ export function createPlay({ engine, state: initial, nav, store, professionIds =
 
   let ending = false;
   async function finishIfOver() {
-    if (destroyed || ending || state.status === 'playing') return;
+    if (destroyed || ending || match.status === 'playing') return;
     ending = true;
     store.clear();
     await pause(500);
-    if (state.status === 'won') nav.win(state); else nav.over(state);
+    if (destroyed) return;
+    if (match.status === 'won') nav.win(match); else nav.over(match);
   }
 
   // ---------- statement ----------
   function openStmt() {
-    const closeIfOver = () => { if (state.status !== 'playing') layer.close(); };
+    const closeIfOver = () => { if (state.status !== 'playing' || match.status !== 'playing') layer.close(); };
     const layer = openStatement({
       getState: () => state,
+      title: multi ? t('statement.titleFor', { name: nameOf() }) : t('statement.title'),
       ops: {
         takeLoan: async () => { await loanFlow(0); closeIfOver(); },
         repay: async (l) => {
@@ -413,31 +621,67 @@ export function createPlay({ engine, state: initial, nav, store, professionIds =
     const force = (outcome) => {
       if (state.status !== 'playing' || destroyed) return false;
       state = engine.debugForce(state, outcome);
+      commit();
       closeAllLayers();
-      store.save(state);
       refreshHud();
-      finishIfOver();
+      if (match.status !== 'playing') finishIfOver();
+      else if (!busy) outFlow(); // hot-seat: only this player is out; an active turn flow notices it itself
       return true;
     };
     debugTools = mountDebugTools({ forceWin: () => force('win'), forceLose: () => force('lose') });
   }
+
+  // ---------- back to the start screen ----------
+  let homeOpen = false;
+  async function askHome() {
+    if (homeOpen || destroyed || match.status !== 'playing') return;
+    homeOpen = true;
+    const r = await homeConfirmSheet();
+    homeOpen = false;
+    if (r === 'home') goHome();
+  }
+  /** Saves the whole match and returns to the start screen (where the resume button appears). */
+  function goHome() {
+    if (destroyed) return;
+    store.save(match);
+    nav.menu();
+  }
+  // Android back button / browser back: opens the same confirm sheet instead of leaving the game.
+  const marker = { passivo: 'board' };
+  if (history.state?.passivo !== 'board') history.pushState(marker, '');
+  const onPop = () => {
+    if (destroyed) return;
+    history.pushState(marker, '');
+    askHome();
+  };
+  window.addEventListener('popstate', onPop);
 
   return {
     el,
     /** Called once the screen is mounted. Resumes a pending decision if the save had one. */
     async start() {
       warmFox(REACTIONS);
-      if (state.status !== 'playing') return;
-      if (!state.pending) maybeTip();
+      if (match.status !== 'playing' || state.status !== 'playing') return;
       if (state.pending) {
         setBusy(true);
         await resolvePending();
-        setBusy(false);
-        await finishIfOver();
+        await afterTurn();
+        return;
       }
+      if (canEndTurn(match)) { settleButton(); return; } // rolled and resolved: hot-seat waits for "continue", single player rolls on
+      if (multi) {
+        // Fresh match or a resume between turns: confirm whose turn it is before anyone can roll.
+        setBusy(true);
+        pushLog(t('game.playerTurn', { name: nameOf() }));
+        await showHandoff();
+        if (destroyed) return;
+        setBusy(false);
+      }
+      maybeTip();
     },
-    destroy() { destroyed = true; clearTimeout(tipTimer); reactor.hide(); debugTools?.remove(); },
+    destroy() { destroyed = true; clearTimeout(tipTimer); reactor.hide(); debugTools?.remove(); window.removeEventListener('popstate', onPop); },
     get state() { return state; },
+    get match() { return match; },
     monthlyCashFlow: () => monthlyCashFlow(state),
   };
 }

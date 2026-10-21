@@ -10,8 +10,9 @@ import { statement } from '../../engine/index.js';
 import { haptic, pulse, animate } from '../fx.js';
 import { foxImg } from '../fox.js';
 import { motionOK } from '../prefs.js';
+import { playerToken } from '../players.js';
 
-export function createPick({ engine, mode, onBack, onGo }) {
+export function createPick({ engine, mode, onBack, onGo, player = null }) {
   const professions = engine.data.professions;
   const ids = professions.map((p) => p.id);
 
@@ -75,6 +76,9 @@ export function createPick({ engine, mode, onBack, onGo }) {
   return h('section', { class: 'screen screen-pick', 'data-screen': 'pick' },
     h('div', { class: 'pick-top' },
       iconButton('arrow', t('pick.back'), onBack, 'icon-btn-glass'),
-      h('div', null, h('h1', { class: 'screen-title' }, t('pick.title')), h('p', { class: 'muted' }, t('pick.subtitle')))),
+      player ? playerToken(player.color, { cls: 'ptoken-lg' }) : null,
+      h('div', { class: 'pick-heading' },
+        h('h1', { class: 'screen-title' }, player ? t('players.pickTitle', { name: player.name }) : t('pick.title')),
+        h('p', { class: 'muted' }, player ? t('players.pickStep', { n: player.n, total: player.total }) : t('pick.subtitle')))),
     h('div', { class: 'prof-grid' }, cards));
 }

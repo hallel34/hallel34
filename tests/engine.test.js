@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  createEngine, EngineError, BOARD, serialize, deserialize, SCHEMA_VERSION,
+  createEngine, EngineError, BOARD, serialize, deserialize, SCHEMA_VERSION, newMatch, act, currentState, canEndTurn,
   PAYDAY_MONTHS, loanPaydayImpact, paybackYears, paybackTier, monthlyCashFlow, passiveIncome, totalExpenses, totalIncome, maxLoan, statement,
 } from '../src/engine/index.js';
 
@@ -436,17 +436,29 @@ describe('win condition', () => {
 
 describe('save / load', () => {
   const e = mk(BASE);
-  it('round-trips and resumes identically', () => {
+  it('round-trips a match and resumes identically', () => {
+    let m = newMatch(e, { mode: 'full', players: [{ professionId: 'test' }], seed: 11 });
+    m = act(m, (s) => e.roll(s));
+    const loaded = deserialize(serialize(m));
+    expect(loaded).toEqual(m);
+    if (!currentState(m).pending) expect(act(loaded, (s) => e.roll(s))).toEqual(act(m, (s) => e.roll(s)));
+  });
+  it('migrates a version-1 single-player save to a one-player match', () => {
     let s = e.newGame({ mode: 'full', professionId: 'test', seed: 11 });
     s = e.roll(s);
-    const loaded = deserialize(serialize(s));
-    expect(loaded).toEqual(s);
-    if (!s.pending) expect(e.roll(loaded)).toEqual(e.roll(s));
+    const v1 = JSON.stringify({ ...s, schemaVersion: 1 });
+    const m = deserialize(v1);
+    expect(m.schemaVersion).toBe(SCHEMA_VERSION);
+    expect(m.players).toHaveLength(1);
+    expect(m.status).toBe('playing');
+    expect(currentState(m)).toMatchObject({ cash: s.cash, position: s.position, turn: s.turn, seed: 11 });
+    expect(canEndTurn(m)).toBe(false); // between turns: the player still has to roll
   });
   it('rejects corrupt or too-new saves', () => {
     expect(deserialize('not json')).toBeNull();
     expect(deserialize('{}')).toBeNull();
     expect(deserialize(JSON.stringify({ schemaVersion: SCHEMA_VERSION + 1 }))).toBeNull();
+    expect(deserialize(JSON.stringify({ schemaVersion: SCHEMA_VERSION, players: [] }))).toBeNull();
   });
 });
 

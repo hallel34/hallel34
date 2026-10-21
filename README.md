@@ -1,6 +1,6 @@
 # פסיבו (Passivo)
 
-A single-player financial board game. Start in the daily grind ("השגרה") with a salary and expenses, buy assets
+A financial board game for one player, or 2-4 players taking turns on one device (hot-seat). Start in the daily grind ("השגרה") with a salary and expenses, buy assets
 that create passive income, and win when **passive income > total monthly expenses**.
 Hebrew (RTL) first, English-ready. Vite + vanilla JS, no backend, installable offline PWA.
 
@@ -30,7 +30,7 @@ the service worker serves the app offline. Screenshots land in `test-results/`.
 
 Run `npm run build` first. It uses the Chromium that Playwright finds; set `CHROMIUM_PATH` to use another binary
 (the sandbox default is `/opt/pw-browsers/chromium-1194/chrome-linux/chrome`). Options (env): `SMOKE_MODE=family|full`,
-`SMOKE_H=800|640` (viewport height; both must pass),
+`SMOKE_H=800|640` (viewport height; both must pass), `SMOKE_PLAYERS=1|2|3|4` (1 = single player, 2-4 = hot-seat),
 `SMOKE_MOTION=full` (default is reduced motion for speed), `SMOKE_SEED`, `SMOKE_URL` (test a deployed URL).
 In CI run `npx playwright install --with-deps chromium` once.
 
@@ -50,6 +50,21 @@ tests/          Vitest unit tests; tests/e2e/smoke.mjs is the Playwright flow
 
 The engine is the single source of truth: every action is `(state, ...args) => newState`, randomness comes from a
 seeded RNG stored in the state, and the UI only presents engine events.
+
+## Local multiplayer (hot-seat)
+
+Start screen, mode, then "כמה שחקנים?" (1-4, default 1; one player is the classic game). Each player gets a name
+(default "שחקן n", max 12 characters), a colour token with a number, and picks their own profession (the same one is
+allowed). Pass the phone when the sheet "תור של <name>" appears and tap "אני מוכן". The first player whose passive income
+beats their expenses wins; players who hit game over are skipped.
+
+- `src/engine/match.js` is the pure, serializable match layer: `newMatch`, `act(match, fn)` (applies an engine action to the
+  current player), `canEndTurn` / `endTurn` (hands the turn on), `standings`, `rematch`. Player *i* uses `seed + i * 7919`
+  (player 1 keeps the match seed, so single player is identical to the plain game).
+- Saves are schema 2 and hold the whole match; schema 1 saves (a bare single-player state) migrate to a one-player match.
+- Bots: `playMatch(engine, match, ['sensible', ...])` in `src/engine/bots.js`; `npm run simulate` also prints a 4-bot match table.
+- The board HUD has a house button ("חזרה לבית"): an in-page confirm sheet, then the match is saved and the start screen shows
+  the resume button. The browser/Android back button opens the same sheet.
 
 ## Deploy
 

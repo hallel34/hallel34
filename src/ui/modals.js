@@ -4,14 +4,15 @@ import { h } from './dom.js';
 import { t } from '../i18n/index.js';
 import { openLayer, closeButton } from './modal.js';
 import { icon } from './icons.js';
-import { cornerPop } from './fox.js';
+import { cornerPop, foxImg } from './fox.js';
+import { playerToken } from './players.js';
 import { CARD_REACTION } from './fox-rules.js';
 import { money, moneyText, tn, numberText } from './format.js';
 import { button, stepper, statTile } from './widgets.js';
-import { haptic, countUp } from './fx.js';
+import { haptic, countUp, shake } from './fx.js';
 import {
   monthlyCashFlow, passiveIncome, maxLoan, saleValue, canSell, loanPaydayImpact,
-  paybackYears, paybackTier, PAYDAY_MONTHS,
+  paybackYears, paybackTier, PAYDAY_MONTHS, purchasePlan,
 } from '../engine/index.js';
 import { LOAN_STEP, LOAN_PAYMENT_RATE } from '../engine/index.js';
 
@@ -19,25 +20,35 @@ const BANNERS = import.meta.glob('../assets/card-*.svg', { eager: true, query: '
 const bannerUrl = (type) => BANNERS[`../assets/card-${type}.svg`] || BANNERS['../assets/card-opportunity.svg'];
 
 // ---------- generic cream card ----------
-function cardShell({ type, art, chip, title, text, body = [], actions, flip = false, label, data = {} }) {
+function cardShell({ type, art, chip, title, text, body = [], actions, flip = false, label, data = {}, foot = null }) {
   let layer;
   const done = (v) => layer.close(v);
   const bar = h('div', { class: `card-actions${actions.length === 1 ? ' single' : ''}` },
-    actions.map((a, i) => button(a.label, {
-      variant: a.variant, disabled: a.disabled, cls: a.cls || '',
-      'data-action': a.id, 'data-autofocus': a.autofocus ? '' : null,
-      onClick: () => { haptic('tap'); done(a.getValue ? a.getValue() : a.value); },
-    })));
+    actions.map((a) => {
+      const b = button(a.label, {
+        variant: a.variant, disabled: a.disabled, cls: `${a.cls || ''}${a.blocked ? ' is-blocked' : ''}`.trim(),
+        'data-action': a.id, 'data-autofocus': a.autofocus ? '' : null,
+        // A blocked action stays focusable and readable (aria-disabled + reason), but never does anything.
+        'aria-disabled': a.blocked ? 'true' : null, 'aria-describedby': a.describedBy || null,
+        onClick: () => {
+          if (a.blocked) { haptic('error'); shake(b); return; }
+          haptic('tap');
+          done(a.getValue ? a.getValue() : a.value);
+        },
+      });
+      return b;
+    }));
   const content = h('div', { class: 'card', 'data-card': type, ...Object.fromEntries(Object.entries(data).map(([k, v]) => [`data-${k}`, v])) },
     h('div', { class: `card-head card-head--${type}` },
       h('img', { class: 'card-banner', src: bannerUrl(type), alt: '', width: 320, height: 140, decoding: 'async', draggable: 'false' }),
       h('span', { class: 'card-chip' }, chip),
       // The fox reacts once the flip has landed (+150ms); never over the title or the numbers grid.
       cornerPop(CARD_REACTION[type] || 'think', { size: 64, delay: (flip ? 400 : 0) + 150 })),
-    h('div', { class: 'card-body' },
+    h('div', { class: 'card-body', tabindex: '0', role: 'region', 'aria-label': title },
       h('div', { class: 'card-titles' }, h('h2', { class: 'card-title' }, title), text ? h('p', { class: 'card-text' }, text) : null),
       body),
-    bar);
+    // the reason / next step for the primary action sits right above the buttons, so it never scrolls out of view
+    foot ? h('div', { class: 'card-foot' }, foot, bar) : bar);
   layer = openLayer(content, { kind: 'modal', label: label || title, dismissable: false, cardFlip: flip, cls: 'layer-card' });
   return layer.closed;
 }
@@ -58,7 +69,6 @@ const banner = (node, tone = 'info') => h('div', { class: `banner banner-${tone}
 export function opportunityModal(state, { flip = true } = {}) {
   const c = state.pending.card;
   const passive = passiveIncome(state);
-  const loanAvailable = maxLoan(state) > 0;
 
   if (c.type === 'stock') {
     const maxAfford = Math.floor(state.cash / c.price);
@@ -85,10 +95,9 @@ export function opportunityModal(state, { flip = true } = {}) {
         statTile(t('card.total'), total, { big: true }),
         statTile(t('card.monthlyIncome'), gain, { tone: 'income', big: true })) : null,
     ].filter(Boolean);
-    return finishOpportunity({ c, body, flip, qtyGetter: () => st.value, canAfford: canBuy, need: c.price - state.cash, loanAvailable });
+    return finishOpportunity({ c, body, flip, qtyGetter: () => st.value, plan: purchasePlan(state, c.price) });
   }
 
-  const afford = state.cash >= c.downPayment;
   const years = paybackYears(c.downPayment, c.monthlyCashFlow);
   const tier = paybackTier(years);
   const body = [
@@ -103,25 +112,32 @@ export function opportunityModal(state, { flip = true } = {}) {
       ? h('div', { class: 'banner banner-warn' }, icon('expense', { size: 24 }), h('span', null, tn('card.negativeFlow', { amount: money(-c.monthlyCashFlow) })))
       : banner(tn('card.newPassive', { amount: money(passive + c.monthlyCashFlow) })),
   ];
-  return finishOpportunity({ c, body, flip, qtyGetter: () => 1, canAfford: afford, need: c.downPayment - state.cash, loanAvailable });
+  return finishOpportunity({ c, body, flip, qtyGetter: () => 1, plan: purchasePlan(state, c.downPayment) });
 }
 
-function finishOpportunity({ c, body, flip, qtyGetter, canAfford, need, loanAvailable }) {
-  const warn = !canAfford
-    ? h('div', { class: 'banner banner-warn', role: 'status' }, icon('bank', { size: 24 }),
-      h('span', null, t('card.notEnough', { amount: moneyText(need) })))
-    : null;
+function finishOpportunity({ c, body, flip, qtyGetter, plan }) {
+  // plan.status: 'ok' (cash covers it) | 'loan' (one loan covers the gap) | 'blocked' (short even after the maximum loan)
+  const hintId = 'buy-hint';
+  const warn = plan.status === 'blocked'
+    ? h('div', { class: 'banner banner-warn', role: 'status', id: hintId, 'data-hint': 'blocked' }, icon('bank', { size: 24 }), h('span', null, t('card.noFundsMax')))
+    : plan.status === 'loan'
+      ? h('div', { class: 'banner banner-warn', role: 'status', id: hintId, 'data-hint': 'loan' }, icon('bank', { size: 24 }), h('span', null, t('card.needLoan', { amount: moneyText(plan.need) })))
+      : null;
   const actions = [
     { id: 'pass', label: t('card.pass'), variant: 'secondary', value: { action: 'pass' } },
+    {
+      id: 'buy', label: t('card.buy'), variant: 'buy', autofocus: plan.status !== 'blocked',
+      blocked: plan.status === 'blocked', describedBy: warn ? hintId : null,
+      getValue: () => (plan.status === 'loan'
+        ? { action: 'buyLoan', qty: qtyGetter(), need: plan.need }
+        : { action: 'buy', qty: qtyGetter() }),
+    },
   ];
-  if (!canAfford && loanAvailable) actions.push({ id: 'loan', label: t('card.getLoan'), variant: 'primary', value: { action: 'loan' } });
-  else actions.push({ id: 'buy', label: t('card.buy'), variant: 'buy', disabled: !canAfford, getValue: () => ({ action: 'buy', qty: qtyGetter() }), autofocus: true });
-  const bodyWithWarn = [...body, warn].filter(Boolean);
   return cardShell({
     type: 'opportunity', art: c.type, chip: `${t('square.opportunity')} · ${t(`type.${c.type}`)}`, title: c.title, text: c.text,
-    body: bodyWithWarn, actions, flip,
+    body, foot: warn, actions, flip,
     data: {
-      afford: String(canAfford), kind: c.type, cost: String(c.type === 'stock' ? c.price : c.downPayment),
+      afford: String(plan.status === 'ok'), buy: plan.status, kind: c.type, cost: String(plan.cost),
       payback: c.type === 'stock' ? '' : String(Math.round(c.downPayment / Math.max(1, c.monthlyCashFlow))),
       flow: String(c.type === 'stock' ? c.dividend : c.monthlyCashFlow),
     },
@@ -413,3 +429,40 @@ export function sellSheet(getState, onSell, { shouldClose = () => false } = {}) 
   return layer.closed;
 }
 
+
+// ---------- hot-seat sheets ----------
+/** Pass-the-phone sheet: "תור של <name>" with one primary button. Not dismissable; resolves when the next player is ready. */
+export function handoffSheet({ name, color }) {
+  let layer;
+  const content = h('div', { class: 'sheet handoff-sheet', 'data-handoff': String(color) },
+    h('div', { class: 'handoff-fox' }, foxImg('roll', { height: 96 })),
+    playerToken(color, { cls: 'ptoken-xl' }),
+    h('h2', { class: 'dialog-title handoff-title' }, t('players.handoffTitle', { name })),
+    h('p', { class: 'dialog-text' }, t('players.handoffText', { name })),
+    h('div', { class: 'sheet-cta' }, button(t('players.ready'), { variant: 'primary', size: 'lg', 'data-action': 'ready', 'data-autofocus': '', onClick: () => { haptic('tap'); layer.close(true); } })));
+  layer = openLayer(content, { kind: 'sheet', label: t('players.handoffTitle', { name }), dismissable: false, cls: 'layer-handoff' });
+  return layer.closed;
+}
+
+/** In-page confirm for "back to the start screen" (no native dialogs). Resolves 'home' or null. */
+export function homeConfirmSheet() {
+  let layer;
+  const content = h('div', { class: 'sheet home-sheet' },
+    h('div', { class: 'home-body' },
+      h('h2', { class: 'dialog-title' }, t('game.homeTitle')),
+      h('p', { class: 'dialog-text' }, t('game.homeText'))),
+    h('div', { class: 'sheet-cta home-actions' },
+      button(t('game.homeConfirm'), { variant: 'primary', size: 'lg', 'data-action': 'home-confirm', onClick: () => { haptic('tap'); layer.close('home'); } }),
+      button(t('game.homeStay'), { variant: 'secondary', 'data-action': 'home-stay', 'data-autofocus': '', onClick: () => layer.close(null) })));
+  layer = openLayer(content, { kind: 'sheet', label: t('game.homeTitle'), dismissable: true, cls: 'layer-home' });
+  return layer.closed.then((v) => v ?? null);
+}
+
+/** A player ran out of road in a hot-seat match; the others carry on. */
+export function playerOutModal({ name, color }) {
+  return cardShell({
+    type: 'expense', art: 'expense', chip: t('square.expense'), title: t('game.outTitle', { name }), text: t('game.outText'),
+    body: [h('div', { class: 'banner banner-info' }, playerToken(color), h('span', null, name))],
+    actions: [{ id: 'ok', label: t('game.continue'), variant: 'primary', value: { action: 'ok' }, autofocus: true }], flip: false,
+  });
+}

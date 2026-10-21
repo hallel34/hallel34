@@ -90,6 +90,12 @@ export function meter({ large = false } = {}) {
   };
 }
 
+/** Thin passive-income progress bar for another player's row (pct 0-1). */
+export function miniMeter(pct, valueText, cls = 'or-bar') {
+  return h('div', { class: cls, role: 'progressbar', 'aria-label': t('a11y.passiveMeter'), 'aria-valuemin': '0', 'aria-valuemax': '100', 'aria-valuenow': String(Math.round(pct * 100)), 'aria-valuetext': valueText },
+    h('i', { style: `--fill:${pct}` }));
+}
+
 export function statTile(label, valueNode, { tone = '', big = false } = {}) {
   return h('div', { class: `stat-tile${tone ? ` stat-${tone}` : ''}${big ? ' stat-big' : ''}` },
     h('span', { class: 'stat-label' }, label), fitText(h('span', { class: 'stat-value' }, valueNode)));

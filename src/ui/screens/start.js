@@ -9,8 +9,13 @@ import { openSettings, openHowTo } from '../settings.js';
 import { haptic, animate, cssMs } from '../fx.js';
 import { motionOK } from '../prefs.js';
 import { readRaw, writeRaw } from '../../services/storage.js';
+import { currentState, isMultiplayer } from '../../engine/index.js';
 import wordmarkUrl from '../../assets/wordmark.svg?url';
 import coinUrl from '../../assets/coin-small.svg?url';
+
+const resumeInfo = (m) => (isMultiplayer(m)
+  ? t('menu.resumeInfoMulti', { n: m.players.length, turn: Math.max(...m.players.map((p) => p.state.turn)) })
+  : t('menu.resumeInfo', { turn: currentState(m).turn, profession: currentState(m).profession.title }));
 
 export const WAVE_MS = 1800;
 const JOKES = ['fox.joke1', 'fox.joke2', 'fox.joke3'];
@@ -70,7 +75,7 @@ export function createStart({ save, mode: initialMode, gamesPlayed = 0, onPlay, 
       modeBtn('family', t('menu.modeFamily'), t('menu.modeFamilyDesc')),
       modeBtn('full', t('menu.modeFull'), t('menu.modeFullDesc'))),
     button([t('menu.start'), icon('arrow', { size: 24, width: 3 })], { variant: 'primary', size: 'lg', 'data-action': 'start', onClick: () => onPlay(mode) }),
-    save ? button(`${t('menu.resume')} · ${t('menu.resumeInfo', { turn: save.turn, profession: save.profession.title })}`, { variant: 'secondary', 'data-action': 'resume', onClick: () => onResume() }) : null);
+    save ? button(`${t('menu.resume')} · ${resumeInfo(save)}`, { variant: 'secondary', 'data-action': 'resume', onClick: () => onResume() }) : null);
 
   const el = h('section', { class: 'screen screen-start', 'data-screen': 'start' }, html(SKY), topbar, hero, bottom);
 

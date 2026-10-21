@@ -2,7 +2,8 @@
 // Plays N games per mode / bot / profession and prints balance statistics.
 import { readFileSync } from 'node:fs';
 import { createEngine } from '../src/engine/engine.js';
-import { playGame, BOTS } from '../src/engine/bots.js';
+import { playGame, playMatch, BOTS } from '../src/engine/bots.js';
+import { newMatch } from '../src/engine/match.js';
 import { monthlyCashFlow } from '../src/engine/selectors.js';
 
 const read = (p) => JSON.parse(readFileSync(new URL(p, import.meta.url), 'utf8'));
@@ -55,4 +56,22 @@ for (const mode of ['family', 'full']) {
     }
   }
   console.log('');
+}
+
+// ---- hot-seat multiplayer: bots vs bots (4 players, mixed professions) ----
+if (args.multiplayer !== '0') {
+  const MP_GAMES = Number(args.mpGames ?? 50);
+  const profs = data.professions.map((p) => p.id);
+  for (const mode of ['family', 'full']) {
+    const res = { winner: 0, lost: 0, timeout: 0, rounds: [], byIndex: [0, 0, 0, 0] };
+    for (let g = 0; g < MP_GAMES; g++) {
+      const players = Array.from({ length: 4 }, (_, i) => ({ name: `P${i + 1}`, professionId: profs[(g + i * 2) % profs.length] }));
+      const m = playMatch(engine, newMatch(engine, { mode, players, seed: 5000 + g * 104729 }), ['sensible', 'sensible', 'sensible', 'sensible'], 2000);
+      if (m.status === 'won') { res.winner++; res.rounds.push(m.players[m.winnerIndex].state.turn); res.byIndex[m.winnerIndex]++; }
+      else if (m.status === 'lost') res.lost++;
+      else res.timeout++;
+    }
+    console.log(`== multiplayer ${mode}, 4 sensible bots, ${MP_GAMES} matches: winner ${res.winner}  allOut ${res.lost}  timeout ${res.timeout}  ` +
+      `winner's turns avg ${f1(avg(res.rounds))} median ${f1(pct(res.rounds, 0.5))} p90 ${f1(pct(res.rounds, 0.9))}  wins by seat ${res.byIndex.join('/')}`);
+  }
 }

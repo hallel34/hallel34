@@ -1,6 +1,6 @@
 // Derived values. Never stored in state.
 import {
-  LOAN_STEP, LOAN_PAYMENT_RATE, LOAN_LIMIT_SALARY_PCT, SELL_FACTOR, PAYDAY_MONTHS, PAYBACK_OK_YEARS, PAYBACK_SLOW_YEARS,
+  LOAN_STEP, LOAN_PAYMENT_RATE, LOAN_LIMIT_SALARY_PCT, MORTGAGE_PAYMENT_RATE, SELL_FACTOR, PAYDAY_MONTHS, PAYBACK_OK_YEARS, PAYBACK_SLOW_YEARS,
 } from './config.js';
 
 const sum = (arr, f) => arr.reduce((a, x) => a + f(x), 0);
@@ -26,7 +26,49 @@ export function statement(s) {
     monthlyCashFlow: monthlyCashFlow(s),
     cash: s.cash,
     kids: s.kids,
+    liabilities: liabilityReport(s),
   };
+}
+
+/** Display-only monthly payment of an asset's mortgage (already inside the asset's net cash flow). */
+export const mortgagePayment = (asset) => Math.round((asset.mortgage * MORTGAGE_PAYMENT_RATE) / 10) * 10;
+
+/**
+ * Every liability the player owes, in one list: starting debts, bank loans and the mortgages that came with assets.
+ * `includedInAssets` payments are already netted into the asset's monthlyCashFlow (they are not subtracted again),
+ * so: monthlyCashFlow = salary + passive - fixed - kids - totals.paidFromCashFlow.
+ */
+export function liabilityReport(s) {
+  const debts = s.liabilities.map((l) => ({
+    id: l.id, kind: l.kind === 'base' ? 'base' : 'loan', label: l.label, principal: l.principal,
+    monthlyPayment: l.monthlyPayment, includedInAssets: false,
+  }));
+  const mortgages = s.assets.filter((a) => a.type !== 'stock' && a.mortgage > 0).map((a) => ({
+    id: `mortgage-${a.id}`, kind: 'mortgage', assetId: a.id, assetTitle: a.title, assetType: a.type, label: a.title,
+    principal: a.mortgage, monthlyPayment: mortgagePayment(a), includedInAssets: true,
+  }));
+  const items = [...debts, ...mortgages];
+  const sumOf = (list, f) => list.reduce((a, x) => a + f(x), 0);
+  return {
+    items,
+    totals: {
+      principal: sumOf(items, (x) => x.principal),
+      monthlyPayments: sumOf(items, (x) => x.monthlyPayment),
+      paidFromCashFlow: sumOf(items.filter((x) => !x.includedInAssets), (x) => x.monthlyPayment),
+      includedInAssets: sumOf(items.filter((x) => x.includedInAssets), (x) => x.monthlyPayment),
+    },
+  };
+}
+
+/**
+ * Can the player pay `cost` right now? 'ok' = cash covers it; 'loan' = short, but one bank loan covers the gap;
+ * 'blocked' = short even after the maximum loan. `loanAmount` is the smallest loan (multiple of LOAN_STEP) that covers it.
+ */
+export function purchasePlan(s, cost) {
+  const need = Math.max(0, cost - s.cash);
+  const loanRoom = maxLoan(s);
+  const status = need === 0 ? 'ok' : need <= loanRoom ? 'loan' : 'blocked';
+  return { cost, need, loanRoom, status, loanAmount: need === 0 ? 0 : Math.ceil(need / LOAN_STEP) * LOAN_STEP };
 }
 
 /** Largest new loan (multiple of LOAN_STEP) allowed; 0 when limit reached. */

@@ -1,6 +1,7 @@
 // Bots used by the balance simulation (and handy for QA / demo mode).
 import { maxLoan, monthlyCashFlow, totalExpenses } from './selectors.js';
 import { LOAN_STEP, LOAN_PAYMENT_RATE } from './config.js';
+import { act, canEndTurn, endTurn } from './match.js';
 
 // reserveMonths: cash buffer (in months of expenses) kept after a purchase.
 // maxPayback: reject deals whose down payment takes longer than this many months of cash flow.
@@ -85,4 +86,19 @@ export function playGame(engine, state, bot, maxTurns = 200) {
     s = step(engine, s, bot);
   }
   return s;
+}
+
+/**
+ * Plays a whole hot-seat match with one bot policy per player (bots: ['sensible', ...]).
+ * Stops at the first winner, when everyone is out, or after `maxTurns` completed turns. Returns the final match.
+ */
+export function playMatch(engine, match, bots, maxTurns = 2000) {
+  let m = match;
+  let guard = 0;
+  while (m.status === 'playing' && m.turns < maxTurns && guard++ < maxTurns * 60) {
+    if (canEndTurn(m)) { m = endTurn(m); continue; }
+    const bot = bots[m.currentIndex % bots.length];
+    m = act(m, (s) => step(engine, s, bot));
+  }
+  return m;
 }

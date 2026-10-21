@@ -3,7 +3,10 @@
 // Uses the pre-installed Chromium (CHROMIUM_PATH) or Playwright's default browser.
 import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
-import { existsSync, mkdirSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync } from 'node:fs';
+import {
+  createEngine, newMatch, act, serialize, purchasePlan, currentState, maxLoan,
+} from '../../src/engine/index.js';
 
 const require = createRequire(import.meta.url);
 let chromium;
@@ -14,6 +17,7 @@ const URL_BASE = process.env.SMOKE_URL || `http://localhost:${PORT}/`;
 const OUT = process.env.SMOKE_OUT || new URL('../../test-results/', import.meta.url).pathname;
 const MODE = process.env.SMOKE_MODE || 'family';
 const HEIGHT = Number(process.env.SMOKE_H || 800); // 800 or 640
+const PLAYERS = Number(process.env.SMOKE_PLAYERS || 1); // 1 = single player, 2-4 = hot-seat
 const exe = process.env.CHROMIUM_PATH
   || ['/opt/pw-browsers/chromium-1194/chrome-linux/chrome', '/opt/pw-browsers/chromium/chrome-linux/chrome'].find(existsSync);
 mkdirSync(OUT, { recursive: true });
@@ -92,14 +96,19 @@ function decide(policy) {
   const q = (s, r = document) => r.querySelector(s);
   if (q('[data-screen="win"]')) return { done: 'won' };
   if (q('[data-screen="over"]')) return { done: 'over' };
+  if (q('[data-screen="start"]') || q('[data-screen="players"]') || q('[data-screen="pick"]')) return { done: 'left' };
   const layers = [...document.querySelectorAll('#modal-root .layer')].filter((l) => !l.hasAttribute('data-closing'));
   const top = layers[layers.length - 1];
   const board = q('.screen-board');
   let shot = null;
-  const out = (o) => ({ ...o, shot });
+  const rb = q('.btn-roll');
+  const btn0 = rb ? { text: rb.textContent.trim(), disabled: rb.disabled, mode: board?.dataset.btn } : null;
+  const out = (o) => ({ ...o, shot, btn: btn0, layer: !!top });
   const cash = Number(board?.dataset.cash || 0);
   const expenses = Number(board?.dataset.expenses || 0);
   if (top) {
+    if (q('.handoff-sheet', top)) { return out({ click: '#modal-root .layer:last-child [data-action="ready"]' }); }
+    if (q('.home-sheet', top)) return out({ wait: true });
     const card = q('.card', top);
     const btn = (a) => q(`[data-action="${a}"]:not([disabled])`, top);
     if (!card) shot = top.querySelector('.limit') ? 'dialog-loan' : (top.querySelector('.sell-list') ? 'dialog-sell' : 'dialog-other');
@@ -132,9 +141,11 @@ function decide(policy) {
     if (btn('cancel')) return out({ click: '#modal-root .layer:last-child [data-action="cancel"]' });
     return out({ wait: true });
   }
+  const cont = q('[data-action="continue"]:not([disabled])');
+  if (cont) { shot = 'continue'; return out({ click: '[data-action="continue"]' }); }
   const roll = q('[data-action="roll"]:not([disabled])');
-  if (roll) return { click: '[data-action="roll"]' };
-  return { wait: true };
+  if (roll) return out({ click: '[data-action="roll"]' });
+  return out({ wait: true });
 }
 
 const shots = new Set();
@@ -142,9 +153,19 @@ async function playGame(page, tag, budgetMs = Number(process.env.SMOKE_GAME_MS |
   const deadline = Date.now() + budgetMs;
   let rolls = 0;
   let resumed = false;
+  let stuck = 0;
+  let statementChecked = false;
   while (Date.now() < deadline) {
     const d = await page.evaluate(decide, process.env.SMOKE_POLICY || 'sensible');
     if (d.done) return { result: d.done, rolls };
+    // The primary button must never read "..." or be empty, and must never stay disabled with nothing on screen to wait for.
+    if (d.btn && /^[.\s]*$/.test(d.btn.text) && !failures.includes('primary button text is empty or "..."')) check(false, 'primary button text is empty or "..."');
+    stuck = d.wait && d.btn?.disabled && !d.layer ? stuck + 1 : 0;
+    if (stuck === 300) { check(false, `board stuck on a disabled button "${d.btn.text}" (${d.btn.mode}) for 12s`); return { result: 'stuck', rolls }; }
+    if (!statementChecked && d.click === '[data-action="roll"]') {
+      const info = await page.evaluate(() => ({ assets: Number(document.querySelector('.screen-board')?.dataset.assets || 0), mortgages: Number(document.querySelector('.screen-board')?.dataset.mortgages || 0) }));
+      if (info.assets > 0) { statementChecked = true; await checkStatementLiabilities(page, info); }
+    }
     if (d.shot && !shots.has(d.shot)) {
       shots.add(d.shot);
       await page.waitForTimeout(450);
@@ -164,6 +185,26 @@ async function playGame(page, tag, budgetMs = Number(process.env.SMOKE_GAME_MS |
           continue;
         }
         if (rolls === 2) await noHScroll(page, `board after roll (${tag})`);
+        if (rolls === 7 && PLAYERS > 1 && !shots.has('multi-board')) {
+          shots.add('multi-board');
+          await page.waitForTimeout(500);
+          await page.screenshot({ path: `${OUT}/board-multi.png` });
+          await noHScroll(page, 'multiplayer board');
+          await tapTargets(page, 'multiplayer board');
+          await reactionStripClear(page);
+          await insideViewport(page, ['.btn-roll', '.others-strip'], 'roll button + others strip');
+          const pawnsBox = await page.evaluate(() => [...document.querySelectorAll('.pawn-slot')].map((e) => { const r = e.getBoundingClientRect(); return { x: Math.round(r.left), y: Math.round(r.top) }; }));
+          check(new Set(pawnsBox.map((b) => `${b.x},${b.y}`)).size === PLAYERS, `every pawn is visible at its own spot (${JSON.stringify(pawnsBox)})`);
+          await page.locator('[data-action="others"]').click();
+          await page.waitForSelector('.others-panel:not([hidden])');
+          await page.waitForTimeout(300);
+          const cover = await page.evaluate(() => { const p = document.querySelector('.others-panel').getBoundingClientRect(); const b = document.querySelector('.btn-roll').getBoundingClientRect(); return p.bottom <= b.top; });
+          check(cover, 'expanded others panel never covers the roll button');
+          await tapTargets(page, 'others panel');
+          await page.screenshot({ path: `${OUT}/others-expanded.png` });
+          await page.locator('.others-close').click();
+          await page.waitForSelector('.others-panel', { state: 'hidden' });
+        }
       }
       await page.locator(d.click).first().click({ timeout: 3000 }).catch(() => {});
       await page.waitForTimeout(25);
@@ -186,6 +227,179 @@ async function testResume(page) {
   await page.waitForSelector('[data-screen="board"]');
   const after = await page.evaluate(() => ({ turn: document.querySelector('.screen-board')?.dataset.turn, cash: document.querySelector('.screen-board')?.dataset.cash }));
   check(before.turn === after.turn, `resumed same turn (${before.turn} -> ${after.turn})`);
+}
+
+
+/** Statement: every mortgage and loan is listed with balance + monthly payment, with totals that add up. */
+async function checkStatementLiabilities(page, info) {
+  await page.locator('[data-action="statement"]').click();
+  await page.waitForSelector('.statement-body');
+  await page.waitForTimeout(450);
+  const r = await page.evaluate(() => {
+    const num = (x) => Number((x || '').replace(/[^\d-]/g, '').replace(/^-$/, '0') || 0) * (/-/.test(x || '') ? -1 : 1);
+    const rows = [...document.querySelectorAll('.st-liab')].map((e) => ({ kind: e.dataset.kind, pay: num(e.querySelector('.st-value')?.textContent.replace(/[^\d₪+-]/g, '')), text: e.textContent }));
+    const sec = [...document.querySelectorAll('.st-sec-liability .st-row.st-total')].map((e) => num(e.querySelector('.st-value')?.textContent.replace(/[^\d-]/g, '')));
+    const assets = [...document.querySelectorAll('.st-sec-asset .st-row')].length;
+    return { rows, totals: sec, assets, kidsRow: !!document.querySelector('.st-sec-liability .st-empty') };
+  });
+  const mortgages = r.rows.filter((x) => x.kind === 'mortgage');
+  check(mortgages.length === info.mortgages, `statement lists a mortgage row for every bought asset (${mortgages.length}/${info.mortgages})`);
+  check(r.rows.every((x) => /₪/.test(x.text)), 'every liability row shows balance and payment in shekels');
+  const payments = r.rows.reduce((a, x) => a + x.pay, 0);
+  check(r.totals.length === 2 && r.totals[1] === payments, `total monthly payments (${r.totals[1]}) equals the sum of the rows (${payments})`);
+  check(r.totals[0] > 0, 'total liabilities shown');
+  await noHScroll(page, 'statement with liabilities');
+  await page.screenshot({ path: `${OUT}/statement-liabilities.png` });
+  await page.locator('.st-sec-liability').scrollIntoViewIfNeeded().catch(() => {});
+  await page.waitForTimeout(150);
+  await page.screenshot({ path: `${OUT}/statement-liabilities-list.png` });
+  await page.keyboard.press('Escape');
+  await page.waitForSelector('.sheet', { state: 'detached' });
+}
+
+/** Home button: confirm sheet, stay, then really go home; the resume button appears and the match resumes. */
+async function testHome(page, label) {
+  await page.waitForSelector('[data-action="home"]');
+  const aria = await page.locator('[data-action="home"]').getAttribute('aria-label');
+  check(aria === 'חזרה לבית', `home button has aria-label "חזרה לבית" (${label})`);
+  const box = await page.locator('[data-action="home"]').boundingBox();
+  check(box.width >= 47.5 && box.height >= 47.5, `home button is a 48px target (${label})`);
+  const before = await page.evaluate(() => ({ turn: document.querySelector('.screen-board')?.dataset.turn, players: document.querySelector('.screen-board')?.dataset.players }));
+  await page.locator('[data-action="home"]').click();
+  await page.waitForSelector('.home-sheet');
+  await page.waitForTimeout(400);
+  const txt = await page.locator('.home-sheet').innerText();
+  check(txt.includes('לחזור לתפריט?') && txt.includes('המשחק נשמר ואפשר להמשיך אותו אחר כך'), `home confirm sheet text (${label})`);
+  await tapTargets(page, `home confirm (${label})`);
+  await noHScroll(page, `home confirm (${label})`);
+  await page.screenshot({ path: `${OUT}/home-confirm-${label}.png` });
+  await page.locator('[data-action="home-stay"]').click();
+  await page.waitForSelector('.home-sheet', { state: 'detached' });
+  check(await page.locator('section[data-screen="board"]').count() === 1, `"להמשיך לשחק" stays on the board (${label})`);
+  // Android back button: opens the same sheet
+  await page.goBack().catch(() => {});
+  const viaBack = await page.waitForSelector('.home-sheet', { timeout: 2500 }).then(() => true, () => false);
+  check(viaBack, `browser/Android back opens the home confirm (${label})`);
+  if (viaBack) { await page.locator('[data-action="home-stay"]').click(); await page.waitForSelector('.home-sheet', { state: 'detached' }); }
+  await page.locator('[data-action="home"]').click();
+  await page.waitForSelector('.home-sheet');
+  await page.waitForTimeout(350);
+  await page.locator('[data-action="home-confirm"]').click();
+  await page.waitForSelector('[data-screen="start"]');
+  check(await page.locator('[data-action="resume"]').count() === 1, `resume button shown after "חזרה לבית" (${label})`);
+  const resumeText = await page.locator('[data-action="resume"]').innerText();
+  await page.screenshot({ path: `${OUT}/start-with-resume-${label}.png` });
+  await page.locator('[data-action="resume"]').click();
+  await page.waitForSelector('[data-screen="board"]');
+  await page.waitForTimeout(400);
+  const handoff = await page.locator('.handoff-sheet').count();
+  if (handoff) await page.locator('[data-action="ready"]').click();
+  const after = await page.evaluate(() => ({ turn: document.querySelector('.screen-board')?.dataset.turn, players: document.querySelector('.screen-board')?.dataset.players }));
+  check(before.turn === after.turn && before.players === after.players, `home then resume restores the match (${label}: turn ${before.turn}->${after.turn}, players ${before.players}; "${resumeText}")`);
+}
+
+/** Opportunity card with the three buy states, built from a hand-made save (deterministic). */
+async function testBuyStates(page) {
+  const read = (p) => JSON.parse(readFileSync(new URL(`../../src/data/${p}`, import.meta.url), 'utf8'));
+  const engine = createEngine({ professions: read('professions.he.json'), cards: read('cards.he.json') });
+  const make = (status, mode) => {
+    for (let seed = 1; seed < 400; seed++) {
+      let m = newMatch(engine, { mode, players: [{ professionId: 'teacher' }], seed });
+      m = act(m, (s) => engine.roll(s, [1])); // square 1 = opportunity
+      const s = currentState(m);
+      const c = s.pending?.card;
+      if (!c || c.type === 'stock') continue;
+      const room = maxLoan(s);
+      const cash = status === 'blocked' ? Math.max(0, c.downPayment - room - 5000) : status === 'loan' ? Math.max(0, c.downPayment - 2500) : c.downPayment + 100;
+      if (status === 'blocked' && !(c.downPayment - cash > room)) continue;
+      if (status === 'loan' && !(c.downPayment - cash > 0 && c.downPayment - cash <= room)) continue;
+      const m2 = { ...m, players: m.players.map((p, i) => (i ? p : { ...p, state: { ...p.state, cash } })) };
+      if (purchasePlan(currentState(m2), c.downPayment).status !== status) continue;
+      return { m: m2, card: c };
+    }
+    throw new Error(`no ${status} scenario found`);
+  };
+  const load = async (m) => {
+    await page.evaluate((json) => localStorage.setItem('passivo.save', json), serialize(m));
+    await page.goto(`${URL_BASE}?seed=3`);
+    await page.waitForSelector('[data-action="resume"]');
+    await page.locator('[data-action="resume"]').click();
+    await page.waitForSelector('.card[data-card="opportunity"]');
+    await page.waitForTimeout(700);
+  };
+
+  // 1. blocked: aria-disabled + reason, tapping does nothing
+  let { m } = make('blocked', MODE);
+  await load(m);
+  let st = await page.evaluate(() => {
+    const b = document.querySelector('.card [data-action="buy"]');
+    const hint = document.querySelector('#buy-hint');
+    const cs = getComputedStyle(b);
+    return { aria: b.getAttribute('aria-disabled'), buy: document.querySelector('.card').dataset.buy, hint: hint?.textContent.trim(), described: b.getAttribute('aria-describedby'), border: cs.borderTopStyle, hintVisible: !!hint && hint.getBoundingClientRect().height > 0 };
+  });
+  check(st.buy === 'blocked' && st.aria === 'true', 'unaffordable even after the max loan: buy is aria-disabled');
+  check(st.hint === 'אין מספיק כסף, גם עם הלוואה מקסימלית' && st.hintVisible && st.described === 'buy-hint', 'blocked buy shows the reason line and is described by it');
+  check(st.border === 'dashed', 'blocked buy looks disabled (dashed outline, flat colour)');
+  await insideViewport(page, ['#modal-root .layer:last-child .card-actions .btn[data-action="buy"]', '#buy-hint'], 'blocked buy + reason');
+  await page.screenshot({ path: `${OUT}/buy-blocked.png` });
+  await page.locator('.card [data-action="buy"]').click({ force: true });
+  await page.waitForTimeout(500);
+  check(await page.locator('.card[data-card="opportunity"]').count() === 1 && await page.locator('.limit').count() === 0, 'tapping a blocked buy does nothing (card stays, no dialog)');
+  await page.locator('.card [data-action="pass"]').click();
+  await page.waitForSelector('.card', { state: 'detached' });
+
+  // 2. loan: tap buy -> loan dialog for the missing amount -> purchase completes
+  ({ m } = make('loan', MODE));
+  await load(m);
+  st = await page.evaluate(() => ({ buy: document.querySelector('.card').dataset.buy, hint: document.querySelector('#buy-hint')?.textContent.trim(), aria: document.querySelector('.card [data-action="buy"]').getAttribute('aria-disabled') }));
+  check(st.buy === 'loan' && st.aria === null && /חסרים לכם/.test(st.hint || ''), `short of cash but a loan covers it: buy is enabled and says so ("${st.hint}")`);
+  await page.screenshot({ path: `${OUT}/buy-needs-loan.png` });
+  await page.locator('.card [data-action="buy"]').click();
+  await page.waitForSelector('.layer-dialog .limit');
+  await page.waitForTimeout(450);
+  await page.screenshot({ path: `${OUT}/buy-loan-dialog.png` });
+  const startAmount = await page.locator('.layer-dialog .big-amount').first().innerText();
+  const before = await page.evaluate(() => document.querySelector('.screen-board').dataset.assets);
+  await page.locator('.layer-dialog [data-action="take"]').click();
+  await page.waitForSelector('.card', { state: 'detached', timeout: 6000 });
+  await page.waitForTimeout(900);
+  const after = await page.evaluate(() => document.querySelector('.screen-board').dataset.assets);
+  check(Number(after) === Number(before) + 1, `taking the suggested loan (${startAmount}) completes the purchase (${before} -> ${after} assets)`);
+  // cancelling the loan keeps the card open
+  ({ m } = make('loan', MODE));
+  await load(m);
+  await page.locator('.card [data-action="buy"]').click();
+  await page.waitForSelector('.layer-dialog .limit');
+  await page.locator('.layer-dialog [data-action="cancel"]').click();
+  await page.waitForSelector('.layer-dialog', { state: 'detached' });
+  await page.waitForTimeout(500);
+  check(await page.locator('.card[data-card="opportunity"] [data-action="buy"]').count() === 1, 'cancelling the loan dialog leaves the card open');
+  await page.locator('.card [data-action="pass"]').click();
+  await page.waitForSelector('.card', { state: 'detached' });
+  await page.evaluate(() => localStorage.removeItem('passivo.save'));
+  await page.goto(`${URL_BASE}?seed=${process.env.SMOKE_SEED || 11}`);
+  await page.waitForSelector('[data-screen="start"]');
+}
+
+/** An old (schema 1) single-player save still resumes: it is migrated to a one-player match. */
+async function testLegacySave(page) {
+  const read = (p) => JSON.parse(readFileSync(new URL(`../../src/data/${p}`, import.meta.url), 'utf8'));
+  const engine = createEngine({ professions: read('professions.he.json'), cards: read('cards.he.json') });
+  let s = engine.newGame({ mode: 'family', professionId: 'nurse', seed: 5 });
+  s = engine.roll(s, [2]);
+  const v1 = { ...s, schemaVersion: 1 };
+  while (v1.pending) { const k = v1.pending.kind; Object.assign(v1, k === 'opportunity' ? engine.pass(v1) : k === 'charity' ? engine.declineCharity(v1) : k === 'offer' ? engine.declineOffer(v1) : v1); if (!['opportunity', 'charity', 'offer'].includes(k)) break; }
+  await page.evaluate((j) => localStorage.setItem('passivo.save', j), JSON.stringify(v1));
+  await page.reload();
+  await page.waitForSelector('[data-action="resume"]');
+  await page.locator('[data-action="resume"]').click();
+  await page.waitForSelector('section[data-screen="board"]');
+  await page.waitForTimeout(500);
+  const info = await page.evaluate(() => ({ players: document.querySelector('.screen-board').dataset.players, cash: document.querySelector('.screen-board').dataset.cash, handoff: !!document.querySelector('.handoff-sheet') }));
+  check(info.players === '1' && !info.handoff, 'an old single-player save (schema 1) resumes as a one-player match');
+  await page.evaluate(() => localStorage.removeItem('passivo.save'));
+  await page.goto(`${URL_BASE}?seed=${process.env.SMOKE_SEED || 11}`);
+  await page.waitForSelector('[data-screen="start"]');
 }
 
 async function main() {
@@ -240,17 +454,57 @@ async function main() {
   // pick mode + profession
   await page.locator(`[data-mode="${MODE}"]`).click();
   await page.locator('[data-action="start"]').click();
-  await page.waitForSelector('[data-screen="pick"]');
-  await noHScroll(page, 'profession pick');
-  await tapTargets(page, 'profession pick');
-  await page.waitForTimeout(500);
-  await page.screenshot({ path: `${OUT}/03-pick.png` });
-  await page.locator('.prof-card').first().click();
-  await page.waitForSelector('.pick-sheet');
-  await page.waitForTimeout(400);
-  await page.screenshot({ path: `${OUT}/04-pick-sheet.png` });
-  await page.locator('[data-action="go"]').click();
+  await page.waitForSelector('[data-screen="players"]');
+  await page.waitForTimeout(300);
+  check(await page.locator('.screen-players .stepper-value').innerText() === 'שחקן אחד', 'player count defaults to one player');
+  check(await page.locator('.name-input').count() === 0 || !(await page.locator('.name-fields').isVisible()), 'single player has no name fields');
+  await noHScroll(page, 'players setup (1)');
+  await tapTargets(page, 'players setup (1)');
+  await page.screenshot({ path: `${OUT}/02b-players-1.png` });
+  const names = ['דנה', 'אורי', 'נועה', 'יובל'];
+  if (PLAYERS > 1) {
+    for (let k = 1; k < PLAYERS; k++) await page.locator('[aria-label="שחקן נוסף"]').click();
+    check(await page.locator('.name-input').count() === PLAYERS, `${PLAYERS} name fields shown`);
+    check(await page.locator('.name-input').first().inputValue() === 'שחקן 1', 'default name is "שחקן 1"');
+    check(await page.locator('.name-input').first().getAttribute('maxlength') === '12', 'name max length is 12');
+    for (let k = 0; k < PLAYERS; k++) await page.locator('.name-input').nth(k).fill(names[k]);
+    await noHScroll(page, `players setup (${PLAYERS})`);
+    await tapTargets(page, `players setup (${PLAYERS})`);
+    await insideViewport(page, ['[data-action="players-next"]'], `players setup CTA (${PLAYERS})`);
+    await page.screenshot({ path: `${OUT}/02c-players-${PLAYERS}.png` });
+  }
+  await page.locator('[data-action="players-next"]').click();
+  for (let k = 0; k < PLAYERS; k++) {
+    await page.waitForSelector('[data-screen="pick"]');
+    if (PLAYERS > 1) check((await page.locator('.screen-title').innerText()).includes(names[k]), `profession pick header names player ${k + 1}`);
+    if (k === 0) {
+      await noHScroll(page, 'profession pick');
+      await tapTargets(page, 'profession pick');
+      await page.waitForTimeout(500);
+      await page.screenshot({ path: `${OUT}/03-pick${PLAYERS > 1 ? '-multi' : ''}.png` });
+    }
+    await page.locator('.prof-card').nth(k === 0 ? 0 : k + 1).click();
+    await page.waitForSelector('.pick-sheet');
+    await page.waitForTimeout(400);
+    if (k === 0) await page.screenshot({ path: `${OUT}/04-pick-sheet.png` });
+    await page.locator('[data-action="go"]').click();
+  }
   await page.waitForSelector('[data-screen="board"]');
+  if (PLAYERS > 1) {
+    await page.waitForSelector('.handoff-sheet');
+    await page.waitForTimeout(500);
+    check((await page.locator('.handoff-title').innerText()) === `תור של ${names[0]}`, 'pass-the-phone sheet names the first player');
+    await tapTargets(page, 'handoff sheet');
+    await noHScroll(page, 'handoff sheet');
+    await page.screenshot({ path: `${OUT}/handoff-sheet.png` });
+    await page.locator('[data-action="ready"]').click();
+    await page.waitForSelector('.handoff-sheet', { state: 'detached' });
+    check(await page.locator('.pawn-slot').count() === PLAYERS, `${PLAYERS} pawns on the board`);
+    check((await page.locator('.hud-prof').innerText()) === names[0], 'HUD shows the active player name');
+    check(await page.locator('.others-strip .os-cell').count() === PLAYERS - 1, 'others strip lists the other players');
+  } else {
+    check(await page.locator('.handoff-sheet').count() === 0, 'single player: no pass-the-phone sheet');
+  }
   await noHScroll(page, 'board');
   await tapTargets(page, 'board');
   await page.waitForTimeout(300);
@@ -258,7 +512,7 @@ async function main() {
   await foxChecks(page, 'board');
   await reactionStripClear(page);
   const pose = await page.evaluate(() => document.querySelector('.roll-zone')?.dataset.pose);
-  check(pose === (MODE === 'family' ? 'tip' : 'roll'), `roll zone shows the ${MODE === 'family' ? 'family tip' : 'roll pose'} at the start (got ${pose})`);
+  check(pose === (MODE === 'family' ? 'tip' : 'roll') || PLAYERS > 1, `roll zone shows the ${MODE === 'family' ? 'family tip' : 'roll pose'} at the start (got ${pose})`);
   const theme = await page.evaluate(() => document.querySelector('meta[name="theme-color"]').content);
   check(theme.toLowerCase() === '#0f1e46', 'theme-color is navy');
 
@@ -280,6 +534,7 @@ async function main() {
   await page.screenshot({ path: `${OUT}/06-statement.png` });
   await page.keyboard.press('Escape');
   await page.waitForSelector('.sheet', { state: 'detached' });
+  await testHome(page, `${PLAYERS}p`);
 
   // Play games until one is won (new seed each retry).
   let won = false;
@@ -291,9 +546,18 @@ async function main() {
     if (r.result === 'won') {
       await page.waitForTimeout(500);
       await noHScroll(page, 'win');
-      await page.screenshot({ path: `${OUT}/07-win.png` });
-      await insideViewport(page, ['[data-screen="win"] [data-action="again"]', '[data-screen="win"] [data-action="menu"]', '[data-screen="win"] [data-action="share"]'], 'win actions');
+      await page.screenshot({ path: `${OUT}/07-win${PLAYERS > 1 ? '-multi' : ''}.png` });
+      await insideViewport(page, PLAYERS > 1
+        ? ['[data-screen="win"] [data-action="again"]', '[data-screen="win"] [data-action="menu"]']
+        : ['[data-screen="win"] [data-action="again"]', '[data-screen="win"] [data-action="menu"]', '[data-screen="win"] [data-action="share"]'], 'win actions');
       check(await page.locator('[data-action="again"].btn-primary').count() === 1 && await page.locator('[data-action="menu"].btn-secondary').count() === 1, 'win: play again is primary, change mode is secondary');
+      if (PLAYERS > 1) {
+        check(await page.locator('.stand-row').count() === PLAYERS, 'win screen lists every player in the standings');
+        check(await page.locator('.stand-row[data-winner="true"]').count() === 1 && await page.locator('.stand-row[data-place="1"][data-winner="true"]').count() === 1, 'exactly one winner, first in the standings');
+        check(await page.locator('.win-fox img.hammock').count() === 1, 'winner shown with the hammock fox');
+        check((await page.locator('[data-action="menu"]').innerText()) === 'שנו הגדרות', 'multiplayer win offers "שנו הגדרות"');
+        await tapTargets(page, 'standings');
+      }
       won = true;
     } else if (r.result === 'over') {
       await noHScroll(page, 'game over');
@@ -311,13 +575,20 @@ async function main() {
     await page.waitForSelector('[data-screen="board"]');
     const fresh = await page.evaluate(() => ({ turn: document.querySelector('.screen-board')?.dataset.turn, cash: document.querySelector('.screen-board')?.dataset.cash, prof: document.querySelector('.hud-prof')?.textContent }));
     check(fresh.turn === '0' || fresh.turn === '1', `play again from the win screen reaches a fresh board at turn 1 (data-turn ${fresh.turn})`);
-    check(fresh.prof === profBeforeWin, `play again keeps the profession (${profBeforeWin} -> ${fresh.prof})`);
+    if (PLAYERS === 1) check(fresh.prof === profBeforeWin, `play again keeps the profession (${profBeforeWin} -> ${fresh.prof})`);
+    else {
+      await page.waitForSelector('.handoff-sheet');
+      check(await page.evaluate(() => document.querySelector('.screen-board').dataset.players) === String(PLAYERS), 'play again keeps the same number of players');
+      check((await page.locator('.handoff-title').innerText()) === `תור של ${names[0]}`, 'play again keeps the player names and starts with player 1');
+      await page.locator('[data-action="ready"]').click();
+    }
     // a finished game leaves no save: drop the one the fresh game just wrote, then the start screen has no resume button
     await page.evaluate(() => localStorage.removeItem('passivo.save'));
     await page.reload();
     await page.waitForSelector('[data-screen="start"]');
     check(await page.locator('[data-action="resume"]').count() === 0, 'no resume button after a finished game');
   }
+  if (PLAYERS === 1) { await testBuyStates(page); await testLegacySave(page); }
 
   // light theme + start screen
   await page.locator('.topbar .icon-btn').last().click();

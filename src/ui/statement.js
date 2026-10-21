@@ -9,9 +9,9 @@ import { animate } from './fx.js';
 import { motionOK } from './prefs.js';
 import { statement, maxLoan, PAYDAY_MONTHS } from '../engine/index.js';
 
-export function openStatement({ getState, ops }) {
+export function openStatement({ getState, ops, title = t('statement.title') }) {
   let layer;
-  const body = h('div', { class: 'statement-body', tabindex: '0', role: 'region', 'aria-label': t('statement.title') });
+  const body = h('div', { class: 'statement-body', tabindex: '0', role: 'region', 'aria-label': title });
 
   const row = (label, value, tone = '', extra = null) =>
     h('div', { class: `st-row${tone ? ` st-${tone}` : ''}` }, h('span', { class: 'st-label' }, label), h('span', { class: 'st-value' }, value), extra);
@@ -55,18 +55,36 @@ export function openStatement({ getState, ops }) {
         a.title,
         money(a.monthlyCashFlow, { sign: true }),
         'asset',
-        h('span', { class: 'st-sub' }, a.type === 'stock' ? t('statement.stockLine', { qty: a.qty }) : t(`type.${a.type}`)),
+        h('span', { class: 'st-sub', 'data-asset': a.id },
+          a.type === 'stock'
+            ? t('statement.stockLine', { qty: a.qty })
+            : `${t(`type.${a.type}`)}${a.mortgage > 0 ? ` · ${t('statement.assetMortgage', { amount: moneyText(a.mortgage) })}` : ''}`),
       ))
       : [h('p', { class: 'st-empty' }, t('statement.noAssets'))];
     body.append(section(t('statement.assets'), 'asset', ...assetRows));
 
-    const liabRows = s.liabilities.length
-      ? s.liabilities.map((l) => h('div', { class: 'st-row st-liab', 'data-liab': l.id },
-        h('span', { class: 'st-label' }, l.label === 'loan' ? t('statement.loanLabel') : l.label),
-        h('span', { class: 'st-value' }, money(l.monthlyPayment)),
-        h('span', { class: 'st-sub' }, t('statement.principal', { amount: moneyText(l.principal) })),
-        actionable ? button(t('statement.repay'), { variant: 'secondary', size: 'sm', 'data-action': 'repay', onClick: async () => { await ops.repay(l); render(); } }) : null))
+    // Every liability in one list: starting debts, bank loans and the mortgage that came with each asset.
+    const rep = st.liabilities;
+    const liabRows = rep.items.length
+      ? rep.items.map((l) => {
+        const debt = s.liabilities.find((x) => x.id === l.id);
+        const label = l.kind === 'mortgage' ? t(l.assetType === 'business' ? 'statement.businessLoanLabel' : 'statement.mortgageLabel', { asset: l.assetTitle }) : (l.label === 'loan' ? t('statement.loanLabel') : l.label);
+        return h('div', { class: 'st-row st-liab', 'data-liab': l.id, 'data-kind': l.kind },
+          h('span', { class: 'st-label' }, label),
+          h('span', { class: 'st-value' }, tn('game.perMonth', { amount: money(l.monthlyPayment) })),
+          h('span', { class: 'st-sub' }, `${t('statement.balance', { amount: moneyText(l.principal) })}${l.includedInAssets ? ` · ${t('statement.inAssetFlow')}` : ''}`),
+          actionable && debt ? button(t('statement.repay'), { variant: 'secondary', size: 'sm', 'data-action': 'repay', onClick: async () => { await ops.repay(debt); render(); } }) : null);
+      })
       : [h('p', { class: 'st-empty' }, t('statement.noLiabilities'))];
+    if (rep.items.length) {
+      liabRows.push(
+        row(t('statement.totalLiabilities'), money(rep.totals.principal), 'total'),
+        row(t('statement.totalPayments'), money(rep.totals.monthlyPayments), 'total'),
+        row(t('statement.paidFromFlow'), money(rep.totals.paidFromCashFlow), 'sub'));
+      if (rep.totals.includedInAssets > 0) {
+        liabRows.push(row(t('statement.insideAssets'), money(rep.totals.includedInAssets), 'sub'), h('p', { class: 'st-empty' }, t('statement.liabilityNote')));
+      }
+    }
     body.append(section(t('statement.liabilities'), 'liability', ...liabRows));
 
     if (actionable) {
@@ -101,10 +119,10 @@ export function openStatement({ getState, ops }) {
 
   const content = h('div', { class: 'sheet' },
     h('button', { type: 'button', class: 'sheet-handle', 'aria-label': t('a11y.sheetHandle'), onClick: () => layer.close() }, h('i', null)),
-    h('div', { class: 'sheet-head' }, h('h2', { class: 'dialog-title' }, t('statement.title')),
+    h('div', { class: 'sheet-head' }, h('h2', { class: 'dialog-title' }, title),
       h('button', { type: 'button', class: 'icon-btn', 'aria-label': t('common.close'), onClick: () => layer.close() }, icon('close', { size: 22 }))),
     body);
-  layer = openLayer(content, { kind: 'sheet', label: t('statement.title') });
+  layer = openLayer(content, { kind: 'sheet', label: title });
   layer.refresh = render;
   return layer;
 }
