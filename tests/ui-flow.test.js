@@ -62,7 +62,8 @@ describe('buy button is truthful', () => {
     const play = read('src/ui/play.js');
     expect(play).toMatch(/r\.action === 'buyLoan'/);
     expect(play).toMatch(/loanFlow\(r\.need\)/);
-    expect(play).toMatch(/engine\.buy\(s, r\.qty\)/);
+    expect(play).toMatch(/engine\.buy\(s, qty\)/); // the purchase after the loan goes through the same bought(qty) helper
+    expect(play).toMatch(/bought\(r\.qty\)/);
   });
 });
 

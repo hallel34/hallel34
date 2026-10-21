@@ -2,9 +2,20 @@
 // Schema 2 saves a whole match (1-4 players). Schema 1 saves were one bare game state: they load as a one-player match.
 import { SCHEMA_VERSION } from './config.js';
 import { matchFromState } from './match.js';
+import { emptyLearn } from './learn.js';
 
+// Each step lifts a save by exactly one schema version.
 const migrations = {
-  1: (s) => matchFromState(s),
+  // 1 -> 2: a bare single-player state becomes a one-player match
+  1: (s) => ({ ...matchFromState(s), schemaVersion: 2 }),
+  // 2 -> 3: every player's state gets an empty learning record (old games have no decisions to report on)
+  2: (m) => ({
+    ...m,
+    schemaVersion: 3,
+    players: Array.isArray(m.players)
+      ? m.players.map((p) => (p?.state ? { ...p, state: { ...p.state, schemaVersion: 3, learn: p.state.learn ?? emptyLearn() } } : p))
+      : m.players,
+  }),
 };
 
 export function serialize(match) {

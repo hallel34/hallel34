@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { ringPos } from '../src/ui/layout.js';
 import { moneyText } from '../src/ui/format.js';
 import { t, availableLocales } from '../src/i18n/index.js';
+import { stripMarkup } from '../src/i18n/markup.js';
 import { createEngine, BOARD } from '../src/engine/index.js';
 import { loadData } from '../src/data/index.js';
 
@@ -176,7 +177,8 @@ describe('v2 phase A: amounts, payday copy, no typed numbers', () => {
     expect(lookup('howto.note')).toContain('המספרים מפושטים כדי שהמשחק יזרום');
   });
   it('N4: buy-card breakdown and statement panel strings exist and use the proposed wording', () => {
-    expect(lookup('card.rentLine')).toBe('שכירות {gross} − משכנתא {payment} = תזרים {flow}');
+    // glossary markup ([[term:id|display]]) is stripped to its display text: the visible wording is unchanged
+    expect(stripMarkup(lookup('card.rentLine'))).toBe('שכירות {gross} − משכנתא {payment} = תזרים {flow}');
     expect(lookup('statement.bizLoanLabel')).toBe('הלוואת עסק – {asset}');
     for (const key of ['statement.netWorthTitle', 'statement.balanceAssets', 'statement.balanceLiabilities', 'statement.balanceNet']) expect(lookup(key), key).toBeTruthy();
   });

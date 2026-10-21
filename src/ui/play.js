@@ -22,6 +22,16 @@ import { playerToken, playerName, nameBdi } from './players.js';
 import { closeAllLayers, destroyAllLayers } from './modal.js';
 import { debugEnabled, mountDebugTools } from './debug.js';
 import { foxImg, createReactor, warmFox, dirSign } from './fox.js';
+import { createLearnFlow } from './learn-flow.js';
+import { setLearnHooks, clearLearnHooks } from './learn.js';
+import { setLearnMode } from '../learn/context.js';
+import { feedbackForChange, feedbackForEvent } from '../learn/feedback.js';
+import { eyeModel } from '../learn/guess.js';
+import { earnBadge } from '../learn/store.js';
+import { guessEnabled } from './prefs.js';
+import {
+  recordGuess, guessForCard, unlockConcept, markShown, hasShown, isDeal,
+} from '../engine/learn.js';
 import { REACTIONS, LAND_REACTION, tipIndexForTurn } from './fox-rules.js';
 import coinUrl from '../assets/coin.svg?url';
 import pawnUrl from '../assets/pawn.svg?url';
@@ -93,7 +103,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   const passiveVal = h('b', { class: 'tone-income' });
   const expenseVal = h('b', { class: 'tone-expense' });
   const m = meter();
-  const settingsBtn = iconButton('gear', t('game.settings'), () => openSettings({ onQuit: () => goHome(), version: __APP_VERSION__ }), 'icon-btn-glass');
+  const settingsBtn = iconButton('gear', t('game.settings'), () => openSettings({ onQuit: () => goHome(), version: __APP_VERSION__, mode: state.mode }), 'icon-btn-glass');
   const stmtBtn = iconButton('statement', t('game.statement'), () => openStmt(), 'icon-btn-glass');
   stmtBtn.dataset.action = 'statement';
   const homeBtn = iconButton('home', t('game.home'), () => askHome(), 'icon-btn-glass');
@@ -153,9 +163,26 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   const reactHost = h('div', { class: 'react-host', 'aria-hidden': 'true' });
   const zone = h('div', { class: 'roll-zone', 'data-pose': 'roll' }, reactHost, rollFox, chip, tipFox);
   const reactor = createReactor(reactHost, { size: 56 });
-  /** Brief fox reaction in the strip under the board (never over the HUD, tiles, die or numbers). */
-  const react = (pose) => reactor.show(pose);
-  const setPose = (p) => { zone.dataset.pose = p; };
+  // The fox note (feedback / explainer) takes the zone while it is shown; the pose that was wanted meanwhile returns after it.
+  let noteShown = false;
+  let poseAfterNote = 'roll';
+  const setPose = (p) => { if (noteShown) { poseAfterNote = p; return; } zone.dataset.pose = p; };
+  setLearnMode(state.mode);
+  const flow = createLearnFlow({
+    zone, mode: state.mode, seed: state.seed,
+    getState: () => state,
+    setState: (next) => { state = next; commit(); },
+    onDismiss: () => rollBtn.focus?.({ preventScroll: true }),
+    onActive: (on) => {
+      if (on === noteShown) return;
+      noteShown = on;
+      if (on) { if (zone.dataset.pose !== 'note') poseAfterNote = zone.dataset.pose || 'roll'; zone.dataset.pose = 'note'; reactor.hide(); }
+      else zone.dataset.pose = busy ? 'none' : (poseAfterNote === 'none' ? 'roll' : poseAfterNote);
+    },
+  });
+  setLearnHooks({ onUnlock: (id) => { if (!destroyed) { state = unlockConcept(state, id); commit(); } } });
+  /** Brief fox reaction in the strip under the board (never over the HUD, tiles, die or numbers; not while a fox note is up). */
+  const react = (pose) => { if (!flow.notes.active) reactor.show(pose); };
 
   function pushLog(text, tone = '') {
     if (!text) return;
@@ -185,7 +212,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     tipTimer = setTimeout(hideTip, 6000);
   }
   // Tap anywhere dismisses the tip (the roll button still works on the same tap).
-  el.addEventListener('pointerdown', () => hideTip());
+  el.addEventListener('pointerdown', (e) => { hideTip(); if (!e.target.closest?.('.note')) flow.notes.dismiss(); });
 
   /** Lays out every pawn on one tile: a lone pawn is centred, shared tiles spread them out. */
   function layoutTile(tile) {
@@ -374,6 +401,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   /** Runs an engine action. On EngineError: shake + haptic, state unchanged. Returns true on success. */
   function apply(fn) {
     if (destroyed) return false; // a late tap on a card that outlived the screen
+    const before = state;
     try {
       state = fn(state);
     } catch (e) {
@@ -384,17 +412,19 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     }
     commit();
     refreshHud();
+    const said = feedbackForChange(before, state);
+    const rx = (pose) => { if (!said.length) react(pose); }; // the fox note carries its own reaction crop
     for (const ev of state.events) {
       if (ev.type === 'bought') {
         pushLog(t('game.logBought', { title: cardTitle(ev.cardId) }), 'good');
         haptic('purchase'); sound('coin');
         coinBurst(center, stmtBtn, 10);
-        react('celebrate');
+        rx('celebrate');
       } else if (ev.type === 'sold' || ev.type === 'loan') {
         pushLog(ev.type === 'loan' ? tn('game.logLoan', { amount: money(ev.amount) }) : tn('game.logSold', { amount: money(ev.proceeds) }), ev.type === 'loan' ? 'bad' : 'good');
         haptic('purchase'); sound('coin');
         coinBurst(ev.type === 'loan' ? rollBtn : stmtBtn, cash.el, 6);
-        if (ev.type === 'loan') react('worried');
+        if (ev.type === 'loan') rx('worried');
       } else if (ev.type === 'passed') {
         pushLog(t('game.logPassed'));
       } else if (ev.type === 'donated') {
@@ -403,6 +433,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
       }
     }
     syncCash();
+    if (said.length) flow.feedback(said);
     // Passive-income milestones (25/50/75% of expenses): celebrate once per crossing.
     const st = statement(state);
     const pct = st.totalExpenses > 0 ? st.passiveIncome / st.totalExpenses : 0;
@@ -442,9 +473,12 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   }
 
   // ---------- turn ----------
+  let priorPrices = {};
   async function turn() {
     if (busy || destroyed || state.phase !== 'roll' || state.status !== 'playing') return;
     setBusy(true, 'rolling');
+    flow.newTurn();
+    priorPrices = { ...state.stockPrices };
     haptic('roll'); sound('roll');
     let next;
     try { next = engine.roll(state); } catch (e) { console.error(e); setBusy(false); return; }
@@ -466,7 +500,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     for (const idx of move.path) {
       if (destroyed) return;
       await hopTo(idx);
-      if (BOARD[idx] === 'payday' && paydays[pi]) { const pd = paydays[pi++]; await paydayFx(pd.amount, pd.months, pd.monthly); }
+      if (BOARD[idx] === 'payday' && paydays[pi]) { const pd = paydays[pi++]; flow.trigger('summary'); await paydayFx(pd.amount, pd.months, pd.monthly); }
     }
     if (destroyed) return;
     paintButton('working'); // the dice have stopped; the label now says we are moving on (cards, payday) instead of rolling
@@ -494,6 +528,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     if (match.status !== 'playing') { setBusy(false); await finishIfOver(); return; }
     if (state.status === 'lost') { await outFlow(); return; }
     settleButton();
+    flow.pumpExplain();
   }
 
   /** Switches the screen to the (new) current player of the match. */
@@ -557,18 +592,25 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     if (ev.type === 'baby') {
       pushLog(t('game.logBaby'));
       await babyModal(state, { max: false, extra: ev.extra });
+      flow.feedback(feedbackForEvent(ev, state));
     } else if (ev.type === 'babyMax') {
       await babyModal(state, { max: true, extra: 0 });
+      flow.feedback(feedbackForEvent(ev, state));
     } else if (ev.type === 'expensePaid') {
       pushLog(tn('game.logExpense', { title: ev.card.title, amount: signedMoney(-ev.amount) }), 'bad');
+      flow.trigger('expense');
       await expenseModal(state, { card: ev.card, amount: ev.amount, paid: true });
       haptic('error');
       await syncCash();
+      flow.feedback(feedbackForEvent(ev, state));
     } else if (ev.type === 'market') {
       pushLog(t('game.logMarket', { title: ev.card.title }));
+      const prior = ev.card.effect === 'stockPrice' ? (priorPrices[ev.card.symbol] ?? engine.data.cards.find((c) => c.type === 'stock' && c.symbol === ev.card.symbol)?.price ?? null) : null;
+      if (prior != null && ev.card.newPrice < prior) flow.trigger('stockDrop');
       await marketInfoModal(state, { card: ev.card, noMatch, familyOffer: ev.card.effect === 'offer' && !noMatch });
       if (ev.card.effect === 'cash') { haptic(ev.card.amount >= 0 ? 'purchase' : 'error'); sound(ev.card.amount >= 0 ? 'coin' : 'error'); }
       await syncCash();
+      flow.feedback(feedbackForEvent(ev, state, { priorPrice: prior }));
     }
   }
   async function runEventQueue() {
@@ -589,6 +631,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   }
 
   async function loanFlow(required = 0) {
+    flow.trigger('loan');
     const amount = await loanDialog(state, { required });
     if (amount) apply((s) => engine.takeLoan(s, amount));
     return !!amount;
@@ -602,6 +645,25 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     );
   }
 
+  /** The 'עסקה טובה?' guess for an opportunity card: on for apartments / businesses when the setting is on (never stocks). */
+  function guessFor(card) {
+    if (!guessEnabled(state.mode) || !isDeal(card)) return null;
+    const seed = state.seed + state.turn;
+    const eye = (wasEarned) => eyeModel(state.learn?.guesses ?? [], { wasEarned });
+    return {
+      enabled: true, seed, prior: guessForCard(state, card.id),
+      eye: () => eye(true),
+      onGuess: (pick, light) => {
+        state = recordGuess(state, { cardId: card.id, light, guess: pick });
+        const model = eye(hasShown(state, 'badge:eye'));
+        if (model.justEarned) { state = markShown(state, 'badge:eye'); earnBadge('investor_eye'); haptic('win'); sound('win'); }
+        commit();
+        flow.trigger('reveal');
+        return model;
+      },
+    };
+  }
+
   async function resolvePending() {
     let first = true;
     while (!destroyed && state.status === 'playing' && state.pending) {
@@ -610,16 +672,19 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
       first = false;
       let r;
       if (p.kind === 'opportunity') {
-        r = await opportunityModal(state, { flip });
+        flow.trigger('opportunity', { card: p.card });
+        r = await opportunityModal(state, { flip, guess: guessFor(p.card) });
         if (!r) break; // closed by debug force
-        if (r.action === 'buy') apply((s) => engine.buy(s, r.qty));
+        const bought = (qty) => { if (apply((s) => engine.buy(s, qty))) { flow.trigger('purchase', { card: p.card }); if (isDeal(p.card) && !guessEnabled(state.mode)) flow.trigger('reveal'); } };
+        if (r.action === 'buy') bought(r.qty);
         else if (r.action === 'pass') apply((s) => engine.pass(s));
         else if (r.action === 'buyLoan') {
           // Short of cash but one loan covers the gap: ask for exactly that loan, then complete the purchase.
           // Cancelling the loan dialog leaves the card open (the loop below shows it again).
-          if (await loanFlow(r.need)) apply((s) => engine.buy(s, r.qty));
+          if (await loanFlow(r.need)) bought(r.qty);
         }
       } else if (p.kind === 'expense') {
+        flow.trigger('expense');
         r = await expenseModal(state, { card: p.card, amount: p.amount, paid: false, flip });
         if (!r) break; // closed by debug force
         if (r.action === 'loan') await loanFlow(p.amount - state.cash);
@@ -658,6 +723,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
 
   // ---------- statement ----------
   function openStmt() {
+    flow.trigger('statement');
     const closeIfOver = () => { if (state.status !== 'playing' || match.status !== 'playing') layer.close(); };
     const layer = openStatement({
       getState: () => state,
@@ -715,6 +781,8 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     destroyed = true;
     clearTimeout(tipTimer);
     reactor.hide();
+    flow.destroy();
+    clearLearnHooks();
     debugTools?.remove();
     window.removeEventListener('popstate', onPop);
     releaseGate?.(); homeGate = null;
@@ -735,6 +803,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     /** Called once the screen is mounted. Resumes a pending decision if the save had one. */
     async start() {
       warmFox(REACTIONS);
+      flow.trigger('start');
       if (unseen.length) { // a card that was queued when the player went home: show it now, then drop it from the save
         setBusy(true);
         await runEventQueue();

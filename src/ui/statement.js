@@ -5,6 +5,7 @@ import { openLayer } from './modal.js';
 import { icon } from './icons.js';
 import { money, moneyText, tn, numberText, paydayCalc } from './format.js';
 import { button, meter } from './widgets.js';
+import { createTermScope } from './rich.js';
 import { animate } from './fx.js';
 import { motionOK } from './prefs.js';
 import { statement, maxLoan, PAYDAY_MONTHS, LOAN_PAYMENT_RATE } from '../engine/index.js';
@@ -21,6 +22,8 @@ export function openStatement({ getState, ops, title = t('statement.title') }) {
     const s = getState();
     const st = statement(s);
     const full = s.mode === 'full';
+    const scope = createTermScope(); // a term becomes a button only at its first place on the sheet
+    const lab = (key, params = {}) => tn(key, params, { scope });
     const actionable = s.phase === 'roll' && s.status === 'playing'; // repay works in both modes
     const fullActions = full && actionable; // taking a voluntary loan and selling: full mode only
     body.replaceChildren();
@@ -31,7 +34,7 @@ export function openStatement({ getState, ops, title = t('statement.title') }) {
     const track = m.el;
     body.append(h('div', { class: 'st-hero' },
       h('div', { class: 'st-hero-top' },
-        h('div', null, h('span', { class: 'stat-label' }, t('statement.monthlyCashFlow')),
+        h('div', null, h('span', { class: 'stat-label' }, lab('statement.monthlyCashFlow')),
           h('div', { class: `st-flow ${st.monthlyCashFlow < 0 ? 'is-negative' : ''}` }, money(st.monthlyCashFlow, { sign: true }))),
         h('div', { class: 'st-cash' }, h('span', { class: 'stat-label' }, t('statement.cash')), money(st.cash))),
       track,
@@ -43,7 +46,7 @@ export function openStatement({ getState, ops, title = t('statement.title') }) {
 
     body.append(section(t('statement.income'), 'income',
       row(t('statement.salary'), money(st.salary)),
-      row(t('statement.passiveIncome'), money(st.passiveIncome, { sign: st.passiveIncome > 0 }), 'income'),
+      row(lab('statement.passiveIncome'), money(st.passiveIncome, { sign: st.passiveIncome > 0 }), 'income'),
       row(t('statement.totalIncome'), money(st.totalIncome), 'total')));
 
     const expenseRows = st.expenseItems.map((e) => row(e.label, money(e.amount)));
@@ -62,23 +65,24 @@ export function openStatement({ getState, ops, title = t('statement.title') }) {
             : `${t(`type.${a.type}`)}${a.mortgage > 0 ? ` · ${t('statement.assetMortgage', { amount: moneyText(a.mortgage) })}` : ''}`),
       ))
       : [h('p', { class: 'st-empty' }, t('statement.noAssets'))];
-    body.append(section(t('statement.assets'), 'asset', ...assetRows));
+    body.append(section(lab('statement.assets'), 'asset', ...assetRows));
 
     // Every liability in one list: starting debts, bank loans and the mortgage that came with each asset.
     const rep = st.liabilities;
     const liabRows = rep.items.length
       ? rep.items.map((l) => {
         const debt = s.liabilities.find((x) => x.id === l.id);
-        const label = l.kind === 'mortgage' ? t('statement.mortgageLabel', { asset: l.assetTitle })
+        const label = l.kind === 'mortgage' ? lab('statement.mortgageLabel', { asset: l.assetTitle })
           : l.kind === 'bizloan' ? t('statement.bizLoanLabel', { asset: l.assetTitle })
             : (l.label === 'loan' ? t('statement.loanLabel') : l.label);
         const notes = [t('statement.balance', { amount: moneyText(l.principal) })];
-        if (l.kind === 'loan') notes.push(t('statement.interestOnly', { rate: numberText(Math.round(LOAN_PAYMENT_RATE * 1e4) / 100) }));
+        if (l.kind === 'loan') notes.push(lab('statement.interestOnly', { rate: numberText(Math.round(LOAN_PAYMENT_RATE * 1e4) / 100) }));
         if (l.includedInAssets) notes.push(t('statement.inAssetFlow'));
+        const sub = notes.flatMap((n, i) => (i ? [' · ', n] : [n]));
         return h('div', { class: 'st-row st-liab', 'data-liab': l.id, 'data-kind': l.kind },
           h('span', { class: 'st-label' }, label),
           h('span', { class: 'st-value' }, tn('game.perMonth', { amount: money(l.monthlyPayment) })),
-          h('span', { class: 'st-sub' }, notes.join(' · ')),
+          h('span', { class: 'st-sub' }, sub),
           actionable && debt ? button(t('statement.repay'), { variant: 'secondary', size: 'sm', 'data-action': 'repay', onClick: async () => { await ops.repay(debt); render(); } }) : null);
       })
       : [h('p', { class: 'st-empty' }, t('statement.noLiabilities'))];
@@ -91,16 +95,16 @@ export function openStatement({ getState, ops, title = t('statement.title') }) {
         liabRows.push(row(t('statement.insideAssets'), money(rep.totals.includedInAssets), 'sub'), h('p', { class: 'st-empty' }, t('statement.liabilityNote')));
       }
     }
-    body.append(section(t('statement.liabilities'), 'liability', ...liabRows));
+    body.append(section(lab('statement.liabilities'), 'liability', ...liabRows));
 
     // Balance sheet: what you own against what you owe.
     const bal = st.balance;
-    body.append(section(t('statement.netWorthTitle'), 'networth',
+    body.append(section(lab('statement.netWorthTitle'), 'networth',
       row(t('statement.balanceCash'), money(bal.cash)),
       row(t('statement.balanceHoldings'), money(bal.assetsTotal - bal.cash)),
       row(t('statement.balanceAssets'), money(bal.assetsTotal), 'total'),
       row(t('statement.balanceLiabilities'), money(bal.liabilitiesTotal), 'total'),
-      row(t('statement.balanceNet'), money(bal.netWorth), 'total'),
+      row(lab('statement.balanceNet'), money(bal.netWorth), 'total'),
       h('p', { class: 'st-empty' }, t('statement.balanceNote'))));
 
     if (fullActions) {

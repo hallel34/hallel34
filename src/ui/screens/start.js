@@ -6,6 +6,8 @@ import { foxImg, loadFox, riseIn, squash, warmFox, dirSign } from '../fox.js';
 import { icon } from '../icons.js';
 import { button, iconButton } from '../widgets.js';
 import { openSettings, openHowTo } from '../settings.js';
+import { openDictionary } from '../learn.js';
+import { setLearnMode } from '../../learn/context.js';
 import { haptic, animate, cssMs } from '../fx.js';
 import { motionOK } from '../prefs.js';
 import { readRaw, writeRaw } from '../../services/storage.js';
@@ -30,6 +32,7 @@ const SKY = `<svg class="sky" aria-hidden="true" focusable="false" viewBox="0 0 
 
 export function createStart({ save, mode: initialMode, gamesPlayed = 0, onPlay, onResume, onMode }) {
   let mode = initialMode;
+  setLearnMode(mode);
   const firstLaunch = !readRaw('seenIntro');
   let alive = true;
   let jokeTimer = 0;
@@ -38,7 +41,7 @@ export function createStart({ save, mode: initialMode, gamesPlayed = 0, onPlay, 
     const b = h('button', {
       type: 'button', class: 'mode-card', 'data-mode': id, 'aria-pressed': String(mode === id),
       onClick: () => {
-        mode = id; haptic('tap'); onMode?.(id);
+        mode = id; setLearnMode(id); haptic('tap'); onMode?.(id);
         b.parentElement.querySelectorAll('.mode-card').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
       },
     }, h('span', { class: 'mode-name' }, name), h('span', { class: 'mode-desc' }, desc),
@@ -52,8 +55,9 @@ export function createStart({ save, mode: initialMode, gamesPlayed = 0, onPlay, 
         h('span', null, gamesPlayed === 1 ? t('menu.gamesPlayedOne') : t('menu.gamesPlayed', { n: gamesPlayed })))
       : h('span'),
     h('div', { class: 'topbar-actions' },
+      iconButton('book', t('settings.dictionary'), () => { setLearnMode(mode); openDictionary(); }, 'icon-btn-glass'),
       iconButton('help', t('menu.howTo'), () => openHowTo(), 'icon-btn-glass'),
-      iconButton('gear', t('menu.settings'), () => openSettings({ version: __APP_VERSION__ }), 'icon-btn-glass')));
+      iconButton('gear', t('menu.settings'), () => openSettings({ version: __APP_VERSION__, mode }), 'icon-btn-glass')));
 
   // h1 keeps the accessible name 'פסיבו'; the wordmark art itself is decorative.
   const title = h('h1', { class: 'wordmark' },

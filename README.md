@@ -138,6 +138,26 @@ Money formatting, card layout and the statement all adapt to the data.
   (the board lap stands for a stretch of years), so deal sizes and pace can be tuned without touching the cards' payback.
   `BOARD` in the same file sets how often each square type appears.
 
+## The learning layer (v2 phase B)
+
+Content is JSON in `src/data/learn/` (validated when the game loads and in `npm test`, schema in `src/learn/validate.js`;
+the authoritative rules are in `docs/v2/learn/spec.md`). Adding content never needs code:
+
+| File | What | How to extend |
+|---|---|---|
+| `glossary.he.json` | the 13 concepts of 'המילון של פסיבו' (`level`: `family` shows in both modes, `full` only in full mode) | add an object to `concepts[]`; to make a word a dashed-underline button write `[[term:id\|display]]` in any string of `src/i18n/he.json` (display is optional). Unknown ids fail `npm test` |
+| `feedback.he.json` | the fox line after each decision: `lines["buy.good"].family / .full / .all` (three phrasings rotate, deterministic per game seed) | add a phrasing to a group's array; slots come from `GROUP_SLOTS` in `src/learn/feedback.js` |
+| `guess.he.json` | 'עסקה טובה?' (family mode, apartments and businesses only), traffic-light texts, verdicts, 'עין של משקיע' | edit texts; thresholds are never typed: `PAYBACK_OK_YEARS` / `PAYBACK_SLOW_YEARS` / `INVESTOR_EYE_STREAK` in `config.js` |
+| `report.he.json` | 'מה למדתי' report and the conversation questions (family: three questions of one theme, picked by the report tip, the other themes rotate by the game seed) | add a theme or a question |
+| `real-world.he.json` | 'בעולם האמיתי' fact per card flagged `"realWorld": true` in `cards.he.json` | add a fact whose `cardIds` lists the card. Real-world figures live in `numbers` with `publish: false` and are never rendered (a test enforces it); finance flips it after finding a primary source |
+
+Where it lives: pure rules in `src/engine/learn.js` (rating a deal / a loan, the per-player record `state.learn`, the report counting)
+and `src/learn/` (texts, slots, triggers, report view model); UI in `src/ui/learn.js` (dictionary), `learn-flow.js` + `notes.js`
+(fox note: feedback and first-time explainers), `report.js`, `realworld.js` and the guess flow in `modals.js`. Progress that survives games
+is in localStorage (`passivo.learn.seen`, `passivo.learn.badges`); the explainers and the guess can be switched off in settings
+('הסברים של פסיבו', 'ניחוש לפני קנייה': on by default in family mode, off in full mode). Save schema 3 added `state.learn`; older saves migrate.
+Tuning parameters: `LOAN_COSTLY_PAYMENT_SHARE`, `INVESTOR_EYE_STREAK`, `REPORT_*` in `src/engine/config.js`.
+
 ## The fox (Passivo)
 
 Poses live in `src/assets/fox/` as transparent WebP (`tired`, `wave`, `roll`, `hammock`, `tip` with `@2x`) plus four

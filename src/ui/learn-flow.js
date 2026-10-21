@@ -1,0 +1,90 @@
+// The learning layer inside one game screen: queues the explainers (L1), shows the fox feedback after a decision (L3)
+// and keeps the per-game record in sync. Pure rules live in src/learn and src/engine/learn.js; this file only wires them to the UI.
+import { h } from './dom.js';
+import { t } from '../i18n/index.js';
+import { createNotes } from './notes.js';
+import { openDictionary, recordSeen, explainEnabled } from './learn.js';
+import { learnContent, conceptById, glossaryUi } from '../learn/content.js';
+import { conceptsForTrigger, nextExplainer, enqueue } from '../learn/triggers.js';
+import { renderFeedback } from '../learn/feedback.js';
+import { seenConcepts } from '../learn/store.js';
+import { markShown } from '../engine/learn.js';
+import { getPrefs } from './prefs.js';
+
+/** The feedback sentence as DOM: every slot value is isolated in a <bdi> (amounts keep their sign and digits together). */
+export function feedbackNodes(template, slots) {
+  const out = [];
+  for (const part of template.split(/(\{\w+\})/)) {
+    const m = part.match(/^\{(\w+)\}$/);
+    if (m && m[1] in slots) {
+      const v = String(slots[m[1]]);
+      out.push(/^[+\-−]?[₪\d]/.test(v) && !/[\u0590-\u05FF]/.test(v) ? h('bdi', { dir: 'ltr' }, v) : h('bdi', null, v));
+    } else if (part) out.push(part);
+  }
+  return out;
+}
+
+/**
+ * @param zone      the .roll-zone element
+ * @param mode      'family' | 'full'
+ * @param seed      the player's game seed (a deterministic rotation of the phrasings)
+ * @param getState / setState  the active player's engine state (setState also saves the match)
+ * @param onActive  (boolean) the note slot is in use
+ * @param onDismiss the explainer was dismissed with its button (keyboard focus goes back to the roll button)
+ */
+export function createLearnFlow({ zone, mode, seed, getState, setState, onActive, onDismiss }) {
+  const notes = createNotes({ zone, onActive, onDismiss });
+  const counters = {};
+  let queue = [];
+  let shownThisTurn = false;
+
+  const state = () => getState();
+
+  /** A moment of the game that may introduce concepts. */
+  function trigger(name, ctx = {}) {
+    const ids = conceptsForTrigger(name, { mode: state().mode ?? mode, ...ctx });
+    queue = enqueue(queue, ids, seenConcepts());
+  }
+
+  /** Fox feedback for requests from src/learn/feedback.js. */
+  function feedback(requests) {
+    for (const rq of requests) {
+      const n = (counters[rq.group] = (counters[rq.group] ?? -1) + 1);
+      const r = renderFeedback(learnContent().feedback, rq, { mode, seed, counter: n });
+      if (rq.mark) setState(markShown(state(), rq.mark));
+      if (rq.group === 'buy.diversify') trigger('diversified');
+      if (!r) continue;
+      notes.push({ kind: 'feedback', group: rq.group, pose: rq.pose, tone: rq.tone, plain: r.text, body: feedbackNodes(r.template, r.slots) });
+    }
+  }
+
+  /** At the end of a turn: bring up the next queued explainer (at most one per turn, after any feedback). */
+  function pumpExplain() {
+    if (!explainEnabled() || shownThisTurn) return;
+    const id = nextExplainer(queue, seenConcepts(), mode);
+    if (!id) return;
+    shownThisTurn = true;
+    queue = queue.filter((x) => x !== id);
+    const ui = glossaryUi();
+    notes.push({
+      kind: 'explain', concept: conceptById(id), label: ui.explainTitle, gotIt: ui.gotIt, whyLabel: ui.whyLabel,
+      onShow: () => recordSeen(id), onMore: (cid) => openDictionary({ termId: cid }),
+    });
+  }
+
+  return {
+    notes, trigger, feedback, pumpExplain,
+    /** A roll starts: a new turn (one explainer allowed again) and the old note goes away. */
+    newTurn() {
+      shownThisTurn = false;
+      // an explainer that was queued but never shown (the player rolled on) goes back to the front of the queue
+      const dropped = notes.clear().map((i) => i.concept.id);
+      queue = [...dropped, ...queue.filter((x) => !dropped.includes(x))];
+    },
+    get queued() { return [...queue]; },
+    destroy() { notes.destroy(); },
+    // for tests / debugging
+    get prefs() { return getPrefs(); },
+    label: t('learn.foxSays'),
+  };
+}

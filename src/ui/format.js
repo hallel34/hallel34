@@ -33,18 +33,14 @@ export function money(n, opts = {}) {
 
 export const numberText = (n) => new Intl.NumberFormat(getMeta().numberLocale).format(n);
 
-/** Rich translation: {param} values that are DOM nodes (e.g. money()) are inserted as nodes. */
-import { t } from '../i18n/index.js';
-export function tn(key, params = {}) {
-  const frag = document.createDocumentFragment();
-  for (const part of t(key).split(/(\{\w+\})/)) {
-    const m = part.match(/^\{(\w+)\}$/);
-    if (m && m[1] in params) {
-      const v = params[m[1]];
-      frag.append(v?.nodeType ? v : String(v));
-    } else if (part) frag.append(part);
-  }
-  return frag;
+/**
+ * Rich translation: {param} values that are DOM nodes (e.g. money()) are inserted as nodes, and glossary markup
+ * ([[term:id|display]]) becomes a dashed-underline term button (once per `scope`, see ui/rich.js).
+ */
+import { tRaw } from '../i18n/index.js';
+import { richNodes } from './rich.js';
+export function tn(key, params = {}, opts = {}) {
+  return richNodes(tRaw(key), params, opts);
 }
 
 /** The one formatter for +/- amounts in messages: sign and digits stay glued inside a <bdi dir="ltr">. */

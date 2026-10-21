@@ -12,9 +12,12 @@ import { createWin, createOver } from './screens/end.js';
 import { showInterstitial } from '../services/ads.js';
 import { getLocale } from '../i18n/index.js';
 import { destroyAllLayers } from './modal.js';
+import { initTermButtons } from './learn.js';
+import { setLearnMode } from '../learn/context.js';
 
 export function createApp(host) {
   const data = loadData(getLocale());
+  initTermButtons(); // glossary term buttons + validation of the learning content (fails loudly)
   const engine = createEngine(data);
   const professionIds = data.professions.map((p) => p.id);
   let active = null;
@@ -116,6 +119,7 @@ export function createApp(host) {
 
   function goPlay(m, { fresh = false } = {}) {
     store.save(m);
+    setLearnMode(m.mode);
     const play = createPlay({ engine, match: m, nav, store, professionIds, fresh });
     mount({ el: play.el, destroy: () => play.destroy() }, { start: () => play.start() });
   }

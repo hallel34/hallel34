@@ -1,6 +1,7 @@
 // Tunable rule constants. Pure data, no DOM.
-// 2: saves hold a whole match (1-4 players). Version 1 saves were a single game state (migrated on load).
-export const SCHEMA_VERSION = 2;
+// 3: every player's state carries a `learn` record (decisions, guesses, concepts). 2: saves hold a whole match (1-4 players).
+// Version 1 saves were a single game state; 1 -> 2 -> 3 migrate step by step on load.
+export const SCHEMA_VERSION = 3;
 export const MIN_PLAYERS = 1;
 export const MAX_PLAYERS = 4;
 export const NAME_MAX = 12;
@@ -48,3 +49,18 @@ export const PAYDAY_MONTHS = 24;
 // Payback badge thresholds (years of cash flow to earn back the down payment).
 export const PAYBACK_OK_YEARS = 8;
 export const PAYBACK_SLOW_YEARS = 14;
+
+// ---- Learning layer (docs/v2/learn/spec.md). Pure data; none of this changes a rule or a bot decision. ----
+// Correct guesses in a row (on green / red deals) that earn the 'investor eye' badge.
+export const INVESTOR_EYE_STREAK = 3;
+// A bank loan is rated 'costly' when its monthly payment eats more than this share of what it is borrowed for
+// (the asset's monthly cash flow for a purchase, the player's positive cash flow otherwise). Tunable with finance.
+export const LOAN_COSTLY_PAYMENT_SHARE = 0.5;
+// Report tip 'highInterest': more than this many bank loans in one game (or interest above one monthly salary).
+export const REPORT_MANY_LOANS = 2;
+// Report tip 'manyRed': at least this many bought deals in tier bad/trap.
+export const REPORT_MANY_RED = 2;
+// Report tip 'noDiversify' (full mode): one asset kind and at least this many assets.
+export const REPORT_NO_DIVERSIFY_ASSETS = 3;
+// Report tip 'allGood': green share (0-1) of the rated decisions.
+export const REPORT_ALL_GOOD_SHARE = 0.8;

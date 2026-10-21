@@ -10,6 +10,10 @@ import { confetti, haptic, sound, toast, animate } from '../fx.js';
 import { statement, isMultiplayer } from '../../engine/index.js';
 import { standingsList } from '../standings.js';
 import { playerName, withName } from '../players.js';
+import { openReport } from '../report.js';
+import { icon } from '../icons.js';
+
+const reportButton = (match) => button([icon('book', { size: 22, width: 2.4 }), t('learn.reportOpen')], { variant: 'secondary', cls: 'btn-report', 'data-action': 'report', onClick: () => openReport({ match }) });
 
 const rays = () => html(`<svg class="rays" aria-hidden="true" focusable="false" viewBox="-300 -300 600 600"><g fill="#FFE27A" opacity=".16">${
   Array.from({ length: 12 }, (_, i) => `<path d="M0 0L-60 -420L60 -420z" transform="rotate(${i * 30})"/>`).join('')
@@ -67,7 +71,7 @@ export function createWin({ match, onAgain, onMenu }) {
       ])),
     h('div', { class: 'end-actions' },
       button(t('win.again'), { variant: 'primary', size: 'lg', 'data-action': 'again', 'data-autofocus': '', onClick: onAgain }),
-      button(t('win.change'), { variant: 'secondary', 'data-action': 'menu', onClick: onMenu }),
+      h('div', { class: 'end-row' }, reportButton(match), button(t('win.change'), { variant: 'secondary', 'data-action': 'menu', onClick: onMenu })),
       button(t('win.share'), { variant: 'text', cls: 'btn-share', 'data-action': 'share', onClick: share })));
   return {
     el,
@@ -102,7 +106,7 @@ export function createOver({ match, onRetry, onMenu }) {
       h('p', { class: 'tip' }, h('b', null, `${t('gameOver.tipTitle')}: `), tip)),
     h('div', { class: 'end-actions' },
       button(t('gameOver.retry'), { variant: 'primary', size: 'lg', 'data-action': 'retry', 'data-autofocus': '', onClick: onRetry }),
-      button(t('gameOver.menu'), { variant: 'secondary', 'data-action': 'menu', onClick: onMenu })));
+      h('div', { class: 'end-row' }, reportButton(match), button(t('gameOver.menu'), { variant: 'secondary', 'data-action': 'menu', onClick: onMenu }))));
   return { el, start() { haptic('error'); riseIn(overFox); } };
 }
 
@@ -121,7 +125,7 @@ function createMatchWin({ match, onAgain, onMenu }) {
     h('div', { class: 'glass glass-strong end-card', tabindex: '0', role: 'region', 'aria-label': t('standings.title') }, h('h2', { class: 'end-card-title' }, t('standings.title')), standingsList(match)),
     h('div', { class: 'end-actions' },
       button(t('win.again'), { variant: 'primary', size: 'lg', 'data-action': 'again', 'data-autofocus': '', onClick: onAgain }),
-      button(t('players.changeSettings'), { variant: 'secondary', 'data-action': 'menu', onClick: onMenu })));
+      h('div', { class: 'end-row' }, reportButton(match), button(t('players.changeSettings'), { variant: 'secondary', 'data-action': 'menu', onClick: onMenu }))));
   return {
     el,
     start() {
@@ -143,6 +147,6 @@ function createMatchOver({ match, onRetry, onMenu }) {
     h('div', { class: 'glass glass-strong end-card', tabindex: '0', role: 'region', 'aria-label': t('standings.title') }, h('h2', { class: 'end-card-title' }, t('standings.title')), standingsList(match)),
     h('div', { class: 'end-actions' },
       button(t('gameOver.retry'), { variant: 'primary', size: 'lg', 'data-action': 'retry', 'data-autofocus': '', onClick: onRetry }),
-      button(t('players.changeSettings'), { variant: 'secondary', 'data-action': 'menu', onClick: onMenu })));
+      h('div', { class: 'end-row' }, reportButton(match), button(t('players.changeSettings'), { variant: 'secondary', 'data-action': 'menu', onClick: onMenu }))));
   return { el, start() { haptic('error'); riseIn(overFox); } };
 }
