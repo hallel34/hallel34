@@ -54,6 +54,7 @@ export function validateTutorial(tut, { glossaryIds = new Set(), cards = [], glo
       for (const p of parts) { if (!isStr(p?.id) || pids.has(p.id) || !isStr(p.text)) err(`${w}: part ${p?.id}`); pids.add(p?.id); }
       if (words(parts.map((p) => p.text).join(' ')) > 60) err(`${w}: more than 60 words in the parts`);
       if (s.simplificationAfterPart && !pids.has(s.simplificationAfterPart)) err(`${w}: simplificationAfterPart`);
+      for (const k of ['simplificationShowOnParts', 'simplificationHideOnParts']) if (s[k] != null && (!Array.isArray(s[k]) || s[k].some((id) => !pids.has(id)))) err(`${w}: ${k}`);
     } else if (!Array.isArray(s.lines) || !s.lines.length || s.lines.some((l) => !isStr(l))) err(`${w}: lines`);
     else if (words(s.lines.join(' ')) > 45) err(`${w}: more than 45 words`);
     if (!parts && !isStr(s.example?.text)) err(`${w}: example.text`);

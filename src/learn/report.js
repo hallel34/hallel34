@@ -78,7 +78,7 @@ export function reportView(state, { seed = 0, theme = 0 } = {}) {
       ? fillSlots(C.template, {
         // {count}: "מושג אחד" / "שני מושגים" / "5 מושגים" (never "1 מושגים"); older content keeps {n}
         count: C.count ? fillSlots(pluralOf(C.count, unlocked.length), { n: numberText(unlocked.length) }) : tp('plural.concepts', unlocked.length),
-        n: numberText(unlocked.length), all: numberText(available.length), list: unlocked.map((c) => c.term).join(', '),
+        n: numberText(unlocked.length), all: numberText(available.length), list: unlocked.map((c) => (mode === 'family' && C.names?.[c.id]) || c.term).join(', '), // family: the children's names (round 12)
       })
       : C.none,
     unlocked: unlocked.map((c) => c.id),

@@ -34,6 +34,11 @@ Run `npm run build` first. It uses the Chromium that Playwright finds; set `CHRO
 `SMOKE_MOTION=full` (default is reduced motion for speed), `SMOKE_SEED`, `SMOKE_URL` (test a deployed URL).
 In CI run `npx playwright install --with-deps chromium` once.
 
+Further browser checks (all take `AXE=/path/to/axe.min.js` for an axe pass after the fades): `npm run smoke:tutorial` (first game, hints,
+hand-over; `THEME=dark|light`, `SMOKE_W`/`SMOKE_H`, `PLAYERS`), `npm run smoke:daily`, `npm run smoke:r11`, `npm run smoke:r12`.
+Every state those visit also measures the **rendered contrast of every amount** (`tests/e2e/contrast-lib.mjs`: screenshot with the text
+hidden, pixels behind each `.money` element against its effective colour, fails below 4.5:1), because axe cannot judge text on a gradient.
+
 ## Project layout
 
 ```
@@ -116,6 +121,11 @@ errors are listed with the card id. Required fields:
 { "id": "mkt-098", "deck": "market", "modes": ["full"], "effect": "stockPrice", "title": "...", "text": "...", "symbol": "ABC", "newPrice": 55 }
 { "id": "mkt-097", "deck": "market", "modes": ["family", "full"], "effect": "cash", "title": "...", "text": "...", "amount": -1000 }
 ```
+
+**Children's wording (family mode).** Any card may carry `"titleFamily"` and/or `"textFamily"`: a family game draws the card with
+that wording in `title` / `text` (numbers are never touched; full mode shows the plain `title` / `text`). Use it when the plain
+text needs an adult money word (תשואה, מקדמה, משכנתא, תזרים, הכנסה פסיבית ...); `tests/round12.test.js` scans every family-mode card
+for the forbidden list in `docs/v2/tutorial/spec.md` and fails with the card id.
 
 Professions live in `src/data/professions.he.json` (salary, savings, perChild, itemised expenses, starting liabilities).
 Starting debts carry `"debt": "car" | "card" | "student"`; their monthly payment must equal principal x the rate of that kind

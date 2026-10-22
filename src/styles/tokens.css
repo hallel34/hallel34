@@ -277,6 +277,10 @@
   --press-scale: 1; --hop-height: 0px;
 }
 
+/* ---- Family mode never shows red (no shaming): what goes out is calm amber, in both themes ---- */
+:root[data-learn="family"] { --expense: #FFD27A; --expense-fill: #F2B53A; --expense-ink: #6E4200; }
+:root[data-learn="family"][data-theme="light"] { --expense: #6E4200; }
+
 /* ---- Base helpers ---- */
 .money { font-family: var(--font-display); font-weight: var(--fw-bold);
   font-variant-numeric: tabular-nums; font-feature-settings: var(--num-features);

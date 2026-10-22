@@ -80,10 +80,10 @@ describe('hints are never lost', () => {
   });
   it('every offered hint shows within two turns even behind a busier one', () => {
     const s = sched();
-    s.offer('h-expense-paid', 2); s.offer('h-meter', 2); s.offer('h-almost', 2);
+    s.offer('h-expense-paid', 2); s.offer('h-roll', 2); s.offer('h-almost', 2);
     const shownAt = {};
     for (let turn = 2; turn <= 5; turn++) { s.newTurn(); const g = s.takeFloating(turn); if (g) shownAt[g.id] = turn; }
-    expect(Object.keys(shownAt).sort()).toEqual(['h-almost', 'h-expense-paid', 'h-meter']);
+    expect(Object.keys(shownAt).sort()).toEqual(['h-almost', 'h-expense-paid', 'h-roll']);
     expect(Math.max(...Object.values(shownAt)) - 2).toBeLessThanOrEqual(2);
   });
   it('a hint released when hints were switched off is not re-queued', () => {

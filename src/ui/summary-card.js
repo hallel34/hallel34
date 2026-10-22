@@ -5,7 +5,7 @@ import { h } from './dom.js';
 import { t } from '../i18n/index.js';
 import { openLayer } from './modal.js';
 import { button } from './widgets.js';
-import { money, moneyText } from './format.js';
+import { money, moneyText, moneySpoken } from './format.js';
 import { animate, haptic } from './fx.js';
 import { motionOK } from './prefs.js';
 import { getLearnMode } from '../learn/context.js';
@@ -39,7 +39,7 @@ export function summaryOneLine(f) {
 /** The sentence a screen reader hears when the card opens: the one-liner and where the cash goes. */
 export function summarySpoken(f) {
   const sb = tut().summaryBreakdown;
-  return `${summaryOneLine(f)}. ${fillSlots(sb.arrivalSr, { cashBefore: moneyText(f.cashBefore), cashAfter: moneyText(f.cashAfter) })}`;
+  return `${summaryOneLine(f)}. ${fillSlots(sb.arrivalSr, { cashBefore: moneySpoken(f.cashBefore), cashAfter: moneySpoken(f.cashAfter) })}`;
 }
 
 const rowLabel = (id) => (id === 'passive' ? passiveLabel() : tut().summaryBreakdown.rows.find((r) => r.id === id).label);
@@ -75,8 +75,10 @@ export function summaryCard({ figures: f, hint = null }) {
     h('span', { class: 'sc-calc' }, h('bdi', { dir: 'ltr', class: 'money' }, moneyText(f.monthly, { sign: neg })), ' × ', h('bdi', { dir: 'ltr' }, String(f.months)), ' = '), result,
     neg ? h('span', { class: 'sc-note' }, sb.negativeNote) : null);
   const [arrA, arrB] = sb.arrival.split('→');
-  const caption = h('p', { class: 'sc-cash', 'data-row': 'cash' },
-    fillNodes(arrA, { cashBefore: money(f.cashBefore) }), h('span', { class: 'sc-arrow', 'aria-hidden': 'true' }, '→'), fillNodes(arrB, { cashAfter: money(f.cashAfter) }));
+  // the label may wrap, the two amounts and the arrow never split (7-digit cash on a 320px screen): they move to the next line as one piece
+  const [arrLabel] = arrA.split('{cashBefore}');
+  const caption = h('p', { class: 'sc-cash', 'data-row': 'cash' }, arrLabel,
+    h('span', { class: 'sc-pair' }, fillNodes('{cashBefore}', { cashBefore: money(f.cashBefore) }), h('span', { class: 'sc-arrow', 'aria-hidden': 'true' }, '→'), fillNodes(`{cashAfter}${arrB.replace('{cashAfter}', '')}`, { cashAfter: money(f.cashAfter) })));
   const strip = hint ? hintStrip({ body: hint.body, more: hint.more, cls: 'in-summary' }) : null;
 
   let layer;

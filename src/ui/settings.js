@@ -118,7 +118,7 @@ async function openHowToFamily(professionId) {
     row('book', t('settings.dictionary'), 'howto-dictionary', () => openDictionary()),
     h('h3', { class: 'howto-rules-title' }, ui.howtoRules),
     h('ol', { class: 'howto' }, tut().howtoKid.steps.map((s) => h('li', null, s))),
-    h('p', { class: 'howto-note', 'data-howto': 'note' }, tut().howtoKid.note ?? t('howto.note')), // the kids' sheet has its own one-line note, not the adult paragraph
+    tut().howtoKid.note ? h('p', { class: 'howto-note', 'data-howto': 'note' }, tut().howtoKid.note) : null, // the kids' sheet has its own one-line note, never the adult paragraph or the daily-challenge note
     row('help', ui.parentCardOpen, 'howto-parent', async () => { const { openParentCard } = await import('./tutorial/index.js'); openParentCard(); }),
     h('div', { class: 'dialog-actions' }, button(t('card.ok'), { variant: 'primary', 'data-autofocus': '', onClick: () => layer.close() })));
   layer = openLayer(content, { kind: 'modal', label: tut().howtoKid.title, cls: 'layer-dialog' });

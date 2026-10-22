@@ -11,7 +11,7 @@ import { animate, haptic } from '../fx.js';
 import { motionOK } from '../prefs.js';
 import { holdBack } from '../history.js';
 import { tut, fillNodes } from '../hint-ui.js';
-import { storyFigures } from '../../learn/tutorial.js';
+import { storyFigures, leftTemplate } from '../../learn/tutorial.js';
 import treeUrl from '../../assets/tutorial/tree-coins.svg?url';
 import billsUrl from '../../assets/tutorial/bills-stack.svg?url';
 import bankUrl from '../../assets/tutorial/bank.svg?url';
@@ -64,9 +64,14 @@ export function storyScreen({ screen, slots, n, total, part = null }) {
   const cur = parts && part != null ? parts[Math.min(part, parts.length - 1)] : null;
   const lines = parts ? (cur ? [cur.text] : parts.map((p) => p.text)) : screen.lines;
   const exampleText = cur ? cur.exampleText : parts ? null : ex.text;
-  const exampleBody = exampleText ? (slotsFor ? fillNodes(exampleText, slotsFor) : emphasise(exampleText)) : null;
+  // 'ועוד ₪X בחודש לחופש': winning needs strictly more than the expenses, so the story's amount is followed by 'וקצת' too (round 12, item 8)
+  const truthful = (x) => (slotsFor && x.includes('{left}') && slots.f.left > 0 ? leftTemplate(x, slots.f.left, { andABit: t('goal.andABitShort'), onTheLine: x }) : x);
+  const exampleBody = exampleText ? (slotsFor ? fillNodes(truthful(exampleText), slotsFor) : emphasise(exampleText)) : null;
   const showChain = !!screen.chain && (!cur || cur.id === 'p2-gather' || cur.id === 'p4-times');
-  const showSimplify = screen.simplification && (!cur || !screen.simplificationAfterPart || parts.findIndex((p) => p.id === screen.simplificationAfterPart) <= parts.indexOf(cur));
+  // the 'במשחק זה מפושט' box belongs to one part (round 12: part 4 only, never repeated under part 5); without a list it follows the old 'from this part on' rule
+  const showSimplify = screen.simplification && (!cur || (screen.simplificationShowOnParts
+    ? screen.simplificationShowOnParts.includes(cur.id)
+    : !screen.simplificationAfterPart || parts.findIndex((p) => p.id === screen.simplificationAfterPart) <= parts.indexOf(cur)));
   const art = ART[screen.id];
   const pose = screen.pose;
   const stage = h('div', { class: `story-stage${art ? ' has-art' : ' fox-only'}`, 'data-pose': pose },
@@ -76,7 +81,7 @@ export function storyScreen({ screen, slots, n, total, part = null }) {
   return h('div', { class: 'story-screen', 'data-story': screen.id, 'data-n': String(n), 'data-total': String(total) },
     stage,
     h('h2', { class: 'story-title', tabindex: '-1' }, screen.title),
-    h('div', { class: 'story-body' }, lines.map((l) => h('p', null, slotsFor ? fillNodes(l, slotsFor) : l))),
+    h('div', { class: 'story-body' }, lines.map((l) => h('p', null, slotsFor ? fillNodes(truthful(l), slotsFor) : l))),
     exampleBody || showChain
       ? h('div', { class: 'story-card', 'data-story-card': '' },
         exampleBody ? [h('span', { class: 'story-card-label' }, ui.exampleLabel), h('p', { class: 'story-card-text' }, exampleBody)] : null,

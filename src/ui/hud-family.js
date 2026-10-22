@@ -7,7 +7,7 @@ import { animate } from './fx.js';
 import { motionOK } from './prefs.js';
 import { statement, PAYDAY_MONTHS } from '../engine/index.js';
 import { freedomView } from '../learn/tutorial.js';
-import { tut, fillNodes } from './hint-ui.js';
+import { tut, fillNodes, leftNodes, leftWords } from './hint-ui.js';
 import { fillSlots } from '../learn/slots.js';
 import { t } from '../i18n/index.js';
 
@@ -109,8 +109,8 @@ export function createFamilyHud({ hud, chip, goalLine, freeLine }) {
         const minimal = window.matchMedia?.(`(max-height: ${GOAL_MIN_HEIGHT}px)`).matches; // never hidden: at the smallest screens it is one short line
         goalLine.textContent = minimal ? t('goal.min') : short ? gl.textShort : gl.text;
         const fv = freedomView(state);
-        goalLine.setAttribute('aria-label', fillSlots(gl.a11y, { left: moneyText(fv.left) }));
-        freeLine.replaceChildren(freeText(fv, gl.progress));
+        goalLine.setAttribute('aria-label', fv.left > 0 ? fillSlots(leftWords(gl.a11y, state), { left: moneyText(fv.left) }) : `${gl.text}. ${fv.kind === 'won' ? gl.progress.won : gl.progress.onTheLine}`);
+        freeLine.replaceChildren(freeText(fv, gl.progress, state));
         freeLine.dataset.kind = fv.kind;
       }
     },
@@ -121,7 +121,8 @@ export function createFamilyHud({ hud, chip, goalLine, freeLine }) {
 }
 
 /** 'עוד ₪6,410 בחודש לחופש' / 'כמעט חופשיים! עוד ...' / 'ממש על הקו! עוד קצת' / 'חופשיים!' */
-function freeText(fv, p) {
-  const tpl = { won: p.won, onTheLine: p.onTheLine, almost: p.almost, left: p.text }[fv.kind];
-  return fillNodes(tpl, { left: money(fv.left) });
+function freeText(fv, p, state) {
+  if (fv.kind === 'won') return fillNodes(p.won);
+  if (fv.kind === 'onTheLine') return fillNodes(p.onTheLine);
+  return leftNodes(fv.kind === 'almost' ? p.almost : p.text, state);
 }

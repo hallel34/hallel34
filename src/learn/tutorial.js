@@ -41,6 +41,24 @@ export function freedomView(s) {
   return { kind, left, pct, passive, expenses };
 }
 
+/**
+ * 'h-almost' moment: the meter is at 75% or more and the game is not won yet (exactly on the line counts: winning needs MORE).
+ * Pure, so the trigger is testable without a screen.
+ */
+export const almostEligible = (s) => { const k = freedomView(s).kind; return k === 'almost' || k === 'onTheLine'; };
+
+/**
+ * The ONE truthful 'what is left' phrasing (spec round 12): winning needs passive income strictly above the expenses, so while
+ * left > 0 the amount is followed by 'ועוד קצת', and at left = 0 (exactly on the line) the line says that instead of 'עוד ₪0'.
+ * `template` holds a {left} slot; the result still holds it (the caller fills it with a formatted amount). A template that already
+ * says it (e.g. 'עוד {left} בחודש ועוד קצת') is left as it is.
+ */
+export function leftTemplate(template, left, { andABit, onTheLine }) {
+  if (left <= 0) return onTheLine;
+  if (!template.includes('{left}') || template.includes(andABit)) return template;
+  return template.replace('{left}', `{left} ${andABit}`);
+}
+
 // ---------- the itemised summary card ----------
 /**
  * The figures of one 'סיכום שנתיים': salary + passive - expenses = monthly; monthly x months = amount. They come from the
@@ -108,8 +126,33 @@ export function storyFigures(state, cards) {
   };
 }
 
+// ---------- the 'סיכום שנתיים' square on the board (h-summary-square) ----------
+/** Steps from `position` to the next payday square (1..board length), or 0 when the board has none. */
+export function nextPaydayDistance(board, position) {
+  for (let k = 1; k <= board.length; k++) if (board[(position + k) % board.length] === 'payday') return k;
+  return 0;
+}
+/** The furthest the next roll can go (one die, two during the charity bonus). */
+export const rollRange = (state) => ((state.charityTurns ?? 0) > 0 ? 12 : 6);
+/**
+ * Should the board hint 'look for the סיכום שנתיים square' be offered now? From the first moment the player stands at least one
+ * step before a payday square that the next roll can reach (turn 1 included, before the first roll), until the first summary has
+ * been seen or turn 3 is over.
+ */
+export function summarySquareDue({ board, position, turn, charityTurns = 0, summarySeen = false }) {
+  if (summarySeen || turn > 3) return false;
+  const d = nextPaydayDistance(board, position);
+  return d >= 1 && d <= rollRange({ charityTurns });
+}
+/** One re-offer at most: the hint may be taken twice (turn 1 before the roll, and once more if that roll skipped it). */
+export const SQUARE_HINT_MAX_TAKES = 2;
+
 // ---------- hints (spec section 5) ----------
 /** Hints that float in the roll zone (at most one per turn); the others are strips inside a card, the summary or the loan window. */
+/** A hint that makes another one pointless: 'almost' (75%+) says everything 'the meter' would, so it takes its place. */
+export const SUPERSEDES = { 'h-almost': ['h-meter'] };
+/** Time-critical hints jump the queue (the player is a few turns from the end). */
+export const URGENT_HINTS = ['h-almost'];
 export const FLOATING_HINTS = ['h-roll', 'h-expense-paid', 'h-expense-loan', 'h-meter', 'h-almost', 'h-summary-square'];
 /** The two expense hints are one lesson: whichever shows first retires the other. */
 export const EXPENSE_GROUP = ['h-expense-paid', 'h-expense-loan'];
@@ -143,7 +186,9 @@ export function createHintScheduler({ seen = {}, active = () => true, mark = () 
     release(id, turn = 0) {
       const taken = taking.get(id);
       for (const g of group(id)) if (book[g] != null) { delete book[g]; unmark(g); }
-      if (active() && !pending.some((p) => p.id === id)) pending.push({ id, turn: taken?.turn ?? turn, ctx: taken?.ctx ?? {}, requeued: true });
+      const by = Object.keys(SUPERSEDES).find((k) => SUPERSEDES[k].includes(id));
+      const replaced = by && (isSeen(by) || pending.some((p) => p.id === by));
+      if (active() && !replaced && !pending.some((p) => p.id === id)) pending.push({ id, turn: taken?.turn ?? turn, ctx: taken?.ctx ?? {}, requeued: true });
       taking.delete(id);
     },
     /** Inline hint at its moment: true (and remembered) when it should show now. */
@@ -155,6 +200,10 @@ export function createHintScheduler({ seen = {}, active = () => true, mark = () 
     /** A floating hint whose moment has come; it waits for a free turn slot. */
     offer(id, turn = 0, ctx = {}) {
       if (!active() || isSeen(id) || pending.some((p) => p.id === id)) return;
+      // a superseded hint never shows once its replacement is waiting or seen
+      const by = Object.keys(SUPERSEDES).find((k) => SUPERSEDES[k].includes(id));
+      if (by && (isSeen(by) || pending.some((p) => p.id === by))) return;
+      for (const gone of SUPERSEDES[id] ?? []) { pending = pending.filter((p) => p.id !== gone); if (book[gone] == null) { book[gone] = turn; mark(gone, turn); } }
       pending.push({ id, turn, ctx });
     },
     /** The floating hint to show now (at most one per turn), or null. Marks it seen. */
@@ -163,7 +212,7 @@ export function createHintScheduler({ seen = {}, active = () => true, mark = () 
       pending = pending.filter((p) => !isSeen(p.id));
       if (!pending.length) return null;
       // a re-queued or overdue hint (waiting 2+ turns) outranks everything else: nothing waits forever behind a busier hint
-      const rank = (p) => priorityOf(p.id) - (p.requeued ? 20 : 0) - (turn - p.turn >= 2 ? 20 : 0);
+      const rank = (p) => priorityOf(p.id) - (p.requeued ? 20 : 0) - (turn - p.turn >= 2 ? 20 : 0) - (URGENT_HINTS.includes(p.id) ? 40 : 0);
       pending.sort((a, b) => rank(a) - rank(b) || a.turn - b.turn);
       const next = pending.shift();
       taking.set(next.id, { turn: next.turn, ctx: next.ctx });

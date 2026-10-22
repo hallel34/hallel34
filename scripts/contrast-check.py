@@ -100,7 +100,10 @@ light=[
  ('tutorial: summary negative result amber / navy band','#FFD27A','#0F1E46',4.5),('tutorial: popover left pill (positive)','#032A1A','#4FD6A0',4.5),
  ('tutorial: popover left pill (negative, amber ink on amber fill over cream card)','#6E4200','#FFEBC2',4.5),('tutorial: hint strip text / navy','#FFFFFF','#0F1E46',4.5),
  ('tutorial: hint strip number gold / navy','#FFD479','#0F1E46',4.5),('tutorial: story title gold / night','#F2B53A','#091330',4.5),
- ('tutorial: story card muted / cream','#46527E','#FFF6E3',4.5),('tutorial: highlight ring gold-700 on cream (non-text)','#A56A0A','#FFF6E3',3),('tutorial: highlight ring gold-300 on navy (non-text)','#FFD479','#0F1E46',3),
+ ('tutorial: story card muted / cream','#46527E','#FFF6E3',4.5),
+ # round 12: story numerals follow their background (light on the night story, ink in the cream card); family mode has no red (amber)
+ ('tutorial: story numeral white / night (bottom of the gradient)','#FFFFFF','#1B3068',4.5),('tutorial: story numeral ink / cream card','#0F1E46','#FFF6E3',4.5),
+ ('family: expense amber / bg','#FFD27A','#0F1E46',4.5),('family: expense amber / surface','#FFD27A','#16295E',4.5),('family: expense amber ink / cream card','#6E4200','#FFF6E3',4.5),('tutorial: highlight ring gold-700 on cream (non-text)','#A56A0A','#FFF6E3',3),('tutorial: highlight ring gold-300 on navy (non-text)','#FFD479','#0F1E46',3),
 ]
 bad=0; md='--md' in sys.argv
 for name,rows in (('DARK',dark),('LIGHT',light)):

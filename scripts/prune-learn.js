@@ -32,6 +32,7 @@ function pruneTutorial(data) {
     return Object.fromEntries(Object.entries(v).filter(([k]) => !TUTORIAL_DROP.has(k)).map(([k, x]) => [k, drop(x)]));
   };
   const o = drop(out);
+  if (data.howtoKid?.note && o.howtoKid) o.howtoKid.note = data.howtoKid.note; // the kids' how-to sheet renders it (a 'note' key is authoring text everywhere else)
   // hint targets that the UI needs are the `steps[].target` ids of the card tour (kept below); worked examples are authoring only
   for (const it of o.hints?.items ?? []) { delete it.example; }
   delete o.summaryBreakdown?.example; delete o.hudFamily?.example;

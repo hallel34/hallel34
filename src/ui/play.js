@@ -37,12 +37,13 @@ import { REACTIONS, LAND_REACTION, tipIndexForTurn } from './fox-rules.js';
 import { summaryCard } from './summary-card.js';
 import { createFamilyHud, GOAL_MIN_HEIGHT } from './hud-family.js';
 import {
-  tut, hintDef, fillNodes, showRing, hintStrip, hintMoreAllowed,
+  tut, hintDef, fillNodes, leftWords, showRing, hintStrip, hintMoreAllowed,
 } from './hint-ui.js';
+import { cardTitle as cardTitleOf } from './card-view.js';
 import { loadTutorial, markHintSeen, unmarkHintSeen, gamesFinished } from '../learn/tutorial-store.js';
 import {
   goalLineVisible, hintsActive, tipReplaced, explainerAllowed, summaryFigures, summaryHintId, createHintScheduler, assetKindOf,
-  cardTourFigures, freedomView, leftToFreedom,
+  cardTourFigures, freedomView, leftToFreedom, almostEligible, summarySquareDue, SQUARE_HINT_MAX_TAKES,
 } from '../learn/tutorial.js';
 import { yearsPhrase, fillSlots } from '../learn/slots.js';
 import coinUrl from '../assets/coin.svg?url';
@@ -123,8 +124,9 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   // Family: 'מזומן' is named once in words ('הכסף שיש לכם עכשיו'): a caption under the number on tall screens, a tap-for-tooltip on short ones
   const cashUi = isFamily ? tut().ui : null;
   const cashWrap = h('span', { class: 'cash-wrap', 'aria-label': cashUi ? `${t('game.cash')}, ${cashUi.cashLabel}` : t('game.cash'), title: cashUi?.cashTooltip }, cash.el);
-  const cashCap = cashUi ? h('p', { class: 'cash-cap', 'data-cash-caption': '' }, cashUi.cashCaption) : null;
-  if (cashUi) cashWrap.addEventListener('click', () => { if (getComputedStyle(cashCap).display === 'none') toast(cashUi.cashTooltip, 3500); });
+  // tall screens: the full caption; short ones (<= 640): the compact word 'מזומן' (never hidden: the number always says what it is)
+  const cashCap = cashUi ? h('p', { class: 'cash-cap', 'data-cash-caption': '' }, h('span', { class: 'cap-long' }, cashUi.cashCaption), h('span', { class: 'cap-short' }, t('game.cash'))) : null;
+  if (cashUi) cashWrap.addEventListener('click', () => { if (getComputedStyle(cashCap.querySelector('.cap-long')).display === 'none') toast(cashUi.cashTooltip, 3500); });
   fitText(cash.el, { minScale: 0.5, box: cashWrap }); // very narrow screens (320px): a long amount shrinks to fit instead of overflowing
   const passiveVal = h('b', { class: 'tone-income' });
   const expenseVal = h('b', { class: 'tone-expense' });
@@ -232,8 +234,11 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   function floatingView(id, ctx = {}) {
     let def = hintDef(id);
     const st = statement(state);
-    // 'h-almost' says 'עוד {left} ועוד קצת': exactly on the line (left = 0) winning still needs MORE, so the line says that instead
-    if (id === 'h-almost' && leftToFreedom(state) === 0) def = { ...def, text: tut().goalLine.progress.onTheLine, more: null };
+    // every 'what is left' phrase is the truthful one (left > 0: '... ועוד קצת'; exactly on the line: the on-the-line sentence, nothing more)
+    if (id === 'h-almost' || id === 'h-meter') {
+      const onLine = leftToFreedom(state) === 0;
+      def = { ...def, text: leftWords(def.text, state), more: onLine || !def.more ? null : leftWords(def.more, state) };
+    }
     const slots = { amount: money(ctx.amount ?? 0), cashLeft: money(ctx.cashLeft ?? state.cash), passive: money(st.passiveIncome), expenses: money(st.totalExpenses), left: money(leftToFreedom(state)) };
     return { id, pose: def.pose, body: fillNodes(def.text, slots), more: def.more ? fillNodes(def.more, slots) : null, plain: def.text };
   }
@@ -260,6 +265,14 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
       onHide: () => { ring?.remove(); ring = null; },
     });
     return true;
+  }
+  /** 'חפשו על הלוח את משבצת סיכום שנתיים': offered whenever a payday square is within the next roll (turn 1 included), re-offered once if the roll skipped it. */
+  let squareTakes = 0;
+  function offerSquareHint() {
+    const summarySeen = hints.isSeen('h-summary') || hints.isSeen('h-summary-income');
+    const moot = summarySeen || state.turn > 3 || squareTakes >= SQUARE_HINT_MAX_TAKES;
+    if (moot) { hints.drop('h-summary-square'); return; }
+    if (summarySquareDue({ board: BOARD, position: state.position, turn: state.turn, charityTurns: state.charityTurns, summarySeen })) hints.offer('h-summary-square', state.turn);
   }
   /** A floating hint that never reached the screen (the player rolled on first) is given back for a later turn. */
   function releaseUnshownHint() {
@@ -314,7 +327,9 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
 
   /** Hot-seat: one learning line for the pass-the-phone sheet (the zone is covered then): a hint, else an explainer, else a tip. */
   function sheetExtra() {
+    offerSquareHint();
     const next = hints.takeFloating(state.turn);
+    if (next?.id === 'h-summary-square') squareTakes += 1;
     if (next) { const v = floatingView(next.id, next.ctx); return { body: v.body, more: v.more, pose: v.pose, label: tut().ui.hintFoxLabel }; }
     const ex = flow.explainerForSheet({ allowed: explainerAllowed({ active: hintsOn(), turn: state.turn }) });
     if (ex) return { body: [h('b', null, ex.name), ': ', ex.short], pose: 'tip', label: t('learn.foxSays') };
@@ -540,7 +555,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     animate(rollFox, [{ transform: 'translateX(0) rotate(0deg)' }, { transform: 'translateX(0) rotate(-6deg)', offset: 0.4 }, { transform: `translateX(${dirSign() * 8}px) rotate(4deg)` }], { duration: 200, easing: 'ease-out', fill: 'none' });
   }
 
-  const cardTitle = (id) => engine.data.cards.find((c) => c.id === id)?.title ?? '';
+  const cardTitle = (id) => cardTitleOf(engine.data.cards.find((c) => c.id === id), state.mode);
 
   // ---------- state application ----------
   const syncCash = (dur) => cash.to(state.cash, dur);
@@ -587,7 +602,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     const crossed = [0.25, 0.5, 0.75].find((mark) => lastPct < mark && pct >= mark && pct < 1);
     lastPct = pct;
     if (passiveIncome(before) < st.passiveIncome) hints.offer('h-meter', state.turn); // the first asset that pays
-    if (pct >= 0.75 && pct < 1) hints.offer('h-almost', state.turn);
+    if (almostEligible(state)) hints.offer('h-almost', state.turn);
     if (crossed) { pushLog(t('game.milestone', { pct: Math.round(crossed * 100) }), 'good'); react('celebrate'); }
     return true;
   }
@@ -635,6 +650,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     if (busy || destroyed || state.phase !== 'roll' || state.status !== 'playing') return;
     setBusy(true, 'rolling');
     releaseUnshownHint();
+    hints.drop('h-roll'); // the roll hint belongs to the moment before the first roll
     flow.newTurn();
     hints.newTurn();
     hints.sync(loadTutorial().hintsSeen);
@@ -689,8 +705,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     if (match.status !== 'playing') { setBusy(false); await finishIfOver(); return; }
     if (state.status === 'lost') { await outFlow(); return; }
     // until the first 'סיכום שנתיים' has been passed (turns 1-3) the fox points at that square on the board (after h-roll, never with it)
-    const squareMoot = hints.isSeen('h-summary') || hints.isSeen('h-summary-income') || state.turn > 3;
-    if (squareMoot) hints.drop('h-summary-square'); else if (state.turn >= 1) hints.offer('h-summary-square', state.turn);
+    offerSquareHint();
     // the fox points from the roll zone after the feedback line (single player); in hot-seat the sheet carries it
     if (!multi) showFloatingHint();
     settleButton();
@@ -1038,7 +1053,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
         await handoverAndRoll({ extra: sheetExtra() });
         return;
       }
-      if (state.turn === 0) { hints.offer('h-roll', 0); showFloatingHint(); }
+      if (state.turn === 0) { hints.offer('h-roll', 0); offerSquareHint(); showFloatingHint(); }
       maybeTip();
     },
     destroy: () => teardown(),

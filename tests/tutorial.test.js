@@ -95,14 +95,14 @@ describe('first-time hints', () => {
 
   it('at most one floating hint per turn, lowest priority number first; the rest wait', () => {
     const { s } = sched();
-    s.offer('h-meter', 3); s.offer('h-expense-paid', 3); s.offer('h-almost', 3);
+    s.offer('h-meter', 3); s.offer('h-expense-paid', 3); s.offer('h-roll', 3);
     const first = s.takeFloating(3);
     expect(first.id).toBe('h-expense-paid');
     expect(s.takeFloating(3)).toBeNull();
     s.newTurn();
     expect(s.takeFloating(4).id).toBe('h-meter');
     s.newTurn();
-    expect(s.takeFloating(5).id).toBe('h-almost');
+    expect(s.takeFloating(5).id).toBe('h-roll');
     s.newTurn();
     expect(s.takeFloating(6)).toBeNull();
   });

@@ -6,6 +6,8 @@ import { foxImg } from './fox.js';
 import { richNodes } from './rich.js';
 import { money } from './format.js';
 import { learnContent } from '../learn/content.js';
+import { t } from '../i18n/index.js';
+import { freedomView, leftTemplate } from '../learn/tutorial.js';
 import { motionOK } from './prefs.js';
 
 /** The validated tutorial content (src/data/learn/tutorial.he.json). */
@@ -17,7 +19,8 @@ export const hintMoreAllowed = () => window.innerHeight >= tut().hints.bubble.mo
 /** A money value as the <bdi dir=ltr> node the UI uses everywhere. */
 export const amount = (n, opts) => money(n, opts);
 /** Template -> DOM nodes: {slot} values may be strings or nodes (a node used twice is cloned), glossary markup becomes terms. */
-export const fillNodes = (template, slots = {}) => richNodes(template, slots);
+export const fillNodes = (template, slots = {}) => richNodes(template, Object.fromEntries(Object.entries(slots).map(([k, v]) => [k, v?.nodeType ? v.cloneNode(true) : v])));
+// (every call clones the node slots: the same figure can fill the text AND the 'more' line of one hint without being moved out of the first)
 
 // ---------- highlight ring ----------
 /**
@@ -25,7 +28,7 @@ export const fillNodes = (template, slots = {}) => richNodes(template, slots);
  * 220ms scale-in, the glow pulses three times, then it holds still; reduced motion: a still ring. It follows the target while
  * the target moves (a scrolling card). Returns { move(target), remove() }.
  */
-export function showRing(target, { onCream = false, holdMs = 12000 } = {}) {
+export function showRing(target, { onCream = false, holdMs = 12000, avoid = null } = {}) {
   let node = null;
   let raf = 0;
   let current = null;
@@ -38,6 +41,9 @@ export function showRing(target, { onCream = false, holdMs = 12000 } = {}) {
     node.style.blockSize = `${r.height}px`;
     node.style.transform = `translate(${r.left}px, ${r.top}px)`;
     node.hidden = r.width === 0 || r.height === 0;
+    // never over a pinned control: when the target slides under (or next to) `avoid` (the dialog's button bar) the ring steps aside
+    const bar = typeof avoid === 'function' ? avoid() : avoid;
+    if (bar?.isConnected && !node.hidden) { const b = bar.getBoundingClientRect(); if (r.bottom + 10 > b.top && r.top - 10 < b.bottom && r.right + 10 > b.left && r.left - 10 < b.right) node.hidden = true; }
     raf = requestAnimationFrame(place);
   };
   const api = {
@@ -73,3 +79,9 @@ export function hintStrip({ body, more = null, action = null, cls = '', pose = '
     action ? h('button', { type: 'button', class: 'btn btn-primary btn-sm hint-next', 'data-action': 'hint-next', onClick: action.onClick }, action.label) : null);
   return strip;
 }
+
+// ---------- 'what is left to freedom': one truthful phrasing everywhere (HUD goal line, h-meter, h-almost) ----------
+/** The template with {left} made truthful (see leftTemplate): '... עוד {left} ועוד קצת ...' or the exactly-on-the-line sentence. */
+export const leftWords = (template, state) => leftTemplate(template, freedomView(state).left, { andABit: t('goal.andABit'), onTheLine: tut().goalLine.progress.onTheLine });
+/** The same as DOM nodes ({left} is a money node). */
+export const leftNodes = (template, state) => fillNodes(leftWords(template, state), { left: money(freedomView(state).left) });

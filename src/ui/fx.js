@@ -197,8 +197,9 @@ export const pause = (ms) => new Promise((r) => setTimeout(r, motionOK() ? ms : 
 export function placeToast(layer, el) {
   el.style.marginBlockEnd = '0px';
   el.classList.remove('is-passive');
-  const base = layer.getBoundingClientRect().bottom;
   const w = el.getBoundingClientRect();
+  el.style.visibility = 'hidden'; // out of the hit test while measuring: the toast itself must not count as 'on top' of a control
+  const base = layer.getBoundingClientRect().bottom;
   const hgt = el.offsetHeight;
   const controls = [...document.querySelectorAll('button, [role="button"], a[href], input, [data-action]')].filter((c) => {
     if (el.contains(c) || c.closest('[inert]')) return false;
@@ -214,6 +215,7 @@ export function placeToast(layer, el) {
     if (!over.length) break;
     bottom = Math.min(...over.map((r) => r.top)) - 8;
   }
+  el.style.visibility = '';
   const clear = hits(bottom).length === 0 && bottom - hgt >= 8;
   if (clear) el.style.marginBlockEnd = `${Math.round(base - bottom)}px`;
   else { el.classList.add('is-passive'); el.querySelector('.toast-btn')?.setAttribute('tabindex', '-1'); }
@@ -229,9 +231,11 @@ export function toast(text, ms = 2200, { action = null } = {}) {
     action ? h('button', { type: 'button', class: 'toast-btn', 'data-action': 'toast-action', onClick: () => { action.onClick(); el.remove(); } }, action.label) : null);
   layer.append(el);
   placeToast(layer, el);
-  if (action) { requestAnimationFrame(() => placeToast(layer, el)); setTimeout(() => placeToast(layer, el), 450); } // a sheet may still be sliding in
+  // a sheet may still be sliding in or a new layer may open under it: the toast keeps stepping aside while it lives
+  const keep = action ? setInterval(() => { if (!el.isConnected) clearInterval(keep); else placeToast(layer, el); }, 200) : 0;
   animate(el, [{ opacity: 0, transform: motionOK() ? 'translateY(12px)' : 'none' }, { opacity: 1, transform: 'none' }], { duration: 200 });
   setTimeout(() => {
+    clearInterval(keep);
     animate(el, [{ opacity: 1 }, { opacity: 0 }], { duration: 200 }).finished.then(() => el.remove(), () => el.remove());
   }, ms);
 }

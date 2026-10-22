@@ -21,6 +21,7 @@ import {
   paybackTier, PAYDAY_MONTHS, purchasePlan, loanTerms, dealMetrics,
 } from '../engine/index.js';
 import { LOAN_STEP } from '../engine/index.js';
+import { cardTitle, cardText, assetTitle } from './card-view.js';
 
 const BANNERS = import.meta.glob('../assets/card-*.svg', { eager: true, query: '?url', import: 'default' });
 const bannerUrl = (type) => BANNERS[`../assets/card-${type}.svg`] || BANNERS['../assets/card-opportunity.svg'];
@@ -276,7 +277,7 @@ function finishOpportunity({ state, c, body, flip, qtyGetter, plan, ctl = null, 
   const tourCtl = tour && !ctl ? {} : null;
   const tourUi = tour ? createCardTour(tour, () => (ctl ?? tourCtl).card) : null;
   const promise = cardShell({
-    type: 'opportunity', art: c.type, chip: `${t('square.opportunity')} · ${t(`type.${c.type}`)}`, title: c.title, text: c.text,
+    type: 'opportunity', art: c.type, chip: `${t('square.opportunity')} · ${t(`type.${c.type}`)}`, title: cardTitle(c, state.mode), text: cardText(c, state.mode),
     body, foot: deferred ? null : [tourUi?.strip, warn], actions: deferred ? [] : actions, flip, ctl: ctl ?? tourCtl,
     data: {
       afford: String(plan.status === 'ok'), buy: plan.status, kind: c.type, cost: String(plan.cost),
@@ -357,7 +358,7 @@ export function expenseModal(state, { card, amount, paid, flip = true }) {
       { id: 'loan', label: t('card.getLoan'), variant: 'primary', value: { action: 'loan' }, disabled: maxLoan(state) === 0, autofocus: maxLoan(state) > 0 },
     ];
   if (!paid && maxLoan(state) === 0) body.push(limitBanner());
-  return cardShell({ type: 'expense', art: 'expense', chip: t('square.expense'), title: card.title, text: card.text, body, actions, flip });
+  return cardShell({ type: 'expense', art: 'expense', chip: t('square.expense'), title: cardTitle(card, state.mode), text: cardText(card, state.mode), body, actions, flip });
 }
 
 export function shortfallModal(state, { flip = true } = {}) {
@@ -402,11 +403,11 @@ export function offerModal(state, { flip = true } = {}) {
       statTile(t('card.offerPrice'), money(p.offerPrice), { big: true }),
       statTile(t('card.offerProceeds'), money(p.proceeds, { sign: true }), { tone: p.proceeds >= 0 ? 'income' : 'expense', big: true }),
     ),
-    h('div', { class: 'banner banner-info' }, icon('market', { size: 26 }), h('span', null, t('card.offerFor', { asset: asset?.title ?? '' }))),
+    h('div', { class: 'banner banner-info' }, icon('market', { size: 26 }), h('span', null, t('card.offerFor', { asset: assetTitle(asset, state.mode) }))),
     realWorldForCard(p.card),
   ].filter(Boolean);
   return cardShell({
-    type: 'market', art: 'market', chip: t('square.market'), title: p.card.title, text: p.card.text, body,
+    type: 'market', art: 'market', chip: t('square.market'), title: cardTitle(p.card, state.mode), text: cardText(p.card, state.mode), body,
     actions: [
       { id: 'decline', label: t('card.decline'), variant: 'secondary', value: { action: 'decline' } },
       { id: 'accept', label: t('card.accept'), variant: 'buy', value: { action: 'accept' }, autofocus: true },
@@ -431,7 +432,7 @@ export function marketInfoModal(state, { card, noMatch, familyOffer, flip = true
   const rw = realWorldForCard(card);
   if (rw) body.push(rw);
   return cardShell({
-    type: 'market', art: 'market', chip: t('square.market'), title: card.title, text: card.text, body,
+    type: 'market', art: 'market', chip: t('square.market'), title: cardTitle(card, state.mode), text: cardText(card, state.mode), body,
     actions: [{ id: 'ok', label: t('card.ok'), variant: 'primary', value: { action: 'ok' }, autofocus: true }], flip,
   });
 }
@@ -574,7 +575,7 @@ export function loanDialog(state, { required = 0, gain = null, hint = null } = {
   if (st) update(start, start);
   if (hintEl && st) {
     let ring = null;
-    const t0 = setTimeout(() => { const row = d.layer.panel.querySelector('[data-loan="interest"]'); if (row && !d.layer.done) ring = showRing(row, { holdMs: 12000 }); }, 450);
+    const t0 = setTimeout(() => { const row = d.layer.panel.querySelector('[data-loan="interest"]'); if (row && !d.layer.done) ring = showRing(row, { holdMs: 12000, avoid: () => d.bar }); }, 450);
     d.layer.closed.then(() => { clearTimeout(t0); ring?.remove(); });
   }
   return d.promise.then((v) => (typeof v === 'number' ? v : null));
@@ -648,7 +649,7 @@ export function sellSheet(getState, onSell, { shouldClose = () => false } = {}) 
       upd();
       list.append(h('div', { class: 'sell-row', 'data-asset': a.id },
         h('div', { class: 'sell-info' },
-          h('strong', null, a.title),
+          h('strong', null, assetTitle(a, state.mode)),
           h('span', { class: 'muted' }, a.type === 'stock' ? t('statement.stockLine', { shares: tp('plural.shares', a.qty) }) : t(`type.${a.type}`)),
           h('span', null, tn('sell.proceeds', { amount: proceeds }))),
         qtyCtl?.el,
@@ -710,9 +711,12 @@ export function handoffSheet({ name, color, recap = null, extra = null, onHome =
     h('p', { class: 'dialog-text' }, withName(t('players.handoffText', { name: '{name}' }), name)),
     recapBlock, extraBlock,
     h('div', { class: 'sheet-cta' }, go,
-      onHome ? button(tutLabelHome().link, { variant: 'text', cls: 'btn-handoff-home', 'data-action': 'handoff-home', onClick: () => { if (armed) onHome(); } }) : null));
+      onHome ? button(tutLabelHome().link, { variant: 'text', cls: 'btn-handoff-home is-arming', style: `--arm-ms:${ARM_MS}ms`, 'aria-disabled': 'true', 'data-action': 'handoff-home', onClick: () => { if (armed) onHome(); } }) : null));
   layer = openLayer(content, { kind: 'sheet', label: t('players.handoffTitle', { name }), dismissable: false, cls: 'layer-handoff' });
-  const armTimer = setTimeout(() => { armed = true; go.removeAttribute('aria-disabled'); go.classList.remove('is-arming'); go.classList.add('is-armed'); }, ARM_MS);
+  const armTimer = setTimeout(() => {
+    armed = true;
+    for (const b of content.querySelectorAll('.is-arming')) { b.removeAttribute('aria-disabled'); b.classList.remove('is-arming'); b.classList.add('is-armed'); } // both buttons: the sweep ends together
+  }, ARM_MS);
   layer.closed.then(() => clearTimeout(armTimer));
   // torn down with the sheet still open (home, debug): nobody tapped
   layer.closed.then(() => resolveTap(false));

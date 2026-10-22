@@ -7,3 +7,4 @@ export { BOTS, step as botStep, playGame, playMatch } from './bots.js';
 export * from './match.js';
 export * from './learn.js';
 export * from './daily.js';
+export { cardView, hasFamilyWording } from './card-view.js';

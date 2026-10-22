@@ -4,6 +4,7 @@
 import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
+import { moneyContrast } from './contrast-lib.mjs';
 
 const require = createRequire(import.meta.url);
 let chromium;
@@ -14,6 +15,7 @@ const URL_BASE = process.env.SMOKE_URL || `http://localhost:${PORT}/`;
 const W = Number(process.env.SMOKE_W || 360);
 const H = Number(process.env.SMOKE_H || 640);
 const PLAYERS = Number(process.env.PLAYERS || 1);
+const THEME = process.env.THEME || 'dark'; // dark | light (the numerals are measured in both, see contrast())
 const AXE = process.env.AXE && existsSync(process.env.AXE) ? readFileSync(process.env.AXE, 'utf8') : null;
 const OUT = new URL('../../qa/screens/tutorial/', import.meta.url).pathname;
 const exe = process.env.CHROMIUM_PATH || ['/opt/pw-browsers/chromium-1194/chrome-linux/chrome', '/opt/pw-browsers/chromium/chrome-linux/chrome'].find(existsSync);
@@ -34,9 +36,16 @@ const check = (cond, msg) => { if (!cond) { failures.push(msg); console.error(`F
 const tag = `${W}x${H}${PLAYERS > 1 ? '-2p' : ''}`;
 
 const axed = new Set();
+/** Every amount on screen reads at 4.5:1 or better against what is really behind it (gradients included). */
+async function contrast(page, key) {
+  const r = await moneyContrast(page);
+  check(r.bad.length === 0, `numeral contrast >= 4.5:1 on ${key} (${THEME}, ${tag}, ${r.checked} amounts)${r.bad.length ? ` ${JSON.stringify(r.bad.slice(0, 4))}` : ''}`);
+}
 async function axe(page, key) {
-  if (!AXE || axed.has(key)) return;
+  if (axed.has(key)) return;
   axed.add(key);
+  await contrast(page, key);
+  if (!AXE) return;
   // axe must never run mid-fade: wait until every finite animation has ended
   await page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== 'running' || a.effect?.getComputedTiming().iterations === Infinity), null, { timeout: 5000 }).catch(() => {});
   await page.waitForTimeout(120);
@@ -108,6 +117,7 @@ async function main() {
   const browser = await chromium.launch({ executablePath: exe, args: ['--no-sandbox'] });
   const ctx = await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: 2, locale: 'he-IL' });
   const page = await ctx.newPage();
+  await page.addInitScript((th) => { try { localStorage.setItem('passivo.prefs', JSON.stringify({ theme: th })); } catch { /* ignore */ } }, THEME);
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
@@ -140,7 +150,7 @@ async function main() {
   check(H > 640 ? /שהכסף שעובד בשבילכם יהיה גדול מההוצאות/.test(hud.goal ?? '') : true, 'tall screens: the full goal sentence');
   check(H > 640 || H <= 600 || /כסף שעובד מעל ההוצאות/.test(hud.goal ?? ''), 'at 640 the short goal line');
   check(H > 600 || /המטרה: מעל ההוצאות/.test(hud.goal ?? ''), 'at <= 600 the minimal one-liner');
-  check(/עוד ₪[\d,]+ בחודש לחופש/.test(hud.free ?? ''), `"עוד ₪X בחודש לחופש" under the meter (${hud.free})`);
+  check(/עוד ₪[\d,]+ ועוד קצת בחודש לחופש/.test(hud.free ?? ''), `"עוד ₪X ועוד קצת בחודש לחופש" under the meter: winning needs strictly more (${hud.free})`);
   await shot(page, 'board-first-game');
   await axe(page, 'family board with hint');
 
@@ -237,7 +247,7 @@ async function main() {
   check(hints.every((x) => !x.roll && !x.hud && !x.dice && !x.status && x.inVp), `floating hints never cover the roll button, HUD, die or status and stay on screen (${JSON.stringify(hints.map((x) => [x.id, x.roll, x.hud, x.dice, x.status, x.inVp]))})`);
   check(hints.every((x) => (x.text || '').length <= 200), 'hint bubbles are short');
   if (PLAYERS === 1) {
-    check(hints.some((x) => x.id === 'h-roll'), 'h-roll shows before the first roll');
+    check(hints.some((x) => x.id === 'h-summary-square' && x.turn === '0'), 'the payday-square hint shows before the first roll (the next payday is within the roll)');
     check(firstDealNoGuess === true || tour === 0, `the first apartment/business card has the tour and no guess window (tours ${tour})`);
     check(tour <= 1, 'the card tour shows once');
     check(summarySeen.plain || summarySeen.income, 'a summary hint appeared at the first summary');

@@ -326,7 +326,7 @@
     "incomeMany": "הנכסים שקניתם הכניסו {passiveTotal} בשנתיים האלה.",
     "incomeManyMore": "בכל חודש הם מכניסים יחד {passive}. {months} חודשים זה {passiveTotal}, והם כבר בתוך הסכום שהגיע למזומן."
   },
-  "goal": { "min": "המטרה: מעל ההוצאות" },
+  "goal": { "min": "המטרה: מעל ההוצאות", "andABit": "ועוד קצת", "andABitShort": "וקצת" },
   "daily": {
     "title": "אתגר יומי",
     "cardTitle": "אתגר יומי · {date}",
@@ -484,7 +484,8 @@
     "dialog": "חלון",
     "passiveMeter": "התקדמות ההכנסה הפסיבית אל ההוצאות",
     "passiveMeterValue": "{pct}% (הכנסה פסיבית {passive} מתוך הוצאות {expenses})",
-    "confetti": "חגיגה"
+    "confetti": "חגיגה",
+    "minus": "מינוס"
   },
   "debug": {
     "label": "כלי בדיקה",

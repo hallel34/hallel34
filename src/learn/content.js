@@ -45,6 +45,19 @@ function deepMerge(target, from) {
 export function mergeFamilyBlocks(content) {
   const copy = structuredClone(content);
   for (const file of ['guess', 'report']) if (isObj(copy[file]?.family)) deepMerge(copy[file], copy[file].family);
+  // round 12: per-item children's wording. A concept's `family` block ({ why, exampleText, gameSimplification }) and a real-world
+  // fact's `gameFamily` / `realFamily` replace the regular texts in family mode (what a block lacks stays as it is).
+  for (const c of copy.glossary?.concepts ?? []) {
+    const f = c.family;
+    if (!isObj(f)) continue;
+    if (typeof f.why === 'string') c.why = f.why;
+    if (typeof f.exampleText === 'string' && c.example) c.example.text = f.exampleText;
+    if (typeof f.gameSimplification === 'string') c.gameSimplification = f.gameSimplification;
+  }
+  for (const fact of copy.realWorld?.facts ?? []) {
+    if (typeof fact.gameFamily === 'string') fact.game = fact.gameFamily;
+    if (typeof fact.realFamily === 'string') fact.real = fact.realFamily;
+  }
   return copy;
 }
 

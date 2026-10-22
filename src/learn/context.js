@@ -6,6 +6,8 @@ export const getLearnMode = () => mode;
 export const setLearnMode = (m) => {
   const next = m === 'full' ? 'full' : 'family';
   mode = next;
+  // the stylesheet needs it too: family mode never shows red (tokens.css)
+  if (typeof document !== 'undefined') document.documentElement.dataset.learn = next;
   subscribers.forEach((fn) => fn(next));
 };
 /** Calls fn(mode) on every change; returns an unsubscribe function. */

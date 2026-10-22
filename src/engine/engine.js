@@ -6,6 +6,7 @@ import {
   LOAN_PAYMENT_RATE, MAX_STOCK_QTY, PAYDAY_MONTHS,
 } from './config.js';
 import { validateData } from './validate.js';
+import { cardView } from './card-view.js';
 import {
   monthlyCashFlow, hasWon, maxLoan, saleValue, stockPrice, totalIncome,
   passiveIncome, canSell, loanMonthlyPayment,
@@ -44,13 +45,17 @@ export function createEngine(data, { validate = true } = {}) {
   const eligible = (deck, mode) =>
     data.cards.filter((c) => c.deck === deck && c.modes.includes(mode)).map((c) => c.id);
 
+  // A card may carry the children's wording (titleFamily / textFamily): a family game draws the card with that wording in
+  // title/text, so every screen, log line and asset name downstream is already in the right register. Numbers never differ.
+  const view = cardView;
+
   function draw(d, deck) {
     if (d.daily) { // daily challenge: the card of this turn depends on (seed, deck, turn) only, never on earlier choices
       const ids = eligible(deck, d.mode);
-      return cardById.get(ids[dailyPick(d.seed, deck, d.turn, ids.length)]);
+      return view(cardById.get(ids[dailyPick(d.seed, deck, d.turn, ids.length)]), d.mode);
     }
     if (!d.decks[deck].length) d.decks[deck] = shuffle(d, eligible(deck, d.mode));
-    return cardById.get(d.decks[deck].shift());
+    return view(cardById.get(d.decks[deck].shift()), d.mode);
   }
 
   // ---------- setup ----------
