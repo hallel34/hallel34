@@ -1,0 +1,852 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b0b12">
+<title>חברה – משחק מאפיה</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0b0b12; --bg2:#12121c; --card:#171724; --card2:#1f1f30; --line:#2a2a40;
+  --text:#f2f1f7; --muted:#8d8ba6; --red:#ff3b5c; --red2:#b3123a; --gold:#f5c542;
+  --green:#3be3a0; --blue:#4da3ff; --purple:#8b5cf6;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;min-height:100%}
+body{
+  font-family:'Rubik',system-ui,sans-serif;background:var(--bg);color:var(--text);
+  background-image:radial-gradient(ellipse at 50% -10%,rgba(255,59,92,.18),transparent 60%);
+  background-attachment:fixed;transition:background .6s;
+  padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+}
+body.ph-night{background-color:#07071a;background-image:radial-gradient(ellipse at 50% -10%,rgba(139,92,246,.28),transparent 60%)}
+body.ph-day,body.ph-vote,body.ph-voteResult{background-image:radial-gradient(ellipse at 50% -10%,rgba(245,197,66,.18),transparent 60%)}
+#app{max-width:480px;margin:0 auto;padding:16px 16px 40px}
+.screen{display:flex;flex-direction:column;gap:14px;animation:fade .35s ease}
+@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+h1,h2{margin:0}
+.center{text-align:center}.muted{color:var(--muted)}.small{font-size:13px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px}
+.card-h{font-weight:700;margin-bottom:10px;color:var(--muted);font-size:14px}
+label{display:block;font-size:14px;color:var(--muted);margin-bottom:6px}
+input{width:100%;background:var(--bg2);border:1px solid var(--line);border-radius:12px;color:var(--text);
+  font:inherit;font-size:18px;padding:14px;margin-bottom:12px;outline:none}
+input:focus{border-color:var(--red)}
+.code-input{text-align:center;letter-spacing:10px;font-size:26px;font-weight:700}
+.btn{display:block;width:100%;border:0;border-radius:14px;padding:15px;font:inherit;font-size:17px;font-weight:700;
+  background:var(--card2);color:var(--text);cursor:pointer;transition:transform .1s,opacity .2s}
+.btn:active{transform:scale(.97)}
+.btn:disabled{opacity:.35}
+.btn.primary{background:linear-gradient(135deg,var(--red),var(--red2));box-shadow:0 8px 24px rgba(255,59,92,.3)}
+.btn.big{padding:18px;font-size:19px}
+.btn.ghost{background:transparent;border:1px solid var(--line)}
+.btn.sm{min-height:48px;padding:9px;font-size:14px;width:auto;margin:10px auto 0;padding-inline:18px}
+.btn.link{min-height:48px;background:none;color:var(--muted);font-weight:500;font-size:15px}
+.err,.warn{background:rgba(255,59,92,.12);border:1px solid rgba(255,59,92,.4);color:#ff9fb1;border-radius:12px;padding:10px 14px;text-align:center;font-size:14px}
+.divider{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:13px;margin:18px 0 12px}
+.divider:before,.divider:after{content:"";flex:1;height:1px;background:var(--line)}
+.home{padding-top:30px}
+.logo{font-size:64px;text-align:center;filter:drop-shadow(0 0 24px rgba(255,59,92,.6))}
+.title{text-align:center;font-size:56px;font-weight:900;letter-spacing:2px;
+  background:linear-gradient(180deg,#fff,#ff8099);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{text-align:center;color:var(--muted);margin:-6px 0 8px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.pill{background:var(--card);border:1px solid var(--line);border-radius:99px;padding:6px 12px;font-size:13px;color:var(--muted);white-space:nowrap}
+.pill b{color:var(--text);letter-spacing:2px}
+.phase{font-weight:700;font-size:17px}
+.peek{min-height:48px;min-width:48px;background:var(--card);border:1px solid var(--line);border-radius:99px;padding:6px 10px;color:var(--text);font:inherit;font-size:13px}
+.codebox{text-align:center;padding:18px;border-radius:20px;background:linear-gradient(160deg,#211425,#141420);border:1px solid #3a2236}
+.bigcode{font-size:64px;font-weight:900;letter-spacing:14px;color:#fff;text-shadow:0 0 30px rgba(255,59,92,.6);direction:ltr}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{background:var(--card2);border-radius:99px;padding:8px 14px;font-size:15px;animation:fade .3s}
+.chip.me{outline:2px solid var(--red)}
+.chip.dead{opacity:.4;text-decoration:line-through}
+.row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.row:last-of-type{border-bottom:0}
+.row.col{flex-direction:column;align-items:stretch;gap:10px}
+.stepper{display:flex;align-items:center;gap:14px}
+.stepper button{width:48px;height:48px;border-radius:12px;border:0;background:var(--card2);color:var(--text);font-size:22px}
+.stepper b{font-size:20px;min-width:18px;text-align:center}
+.tgl{width:64px;height:48px;border-radius:99px;border:0;background:var(--card2);position:relative;transition:.2s}
+.tgl i{position:absolute;top:10px;right:6px;width:28px;height:28px;border-radius:50%;background:#666;transition:.2s}
+.tgl.on{background:var(--red)}.tgl.on i{right:30px;background:#fff}
+.seg{display:flex;gap:6px}
+.seg button{flex:1;min-height:48px;border:0;border-radius:10px;padding:10px 0;background:var(--card2);color:var(--muted);font:inherit;font-size:14px}
+.seg button.on{background:var(--red);color:#fff;font-weight:700}
+.dots{display:flex;gap:6px;justify-content:center;margin-top:12px}
+.dots i{width:8px;height:8px;border-radius:50%;background:var(--red);animation:blink 1.2s infinite}
+.dots i:nth-child(2){animation-delay:.2s}.dots i:nth-child(3){animation-delay:.4s}
+@keyframes blink{0%,100%{opacity:.2}50%{opacity:1}}
+/* role card */
+.flip{perspective:1000px;height:360px;cursor:pointer}
+.face{position:absolute;inset:0;border-radius:24px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:24px;text-align:center;backface-visibility:hidden;transition:transform .6s;gap:10px}
+.flip{position:relative}
+.back{background:repeating-linear-gradient(45deg,#1a1a2a,#1a1a2a 14px,#151522 14px,#151522 28px);border:2px solid var(--line);color:var(--muted)}
+.back .q{font-size:90px;font-weight:900;color:var(--red);text-shadow:0 0 30px rgba(255,59,92,.6)}
+.front{transform:rotateY(180deg);background:radial-gradient(circle at 50% 30%,color-mix(in srgb,var(--rc) 25%,#171724),#12121c);
+  border:2px solid var(--rc);box-shadow:0 0 40px color-mix(in srgb,var(--rc) 35%,transparent)}
+.flip.on .back{transform:rotateY(180deg)}.flip.on .front{transform:rotateY(360deg)}
+.ricon{font-size:80px}.ricon.sm{font-size:46px}
+.rname{font-size:38px;font-weight:900;color:var(--rc)}
+.rdesc{color:#cfcde0;line-height:1.5}
+.mates{margin-top:6px;background:rgba(0,0,0,.3);padding:8px 14px;border-radius:12px;font-size:15px}
+/* night / actions */
+.night-h{text-align:center;display:flex;flex-direction:column;gap:6px;align-items:center}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pbtn{border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:14px;padding:16px 8px;font:inherit;font-size:17px;
+  font-weight:500;display:flex;flex-direction:column;gap:4px;align-items:center;transition:.15s}
+.pbtn small{font-size:12px;color:var(--muted);font-weight:400}
+.pbtn:active{transform:scale(.96)}
+.pbtn.sel.mafia{background:rgba(255,59,92,.18);border-color:var(--red);box-shadow:0 0 18px rgba(255,59,92,.35)}
+.pbtn.sel.doc{background:rgba(59,227,160,.15);border-color:var(--green)}
+.pbtn.sel.vote{background:rgba(245,197,66,.15);border-color:var(--gold)}
+.pbtn.skip{width:100%;grid-column:1/-1}
+.status{text-align:center;padding:12px;border-radius:12px;background:var(--card);color:var(--muted);font-size:15px}
+.status.ok{color:var(--green);border:1px solid rgba(59,227,160,.4)}
+.sleep{text-align:center;padding:50px 10px;display:flex;flex-direction:column;gap:10px;align-items:center}
+.moon{font-size:96px;filter:drop-shadow(0 0 40px rgba(139,92,246,.7));animation:float 4s ease-in-out infinite}
+@keyframes float{50%{transform:translateY(-10px)}}
+.zzz{font-size:28px;color:var(--purple);font-weight:900;letter-spacing:4px}
+.zzz span{animation:blink 2s infinite;display:inline-block}.zzz span:last-child{animation-delay:.5s}
+.result{border-radius:18px;padding:20px;text-align:center;font-size:18px}
+.result.bad{background:rgba(255,59,92,.15);border:1px solid var(--red)}
+.result.good{background:rgba(59,227,160,.12);border:1px solid var(--green)}
+.result b{font-size:24px;display:block;margin:6px 0}
+.ann{text-align:center;border-radius:20px;padding:22px;display:flex;flex-direction:column;gap:6px;animation:pop .5s}
+@keyframes pop{from{transform:scale(.85);opacity:0}to{transform:none;opacity:1}}
+.ann.kill{background:linear-gradient(160deg,#2a0f18,#171724);border:1px solid var(--red2)}
+.ann.save{background:linear-gradient(160deg,#0f2a20,#171724);border:1px solid #1d7a58}
+.ann.neutral{background:var(--card);border:1px solid var(--line)}
+.big-ico{font-size:54px}
+.ann-name{font-size:32px;font-weight:900}
+.timer-box{text-align:center}
+.timer{font-size:64px;font-weight:900;direction:ltr;font-variant-numeric:tabular-nums}
+.timer.low{color:var(--red);animation:blink 1s infinite}
+.deadbox{text-align:center;background:var(--card);border:1px dashed var(--line);border-radius:18px;padding:22px;color:var(--muted)}
+.deadbox b{color:var(--text);font-size:20px;display:block;margin:6px 0}
+.tally{display:flex;flex-direction:column;gap:6px}
+.tally div{display:flex;justify-content:space-between;gap:10px;background:var(--card2);border-radius:10px;padding:8px 12px;font-size:14px}
+.tally span{color:var(--muted)}
+.win{text-align:center;padding:28px 16px;border-radius:24px;animation:pop .6s}
+.win.mafia{background:radial-gradient(circle at 50% 0,#5a0f22,#171724);border:2px solid var(--red)}
+.win.town{background:radial-gradient(circle at 50% 0,#4a3a0a,#171724);border:2px solid var(--gold)}
+.win h1{font-size:38px;font-weight:900}
+.roles{display:flex;flex-direction:column;gap:8px}
+.rrow{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 14px}
+.rrow .ic{font-size:26px}.rrow .nm{flex:1;font-weight:700}
+.rrow .rl{font-size:14px;font-weight:700}
+.rrow.dead .nm{text-decoration:line-through;opacity:.5}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;padding:20px;z-index:20;animation:fade .2s}
+.modal .face{position:relative;transform:none;width:100%;max-width:400px;height:auto;min-height:320px}
+#toast{position:fixed;bottom:24px;left:50%;transform:translate(-50%,40px);opacity:0;background:#2a2a40;color:#fff;
+  padding:12px 20px;border-radius:12px;transition:.3s;z-index:30;font-size:15px;pointer-events:none}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+@media (prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="toast"></div>
+
+<script>
+/* ===== DEMO BUILD: in-memory Firestore shim + bots (generated into demo/index.html) ===== */
+(function(){
+  try{ localStorage.removeItem('mafia_room'); }catch(e){}
+  window.confirm = function(){ return true; }; /* sandboxed frames may block modals */
+
+  var clone = function(o){ return o === undefined ? undefined : JSON.parse(JSON.stringify(o)); };
+  var docs = {};      /* path -> {data, v} */
+  var listeners = {}; /* path -> Set<{cb}> */
+  var rand = function(n){ return Math.floor(Math.random()*n); };
+
+  function snap(path){
+    var e = docs[path];
+    return { exists: !!e, id: path.split('/').pop(), data: function(){ return e ? clone(e.data) : undefined; } };
+  }
+  function applyUpdate(data, upd){
+    Object.keys(upd).forEach(function(k){
+      var parts = k.split('.'), o = data;
+      for(var i=0;i<parts.length-1;i++){
+        if(o[parts[i]] === null || typeof o[parts[i]] !== 'object') o[parts[i]] = {};
+        o = o[parts[i]];
+      }
+      o[parts[parts.length-1]] = clone(upd[k]);
+    });
+  }
+  function notify(path){
+    var set = listeners[path]; if(!set) return;
+    Array.from(set).forEach(function(l){ setTimeout(function(){ if(set.has(l)) { try{ l.cb(snap(path)); }catch(e){ console.error(e); } } }, 0); });
+  }
+  function commitWrite(path, w){
+    if(w.type === 'set'){ docs[path] = { data: clone(w.data), v: (docs[path] ? docs[path].v : 0) + 1 }; }
+    else if(w.type === 'update'){
+      if(!docs[path]) throw new Error('המסמך לא נמצא');
+      applyUpdate(docs[path].data, w.data); docs[path].v++;
+    } else if(w.type === 'delete'){ delete docs[path]; }
+    notify(path);
+    botKick(path);
+  }
+  function Ref(path){ this.path = path; this.id = path.split('/').pop(); }
+  Ref.prototype.get = function(){ return Promise.resolve(snap(this.path)); };
+  Ref.prototype.set = function(d){ var p=this.path; return Promise.resolve().then(function(){ commitWrite(p,{type:'set',data:d}); }); };
+  Ref.prototype.update = function(d){ var p=this.path; return Promise.resolve().then(function(){ commitWrite(p,{type:'update',data:d}); }); };
+  Ref.prototype.delete = function(){ var p=this.path; return Promise.resolve().then(function(){ commitWrite(p,{type:'delete'}); }); };
+  Ref.prototype.onSnapshot = function(cb){
+    var p = this.path, l = { cb: cb };
+    (listeners[p] = listeners[p] || new Set()).add(l);
+    setTimeout(function(){ if(listeners[p].has(l)) cb(snap(p)); }, 0);
+    return function(){ listeners[p].delete(l); };
+  };
+  async function runTransaction(fn){
+    for(var attempt=0; attempt<6; attempt++){
+      var reads = {}, writes = [];
+      var t = {
+        get: function(ref){ reads[ref.path] = docs[ref.path] ? docs[ref.path].v : 0; return Promise.resolve(snap(ref.path)); },
+        set: function(ref,d){ writes.push([ref.path,{type:'set',data:clone(d)}]); return t; },
+        update: function(ref,d){ writes.push([ref.path,{type:'update',data:clone(d)}]); return t; },
+        delete: function(ref){ writes.push([ref.path,{type:'delete'}]); return t; }
+      };
+      var res = await fn(t);
+      var stale = Object.keys(reads).some(function(p){ return (docs[p] ? docs[p].v : 0) !== reads[p]; });
+      if(stale) continue;
+      writes.forEach(function(w){ commitWrite(w[0], w[1]); });
+      return res;
+    }
+    throw new Error('transaction failed');
+  }
+  var dbObj = {
+    collection: function(c){ return { doc: function(id){ return new Ref(c+'/'+id); } }; },
+    runTransaction: runTransaction
+  };
+  window.firebase = {
+    initializeApp: function(){ return {}; },
+    firestore: function(){ return dbObj; }
+  };
+
+  /* ---------------- bots ---------------- */
+  var BOT_NAMES = ['דני','מיכל','יוסי','נועה','אבי','רוני','שירה','עידו','תמר','גיא','ליאור','הדס','עומר','מאיה','איתי','נטע','אורי','יעל','רן'];
+  var pending = {};
+  var isBot = function(id){ return id.indexOf('bot_') === 0; };
+  var alivePlayers = function(d){ return Object.keys(d.players).filter(function(id){ return d.players[id].alive; }); };
+  var pick = function(a){ return a.length ? a[rand(a.length)] : null; };
+
+  /* returns an update object (same fields the real UI writes) or null */
+  function plan(d, bid){
+    var p = d.players[bid]; if(!p) return null;
+    if(d.status === 'reveal') return p.ready ? null : (function(){ var o={}; o['players.'+bid+'.ready']=true; return o; })();
+    if(!p.alive) return null;
+    var al = alivePlayers(d), r = d.round, o = {};
+    if(d.status === 'night'){
+      var n = d.night || {};
+      if(p.role === 'mafia'){
+        var v = n.mafia || {};
+        var targets = al.filter(function(id){ return d.players[id].role !== 'mafia'; });
+        if(!targets.length) return null;
+        var mates = al.filter(function(id){ return d.players[id].role === 'mafia' && id !== bid; });
+        var humanPick = mates.filter(function(m){ return !isBot(m) && v[m] && targets.indexOf(v[m]) >= 0; }).map(function(m){ return v[m]; })[0];
+        var t;
+        if(humanPick) t = humanPick;
+        else if(v[bid] && targets.indexOf(v[bid]) >= 0) return null;
+        else t = mates.map(function(m){ return v[m]; }).filter(function(x){ return x && targets.indexOf(x) >= 0; })[0] || pick(targets);
+        if(v[bid] === t) return null;
+        o['night.mafia.'+bid] = t; return o;
+      }
+      if(p.role === 'doctor'){ if(n.doctor) return null; o['night.doctor'] = pick(al); return o; }
+      if(p.role === 'detective'){
+        if((d.checks||{})[r]) return null;
+        var prev = Object.keys(d.checks||{}).map(function(k){ return d.checks[k].target; });
+        var cands = al.filter(function(id){ return id !== bid; });
+        var fresh = cands.filter(function(id){ return prev.indexOf(id) < 0; });
+        var tg = pick(fresh.length ? fresh : cands); if(!tg) return null;
+        o['night.detective'] = tg; o['checks.'+r] = { target: tg, mafia: d.players[tg].role === 'mafia' }; return o;
+      }
+      return null;
+    }
+    if(d.status === 'vote'){
+      if((d.votes||{})[bid]) return null;
+      var others = al.filter(function(id){ return id !== bid; });
+      var choice;
+      if(p.role === 'mafia') others = others.filter(function(id){ return d.players[id].role !== 'mafia'; });
+      if(p.role === 'detective'){
+        var known = Object.keys(d.checks||{}).map(function(k){ return d.checks[k]; })
+          .filter(function(c){ return c.mafia && d.players[c.target] && d.players[c.target].alive; });
+        if(known.length) choice = known[0].target;
+      }
+      if(!choice) choice = (rand(100) < 15 || !others.length) ? 'skip' : pick(others);
+      o['votes.'+bid] = choice; return o;
+    }
+    return null;
+  }
+  function botKick(path){
+    var e = docs[path]; if(!e) return;
+    Object.keys(e.data.players || {}).filter(isBot).forEach(function(bid){
+      if(!plan(clone(e.data), bid)) return;
+      var key = path+'|'+bid+'|'+e.data.status+'|'+e.data.round;
+      if(pending[key]) return;
+      pending[key] = true;
+      setTimeout(function(){
+        delete pending[key];
+        var cur = docs[path]; if(!cur) return;
+        var o = plan(clone(cur.data), bid);
+        if(o) commitWrite(path, { type:'update', data:o });
+      }, 1000 + rand(3000));
+    });
+  }
+  setInterval(function(){ Object.keys(docs).forEach(botKick); }, 2000);
+
+  function addBots(n){
+    var path = Object.keys(docs)[0]; if(!path) return;
+    var d = docs[path].data; if(d.status !== 'lobby') return;
+    var used = {}; Object.keys(d.players).forEach(function(id){ used[d.players[id].name] = 1; });
+    var free = BOT_NAMES.filter(function(x){ return !used[x]; });
+    var upd = {}, cnt = Object.keys(d.players).length;
+    for(var i=0;i<n && cnt<20;i++){
+      var name = free.shift() || ('בוט'+(cnt+1));
+      var id = 'bot_'+Math.random().toString(36).slice(2,8);
+      upd['players.'+id] = { name: name, joinedAt: Date.now()+i, alive:true, role:null, ready:false };
+      cnt++;
+    }
+    commitWrite(path, { type:'update', data:upd });
+  }
+
+  /* ---------------- demo UI ---------------- */
+  var css = document.createElement('style');
+  css.textContent =
+    '#demo-badge{position:fixed;inset-block-end:6px;inset-inline-start:6px;z-index:9998;pointer-events:none;background:#f5c542;color:#1a1a1a;font:700 11px/1 system-ui,sans-serif;padding:5px 9px;border-radius:99px;opacity:.9}'+
+    '#demo-bots{position:fixed;inset-block-end:6px;inset-inline-end:6px;z-index:9999;display:none;align-items:center;gap:4px;background:#1c1c2e;border:1px solid #f5c542;border-radius:14px;padding:4px;box-shadow:0 4px 16px #0008;font-family:inherit}'+
+    '#demo-bots.show{display:flex}'+
+    '#demo-bots button{min-width:48px;min-height:48px;border:0;border-radius:10px;background:#2a2a44;color:#fff;font:700 16px inherit;font-family:inherit;touch-action:manipulation}'+
+    '#demo-bots button.add{background:#f5c542;color:#1a1a1a;padding:0 12px;font-size:14px}'+
+    '#demo-bots b{min-width:22px;text-align:center;color:#fff;font-size:16px}'+
+    'body.demo-lobby .screen{padding-bottom:80px}';
+  document.head.appendChild(css);
+  var badge = document.createElement('div'); badge.id='demo-badge'; badge.textContent='מצב הדגמה'; document.body.appendChild(badge);
+  var bar = document.createElement('div'); bar.id='demo-bots'; bar.setAttribute('dir','rtl');
+  var count = 4;
+  bar.innerHTML = '<button type="button" class="minus" aria-label="פחות">−</button><b>4</b><button type="button" class="plus" aria-label="יותר">+</button><button type="button" class="add">🤖 הוסף בוטים</button>';
+  document.body.appendChild(bar);
+  bar.addEventListener('click', function(e){
+    var b = e.target.closest('button'); if(!b) return;
+    if(b.classList.contains('minus')) count = Math.max(1, count-1);
+    else if(b.classList.contains('plus')) count = Math.min(10, count+1);
+    else if(b.classList.contains('add')) addBots(count);
+    bar.querySelector('b').textContent = count;
+  });
+  setInterval(function(){
+    var host = false;
+    try{
+      var path = Object.keys(docs)[0];
+      host = !!path && docs[path].data.status === 'lobby' && docs[path].data.hostId === myId;
+    }catch(e){}
+    bar.classList.toggle('show', host);
+    document.body.classList.toggle('demo-lobby', host);
+  }, 300);
+})();
+</script>
+<script>
+/* ============ הגדרות Firebase – הדביקו כאן את ה-config של הפרויקט שלכם ============ */
+const firebaseConfig = {
+  apiKey: "demo-key", authDomain: "demo.local", projectId: "demo", storageBucket: "demo.local", messagingSenderId: "0", appId: "demo"
+};
+/* ================================================================================ */
+
+const ROLES = {
+  mafia:     {name:'מאפיונר', icon:'🔪', color:'#ff3b5c', desc:'בכל לילה, יחד עם שאר המאפיה, בחרו קורבן. ביום – אל תיחשפו.'},
+  doctor:    {name:'רופא',    icon:'💉', color:'#3be3a0', desc:'בכל לילה בחר שחקן אחד להציל. אפשר גם את עצמך.'},
+  detective: {name:'בלש',     icon:'🔍', color:'#4da3ff', desc:'בכל לילה בדוק שחקן אחד וגלה אם הוא מאפיונר.'},
+  citizen:   {name:'אזרח',    icon:'🏠', color:'#f5c542', desc:'אין לך כוח לילה. ביום – מצא את המאפיה והצבע נגדם.'}
+};
+
+const $ = s => document.querySelector(s);
+const app = $('#app');
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),2600); }
+const fmt = ms => { const s=Math.ceil(ms/1000); return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`; };
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+
+const ls = { get:k=>{try{return localStorage.getItem(k)}catch{return null}}, set:(k,v)=>{try{localStorage.setItem(k,v)}catch{}}, del:k=>{try{localStorage.removeItem(k)}catch{}} };
+const PID_RE = /^[A-Za-z0-9_-]{1,40}$/;
+let myId = ls.get('mafia_pid');
+if(!myId || !PID_RE.test(myId)){ myId = 'p' + Math.random().toString(36).slice(2,10) + Date.now().toString(36).slice(-4); ls.set('mafia_pid', myId); }
+let myName = ls.get('mafia_name') || '';
+
+let db, roomCode=null, room=null, unsub=null, busy=false, lastStatus=null;
+const ui = { flipped:false, peek:false };
+
+/* ---------- helpers on room ---------- */
+const list = r => Object.entries(r.players||{}).map(([id,p])=>({id,...p})).sort((a,b)=>a.joinedAt-b.joinedAt);
+const alive = r => list(r).filter(p=>p.alive);
+const me = () => room && room.players[myId];
+const isHost = () => room && room.hostId === myId;
+const nameOf = id => room?.players[id]?.name || '?';
+const roomRef = (code=roomCode) => db.collection('rooms').doc(code);
+const upd = o => roomRef().update(o).catch(e=>toast('שגיאה: '+e.message));
+
+function winnerOf(players){
+  const al = Object.values(players).filter(p=>p.alive);
+  const m = al.filter(p=>p.role==='mafia').length;
+  if(m===0) return 'town';
+  if(m >= al.length - m) return 'mafia';
+  return null;
+}
+function mafiaTarget(d){
+  const mafia = alive(d).filter(p=>p.role==='mafia');
+  const v = d.night?.mafia || {};
+  if(!mafia.length || !mafia.every(m=>v[m.id])) return null;
+  const picks = new Set(mafia.map(m=>v[m.id]));
+  if(picks.size!==1) return null;
+  const t=[...picks][0];
+  return d.players[t]?.alive ? t : null;
+}
+/* בחירה כפויה (תקרת זמן / אי-הסכמה): הנבחר ביותר, תיקו -> הגרלה, אין בחירות -> אזרח חי אקראי */
+function forcedTarget(d){
+  const v = d.night?.mafia || {}, cnt = {};
+  alive(d).filter(p=>p.role==='mafia').forEach(m=>{ const t=v[m.id]; if(t && d.players[t]?.alive && d.players[t].role!=='mafia') cnt[t]=(cnt[t]||0)+1; });
+  const best = Math.max(0, ...Object.values(cnt));
+  let pool = Object.keys(cnt).filter(k=>cnt[k]===best);
+  if(!pool.length) pool = alive(d).filter(p=>p.role!=='mafia').map(p=>p.id);
+  return pool.length ? pool[Math.floor(Math.random()*pool.length)] : null;
+}
+function nightDone(d){
+  const al = alive(d), n = d.night||{};
+  if(!mafiaTarget(d)) return false;
+  if(al.some(p=>p.role==='doctor') && !n.doctor) return false;
+  if(al.some(p=>p.role==='detective') && !n.detective) return false;
+  return true;
+}
+const allVoted = d => alive(d).every(p => d.votes?.[p.id]);
+
+/* ---------- transactions (host as game master) ---------- */
+async function tx(expect, fn){
+  const ref = roomRef();
+  await db.runTransaction(async t=>{
+    const s = await t.get(ref); const d = s.data();
+    if(!d || d.status!==expect) return;
+    const o = fn(d); if(o) t.update(ref, o);
+  });
+}
+const nightUpd = round => ({status:'night', round, night:{mafia:{},doctor:null,detective:null}});
+
+function resolveNightUpd(d, force){
+  const w0 = winnerOf(d.players);
+  if(w0) return {status:'over', winner:w0, lastEvent:'אין עוד מאפיונרים בחדר'};
+  if(!force && !nightDone(d)) return null;
+  const target = force ? forcedTarget(d) : mafiaTarget(d);
+  if(!target) return null;
+  const saved = alive(d).some(p=>p.role==='doctor') && d.night?.doctor === target;
+  const players = JSON.parse(JSON.stringify(d.players));
+  if(!saved) players[target].alive = false;
+  const o = { players, dayResult:{killed: saved?null:target, saved, round:d.round},
+    lastEvent: saved ? 'הרופא הציל את הקורבן בלילה האחרון' : `${players[target].name} נרצח/ה בלילה` };
+  const w = winnerOf(players);
+  if(w){ o.status='over'; o.winner=w; }
+  else { o.status='day'; o.dayEndsAt = Date.now() + d.settings.discussion*1000; o.votes={}; }
+  return o;
+}
+function resolveVoteUpd(d){
+  const tally={};
+  for(const p of alive(d)){ const v=d.votes?.[p.id]; if(v) tally[v]=(tally[v]||0)+1; }
+  let best=null, bestN=0, tie=false;
+  for(const [k,c] of Object.entries(tally)){ if(c>bestN){best=k;bestN=c;tie=false} else if(c===bestN) tie=true; }
+  const out = (!tie && best && best!=='skip' && d.players[best]?.alive) ? best : null;
+  const players = JSON.parse(JSON.stringify(d.players));
+  if(out) players[out].alive = false;
+  const o = { players, voteResult:{out, votes:{...(d.votes||{})}, round:d.round},
+    lastEvent: out ? `${players[out].name} הודח/ה בהצבעה` : 'אף אחד לא הודח בהצבעה האחרונה' };
+  const w = winnerOf(players);
+  if(w){ o.status='over'; o.winner=w; } else o.status='voteResult';
+  return o;
+}
+
+const NIGHT_MAX=120000, DISAGREE_WAIT=20000, DET_HOLD=6000;
+let nightMeta=null, failN=0, backoffUntil=0;
+const LIVE = ['night','day','vote','voteResult'];
+/* מחזיר true/false אם הלילה צריך להיסגר עכשיו (false=רגיל, true=כפוי), או null אם לא */
+function nightMode(r){
+  const now=Date.now();
+  if(!nightMeta || nightMeta.round!==r.round) nightMeta={round:r.round, since:now, allAt:0, detAt:0};
+  const nm=nightMeta, al=alive(r), n=r.night||{}, v=n.mafia||{};
+  const hasDet = al.some(p=>p.role==='detective') && !!r.checks?.[r.round];
+  if(hasDet && !nm.detAt) nm.detAt=now;
+  const holdOk = !hasDet || now-nm.detAt >= DET_HOLD;
+  const mafia = al.filter(p=>p.role==='mafia');
+  const picked = mafia.length>0 && mafia.every(m=>v[m.id]);
+  if(picked && !nm.allAt) nm.allAt=now; if(!picked) nm.allAt=0;
+  if(nightDone(r)) return holdOk ? false : null;
+  const othersDone = (!al.some(p=>p.role==='doctor') || n.doctor) && (!al.some(p=>p.role==='detective') || n.detective);
+  if(now-nm.since >= NIGHT_MAX) return true;
+  if(picked && othersDone && holdOk && now-nm.allAt >= DISAGREE_WAIT) return true;
+  return null;
+}
+async function hostTick(){
+  if(!room || !isHost() || busy || Date.now()<backoffUntil) return;
+  const r = room; let action = null;
+  if(r.status!=='night') nightMeta=null;
+  if(LIVE.includes(r.status) && winnerOf(r.players)) action = ()=>tx(r.status, d=>{
+    const w=winnerOf(d.players); return w ? {status:'over', winner:w, lastEvent:'שחקנים עזבו את החדר'} : null; });
+  else if(r.status==='reveal' && alive(r).every(p=>p.ready)) action = ()=>tx('reveal', ()=>nightUpd(1));
+  else if(r.status==='night'){ const f=nightMode(r); if(f!==null) action = ()=>tx('night', d=>resolveNightUpd(d, f)); }
+  else if(r.status==='day' && Date.now() >= r.dayEndsAt) action = ()=>tx('day', ()=>({status:'vote', votes:{}}));
+  else if(r.status==='vote' && allVoted(r)) action = ()=>tx('vote', resolveVoteUpd);
+  if(action){ busy=true; try{ await action(); failN=0; }catch(e){ console.error(e); backoffUntil=Date.now()+Math.min(10000, 1000*2**failN); failN++; } busy=false; }
+}
+
+/* ---------- room lifecycle ---------- */
+function startError(r=room){
+  const n=Object.keys(r.players).length, s=r.settings;
+  if(n<4) return 'צריך לפחות 4 שחקנים';
+  if(s.mafia+(s.doctor?1:0)+(s.detective?1:0) > n) return 'יש יותר תפקידים משחקנים';
+  if(s.mafia*2 >= n) return 'יותר מדי מאפיונרים לכמות השחקנים';
+  return '';
+}
+function newRoom(code, name){
+  return { code, hostId:myId, status:'lobby', round:0, createdAt:Date.now(),
+    settings:{mafia:1, doctor:true, detective:true, discussion:120},
+    players:{[myId]:{name, joinedAt:Date.now(), alive:true, role:null, ready:false}},
+    night:{}, votes:{}, checks:{}, dayResult:null, voteResult:null, winner:null, dayEndsAt:0, lastEvent:'' };
+}
+function getName(){
+  const n = ($('#name')?.value || '').trim();
+  if(!n){ toast('נא להזין שם'); return null; }
+  myName = n; ls.set('mafia_name', n); return n;
+}
+async function createRoom(){
+  const name = getName(); if(!name) return;
+  for(let i=0;i<10;i++){
+    const code = String(Math.floor(1000+Math.random()*9000));
+    const ref = roomRef(code);
+    try{
+      const ok = await db.runTransaction(async t=>{
+        const s = await t.get(ref);
+        if(s.exists && Date.now()-(s.data().createdAt||0) < 12*3600e3) return false;
+        t.set(ref, newRoom(code, name)); return true;
+      });
+      if(ok){ enterRoom(code); return; }
+    }catch(e){ renderHome('לא ניתן ליצור חדר: '+e.message); return; }
+  }
+  renderHome('לא נמצא קוד פנוי, נסו שוב');
+}
+async function joinRoom(){
+  const name = getName(); if(!name) return;
+  const code = ($('#code')?.value||'').trim();
+  if(!/^\d{4}$/.test(code)){ toast('קוד החדר הוא 4 ספרות'); return; }
+  const ref = roomRef(code);
+  try{
+    await db.runTransaction(async t=>{
+      const s = await t.get(ref);
+      if(!s.exists) throw new Error('החדר לא נמצא');
+      const d = s.data();
+      if(d.players[myId]){ if(d.status==='lobby') t.update(ref,{[`players.${myId}.name`]:name}); return; }
+      if(d.status!=='lobby') throw new Error('המשחק בחדר הזה כבר התחיל');
+      if(Object.keys(d.players).length>=20) throw new Error('החדר מלא');
+      if(Object.values(d.players).some(p=>p.name===name)) throw new Error('השם הזה כבר תפוס בחדר');
+      t.update(ref, {[`players.${myId}`]:{name, joinedAt:Date.now(), alive:true, role:null, ready:false}});
+    });
+    enterRoom(code);
+  }catch(e){ renderHome(e.message); }
+}
+function enterRoom(code){
+  roomCode = code; ls.set('mafia_room', code);
+  if(unsub) unsub();
+  unsub = roomRef(code).onSnapshot(s=>{
+    if(!s.exists){ exitLocal('החדר נסגר'); return; }
+    room = s.data();
+    if(!room.players[myId]){ exitLocal('אינך בחדר הזה'); return; }
+    render(); hostTick();
+  }, e=>toast('בעיית חיבור: '+e.message));
+}
+function exitLocal(msg){
+  if(unsub) unsub(); unsub=null; room=null; roomCode=null; lastStatus=null; ls.del('mafia_room');
+  document.body.className=''; renderHome(msg);
+}
+async function leaveRoom(){
+  if(!confirm('לצאת מהחדר?')) return;
+  const code = roomCode;
+  if(unsub) unsub(); unsub=null;
+  try{
+    const ref = roomRef(code);
+    await db.runTransaction(async t=>{
+      const s = await t.get(ref); if(!s.exists) return;
+      const d = s.data(); const players = {...d.players}; delete players[myId];
+      const ids = Object.keys(players);
+      if(!ids.length){ t.delete(ref); return; }
+      const o = {players};
+      if(LIVE.includes(d.status)){ const w=winnerOf(players); if(w){ o.status='over'; o.winner=w; o.lastEvent='שחקנים עזבו את החדר'; } }
+      if(d.hostId===myId) o.hostId = ids.sort((a,b)=>players[a].joinedAt-players[b].joinedAt)[0];
+      t.update(ref, o);
+    });
+  }catch(e){}
+  exitLocal();
+}
+function startGame(){
+  return tx('lobby', d=>{
+    if(startError(d)) return null;
+    const s=d.settings, ids=shuffle(Object.keys(d.players));
+    const roles=[...Array(s.mafia).fill('mafia')];
+    if(s.doctor) roles.push('doctor'); if(s.detective) roles.push('detective');
+    while(roles.length<ids.length) roles.push('citizen');
+    shuffle(roles);
+    const players={};
+    ids.forEach((id,i)=>players[id]={...d.players[id], role:roles[i], alive:true, ready:false});
+    return {status:'reveal', round:0, players, night:{mafia:{},doctor:null,detective:null}, votes:{}, checks:{},
+      dayResult:null, voteResult:null, winner:null, lastEvent:''};
+  }).catch(e=>toast(e.message));
+}
+function lobbyUpd(d){
+  const players={};
+  for(const [id,p] of Object.entries(d.players)) players[id]={name:p.name, joinedAt:p.joinedAt, alive:true, role:null, ready:false};
+  return {status:'lobby', round:0, players, night:{}, votes:{}, checks:{}, dayResult:null, voteResult:null, winner:null, lastEvent:''};
+}
+
+/* ---------- actions ---------- */
+const actions = {
+  create: createRoom,
+  join: joinRoom,
+  leave: leaveRoom,
+  share(){
+    const url = location.origin + location.pathname + '?code=' + room.code;
+    if(navigator.share) navigator.share({title:'חברה – משחק מאפיה', text:`בואו לשחק חברה! קוד החדר: ${room.code}`, url}).catch(()=>{});
+    else navigator.clipboard?.writeText(url).then(()=>toast('הקישור הועתק'));
+  },
+  mafia(d){ upd({'settings.mafia': Math.max(1, Math.min(6, room.settings.mafia + Number(d)))}); },
+  toggle(k){ upd({['settings.'+k]: !room.settings[k]}); },
+  time(t){ upd({'settings.discussion': Number(t)}); },
+  start: startGame,
+  flip(){ ui.flipped=!ui.flipped; render(); },
+  peek(){ ui.peek=!ui.peek; render(); },
+  ready(){ ui.flipped=false; upd({[`players.${myId}.ready`]:true}); },
+  mafiaPick(id){ upd({[`night.mafia.${myId}`]:id}); },
+  docPick(id){ upd({'night.doctor':id}); },
+  detPick(id){
+    if(!confirm(`לבדוק את ${nameOf(id)}? אי אפשר לשנות אחרי הבחירה.`)) return;
+    upd({'night.detective':id, [`checks.${room.round}`]:{target:id, mafia: room.players[id].role==='mafia'}});
+  },
+  toVote(){ tx('day', ()=>({status:'vote', votes:{}})); },
+  vote(id){ upd({[`votes.${myId}`]:id}); },
+  endVote(){ if(confirm('לסיים את ההצבעה עכשיו?')) tx('vote', resolveVoteUpd); },
+  nextNight(){ tx('voteResult', d=>nightUpd(d.round+1)); },
+  newGame(){ tx('over', lobbyUpd); },
+};
+app.addEventListener('click', e=>{
+  const b = e.target.closest('[data-act]');
+  if(!b || b.disabled) return;
+  if(b.classList.contains('modal') && e.target!==b) return;
+  actions[b.dataset.act]?.(b.dataset.arg);
+});
+app.addEventListener('keydown', e=>{ if(e.key==='Enter' && e.target.id==='code') joinRoom(); });
+
+/* ---------- views ---------- */
+function renderHome(err){
+  const pre = new URLSearchParams(location.search).get('code') || '';
+  app.innerHTML = `<div class="screen home">
+    <div class="logo">🎭</div>
+    <h1 class="title">חברה</h1>
+    <p class="sub">משחק מאפיה – כל אחד מהטלפון שלו</p>
+    <div class="card">
+      <label for="name">השם שלך</label>
+      <input id="name" maxlength="14" autocomplete="off" value="${esc(myName)}" placeholder="איך יקראו לך במשחק?">
+      <button class="btn primary" data-act="create">🎲 פתיחת חדר חדש</button>
+      <div class="divider">או הצטרפות לחדר קיים</div>
+      <input id="code" class="code-input" inputmode="numeric" maxlength="4" placeholder="••••" value="${esc(pre)}">
+      <button class="btn" data-act="join">הצטרפות</button>
+    </div>
+    ${err?`<div class="err">${esc(err)}</div>`:''}
+  </div>`;
+}
+function topbar(label){
+  const canPeek = me()?.role && room.status!=='lobby' && room.status!=='over';
+  return `<div class="top">
+    <div class="pill">חדר <b>${esc(room.code)}</b></div>
+    <div class="phase">${label}</div>
+    ${canPeek?`<button class="peek" data-act="peek">👁 התפקיד שלי</button>`:(room.round?`<div class="pill">סבב ${room.round}</div>`:'<div></div>')}
+  </div>`;
+}
+const toggle = (k,on) => `<button class="tgl ${on?'on':''}" data-act="toggle" data-arg="${k}" aria-label="${k}"><i></i></button>`;
+const header = (ico,title,sub) => `<div class="night-h"><div class="ricon sm">${ico}</div><h2>${title}</h2>${sub?`<p class="muted" style="margin:0">${sub}</p>`:''}</div>`;
+const pgrid = (ps,sel,act,cls,extra={}) => `<div class="grid">${ps.map(t=>`<button class="pbtn ${sel===t.id?'sel '+cls:''}" data-act="${act}" data-arg="${esc(t.id)}">
+  <span>${esc(t.name)}${t.id===myId?' (אני)':''}</span>${extra[t.id]?`<small>${extra[t.id]}</small>`:''}</button>`).join('')}</div>`;
+const deadView = (msg='את/ה מחוץ למשחק. צפו בשקט – בלי לרמוז 🤐') => `<div class="deadbox"><div style="font-size:48px">💀</div><b>יצאת מהמשחק</b>${msg}</div>`;
+function roleFace(p){
+  const R=ROLES[p.role];
+  const mates = p.role==='mafia' ? list(room).filter(x=>x.role==='mafia'&&x.id!==myId).map(x=>esc(x.name)).join(', ') : '';
+  return `<div class="face front" style="--rc:${R.color}"><div class="ricon">${R.icon}</div><div class="rname">${R.name}</div>
+    <div class="rdesc">${R.desc}</div>
+    ${p.role==='mafia'?`<div class="mates">${mates?`השותפים שלך: <b>${mates}</b>`:'את/ה המאפיונר היחיד'}</div>`:''}</div>`;
+}
+function playersCard(){
+  const ps=list(room);
+  return `<div class="card"><div class="card-h">בחיים (${ps.filter(p=>p.alive).length})</div><div class="chips">
+    ${ps.map(p=>`<div class="chip ${p.alive?'':'dead'} ${p.id===myId?'me':''}">${esc(p.name)}</div>`).join('')}</div></div>`;
+}
+
+function vLobby(){
+  const ps=list(room), s=room.settings, n=ps.length, err=startError();
+  const citizens=Math.max(0, n - s.mafia - (s.doctor?1:0) - (s.detective?1:0));
+  return topbar('לובי') + `
+  <div class="codebox"><div class="muted small">קוד החדר</div><div class="bigcode">${esc(room.code)}</div>
+    <button class="btn ghost sm" data-act="share">📤 שיתוף קישור הזמנה</button></div>
+  <div class="card"><div class="card-h">שחקנים בחדר (${n})</div><div class="chips">
+    ${ps.map(p=>`<div class="chip ${p.id===myId?'me':''}">${p.id===room.hostId?'👑 ':''}${esc(p.name)}</div>`).join('')}</div></div>
+  ${isHost() ? `
+    <div class="card"><div class="card-h">הגדרות משחק</div>
+      <div class="row"><span>🔪 מאפיונרים</span><div class="stepper"><button data-act="mafia" data-arg="-1">−</button><b>${s.mafia}</b><button data-act="mafia" data-arg="1">+</button></div></div>
+      <div class="row"><span>💉 רופא</span>${toggle('doctor',s.doctor)}</div>
+      <div class="row"><span>🔍 בלש</span>${toggle('detective',s.detective)}</div>
+      <div class="row col"><span>⏱️ זמן דיון ביום</span><div class="seg">
+        ${[60,120,180,300].map(t=>`<button class="${s.discussion===t?'on':''}" data-act="time" data-arg="${t}">${t/60} דק׳</button>`).join('')}</div></div>
+      <div class="muted small" style="margin-top:8px">🏠 אזרחים: ${citizens}</div>
+    </div>
+    ${err?`<div class="warn">${err}</div>`:''}
+    <button class="btn primary big" data-act="start" ${err?'disabled':''}>🎬 התחלת משחק</button>`
+  : `<div class="card center muted">ממתינים שהמארח יתחיל את המשחק<div class="dots"><i></i><i></i><i></i></div></div>`}
+  <button class="btn link" data-act="leave">יציאה מהחדר</button>`;
+}
+
+function vReveal(){
+  const p=me(), ps=alive(room), readyN=ps.filter(x=>x.ready).length;
+  return topbar('התפקיד שלך') + `
+  <p class="center muted" style="margin:0">ודאו שאף אחד לא מציץ 👀</p>
+  <div class="flip ${ui.flipped?'on':''}" data-act="flip">
+    <div class="face back"><div class="q">?</div><div>הקישו לחשיפת התפקיד</div></div>
+    ${roleFace(p)}
+  </div>
+  ${p.ready
+    ? `<div class="card center muted">מוכנים: ${readyN}/${ps.length}<div class="dots"><i></i><i></i><i></i></div></div>`
+    : `<button class="btn primary big" data-act="ready" ${ui.flipped?'':'disabled'}>הבנתי – אני מוכן/ה</button>`}`;
+}
+
+function vNight(){
+  const p=me(), r=room, n=r.night||{};
+  let body;
+  if(!p.alive) body = deadView('הלילה עובר… חכו לבוקר.');
+  else if(p.role==='mafia'){
+    const mafia=alive(r).filter(x=>x.role==='mafia'), v=n.mafia||{};
+    const targets=alive(r).filter(x=>x.role!=='mafia');
+    const picks=new Set(mafia.map(m=>v[m.id]).filter(Boolean));
+    const agreed=!!mafiaTarget(r);
+    const who={}; targets.forEach(t=>{ const w=mafia.filter(m=>v[m.id]===t.id).map(m=>esc(m.name)); if(w.length) who[t.id]='🔪 '+w.join(', '); });
+    body = header('🔪','בחרו קורבן', mafia.length>1?'כל המאפיונרים צריכים לבחור באותו שחקן':'בחר/י את הקורבן של הלילה')
+      + pgrid(targets, v[myId], 'mafiaPick', 'mafia', who)
+      + `<div class="status ${agreed?'ok':''}">${agreed?'✓ הקורבן נבחר. ממתינים לסוף הלילה…':(picks.size>1?'⚠️ אין הסכמה – בחרו באותו שחקן, אחרת תוגרל בחירה':'ממתין לבחירה…')}</div>`;
+  }
+  else if(p.role==='doctor'){
+    body = header('💉','את מי להציל הלילה?','אפשר לבחור גם בעצמך')
+      + pgrid(alive(r), n.doctor, 'docPick', 'doc')
+      + `<div class="status ${n.doctor?'ok':''}">${n.doctor?`✓ תגן/י על ${esc(nameOf(n.doctor))}. אפשר לשנות עד סוף הלילה`:'בחר/י שחקן להגנה'}</div>`;
+  }
+  else if(p.role==='detective'){
+    const c=(r.checks||{})[r.round];
+    const hist=Object.entries(r.checks||{}).filter(([rd])=>Number(rd)<r.round)
+      .map(([rd,x])=>`<div><b>${esc(nameOf(x.target))}</b><span>${x.mafia?'🔪 מאפיונר':'✅ לא מאפיה'} · לילה ${rd}</span></div>`).join('');
+    body = (c
+      ? header('🔍','תוצאת הבדיקה','') + `<div class="result ${c.mafia?'bad':'good'}"><b>${esc(nameOf(c.target))}</b>${c.mafia?'🔪 הוא/היא מאפיונר!':'✅ אינו/ה מאפיונר'}</div>
+         <div class="status">ממתינים לסוף הלילה…</div>`
+      : header('🔍','את מי לבדוק?','בדיקה אחת בכל לילה') + pgrid(alive(r).filter(x=>x.id!==myId), null, 'detPick', ''))
+      + (hist?`<div class="card"><div class="card-h">בדיקות קודמות</div><div class="tally">${hist}</div></div>`:'');
+  }
+  else body = `<div class="sleep"><div class="moon">🌙</div><h2>העיר ישנה…</h2><p class="muted">עצמו עיניים וחכו לבוקר.</p><div class="zzz">Z<span>z</span><span>z</span></div></div>`;
+  return topbar('לילה 🌙') + body;
+}
+
+function vDay(){
+  const d=room.dayResult||{}, p=me(), left=Math.max(0, room.dayEndsAt-Date.now());
+  const ann = d.killed
+    ? `<div class="ann kill"><div class="big-ico">☠️</div><div class="muted">הלילה נרצח/ה</div><div class="ann-name">${esc(nameOf(d.killed))}</div></div>`
+    : `<div class="ann save"><div class="big-ico">🛡️</div><div class="ann-name" style="font-size:22px">הרופא הציל!</div><div class="muted">המאפיה תקפה – אבל אף אחד לא מת</div></div>`;
+  return topbar('יום ☀️') + ann + `
+    <div class="timer-box"><div class="muted small">זמן דיון</div><div id="timer" class="timer ${left<15000?'low':''}">${fmt(left)}</div></div>
+    ${p.alive&&p.role==='detective'&&room.checks?.[room.round]?`<div class="result ${room.checks[room.round].mafia?'bad':'good'}"><div class="muted small">תוצאת הבדיקה של הלילה</div><b>${esc(nameOf(room.checks[room.round].target))}</b>${room.checks[room.round].mafia?'🔪 מאפיונר':'✅ לא מאפיונר'}</div>`:''}
+    ${p.alive?'<p class="center muted" style="margin:0">דברו, האשימו, חקרו – מי מכם המאפיה?</p>':deadView()}
+    ${playersCard()}
+    ${isHost()?`<button class="btn primary" data-act="toVote">🗳️ מעבר להצבעה עכשיו</button>`:''}`;
+}
+
+function vVote(){
+  const p=me(), v=room.votes||{}, voters=alive(room), n=voters.filter(x=>v[x.id]).length;
+  return topbar('הצבעה 🗳️') + (p.alive
+    ? header('🗳️','מי המאפיונר?','אפשר לשנות עד שכולם מצביעים')
+      + pgrid(voters.filter(x=>x.id!==myId), v[myId], 'vote', 'vote')
+      + `<button class="pbtn skip ${v[myId]==='skip'?'sel vote':''}" data-act="vote" data-arg="skip">🤷 דילוג – לא להדיח אף אחד</button>`
+    : deadView())
+    + `<div class="status ${n===voters.length?'ok':''}">הצביעו ${n} מתוך ${voters.length}</div>`
+    + (isHost()?`<button class="btn ghost" data-act="endVote">סיום הצבעה עכשיו</button>`:'');
+}
+
+function tallyHtml(votes){
+  const by={};
+  for(const [voter,t] of Object.entries(votes||{})) (by[t]=by[t]||[]).push(nameOf(voter));
+  return Object.entries(by).sort((a,b)=>b[1].length-a[1].length)
+    .map(([t,ns])=>`<div><b>${t==='skip'?'🤷 דילוג':esc(nameOf(t))} (${ns.length})</b><span>${ns.map(esc).join(', ')}</span></div>`).join('');
+}
+function vVoteResult(){
+  const vr=room.voteResult||{};
+  const ann = vr.out
+    ? `<div class="ann kill"><div class="big-ico">⚖️</div><div class="muted">העיר החליטה להדיח את</div><div class="ann-name">${esc(nameOf(vr.out))}</div></div>`
+    : `<div class="ann neutral"><div class="big-ico">🤝</div><div class="ann-name" style="font-size:22px">אף אחד לא הודח</div><div class="muted">תיקו או רוב לדילוג</div></div>`;
+  return topbar('תוצאות') + ann
+    + `<div class="card"><div class="card-h">איך הצביעו</div><div class="tally">${tallyHtml(vr.votes)||'<div><span>אין הצבעות</span></div>'}</div></div>`
+    + (isHost()?`<button class="btn primary big" data-act="nextNight">🌙 יורד לילה</button>`
+                :`<div class="card center muted">ממתינים למארח שיתחיל את הלילה<div class="dots"><i></i><i></i><i></i></div></div>`);
+}
+
+function vOver(){
+  const w=room.winner, mafiaWon=w==='mafia';
+  const ps=list(room).sort((a,b)=>(a.role==='mafia'?0:1)-(b.role==='mafia'?0:1));
+  return topbar('סוף המשחק') + `
+    <div class="win ${mafiaWon?'mafia':'town'}"><div style="font-size:64px">${mafiaWon?'🔪':'🏆'}</div>
+      <h1>${mafiaWon?'המאפיה ניצחה!':'העיר ניצחה!'}</h1>
+      <p class="muted" style="margin:8px 0 0">${esc(room.lastEvent||'')}</p></div>
+    <div class="card-h" style="margin:0">כל התפקידים</div>
+    <div class="roles">${ps.map(p=>{const R=ROLES[p.role]||ROLES.citizen; return `<div class="rrow ${p.alive?'':'dead'}">
+      <span class="ic">${R.icon}</span><span class="nm">${esc(p.name)}${p.id===myId?' (אני)':''}</span>
+      <span class="rl" style="color:${R.color}">${R.name}</span>${p.alive?'':'<span>💀</span>'}</div>`}).join('')}</div>
+    ${isHost()?`<button class="btn primary big" data-act="newGame">🔄 משחק חדש</button>`
+              :`<div class="card center muted">ממתינים שהמארח יפתח משחק חדש</div>`}
+    <button class="btn link" data-act="leave">יציאה מהחדר</button>`;
+}
+
+function render(){
+  if(!room){ renderHome(); return; }
+  const s=room.status;
+  if(s!==lastStatus){
+    if(lastStatus) try{ navigator.vibrate?.(s==='night'?[80,60,80]:150); }catch{}
+    ui.flipped=false; ui.peek=false; window.scrollTo(0,0); lastStatus=s;
+  }
+  document.body.className='ph-'+s;
+  const view={lobby:vLobby, reveal:vReveal, night:vNight, day:vDay, vote:vVote, voteResult:vVoteResult, over:vOver}[s] || vLobby;
+  app.innerHTML = `<div class="screen">${view()}</div>`
+    + (ui.peek && me()?.role ? `<div class="modal" data-act="peek">${roleFace(me())}<div style="position:absolute;bottom:30px;color:#aaa">הקישו לסגירה</div></div>` : '');
+}
+
+/* ---------- loops & boot ---------- */
+setInterval(()=>{
+  if(!room) return;
+  if(room.status==='day'){
+    const el=$('#timer'), left=Math.max(0, room.dayEndsAt-Date.now());
+    if(el){ el.textContent=fmt(left); el.classList.toggle('low', left<15000); }
+  }
+  hostTick();
+}, 500);
+
+let wakeLock=null;
+document.addEventListener('click', async()=>{
+  try{ if(!wakeLock && navigator.wakeLock){ wakeLock=await navigator.wakeLock.request('screen'); wakeLock.addEventListener('release',()=>wakeLock=null); } }catch{}
+});
+
+if(firebaseConfig.apiKey.startsWith('PASTE')){
+  app.innerHTML = `<div class="screen home"><div class="logo">🎭</div><h1 class="title">חברה</h1>
+    <div class="card"><h2 style="font-size:20px;margin-bottom:8px">צריך לחבר Firebase</h2>
+    <p class="muted" style="line-height:1.6">פתחו את הקובץ והדביקו את ה-firebaseConfig של הפרויקט שלכם בראש קטע הסקריפט.</p></div></div>`;
+} else {
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.firestore();
+  const saved = ls.get('mafia_room');
+  const urlCode = new URLSearchParams(location.search).get('code');
+  if(saved && /^\d{4}$/.test(saved) && (!urlCode || urlCode===saved)) enterRoom(saved); else renderHome();
+}
+</script>
+</body>
+</html>
