@@ -288,8 +288,13 @@
 
 /* family HUD: the cash is named in words (a caption on tall screens; a tap shows the tooltip on short ones) */
 .cash-cap { margin: -6px 0 0; font-size: .6875rem; line-height: 1.1; color: var(--text-muted); text-align: start; }
-.cash-cap .cap-short { display: none; }
-@media (max-height: 640px) { .cash-cap .cap-long { display: none; } .cash-cap .cap-short { display: inline; font-weight: var(--fw-bold); } .cash-cap { margin-block-start: -8px; line-height: 1; } }
+.cash-col { min-inline-size: 0; flex: 1 1 0; display: flex; flex-direction: column; }
+.cash-col .cash-wrap { flex: none; }
+.cash-label { display: none; }
+@media (max-height: 640px) {
+  .cash-cap { display: none; }
+  .cash-label { display: block; margin-block: -2px -3px; font-size: .6875rem; line-height: 1; font-weight: var(--fw-bold); color: var(--text-muted); text-align: start; }
+}
 @media (min-height: 641px) { .screen-board:has(.cash-cap) { --board-w: min(100%, max(258px, calc(100dvh - 480px))); } }
 .story-part-of { margin: 0; font-size: .75rem; color: var(--text-muted); text-align: center; font-variant-numeric: tabular-nums; }
 .fp-total { white-space: nowrap; }

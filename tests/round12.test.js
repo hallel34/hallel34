@@ -235,7 +235,7 @@ describe('items 12, 2, 16, 17: story part 5, the h-card source ring, the home li
   });
   it('short screens show a compact cash word instead of hiding the caption', () => {
     expect(src('src/ui/play.js')).toContain('cap-short');
-    expect(src('src/styles/tutorial.css')).toMatch(/max-height: 640px\) \{ \.cash-cap \.cap-long \{ display: none; \}/);
+    expect(src('src/styles/tutorial.css')).toMatch(/\.cash-label/);
   });
   it('the toast steps out of the way of every control', () => {
     expect(src('src/ui/fx.js')).toContain('placeToast');

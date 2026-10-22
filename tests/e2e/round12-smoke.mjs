@@ -234,7 +234,7 @@ async function family(browser, theme) {
   // 7-digit cash, one step before the payday: every roll passes it
   const { ctx, page } = await open(browser, { w: 320, h: 568, theme });
   await resume(page, withState(mk('family'), { cash: 1234567, position: 3, turn: 5 }));
-  const cap = await page.evaluate(() => { const c = document.querySelector('[data-cash-caption]'); const s = c.querySelector('.cap-short'); return { vis: getComputedStyle(s).display !== 'none', text: s.textContent, long: getComputedStyle(c.querySelector('.cap-long')).display }; });
+  const cap = await page.evaluate(() => { const c = document.querySelector('[data-cash-caption]'); const s = document.querySelector('.cash-col .cash-label'); return { vis: getComputedStyle(s).display !== 'none', text: s.textContent, long: getComputedStyle(c).display }; });
   check(cap.vis && cap.text === 'מזומן' && cap.long === 'none', `320x568 ${theme}: the cash label stays as the compact word "מזומן" (${JSON.stringify(cap)})`);
   await page.locator('.flow-chip').click();
   await page.waitForSelector('.flow-popover');

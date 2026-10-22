@@ -221,8 +221,10 @@ async function playGame(page, tag, budgetMs = Number(process.env.SMOKE_GAME_MS |
   let resumed = false;
   let stuck = 0;
   let statementChecked = false;
+  let last = null;
   while (Date.now() < deadline) {
     const d = await page.evaluate(decide, process.env.SMOKE_POLICY || 'sensible');
+    last = d;
     if (d.done) return { result: d.done, rolls };
     // The primary button must never read "..." or be empty, and must never stay disabled with nothing on screen to wait for.
     if (d.btn && /^[.\s]*$/.test(d.btn.text) && !failures.includes('primary button text is empty or "..."')) check(false, 'primary button text is empty or "..."');
@@ -284,6 +286,7 @@ async function playGame(page, tag, budgetMs = Number(process.env.SMOKE_GAME_MS |
       await page.waitForTimeout(40);
     }
   }
+  console.log(`last decision before the timeout: ${JSON.stringify(last)} one-tap hand-overs so far ${oneTap.total} turn ${await page.evaluate(() => document.querySelector(".screen-board")?.dataset.turn)}`);
   return { result: 'timeout', rolls };
 }
 

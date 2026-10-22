@@ -124,9 +124,10 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   // Family: 'מזומן' is named once in words ('הכסף שיש לכם עכשיו'): a caption under the number on tall screens, a tap-for-tooltip on short ones
   const cashUi = isFamily ? tut().ui : null;
   const cashWrap = h('span', { class: 'cash-wrap', 'aria-label': cashUi ? `${t('game.cash')}, ${cashUi.cashLabel}` : t('game.cash'), title: cashUi?.cashTooltip }, cash.el);
-  // tall screens: the full caption; short ones (<= 640): the compact word 'מזומן' (never hidden: the number always says what it is)
-  const cashCap = cashUi ? h('p', { class: 'cash-cap', 'data-cash-caption': '' }, h('span', { class: 'cap-long' }, cashUi.cashCaption), h('span', { class: 'cap-short' }, t('game.cash'))) : null;
-  if (cashUi) cashWrap.addEventListener('click', () => { if (getComputedStyle(cashCap.querySelector('.cap-long')).display === 'none') toast(cashUi.cashTooltip, 3500); });
+  // tall screens: the full caption under the number; short ones (<= 640): the compact word 'מזומן' ABOVE the number inside the cash row (no extra height)
+  const cashCap = cashUi ? h('p', { class: 'cash-cap', 'data-cash-caption': '' }, h('span', { class: 'cap-long' }, cashUi.cashCaption)) : null;
+  const cashLabel = cashUi ? h('span', { class: 'cash-label cap-short', 'aria-hidden': 'true' }, t('game.cash')) : null;
+  if (cashUi) cashWrap.addEventListener('click', () => { if (getComputedStyle(cashCap).display === 'none') toast(cashUi.cashTooltip, 3500); });
   fitText(cash.el, { minScale: 0.5, box: cashWrap }); // very narrow screens (320px): a long amount shrinks to fit instead of overflowing
   const passiveVal = h('b', { class: 'tone-income' });
   const expenseVal = h('b', { class: 'tone-expense' });
@@ -144,7 +145,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
       h('div', { class: 'hud-btns' }, stmtBtn, homeBtn, settingsBtn)),
     h('div', { class: 'hud-cash' },
       h('img', { class: 'hud-coin', src: coinUrl, alt: '', width: 30, height: 30 }),
-      cashWrap,
+      h('div', { class: 'cash-col' }, cashLabel, cashWrap),
       flowChip),
     cashCap,
     goalLine,
