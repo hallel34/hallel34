@@ -20,7 +20,7 @@ export const FORBIDDEN = [
 const FORBIDDEN_RE = new RegExp(FORBIDDEN.join('|'), 'u');
 /** The only places where the real term is shown on purpose (spec: 'חריגים מותרים'): the story's first screen names it once. */
 const ALLOWED = /^tutorial\.story\.screens\.0\.lines/;
-const NON_TEXT = new Set(['notes', 'computed', 'was', 'sampleText', 'sampleOneLine', 'sampleNoAsset', 'sample', 'ownerWording', 'trigger', 'note', 'howto', 'keepAsIs', 'showWhile', 'round11', 'example', 'target', 'targetKey', 'textKey', 'a11y', 'reducedMotion', 'assumes', 'id', 'pose', 'term', 'level', 'kidName', 'kidShort', 'opening', 'tier', 'when', 'minNeeded', 'readSec']);
+const NON_TEXT = new Set(['notes', 'computed', 'was', 'sampleText', 'sampleOneLine', 'sampleNoAsset', 'sample', 'ownerWording', 'trigger', 'note', 'howto', 'keepAsIs', 'showWhile', 'round11', 'round13', 'example', 'target', 'targetKey', 'textKey', 'a11y', 'reducedMotion', 'assumes', 'id', 'pose', 'term', 'level', 'kidName', 'kidShort', 'opening', 'tier', 'when', 'minNeeded', 'readSec']);
 
 function* walk(v, path = []) {
   if (typeof v === 'string') yield [path.join('.'), v];

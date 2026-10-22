@@ -429,7 +429,7 @@
         "closing": "עכשיו מחליטים: קונים או מדלגים. שניהם בסדר.",
         "example": {
           "cardId": "opp-biz-006",
-          "sampleText": "1. מקדמה: ₪40,000. 2. נשאר בחודש: ₪900. 3. החזר: 3.7 שנים.",
+          "sampleText": "1. מקדמה: ₪40,000. 2. נשאר בחודש: ₪900. 3. הכסף חוזר: 3.7 שנים.",
           "computed": { "downPayment": 40000, "monthly": 900, "years": 3.7 }
         },
         "afterwards": "בקלף הבא (הראשון עם חלון 'עסקה טובה?') רמז קצר אחד: 'עכשיו נסו לנחש לפני שרואים את המספרים'."
@@ -598,7 +598,8 @@
       { "id": "down_payment", "term": "מקדמה", "kidName": "התשלום הראשון", "kidShort": "החלק שמשלמים מהכיס ברגע הקנייה. את השאר מממנת הלוואה מהבנק.", "level": "family" },
       { "id": "mortgage", "term": "משכנתא", "kidName": "הלוואה לדירה", "kidShort": "הלוואה גדולה מהבנק לקניית דירה, שמחזירים בתשלומים כל חודש.", "level": "family" },
       { "id": "yield", "term": "תשואה", "kidName": "כמה הנכס מכניס בשנה", "kidShort": "כמה כסף הנכס מכניס בשנה, באחוזים ממה ששילמתם בהתחלה.", "level": "family" },
-      { "id": "payback", "term": "החזר השקעה", "kidName": "תוך כמה שנים הכסף חוזר", "kidShort": "כמה שנים עד שהנכס מחזיר את התשלום הראשון.", "level": "family" },
+      { "id": "payback", "term": "תקופת החזר", "kidName": "תוך כמה שנים הכסף חוזר", "kidShort": "כמה שנים עד שהנכס מחזיר את התשלום הראשון.", "level": "family" },
+      { "id": "roi", "term": "החזר השקעה", "kidName": "כמה אחוזים הכסף מרוויח בשנה", "kidShort": "כמה כסף הנכס מחזיר בשנה, באחוזים ממה ששילמתם בהתחלה.", "level": "family" },
       { "id": "interest", "term": "ריבית", "kidName": "תוספת על ההלוואה", "kidShort": "הכסף הנוסף שמשלמים לבנק כל חודש על כסף שהשאילו לכם.", "level": "family" },
       { "id": "dividend", "term": "דיבידנד", "kidName": "חלק מהרווח של החברה", "kidShort": "כסף שחברה מחלקת למי שמחזיק בחלק קטן ממנה, אם היא מחליטה לחלק.", "level": "full" },
       { "id": "cushion", "term": "כרית ביטחון", "kidName": "כסף בצד לשעת צורך", "kidShort": "כסף שמחזיקים בצד לימים שקורה משהו לא צפוי.", "level": "family" },
@@ -624,8 +625,8 @@
       { "key": "card.monthlyCashFlow", "was": "[[term:cashflow|תזרים חודשי]]", "family": "[[term:cashflow|נשאר בחודש]]" },
       { "key": "card.rentLine", "was": "שכירות {gross} − [[term:mortgage|משכנתא]] {payment} = [[term:cashflow|תזרים]] {flow}", "family": "שכירות {gross} − [[term:mortgage|הלוואה לדירה]] {payment} = [[term:cashflow|נשאר]] {flow}" },
       { "key": "card.profitLine", "was": "רווח {gross} − החזר הלוואה {payment} = [[term:cashflow|תזרים]] {flow}", "family": "רווח {gross} − החזר הלוואה {payment} = [[term:cashflow|נשאר]] {flow}" },
-      { "key": "card.payback", "was": "[[term:payback|החזר]]: {years}", "family": "[[term:payback|הכסף חוזר]] תוך {years}" },
-      { "key": "card.paybackNever", "was": "[[term:payback|החזר]]: אף פעם", "family": "[[term:payback|הכסף חוזר]]: אף פעם" },
+      { "key": "card.payback", "was": "[[term:payback|תקופת החזר]]: {years}", "family": "[[term:payback|הכסף חוזר]] תוך {years}" },
+      { "key": "card.paybackNever", "was": "[[term:payback|תקופת החזר]]: אף פעם", "family": "[[term:payback|הכסף חוזר]]: אף פעם" },
       { "key": "card.newPassive", "was": "[[term:passive_income|ההכנסה הפסיבית]] שלכם תעלה ל-{amount} לחודש", "family": "[[term:passive_income|הכסף שעובד בשבילכם]] יעלה ל-{amount} בחודש" },
       { "key": "loan.rateLine", "was": "[[term:interest|ריבית]]: {apr}% בשנה, כלומר {unitPay} בחודש על כל {unit}", "family": "[[term:interest|תוספת]]: {unitPay} בחודש על כל {unit}" },
       { "key": "loan.interestUntil", "was": "[[term:interest|ריבית]] עד הסיכום הבא ({months} חודשים)", "family": "[[term:interest|תוספת]] עד הסיכום הבא ({months} חודשים)" },

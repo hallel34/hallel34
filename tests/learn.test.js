@@ -470,10 +470,10 @@ describe('feedback requests from what changed', () => {
 });
 
 describe('concepts: first-seen logic (spec 3)', () => {
-  it('family mode knows 10 concepts, full mode 13; dividend, net worth and diversification are full only', () => {
-    expect(conceptList()).toHaveLength(13);
-    expect(conceptsForMode('family')).toHaveLength(10);
-    expect(conceptsForMode('full')).toHaveLength(13);
+  it('family mode knows 11 concepts, full mode 14; dividend, net worth and diversification are full only', () => {
+    expect(conceptList()).toHaveLength(14);
+    expect(conceptsForMode('family')).toHaveLength(11);
+    expect(conceptsForMode('full')).toHaveLength(14);
     expect(conceptsForMode('family').map((c) => c.id)).not.toEqual(expect.arrayContaining(['dividend']));
     expect(conceptsForMode('full').filter((c) => c.level === 'full').map((c) => c.id).sort()).toEqual(['diversification', 'dividend', 'net_worth']);
   });
@@ -641,7 +641,7 @@ describe('report (L4)', () => {
     const v = reportView(s, { seed: 4 });
     const text = JSON.stringify(v);
     expect(text).not.toMatch(/\{\w+\}/);
-    expect(v.sections.find((x) => x.id === 'bestDeal').text).toBe('סטודיו: החזר תוך 4.9 שנים, תשואה של 20.4% בשנה.');
+    expect(v.sections.find((x) => x.id === 'bestDeal').text).toBe('סטודיו: תקופת החזר של 4.9 שנים, תשואה של 20.4% בשנה.');
     expect(v.sections.find((x) => x.id === 'interest').text).toBe(learnContent().report.sections.interest.zero);
     expect(v.sections.find((x) => x.id === 'concepts').unlocked.sort()).toEqual(['asset']);
     expect(v.conversation.questions).toHaveLength(3);
@@ -654,7 +654,7 @@ describe('report (L4)', () => {
     const s = { ...stateWith([]), mode: 'full', status: 'won' };
     s.learn.concepts = ['dividend'];
     const v = reportView(s, { seed: 1 });
-    expect(v.sections.find((x) => x.id === 'concepts').text).toContain('13');
+    expect(v.sections.find((x) => x.id === 'concepts').text).toContain('14');
     const f = reportView({ ...stateWith([]), status: 'won' }, { seed: 1 });
     expect(f.sections.find((x) => x.id === 'concepts').text).toContain(content.report.sections.concepts.none);
   });

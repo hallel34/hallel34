@@ -1,16 +1,19 @@
-/* פסיבו (Passivo) — design tokens. Direction v3: "Navy & Gold" (dark-first), derived from the fox art.
+/* פסיבו (Passivo) — design tokens. Direction v3.1: "Navy & Gold", quiet edition (dark-first), derived from the fox art.
+   v3.1 (Phase 1 design): deep-navy #0F172A family, ONE accent (gold) = the single primary action per screen, flat buttons and cards
+   (no gradients: the old gradient tokens are now solid colours, written as linear-gradient(X, X) so both `background` and
+   `background-image` uses keep working), category + verdict + negative-money tokens. Old -> new table: docs/v3/design/spec.md section 2.
    Use ONLY these tokens in components. Logical properties only (RTL-safe).
    Token names are stable since v2; v3 changed VALUES (legacy --c-plum-/--c-sun-/--c-mint... names kept as aliases)
    and added the groups marked NEW. Contrast is audited by `python3 scripts/contrast-check.py`. */
 :root {
   /* ---- Brand palette (raw, theme-independent) ---- */
-  --c-navy-950: #091330;              /* NEW night */
-  --c-navy-900: #0F1E46;              /* NEW brand navy (fox art background) */
-  --c-navy-800: #16295E;
-  --c-navy-700: #1D3573;
-  --c-navy-500: #4A5C94;
-  --c-navy-300: #8696C8;
-  --c-ice-100: #C4D0F0;               /* NEW muted text on navy */
+  --c-navy-950: #0A1020;              /* night / sunken (v3.1: was #091330) */
+  --c-navy-900: #0F172A;              /* v3.1 quiet app navy (was #0F1E46, the fox-art navy; the fox art itself is unchanged) */
+  --c-navy-800: #182238;              /* v3.1 (was #16295E) */
+  --c-navy-700: #212D48;              /* v3.1 (was #1D3573) */
+  --c-navy-500: #4A5878;              /* v3.1 (was #4A5C94) */
+  --c-navy-300: #8A97B8;              /* v3.1 (was #8696C8) */
+  --c-ice-100: #A9B5D0;               /* muted text on navy (v3.1, was #C4D0F0): 8.7:1 on bg, 6.7:1 on surface-2 */
   --c-gold-300: #FFD479;
   --c-gold-400: #F2B53A;              /* NEW brand gold */
   --c-gold-500: #E3A020;
@@ -41,7 +44,7 @@
   --pl-2: #4DA3FF;
   --pl-3: #4FD6A0;
   --pl-4: #FF9CCB;
-  --pl-ink: #0F1E46;
+  --pl-ink: #0F172A;
   /* legacy aliases (v1/v2 names -> v3 values) */
   --c-plum-900: var(--c-navy-900);
   --c-plum-800: var(--c-navy-900);
@@ -56,56 +59,80 @@
 
   /* ---- Semantic: dark theme (default, "Navy & Gold") ---- */
   --bg: var(--c-navy-900);
-  --bg-board: rgb(5 12 32 / .38);
+  --bg-board: rgb(4 8 20 / .40);
   --surface: var(--c-navy-800);
   --surface-2: var(--c-navy-700);
-  --surface-sunken: #0A1533;
-  --text: #FFFFFF;                    /* 16.9:1 on bg */
-  --text-muted: var(--c-ice-100);     /* 11.1:1 on bg, 8.6:1 on surface */
+  --surface-sunken: #0A1020;
+  --text: #F5F7FC;                    /* 16.6:1 on bg (v3.1: off-white, was #FFFFFF) */
+  --text-muted: var(--c-ice-100);     /* 8.7:1 on bg, 7.7:1 on surface, 6.7:1 on surface-2 */
   --text-soft: #FFE6BD;
   --text-on-color: #FFFFFF;
-  --border: rgb(255 255 255 / .22);
-  --border-strong: var(--c-navy-300); /* NEW: 5.6:1 on bg, for input/outline boundaries */
-  --outline: #060E24;
+  --border: rgb(255 255 255 / .14);   /* v3.1 hairline (was .22) */
+  --border-strong: var(--c-navy-300); /* 6.1:1 on bg, 4.7:1 on surface-2: input/outline boundaries */
+  --outline: #050A16;
   --focus-ring: var(--c-gold-300);
-  --scrim: rgb(5 10 28 / .74);
+  --scrim: rgb(4 8 20 / .88);          /* v3.1 (was .74): the board no longer reads through behind a card */
 
-  /* backgrounds + glass */
-  --grad-night: linear-gradient(180deg, #091330 0%, #0F1E46 55%, #1B3068 100%);
-  --grad-sky: linear-gradient(180deg, #091330 0%, #0F1E46 42%, #1D3573 76%, #2C3F82 100%);
-  --grad-sunburst: linear-gradient(180deg, #16295E 0%, #3A3A6B 45%, #B5582A 85%, #E8702A 100%);
-  --grad-card-modal: linear-gradient(180deg, #060E24 0%, #0F1E46 100%);
-  --grad-felt: radial-gradient(120% 90% at 50% 40%, #1C3F6B 0%, #12294F 60%, #0B1B3A 100%); /* NEW: tabletop variation */
-  --glass-bg: rgb(255 255 255 / .10);
-  --glass-bg-strong: rgb(8 16 40 / .55);
-  --glass-border: rgb(255 255 255 / .20);
-  --glass-chip: rgb(255 255 255 / .12);
-  --skyline: #0A1533;
-  --skyline-window: #F2B53A;          /* NEW: lit windows in the night-city board */
-  --glow-fox: radial-gradient(closest-side, rgb(242 181 58 / .30), rgb(242 181 58 / 0)); /* NEW: gold halo behind the fox */
-  --title-grad: linear-gradient(180deg, #FFE9A8 0%, #F2B53A 55%, #E3A020 100%);
-  --title-shadow: drop-shadow(0 3px 0 #0A1533) drop-shadow(0 10px 18px rgb(0 0 0 / .45));
-  --cash-color: #F6C453;              /* 10.5:1 on bg */
-  --meter-track: rgb(0 0 0 / .38);
+  /* backgrounds + glass. v3.1: only a SUBTLE tonal shift; "solid" ones are linear-gradient(X, X) so they work in background and background-image */
+  --grad-night: linear-gradient(180deg, #0C1324 0%, #0F172A 55%, #131C33 100%);
+  --grad-sky: linear-gradient(180deg, #0C1324 0%, #0F172A 50%, #141E37 100%);
+  --grad-sunburst: linear-gradient(180deg, #131C33 0%, #182238 100%);        /* win screen: calm; the gold halo comes from the fox */
+  --grad-card-modal: linear-gradient(180deg, #0F172A, #0F172A);              /* solid */
+  --grad-felt: linear-gradient(180deg, #12253D, #12253D);                    /* solid (variation B, unused) */
+  --glass-bg: rgb(255 255 255 / .05);
+  --glass-bg-strong: rgb(8 14 30 / .72);
+  --glass-border: rgb(255 255 255 / .12);
+  --glass-chip: rgb(255 255 255 / .07);
+  --skyline: #0A1020;
+  --skyline-window: #F2B53A;
+  --glow-fox: radial-gradient(closest-side, rgb(242 181 58 / .16), rgb(242 181 58 / 0)); /* fox halo, quieter (was .30) */
+  --title-grad: linear-gradient(180deg, #FFD479 0%, #F2B53A 100%);           /* brand wordmark title only (flat-ish) */
+  --title-shadow: drop-shadow(0 2px 0 #0A1020) drop-shadow(0 8px 14px rgb(0 0 0 / .35));
+  --cash-color: var(--text);          /* v3.1: cash is white, NOT gold: gold is reserved for the one primary action (was #F6C453) */
+  --meter-track: rgb(255 255 255 / .10);
 
-  /* cream card (opportunity/expense/... modal) */
+  /* card (opportunity/expense/market/baby/charity modal): FLAT opaque paper, no gradient. Always theme-independent cream. */
   --card-bg: var(--c-cream-100);
-  --card-text: var(--c-navy-900);     /* 16:1 on cream */
-  --card-muted: #46527E;              /* 7.3:1 on cream */
+  --card-text: var(--c-navy-900);     /* 16.6:1 on cream */
+  --card-muted: #46527E;              /* 7.1:1 on cream */
   --card-border: var(--c-cream-200);
-  --card-ring: var(--c-gold-400);
+  --card-ring: rgb(255 255 255 / .18);   /* v3.1: hairline (was the 4px gold ring) */
+  --card-highlight: #FFFFFF;          /* NEW: 1px top highlight (inset 0 1px 0) */
   --card-tile-bg: #FFFFFF;
   --card-income-bg: #E1F8EC;
   --card-income-border: #9DE8C4;
-  --card-felt: #0F1E46;               /* NEW: felt-variation card back colour */
+  --card-felt: #0F172A;
+  --card-shadow: 0 1px 0 rgb(255 255 255 / .06), 0 24px 56px rgb(0 0 0 / .55);   /* NEW: replaces --shadow-3 on cards */
+  --focus-ring-card: #0F172A;         /* NEW: gold-300 is 1.5:1 on cream, so rings inside a card are navy (16.6:1) */
+
+  /* NEW: deal verdict ribbon (3px on the card's top edge) + its text pill. Redundant with a text label + icon, never colour only. */
+  --verdict-green: #1FAE76;   --verdict-green-ink: #0B6B43;   --verdict-green-tint: #E1F8EC;
+  --verdict-yellow: #E8A317;  --verdict-yellow-ink: #6B4300;  --verdict-yellow-tint: #FFF1D0;
+  --verdict-red: #D94A42;     --verdict-red-ink: #7A1810;     --verdict-red-tint: #FFE9E5;
+  --verdict-neutral: #C9BC9C; /* before the reveal / no verdict (expense, market... cards use their tile colour) */
+
+  /* NEW: category registry (icon = src/assets/category/<id>.svg). -c = on dark surfaces, -ink = on cream/white (both >= 5:1) */
+  --cat-apartment: #A9B8DA;  --cat-apartment-ink: #4A5C94;
+  --cat-coffee: #C79A6B;     --cat-coffee-ink: #7A5230;
+  --cat-food-stand: #B9D95C; --cat-food-stand-ink: #55700F;
+  --cat-snack-cart: #FF8FB8; --cat-snack-cart-ink: #B0265E;
+  --cat-retail: #4FD1D9;     --cat-retail-ink: #0B6B78;
+  --cat-franchise: #A78BFA;  --cat-franchise-ink: #5B3FC4;
+  --cat-service: #E879F9;    --cat-service-ink: #9A1FB0;
+  --cat-leisure: #FFA45C;    --cat-leisure-ink: #A84E0B;
+  --cat-stock: #4DA3FF;      --cat-stock-ink: #1A62B3;
+  --prof-icon: var(--text);  /* NEW: profession avatar glyph colour (all eight the same) */
+  --prof-chip-bg: var(--surface-2);
 
   /* Money semantics: same meaning everywhere */
   --income: var(--c-mint-300);
   --income-fill: var(--c-mint-500);
   --income-ink: var(--c-mint-700);    /* on cream/white */
-  --expense: var(--c-coral-300);
+  --expense: #E57373;                 /* v3.1 muted red (was #FF9C8C): 6.0:1 on bg, 4.6:1 on surface-2. NEVER on cream: use --expense-ink there */
   --expense-fill: var(--c-coral-500);
-  --expense-ink: var(--c-coral-700);  /* on cream/white */
+  --expense-ink: #B42318;             /* on cream/white: 6.1:1 */
+  --negative: var(--expense);         /* NEW alias: a negative amount (dark surfaces) */
+  --negative-ink: var(--expense-ink); /* NEW alias: a negative amount on cream/white */
   --amber-ink: #FFD27A;               /* neutral caution text: a negative result is never red (dark theme, on navy) */
   --amber-fill: rgb(246 196 83 / .16);
   --asset: var(--c-gold-400);
@@ -113,27 +140,33 @@
   --liability: #C3BDF0;
   --liability-fill: #8C86C0;
   --passive: var(--c-teal-500);       /* signature win-meter colour */
-  --passive-fill: linear-gradient(270deg, #2FD3A5, #F2D36B);
+  --passive-fill: linear-gradient(270deg, #35D6B0, #35D6B0);   /* v3.1 solid teal (was teal > gold) */
   --passive-track: var(--meter-track);
   --fox: var(--c-fox-500);            /* NEW: mascot accent (never a money meaning) */
   --fox-ink: var(--c-fox-700);        /* NEW: orange text on light, 5.0:1 on cream */
 
-  /* Buttons */
-  --btn-primary-bg: linear-gradient(180deg, #FFD479 0%, #F2B53A 52%, #E3A020 100%);
-  --btn-primary-text: var(--c-gold-ink);   /* >=8:1 on every gold stop */
-  --btn-primary-edge: #A56A0A;
-  --btn-buy-bg: linear-gradient(180deg, #7AE8C0 0%, #2FB885 100%);
-  --btn-buy-text: #032A1A;
-  --btn-buy-edge: #167A58;
-  --btn-secondary-bg: var(--glass-bg);
-  --btn-secondary-text: #FFFFFF;
+  /* Buttons: FLAT. Primary (gold) = the one action per screen. Secondary = hairline ghost. Tertiary = text. Danger = rare, destructive confirm only. */
+  --accent: var(--c-gold-400);             /* NEW: THE accent. Only a primary button / the active-turn ring may use it */
+  --accent-pressed: #E3A020;               /* NEW: pressed fill (replaces translateY press) */
+  --btn-primary-bg: #F2B53A;
+  --btn-primary-text: var(--c-gold-ink);   /* 9.4:1 */
+  --btn-primary-edge: transparent;
+  --btn-buy-bg: #F2B53A;                   /* v3.1: Buy IS the primary action, so it is gold (was mint) */
+  --btn-buy-text: var(--c-gold-ink);
+  --btn-buy-edge: transparent;
+  --btn-secondary-bg: transparent;
+  --btn-secondary-text: var(--text);
   --btn-secondary-edge: transparent;
-  --btn-secondary-border: rgb(255 255 255 / .4);
-  --btn-danger-bg: linear-gradient(180deg, #FFA595 0%, #F0645A 100%);
-  --btn-danger-text: #2E0502;
-  --btn-danger-edge: #A8261B;
-  --btn-disabled-bg: #2A3A6B;
-  --btn-disabled-text: #B4C0E4;
+  --btn-secondary-border: #7C89AB;         /* 5.1:1 on bg, 3.9:1 on surface-2 */
+  --btn-text-color: var(--text);           /* NEW: tertiary text button */
+  --btn-danger-bg: #E57373;
+  --btn-danger-text: #2E0502;              /* 5.9:1 */
+  --btn-danger-edge: transparent;
+  --btn-disabled-bg: #263250;
+  --btn-disabled-text: #8E9AB8;
+  --btn-disabled-opacity: .5;              /* NEW: a disabled button keeps its variant look at 50% */
+  --btn-arming-bar: var(--c-gold-300);     /* NEW: 4px progress bar while a button arms (hand-over / summary) */
+  --sel-ring: var(--text);                 /* NEW: selected card/chip ring is white, not gold */
 
   /* Square types (board tiles). Each tile also carries a unique icon; tiles keep a navy outline in both themes. */
   --sq-payday: #F2B53A;
@@ -142,7 +175,7 @@
   --sq-market: #4DA3FF;
   --sq-baby: #FF9CCB;
   --sq-charity: #9B7BFF;
-  --sq-icon-dark: #0F1E46;            /* NEW: icon ink on every tile (>=4.2:1 on all six) */
+  --sq-icon-dark: #0F172A;            /* icon ink on every tile (>=5.1:1 on all six) */
 
 /* ---- Typography ---- */
   --font-display: "Rubik", "Heebo", system-ui, sans-serif;
@@ -174,11 +207,11 @@
 
   /* ---- Elevation ---- */
   --stroke: 3px;
-  --shadow-1: 0 2px 0 rgb(0 0 0 / .30), 0 4px 10px rgb(0 0 0 / .28);
-  --shadow-2: 0 4px 0 rgb(0 0 0 / .35), 0 10px 24px rgb(0 0 0 / .4);
-  --shadow-3: 0 0 0 4px var(--card-ring), 0 24px 50px rgb(0 0 0 / .6);
-  --shadow-glow-gold: 0 0 0 3px rgb(242 181 58 / .5), 0 0 28px rgb(242 181 58 / .5);
-  --edge-depth: 6px;                  /* glossy button 3D edge */
+  --shadow-1: 0 1px 2px rgb(0 0 0 / .30), 0 4px 12px rgb(0 0 0 / .25);              /* v3.1 soft, no hard offset edge */
+  --shadow-2: 0 2px 4px rgb(0 0 0 / .30), 0 12px 28px rgb(0 0 0 / .40);
+  --shadow-3: 0 0 0 1px var(--card-ring), 0 24px 56px rgb(0 0 0 / .55);              /* cards/dialogs: hairline, not a 4px gold ring */
+  --shadow-glow-gold: 0 0 0 2px rgb(242 181 58 / .9);                                /* active-turn ring only (no glow) */
+  --edge-depth: 0px;                  /* v3.1: flat buttons (was 6px glossy edge) */
 
   /* ---- Layers ---- */
   --z-board: 1; --z-pawn: 5; --z-hud: 10; --z-sheet: 20; --z-modal: 30; --z-toast: 40; --z-fx: 50;
@@ -215,20 +248,20 @@
   --surface: #FFFFFF;
   --surface-2: #FFF9EC;
   --surface-sunken: #F1E5C8;
-  --text: #0F1E46;                    /* 15.6:1 on bg */
+  --text: #0F172A;                    /* 16:1 on bg */
   --text-muted: #3F4C78;              /* 7.9:1 on bg, 6.6:1 on sunken */
   --text-soft: #5A3A12;
   --border: rgb(15 30 70 / .22);
   --border-strong: #6F7899;           /* 3.9:1 on bg */
-  --outline: #0F1E46;
-  --focus-ring: #0F1E46;
-  --scrim: rgb(9 19 48 / .55);
+  --outline: #0F172A;
+  --focus-ring: #0F172A;
+  --scrim: rgb(15 23 42 / .72);
 
-  --grad-night: linear-gradient(180deg, #FFF3D6 0%, #FBE2B0 55%, #F6CF8A 100%);
-  --grad-sky: linear-gradient(180deg, #FBF3E1 0%, #FFE6B8 45%, #FFD08A 80%, #F8B160 100%);
-  --grad-sunburst: linear-gradient(180deg, #FFF3D6 0%, #FFD9A0 50%, #F8B160 100%);
-  --grad-card-modal: linear-gradient(180deg, #FFF3D6 0%, #F6CF8A 100%);
-  --grad-felt: radial-gradient(120% 90% at 50% 40%, #BFE3D0 0%, #9DCDB8 60%, #86BCA6 100%);
+  --grad-night: linear-gradient(180deg, #FBF3E1 0%, #F7EBD0 100%);
+  --grad-sky: linear-gradient(180deg, #FBF3E1 0%, #F7EBD0 100%);
+  --grad-sunburst: linear-gradient(180deg, #FBF3E1 0%, #F4E6C6 100%);
+  --grad-card-modal: linear-gradient(180deg, #FBF3E1, #FBF3E1);
+  --grad-felt: linear-gradient(180deg, #CFE6DA, #CFE6DA);
   --glass-bg: rgb(255 255 255 / .72);
   --glass-bg-strong: rgb(255 255 255 / .86);
   --glass-border: rgb(15 30 70 / .16);
@@ -236,9 +269,9 @@
   --skyline: #2A3C74;
   --skyline-window: #FFD479;
   --glow-fox: radial-gradient(closest-side, rgb(242 181 58 / .38), rgb(242 181 58 / 0));
-  --title-grad: linear-gradient(180deg, #2A4AA0 0%, #0F1E46 100%);
-  --title-shadow: drop-shadow(0 3px 0 #F2B53A) drop-shadow(0 8px 14px rgb(15 30 70 / .25));
-  --cash-color: #7A4A00;              /* 6.4:1 on bg */
+  --title-grad: linear-gradient(180deg, #0F172A, #0F172A);
+  --title-shadow: drop-shadow(0 2px 0 #F2B53A);
+  --cash-color: var(--text);          /* v3.1 ink, not brown */
   --meter-track: rgb(15 30 70 / .14);
 
   --income: var(--c-mint-700);
@@ -248,17 +281,30 @@
   --asset: #8A5200;                   /* 5.8:1 on bg */
   --liability: #55508A;
   --passive: #0A7560;
-  --passive-fill: linear-gradient(270deg, #087F66, #C98A12);
+  --passive-fill: linear-gradient(270deg, #087F66, #087F66);
   --passive-track: var(--meter-track);
+  --cat-apartment: var(--cat-apartment-ink); --cat-coffee: var(--cat-coffee-ink); --cat-food-stand: var(--cat-food-stand-ink);
+  --cat-snack-cart: var(--cat-snack-cart-ink); --cat-retail: var(--cat-retail-ink); --cat-franchise: var(--cat-franchise-ink);
+  --cat-service: var(--cat-service-ink); --cat-leisure: var(--cat-leisure-ink); --cat-stock: var(--cat-stock-ink);
 
-  --btn-secondary-bg: #FFFFFF;
-  --btn-secondary-text: #0F1E46;
-  --btn-secondary-border: rgb(15 30 70 / .35);
+  --btn-secondary-bg: transparent;
+  --btn-secondary-text: #0F172A;
+  --btn-secondary-border: #6F7899;         /* 3.9:1 on bg */
+  --btn-text-color: #0F172A;
+  --btn-danger-bg: #B42318;
+  --btn-danger-text: #FFFFFF;
+  --btn-arming-bar: #0F172A;
+  --sel-ring: #0F172A;
+  --negative: var(--expense);
+  --negative-ink: var(--expense-ink);
   --btn-disabled-bg: #E6DCC6;
   --btn-disabled-text: #4F4A3C;
-  --shadow-1: 0 2px 0 rgb(15 30 70 / .14), 0 4px 10px rgb(15 30 70 / .10);
-  --shadow-2: 0 4px 0 rgb(15 30 70 / .16), 0 10px 24px rgb(15 30 70 / .18);
-  --shadow-3: 0 0 0 4px var(--card-ring), 0 24px 50px rgb(15 30 70 / .45);
+  --shadow-1: 0 1px 2px rgb(15 23 42 / .14), 0 4px 10px rgb(15 23 42 / .08);
+  --shadow-2: 0 2px 4px rgb(15 23 42 / .14), 0 10px 24px rgb(15 23 42 / .16);
+  --shadow-3: 0 0 0 1px rgb(15 23 42 / .18), 0 24px 50px rgb(15 23 42 / .40);
+  --card-shadow: 0 0 0 1px rgb(15 23 42 / .16), 0 24px 50px rgb(15 23 42 / .35);
+  --card-ring: rgb(15 23 42 / .16);
+  --shadow-glow-gold: 0 0 0 2px #0F172A;
 }
 
 /* ---- Reduced motion: fades only (also forced via Settings: data-motion="reduced") ---- */
@@ -278,8 +324,10 @@
 }
 
 /* ---- Family mode never shows red (no shaming): what goes out is calm amber, in both themes ---- */
-:root[data-learn="family"] { --expense: #FFD27A; --expense-fill: #F2B53A; --expense-ink: #6E4200; }
-:root[data-learn="family"][data-theme="light"] { --expense: #6E4200; }
+:root[data-learn="family"] { --expense: #FFD27A; --expense-fill: #F2B53A; --expense-ink: #6E4200; --negative: #FFD27A; --negative-ink: #6E4200;
+  /* the 'slow / never' verdict tier is a deeper amber (text label + hourglass icon keep it distinguishable from the yellow tier) */
+  --verdict-red: #D98A1C; --verdict-red-ink: #6E4200; --verdict-red-tint: #FFEBC2; }
+:root[data-learn="family"][data-theme="light"] { --expense: #6E4200; --negative: #6E4200; }
 
 /* ---- Base helpers ---- */
 .money { font-family: var(--font-display); font-weight: var(--fw-bold);
