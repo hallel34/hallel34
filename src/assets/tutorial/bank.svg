@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 240" width="320" height="240" role="img" aria-label="בניין בנק ומטבע עם תוספת קטנה">
+<defs>
+<g id="c"><circle cy="2" r="13" fill="#A56A0A"/><circle r="13" fill="#F2B53A" stroke="#0F1E46" stroke-width="3"/><circle r="8" fill="#F8CB62" stroke="#A56A0A" stroke-width="1.5"/><path d="M-9-6Q-6-11 0-12" fill="none" stroke="#fff" stroke-opacity=".7" stroke-width="2.5" stroke-linecap="round"/></g>
+<radialGradient id="h" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#F2B53A" stop-opacity=".3"/><stop offset="1" stop-color="#F2B53A" stop-opacity="0"/></radialGradient>
+</defs>
+<ellipse cx="160" cy="110" rx="150" ry="100" fill="url(#h)"/>
+<ellipse cx="130" cy="220" rx="110" ry="11" fill="#091330" opacity=".55"/>
+<rect x="30" y="198" width="200" height="20" rx="4" fill="#C4D0F0" stroke="#0F1E46" stroke-width="3"/>
+<rect x="42" y="182" width="176" height="18" rx="4" fill="#FFF6E3" stroke="#0F1E46" stroke-width="3"/>
+<g fill="#FFF6E3" stroke="#0F1E46" stroke-width="3" stroke-linejoin="round"><rect x="56" y="102" width="30" height="80" rx="4"/><rect x="98" y="102" width="30" height="80" rx="4"/><rect x="140" y="102" width="30" height="80" rx="4"/><rect x="182" y="102" width="30" height="80" rx="4"/></g>
+<g stroke="#EBDDBF" stroke-width="3" stroke-linecap="round"><path d="M71 112V172M113 112V172M155 112V172M197 112V172"/></g>
+<rect x="44" y="88" width="180" height="16" rx="4" fill="#FFF6E3" stroke="#0F1E46" stroke-width="3"/>
+<path d="M134 24L36 88H232Z" fill="#F2B53A" stroke="#0F1E46" stroke-width="3" stroke-linejoin="round"/>
+<path d="M134 24L36 88H60L134 40Z" fill="#FFD479"/>
+<path d="M134 24L36 88H232Z" fill="none" stroke="#0F1E46" stroke-width="3" stroke-linejoin="round"/>
+<circle cx="134" cy="62" r="17" fill="#0F1E46"/><use href="#c" x="134" y="62" transform="translate(134 62) scale(.95) translate(-134 -62)"/>
+<g transform="translate(262 150)"><use href="#c" transform="scale(1.9)"/></g>
+<use href="#c" x="268" y="96" transform="translate(268 96) scale(.8) translate(-268 -96)"/>
+<circle cx="296" cy="84" r="14" fill="#5FE0AE" stroke="#0F1E46" stroke-width="3"/>
+<path d="M296 77V91M289 84H303" stroke="#0F1E46" stroke-width="4" stroke-linecap="round"/>
+<path d="M232 130Q244 118 252 120" fill="none" stroke="#F2B53A" stroke-width="3" stroke-linecap="round" stroke-dasharray="2 7"/>
+</svg>

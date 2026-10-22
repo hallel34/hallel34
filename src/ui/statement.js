@@ -8,6 +8,7 @@ import { button, meter } from './widgets.js';
 import { createTermScope } from './rich.js';
 import { animate } from './fx.js';
 import { motionOK } from './prefs.js';
+import { assetTitle } from './card-view.js';
 import { statement, maxLoan, PAYDAY_MONTHS, LOAN_PAYMENT_RATE } from '../engine/index.js';
 
 export function openStatement({ getState, ops, title = t('statement.title') }) {
@@ -56,7 +57,7 @@ export function openStatement({ getState, ops, title = t('statement.title') }) {
 
     const assetRows = s.assets.length
       ? s.assets.map((a) => row(
-        a.title,
+        assetTitle(a, s.mode),
         money(a.monthlyCashFlow, { sign: true }),
         'asset',
         h('span', { class: 'st-sub', 'data-asset': a.id },

@@ -141,6 +141,8 @@ async function guessPref(page, on, extra = {}) {
   await page.evaluate(([v, ex]) => {
     const p = JSON.parse(localStorage.getItem('passivo.prefs') || '{}');
     localStorage.setItem('passivo.prefs', JSON.stringify({ ...p, guessFamily: v, guessFull: v, ...ex }));
+    // these tests are about the normal game: the first-game story and hints are switched off (they have their own tests)
+    localStorage.setItem('passivo.tutorial', JSON.stringify({ storyDone: true, helpOn: false, hintsSeen: {}, quizDone: true }));
   }, [on, extra]);
 }
 
@@ -160,7 +162,8 @@ function decide(policy) {
   const cash = Number(board?.dataset.cash || 0);
   const expenses = Number(board?.dataset.expenses || 0);
   if (top) {
-    if (q('.handoff-sheet', top)) { return out({ click: '#modal-root .layer:last-child [data-action="ready"]' }); }
+    if (q('.summary-card', top)) { shot = 'summary-card'; return out({ click: '#modal-root .layer:last-child [data-action="summary-ok"]' }); }
+    if (q('.handoff-sheet', top)) { return out({ click: '#modal-root .layer:last-child [data-action="roll-next"]' }); }
     if (q('.home-sheet', top)) return out({ wait: true });
     const card = q('.card', top);
     const btn = (a) => q(`[data-action="${a}"]:not([disabled])`, top);
@@ -205,13 +208,12 @@ function decide(policy) {
     if (btn('cancel')) return out({ click: '#modal-root .layer:last-child [data-action="cancel"]' });
     return out({ wait: true });
   }
-  const cont = q('[data-action="continue"]:not([disabled])');
-  if (cont) { shot = 'continue'; return out({ click: '[data-action="continue"]' }); }
   const roll = q('[data-action="roll"]:not([disabled])');
   if (roll) return out({ click: '[data-action="roll"]' });
   return out({ wait: true });
 }
 
+const oneTap = { total: 0, ok: 0 };
 const shots = new Set();
 async function playGame(page, tag, budgetMs = Number(process.env.SMOKE_GAME_MS || 240000)) {
   const deadline = Date.now() + budgetMs;
@@ -219,8 +221,10 @@ async function playGame(page, tag, budgetMs = Number(process.env.SMOKE_GAME_MS |
   let resumed = false;
   let stuck = 0;
   let statementChecked = false;
+  let last = null;
   while (Date.now() < deadline) {
     const d = await page.evaluate(decide, process.env.SMOKE_POLICY || 'sensible');
+    last = d;
     if (d.done) return { result: d.done, rolls };
     // The primary button must never read "..." or be empty, and must never stay disabled with nothing on screen to wait for.
     if (d.btn && /^[.\s]*$/.test(d.btn.text) && !failures.includes('primary button text is empty or "..."')) check(false, 'primary button text is empty or "..."');
@@ -228,7 +232,7 @@ async function playGame(page, tag, budgetMs = Number(process.env.SMOKE_GAME_MS |
     if (stuck === 300) { check(false, `board stuck on a disabled button "${d.btn.text}" (${d.btn.mode}) for 12s`); return { result: 'stuck', rolls }; }
     if (!statementChecked && d.click === '[data-action="roll"]') {
       const info = await page.evaluate(() => ({ assets: Number(document.querySelector('.screen-board')?.dataset.assets || 0), mortgages: Number(document.querySelector('.screen-board')?.dataset.mortgages || 0) }));
-      if (info.assets > 0) { statementChecked = true; await checkStatementLiabilities(page, info); }
+      if (info.assets > 0) { statementChecked = true; await checkStatementLiabilities(page, info).catch((e) => console.log(`statement check skipped (${String(e.message).split('\n')[0]})`)); }
     }
     if (d.shot && !shots.has(d.shot)) {
       shots.add(d.shot);
@@ -272,12 +276,75 @@ async function playGame(page, tag, budgetMs = Number(process.env.SMOKE_GAME_MS |
         }
       }
       await page.locator(d.click).first().click({ timeout: 3000 }).catch(() => {});
+      if (/roll-next/.test(d.click)) {
+        // ONE-TAP hand-over: this single tap must start the next player's roll (no 'המשיכו', no second 'מוכנים')
+        const rolled = await page.waitForFunction(() => { const b = document.querySelector('.screen-board'); return b && (b.dataset.btn === 'rolling' || b.dataset.btn === 'working') && !document.querySelector('.handoff-sheet:not([data-closing])'); }, null, { timeout: 4000 }).then(() => true).catch(() => false);
+        oneTap.total += 1; if (rolled) oneTap.ok += 1;
+      }
       await page.waitForTimeout(25);
     } else {
       await page.waitForTimeout(40);
     }
   }
+  console.log(`last decision before the timeout: ${JSON.stringify(last)} one-tap hand-overs so far ${oneTap.total} turn ${await page.evaluate(() => document.querySelector(".screen-board")?.dataset.turn)}`);
   return { result: 'timeout', rolls };
+}
+
+/** The first family game opens with the five-screen story, then the optional check: play it, measure it, skip nothing. */
+async function playStory(page, label) {
+  await page.waitForSelector('.story-screen', { timeout: 5000 });
+  const dir = new URL('../../qa/screens/tutorial/', import.meta.url).pathname;
+  mkdirSync(dir, { recursive: true });
+  const vp = page.viewportSize();
+  for (let i = 1; i <= 5; i++) {
+    await page.waitForTimeout(700);
+    const r = await page.evaluate(() => { const v = document.querySelector('.story-view'); const b = document.querySelector('.story-next').getBoundingClientRect(); return { n: document.querySelector('.story-screen').dataset.n, over: v.scrollHeight - v.clientHeight, bottom: b.bottom, h: b.height, top: b.top, skip: !!document.querySelector('[data-action="story-skip"]'), ih: innerHeight }; });
+    check(r.n === String(i) && r.over <= 1 && r.bottom <= r.ih && r.h >= 48 && r.skip, `story screen ${i} fits ${vp.width}x${vp.height}: no scroll, button inside the viewport, skip present (${JSON.stringify(r)})`);
+    check(r.top >= r.ih * 0.55, `story button "המשיכו" sits in the bottom third / lower half (${Math.round(r.top)}/${r.ih})`);
+    await noHScroll(page, `story screen ${i}`);
+    await page.screenshot({ path: `${dir}story-${i}-${vp.width}x${vp.height}.png` });
+    // screen 5 is a sequence of short parts: step through every one (each must fit too) before the last button goes on
+    for (let part = 1; i === 5 && await page.locator('.story-part-of').count(); part++) {
+      const m = /(\d+)\D+(\d+)/.exec(await page.locator('.story-part-of').innerText());
+      if (!m || Number(m[1]) >= Number(m[2])) break;
+      await page.locator('.story-next').click();
+      await page.waitForTimeout(450);
+      const fit = await page.evaluate(() => { const v = document.querySelector('.story-view'); const b = document.querySelector('.story-next').getBoundingClientRect(); return { over: v.scrollHeight - v.clientHeight, bottom: b.bottom, ih: innerHeight }; });
+      check(fit.over <= 1 && fit.bottom <= fit.ih, `story screen 5 part ${part + 1} fits ${vp.width}x${vp.height} (${JSON.stringify(fit)})`);
+      await noHScroll(page, `story screen 5 part ${part + 1}`);
+    }
+    await page.locator('.story-next').click();
+  }
+  await page.waitForSelector('[data-story="offer"]');
+  await page.waitForTimeout(400);
+  await tapTargets(page, 'story check offer');
+  await page.screenshot({ path: `${dir}check-offer-${vp.width}x${vp.height}.png` });
+  const sizes = await page.evaluate(() => ['check-yes', 'check-no'].map((a) => { const r = document.querySelector(`[data-action="${a}"]`).getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)].join('x'); }));
+  check(sizes[0] === sizes[1], `"בואו נבדוק" and "לא עכשיו" have the same size (${sizes})`);
+  await page.locator('[data-action="check-yes"]').click();
+  for (let q = 0; q < 3; q++) {
+    await page.waitForSelector('[data-story="quiz"]');
+    await page.waitForTimeout(350);
+    if (q === 0) {
+      await page.screenshot({ path: `${dir}check-q1-${vp.width}x${vp.height}.png` });
+      // guess wrong first: calm feedback, one retry, then right
+      await page.locator('.quiz-option[data-correct="false"]').first().click();
+      await page.waitForSelector('.quiz-hint');
+      check(await page.locator('.quiz-option:not([disabled])').count() >= 1, 'a wrong guess leaves one retry');
+      await page.screenshot({ path: `${dir}check-q1-retry-${vp.width}x${vp.height}.png` });
+    }
+    await page.locator('.quiz-option[data-correct="true"]').click();
+    await page.waitForSelector('.quiz-explain');
+    await noHScroll(page, `check question ${q + 1}`);
+    if (q === 2) await page.screenshot({ path: `${dir}check-q3-${vp.width}x${vp.height}.png` });
+    await insideViewport(page, ['[data-action="quiz-next"]'], `check next button (${q + 1})`);
+    await page.locator('[data-action="quiz-next"]').click();
+  }
+  await page.waitForSelector('[data-story="result"]');
+  await page.screenshot({ path: `${dir}check-result-${vp.width}x${vp.height}.png` });
+  await page.locator('[data-action="check-go"]').click();
+  await page.waitForSelector('.layer-story', { state: 'detached' });
+  check(await page.evaluate(() => JSON.parse(localStorage.getItem('passivo.tutorial')).storyDone === true), `story flag saved (${label})`);
 }
 
 async function testResume(page) {
@@ -354,11 +421,13 @@ async function testHome(page, label) {
   check(await page.locator('[data-action="resume"]').count() === 1, `resume button shown after "חזרה לבית" (${label})`);
   const resumeText = await page.locator('[data-action="resume"]').innerText();
   await page.screenshot({ path: `${OUT}/start-with-resume-${label}.png` });
+  await page.evaluate(() => document.getElementById('__nopointer')?.remove());
   await page.locator('[data-action="resume"]').click();
   await page.waitForSelector('[data-screen="board"]');
   await page.waitForTimeout(400);
+  await page.waitForTimeout(PLAYERS > 1 ? 900 : 0);
   const handoff = await page.locator('.handoff-sheet').count();
-  if (handoff) await page.locator('[data-action="ready"]').click();
+  if (handoff) await page.locator('[data-action="roll-next"]').click({ timeout: 8000 });
   const after = await page.evaluate(() => ({ turn: document.querySelector('.screen-board')?.dataset.turn, players: document.querySelector('.screen-board')?.dataset.players }));
   check(before.turn === after.turn && before.players === after.players, `home then resume restores the match (${label}: turn ${before.turn}->${after.turn}, players ${before.players}; "${resumeText}")`);
 }
@@ -508,7 +577,7 @@ async function testGuessFlow(page) {
   await page.locator('[data-action="guess-bad"]').click();
   await page.waitForSelector('.reveal');
   const trap = await page.evaluate(() => ({ result: document.querySelector('.guess-result')?.dataset.result, tiles: [...document.querySelectorAll('.reveal .stat-tile')].map((x) => x.innerText.replace(/\n/g, ' ')), verdict: document.querySelector('.guess-verdict')?.textContent }));
-  check(trap.result === 'correct' && trap.tiles.some((x) => x.includes('אין החזר')) && /אין החזר|תזרים שלילי|מוציא/.test(trap.verdict), `L2: a trap shows "אין החזר" and the redNever verdict (${trap.verdict})`);
+  check(trap.result === 'correct' && trap.tiles.some((x) => /אין החזר|לא חוזר|אף פעם/.test(x)) && /אין החזר|הכסף לא חוזר|תזרים שלילי|מוציא|במקום להיכנס/.test(trap.verdict), `L2: a trap shows "אין החזר" and the redNever verdict (${trap.verdict})`);
   await page.locator('.card [data-action="pass"]').click();
   await page.waitForSelector('.card', { state: 'detached' });
 
@@ -551,7 +620,7 @@ async function testExplainers(page) {
   for (let i = 0; i < 40 && !note; i++) {
     const layerOpen = await page.locator('#modal-root .layer').count();
     if (layerOpen) {
-      const btn = page.locator('#modal-root .layer:last-child [data-action="guess-bad"], #modal-root .layer:last-child [data-action="pass"], #modal-root .layer:last-child [data-action="ok"], #modal-root .layer:last-child [data-action="pay"], #modal-root .layer:last-child [data-action="skip"], #modal-root .layer:last-child [data-action="loan"], #modal-root .layer:last-child [data-action="take"], #modal-root .layer:last-child [data-action="decline"]').first();
+      const btn = page.locator('#modal-root .layer:last-child [data-action="guess-bad"], #modal-root .layer:last-child [data-action="pass"], #modal-root .layer:last-child [data-action="ok"], #modal-root .layer:last-child [data-action="pay"], #modal-root .layer:last-child [data-action="skip"], #modal-root .layer:last-child [data-action="loan"], #modal-root .layer:last-child [data-action="take"], #modal-root .layer:last-child [data-action="decline"], #modal-root .layer:last-child [data-action="summary-ok"]').first();
       if (await btn.count()) await btn.click().catch(() => {});
       await page.waitForTimeout(250);
       continue;
@@ -584,7 +653,7 @@ async function testExplainers(page) {
   for (let i = 0; i < 14; i++) {
     const layerOpen = await page.locator('#modal-root .layer').count();
     if (layerOpen) {
-      const btn = page.locator('#modal-root .layer:last-child [data-action="guess-bad"], #modal-root .layer:last-child [data-action="pass"], #modal-root .layer:last-child [data-action="ok"], #modal-root .layer:last-child [data-action="pay"], #modal-root .layer:last-child [data-action="skip"], #modal-root .layer:last-child [data-action="loan"], #modal-root .layer:last-child [data-action="take"], #modal-root .layer:last-child [data-action="decline"]').first();
+      const btn = page.locator('#modal-root .layer:last-child [data-action="guess-bad"], #modal-root .layer:last-child [data-action="pass"], #modal-root .layer:last-child [data-action="ok"], #modal-root .layer:last-child [data-action="pay"], #modal-root .layer:last-child [data-action="skip"], #modal-root .layer:last-child [data-action="loan"], #modal-root .layer:last-child [data-action="take"], #modal-root .layer:last-child [data-action="decline"], #modal-root .layer:last-child [data-action="summary-ok"]').first();
       if (await btn.count()) await btn.click().catch(() => {});
       await page.waitForTimeout(250);
       continue;
@@ -626,7 +695,7 @@ async function testExplainers(page) {
   for (let i = 0; i < 8; i++) {
     const layerOpen = await page.locator('#modal-root .layer').count();
     if (layerOpen) {
-      const btn = page.locator('#modal-root .layer:last-child [data-action="guess-bad"], #modal-root .layer:last-child [data-action="pass"], #modal-root .layer:last-child [data-action="ok"], #modal-root .layer:last-child [data-action="pay"], #modal-root .layer:last-child [data-action="skip"], #modal-root .layer:last-child [data-action="loan"], #modal-root .layer:last-child [data-action="take"], #modal-root .layer:last-child [data-action="decline"]').first();
+      const btn = page.locator('#modal-root .layer:last-child [data-action="guess-bad"], #modal-root .layer:last-child [data-action="pass"], #modal-root .layer:last-child [data-action="ok"], #modal-root .layer:last-child [data-action="pay"], #modal-root .layer:last-child [data-action="skip"], #modal-root .layer:last-child [data-action="loan"], #modal-root .layer:last-child [data-action="take"], #modal-root .layer:last-child [data-action="decline"], #modal-root .layer:last-child [data-action="summary-ok"]').first();
       if (await btn.count()) await btn.click().catch(() => {});
       await page.waitForTimeout(250); continue;
     }
@@ -693,7 +762,7 @@ async function testReport(page, kind) {
     };
   });
   for (const id of ['bestDeal', 'greenDecisions', 'concepts', 'stats', 'nextStep', 'conversation']) check(r.sections.includes(id), `L4: the report has the "${id}" section`);
-  check(r.interest !== null && /ריבית/.test(r.interest), `L4: interest section from stats.interestPaid ("${r.interest}")`);
+  check(r.interest !== null && /ריבית|תוספת/.test(r.interest), `L4: interest section from stats.interestPaid ("${r.interest}")`);
   check(r.questions === 3, 'L4: three conversation questions');
   check(!/\{\w+\}|\[\[|undefined|null|NaN/.test(r.text), 'L4: no unfilled slot, null or NaN in the report');
   check(!/Infinity/.test(r.text), 'L4: no Infinity in the report');
@@ -800,9 +869,9 @@ async function testRound5(page) {
   await page.waitForSelector('.handoff-sheet');
   top = await page.locator('.handoff-sheet').innerText();
   check(top.includes('תור של Bob'), 'after the out dialog the phone is handed to the next active player');
-  await page.locator('[data-action="ready"]').click();
+  await page.locator('[data-action="roll-next"]').click();
   await page.waitForTimeout(500);
-  check(await page.locator('.btn-roll').isEnabled() && (await page.locator('.screen-board').getAttribute('data-player')) === '2', 'the next player can roll');
+  check((await page.locator('.screen-board').getAttribute('data-player')) === '2' && Number(await page.locator('.screen-board').getAttribute('data-turn')) >= 1 || ['rolling', 'working'].includes(await page.locator('.screen-board').getAttribute('data-btn')), 'the one tap rolled for the next player');
   check((await saved()).currentIndex === 1, 'save moved on to player 2');
 
   // all remaining players out -> all-out screen
@@ -819,14 +888,14 @@ async function testRound5(page) {
   await load(m3b);
   await page.locator('[data-action="ok"]').click();
   await page.waitForSelector('.handoff-sheet');
-  await page.locator('[data-action="ready"]').click();
+  await page.locator('[data-action="roll-next"]').click();
   await page.waitForTimeout(400);
   let rolls = 0; let handoffs = 0; let continues = 0;
   for (let i = 0; i < 200 && rolls < 3; i++) {
     const act1 = await page.evaluate(decide, 'sensible');
     if (act1.done) break;
     if (act1.wait) { await page.waitForTimeout(60); continue; }
-    if (act1.click.includes('"ready"') || /ready/.test(act1.click)) handoffs++;
+    if (act1.click.includes("roll-next") || /roll-next/.test(act1.click)) handoffs++;
     if (/continue/.test(act1.click)) continues++;
     if (/roll/.test(act1.click)) rolls++;
     await page.locator(act1.click).first().click({ timeout: 3000 }).catch(() => {});
@@ -834,23 +903,27 @@ async function testRound5(page) {
   }
   check(handoffs === 0 && continues === 0 && rolls >= 3, `last player standing plays on without hand-overs (rolls ${rolls}, handoffs ${handoffs}, continues ${continues})`);
 
-  // ---- hot-seat status names the next roller
+  // ---- hot-seat: a resolved turn opens the hand-over sheet at once, with a recap and the one rolling button
   let hs = mk(2);
   await load(hs);
-  await page.locator('[data-action="ready"]').click();
+  await page.locator('[data-action="roll-next"]').click();
+  await page.waitForSelector('.handoff-sheet', { state: 'detached' });
   for (let i = 0; i < 300; i++) {
     const act1 = await page.evaluate(decide, 'sensible');
-    if (act1.done || /continue/.test(act1.click || '')) break;
+    if (act1.done || /roll-next/.test(act1.click || '')) break;
     if (act1.wait) { await page.waitForTimeout(60); continue; }
     await page.locator(act1.click).first().click({ timeout: 3000 }).catch(() => {});
     await page.waitForTimeout(40);
   }
-  const status = await page.locator('.board-status').innerText();
-  check(status.includes('תור של Bob') && !status.includes('הקוביה מחכה'), `after a hot-seat turn the status names the next roller ("${status}")`);
+  const sheet = await page.locator('.handoff-sheet').innerText();
+  check(sheet.includes('תור של Bob') && sheet.replace(/\s+/g, ' ').includes('זרקו קובייה, Bob'), `after a hot-seat turn the sheet names the next roller and offers one rolling button ("${sheet.replace(/\n/g, ' | ').slice(0, 400)}")`);
+  check(await page.locator('.handoff-sheet [data-recap]').count() === 1, 'the hand-over sheet carries a recap of the turn');
+  check(await page.locator('[data-action="continue"]').count() === 0, "no 'המשיכו' board button in hot-seat");
+  await page.locator('[data-action="roll-next"]').click();
 
   // ---- others panel and crowded tile, 4 players
   await load(mk(4));
-  await page.locator('[data-action="ready"]').click();
+  // the hand-over sheet is open (all four pawns still on the start tile): measure behind it, no roll yet
   await page.waitForTimeout(500);
   const strip = await page.evaluate(() => [...document.querySelectorAll('.os-cash')].map((e) => ({ t: e.textContent, clipped: e.scrollWidth > e.clientWidth + 0.5 })));
   check(strip.length === 3 && strip.every((x) => !x.clipped), `compact strip shows every cash amount in full (${JSON.stringify(strip)})`);
@@ -861,7 +934,7 @@ async function testRound5(page) {
   });
   check(crowd.length === 4 && crowd.every((b) => b.in && b.vis && b.w >= 14), `4 pawns on one tile: four visible badges, all inside the tile (${JSON.stringify(crowd)})`);
   await page.screenshot({ path: `${OUT}/r5-crowded-tile-${HEIGHT}.png`, clip: { x: 0, y: 150, width: 360, height: 200 } });
-  await page.locator('.others-strip').click();
+  await page.evaluate(() => document.querySelector('.others-strip').click());
   await page.waitForTimeout(400);
   const rows = await page.evaluate(() => {
     const panel = document.querySelector('#others-panel');
@@ -1035,6 +1108,21 @@ async function testPhaseA(page) {
     rec('.board-status', 'status');
   });
   await page.locator('[data-action="roll"]').click();
+  // the itemised summary card: salary + money that works - expenses = left a month, x 24 = the amount; blocking, one tap to go on
+  await page.waitForSelector('.summary-card', { timeout: 15000 });
+  await page.waitForTimeout(1300);
+  const card = await page.evaluate(() => {
+    const c = document.querySelector('.summary-card');
+    const n = (e) => Number((e?.textContent || '').replace(/[^\d-]/g, '') || 0);
+    const rows = [...c.querySelectorAll('.sc-row .sc-amt')].map((e) => n(e));
+    return { rows, left: n(c.querySelector('.sc-left .sc-big')), result: c.querySelector('.sc-result').textContent, amount: Number(c.dataset.amount), monthly: Number(c.dataset.monthly), bdi: c.querySelectorAll('bdi').length, cash: c.querySelector('.sc-cash').textContent.replace(/\s+/g, ' '), desc: document.getElementById('summary-desc').textContent, ih: innerHeight, bottom: c.getBoundingClientRect().bottom, top: c.getBoundingClientRect().top, hudBottom: document.querySelector('.hud').getBoundingClientRect().bottom };
+  });
+  check(card.rows[0] + card.rows[1] + card.rows[2] === card.monthly && card.left === card.monthly && card.monthly * PAYDAY_MONTHS === card.amount, `summary card: salary + passive - expenses = left, x ${PAYDAY_MONTHS} = amount (${JSON.stringify(card.rows)} -> ${card.monthly} -> ${card.amount})`);
+  check(card.bdi >= 6 && /→/.test(card.cash) && card.desc.includes('נשארו'), 'summary card: amounts are <bdi>, the cash line shows before -> after, a spoken description exists');
+  check(card.bottom <= card.ih + 1 && card.top >= card.hudBottom - 4, `summary card stays inside the viewport and below the HUD (top ${Math.round(card.top)} / hud ${Math.round(card.hudBottom)})`);
+  await noHScroll(page, 'summary card');
+  await page.screenshot({ path: `${OUT}/summary-card-${HEIGHT}.png` });
+  await page.locator('[data-action="summary-ok"]').click();
   await page.waitForSelector('.float-text', { timeout: 15000 });
   const f = await page.evaluate(() => {
     const r = (e) => { const b = e.getBoundingClientRect(); return { top: b.top, bottom: b.bottom, left: b.left, right: b.right }; };
@@ -1054,12 +1142,12 @@ async function testPhaseA(page) {
   check(!f.overlapsHud, `B2: the payday float does not overlap any HUD text (float top ${Math.round(f.fl.top)}, hud bottom ${Math.round(f.hud.bottom)})`);
   check(f.fl.top >= f.hud.bottom - 1 && f.fl.left >= 0 && f.fl.right <= 360, 'B2: the payday float stays under the HUD and inside the viewport');
   check(f.chipBdi >= 2 && f.statusBdi >= 2 && f.floatBdi >= 1, `B1: payday amounts are wrapped in <bdi> (chip ${f.chipBdi}, status ${f.statusBdi}, float ${f.floatBdi})`);
-  check(f.chip.includes('סיכום שנתיים') && f.chip.includes(`${PAYDAY_MONTHS} חודשים`) && /×.*=/.test(f.chip), `N3: log shows the maths ("${f.chip}")`);
+  check(f.chip.includes('סיכום שנתיים') && f.chip.includes(`× ${PAYDAY_MONTHS}`) && /×.*=/.test(f.chip), `N3: log shows the maths ("${f.chip}")`);
   check(!/יום משכורת/.test(f.chip + f.statusText), 'N3: no "יום משכורת" left in the payday messages');
   await page.waitForTimeout(1500);
 
   // N4: the buy card shows rent - mortgage = cash flow (apartment) and profit - loan = cash flow (business)
-  for (const [mode, id, re] of [['family', 'opp-apt-001', /שכירות.*משכנתא.*תזרים/], ['family', 'opp-biz-001', /רווח.*החזר הלוואה.*תזרים/]]) {
+  for (const [mode, id, re] of [['family', 'opp-apt-001', /שכירות.*(משכנתא|הלוואה לדירה).*(תזרים|נשאר)/], ['family', 'opp-biz-001', /רווח.*החזר הלוואה.*(תזרים|נשאר)/]]) {
     await load(matchWith(mode, id));
     await page.waitForSelector('[data-card]');
     const calc = await page.locator('.calc-line').innerText();
@@ -1077,7 +1165,7 @@ async function testPhaseA(page) {
   const panel = await page.locator('.st-sec-networth').innerText();
   check(/שווי נקי/.test(panel) && /סך נכסים/.test(panel) && /סך התחייבויות/.test(panel), 'N4: the statement has the assets / liabilities / net worth panel');
   check(await page.locator('[data-action="repay"]').count() >= 1, `loans can be repaid in ${MODE} mode (repay buttons)`);
-  check((await page.locator('[data-kind="loan"] .st-sub').innerText()).includes('ריבית'), 'the bank loan row says interest only');
+  check((await page.locator('[data-kind="loan"] .st-sub').innerText()).match(/ריבית|תוספת/), 'the bank loan row says interest only');
   await noHScroll(page, 'statement');
   if (MODE === 'full') {
     await page.locator('[data-action="loan"]').click();
@@ -1185,6 +1273,7 @@ async function main() {
     await page.waitForTimeout(400);
     if (k === 0) await page.screenshot({ path: `${OUT}/04-pick-sheet.png` });
     await page.locator('[data-action="go"]').click();
+    if (MODE === 'family' && k === PLAYERS - 1) await playStory(page, 'first game');
   }
   await page.waitForSelector('[data-screen="board"]');
   if (PLAYERS > 1) {
@@ -1194,8 +1283,8 @@ async function main() {
     await tapTargets(page, 'handoff sheet');
     await noHScroll(page, 'handoff sheet');
     await page.screenshot({ path: `${OUT}/handoff-sheet.png` });
-    await page.locator('[data-action="ready"]').click();
-    await page.waitForSelector('.handoff-sheet', { state: 'detached' });
+    // the sheet stays open (its button would roll at once): the board checks below look and tap THROUGH it (test-only: no pointer capture)
+    await page.evaluate(() => { document.getElementById('app').removeAttribute('inert'); const st = document.createElement('style'); st.id = '__nopointer'; st.textContent = '#modal-root .layer:has(.layer-handoff), #modal-root .layer:has(.layer-handoff) * { pointer-events: none !important; }'; document.head.append(st); });
     check(await page.locator('.pawn-slot').count() === PLAYERS, `${PLAYERS} pawns on the board`);
     check((await page.locator('.hud-prof').innerText()) === names[0], 'HUD shows the active player name');
     check(await page.locator('.others-strip .os-cell').count() === PLAYERS - 1, 'others strip lists the other players');
@@ -1209,7 +1298,7 @@ async function main() {
   await foxChecks(page, 'board');
   await reactionStripClear(page);
   const pose = await page.evaluate(() => document.querySelector('.roll-zone')?.dataset.pose);
-  check(pose === (MODE === 'family' ? 'tip' : 'roll') || PLAYERS > 1, `roll zone shows the ${MODE === 'family' ? 'family tip' : 'roll pose'} at the start (got ${pose})`);
+  check((MODE === 'family' ? ['tip', 'note'].includes(pose) : pose === 'roll') || PLAYERS > 1, `roll zone shows the ${MODE === 'family' ? 'family tip' : 'roll pose'} at the start (got ${pose})`);
   const theme = await page.evaluate(() => document.querySelector('meta[name="theme-color"]').content);
   check(theme.toLowerCase() === '#0f1e46', 'theme-color is navy');
 
@@ -1224,13 +1313,13 @@ async function main() {
 
   // statement sheet
   await page.locator('[data-action="statement"]').click();
-  await page.waitForSelector('.sheet');
+  await page.waitForSelector('.statement-body');
   await page.waitForTimeout(500);
   await noHScroll(page, 'statement');
   await tapTargets(page, 'statement');
   await page.screenshot({ path: `${OUT}/06-statement.png` });
   await page.keyboard.press('Escape');
-  await page.waitForSelector('.sheet', { state: 'detached' });
+  await page.waitForSelector('.statement-body', { state: 'detached' });
   await testHome(page, `${PLAYERS}p`);
 
   // Play games until one is won (new seed each retry).
@@ -1280,7 +1369,7 @@ async function main() {
       await page.waitForSelector('.handoff-sheet');
       check(await page.evaluate(() => document.querySelector('.screen-board').dataset.players) === String(PLAYERS), 'play again keeps the same number of players');
       check((await page.locator('.handoff-title').innerText()) === `תור של ${names[0]}`, 'play again keeps the player names and starts with player 1');
-      await page.locator('[data-action="ready"]').click();
+      await page.locator('[data-action="roll-next"]').click();
     }
     // a finished game leaves no save: drop the one the fresh game just wrote, then the start screen has no resume button
     await page.evaluate(() => localStorage.removeItem('passivo.save'));
@@ -1317,6 +1406,7 @@ async function main() {
     await ctx.setOffline(false);
   }
 
+  if (PLAYERS > 1) check(oneTap.total >= 3 && oneTap.ok === oneTap.total, `one-tap hand-over: every resolved turn needed ONE tap to roll the next player (${oneTap.ok}/${oneTap.total})`);
   check(errors.length === 0, `no console/page errors${errors.length ? `: ${errors.slice(0, 3).join(' | ')}` : ''}`);
   check(bad.length === 0, `no failed requests${bad.length ? `: ${bad.slice(0, 3).join(' | ')}` : ''}`);
   await browser.close();

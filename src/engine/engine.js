@@ -6,11 +6,13 @@ import {
   LOAN_PAYMENT_RATE, MAX_STOCK_QTY, PAYDAY_MONTHS,
 } from './config.js';
 import { validateData } from './validate.js';
+import { cardView } from './card-view.js';
 import {
   monthlyCashFlow, hasWon, maxLoan, saleValue, stockPrice, totalIncome,
   passiveIncome, canSell, loanMonthlyPayment,
 } from './selectors.js';
 import { emptyLearn, recordDecision, buyRecord, passRecord, loanRating, isDeal } from './learn.js';
+import { dailyDie, dailyPick, DAILY_TURN_CAP } from './daily.js';
 
 export class EngineError extends Error {}
 
@@ -43,13 +45,21 @@ export function createEngine(data, { validate = true } = {}) {
   const eligible = (deck, mode) =>
     data.cards.filter((c) => c.deck === deck && c.modes.includes(mode)).map((c) => c.id);
 
+  // A card may carry the children's wording (titleFamily / textFamily): a family game draws the card with that wording in
+  // title/text, so every screen, log line and asset name downstream is already in the right register. Numbers never differ.
+  const view = cardView;
+
   function draw(d, deck) {
+    if (d.daily) { // daily challenge: the card of this turn depends on (seed, deck, turn) only, never on earlier choices
+      const ids = eligible(deck, d.mode);
+      return view(cardById.get(ids[dailyPick(d.seed, deck, d.turn, ids.length)]), d.mode);
+    }
     if (!d.decks[deck].length) d.decks[deck] = shuffle(d, eligible(deck, d.mode));
-    return cardById.get(d.decks[deck].shift());
+    return view(cardById.get(d.decks[deck].shift()), d.mode);
   }
 
   // ---------- setup ----------
-  function newGame({ mode = 'full', professionId, seed = 1 } = {}) {
+  function newGame({ mode = 'full', professionId, seed = 1, daily = null } = {}) {
     if (mode !== 'family' && mode !== 'full') fail(`unknown mode ${mode}`);
     const profession = professionById.get(professionId ?? data.professions[0].id);
     if (!profession) fail(`unknown profession ${professionId}`);
@@ -83,7 +93,12 @@ export function createEngine(data, { validate = true } = {}) {
       },
       learn: emptyLearn(), // what the player decided (feedback, guesses, report); never read by a rule
     };
-    for (const deck of Object.keys(d.decks)) d.decks[deck] = shuffle(d, eligible(deck, mode));
+    if (daily) {
+      // opt-in rules flag: pre-determined dice / card streams (see daily.js) and an action log for later verification
+      d.daily = { date: String(daily.date), turnCap: daily.turnCap ?? DAILY_TURN_CAP, log: [] };
+    } else {
+      for (const deck of Object.keys(d.decks)) d.decks[deck] = shuffle(d, eligible(deck, mode));
+    }
     settle(d);
     return d;
   }
@@ -133,7 +148,14 @@ export function createEngine(data, { validate = true } = {}) {
       return;
     }
     d.phase = d.pending ? 'decision' : 'roll';
+    if (d.daily && d.phase === 'roll' && d.turn >= d.daily.turnCap) {
+      // the day's last turn is resolved and there is no freedom yet: the challenge ends here (not a bankruptcy)
+      d.status = 'lost'; d.phase = 'ended'; d.daily.timedOut = true;
+      d.events.push({ type: 'dailyCap' });
+    }
   }
+
+  const logAction = (d, ...entry) => { if (d.daily) d.daily.log.push(entry); };
 
   function begin(state) {
     if (state.status !== 'playing') fail('game is over');
@@ -162,9 +184,10 @@ export function createEngine(data, { validate = true } = {}) {
     const d = begin(state);
     if (d.phase !== 'roll') fail('cannot roll now');
     d.turn += 1;
+    logAction(d, 'roll');
     const diceCount = d.charityTurns > 0 ? 2 : 1;
     if (d.charityTurns > 0) d.charityTurns -= 1;
-    const dice = forcedDice ?? Array.from({ length: diceCount }, () => 1 + randInt(d, 6));
+    const dice = forcedDice ?? Array.from({ length: diceCount }, (_, k) => (d.daily ? dailyDie(d.seed, d.turn, k) : 1 + randInt(d, 6)));
     const steps = dice.reduce((a, b) => a + b, 0);
     const from = d.position;
     const path = [];
@@ -266,6 +289,7 @@ export function createEngine(data, { validate = true } = {}) {
       });
       d.events.push({ type: 'bought', cardId: card.id, cost: card.downPayment, qty: 1 });
     }
+    logAction(d, 'buy', card.type === 'stock' ? qty : 1);
     recordDecision(d, buyRecord(card, card.type === 'stock' ? qty : 1));
     d.stats.dealsBought += 1;
     d.pending = null;
@@ -276,6 +300,7 @@ export function createEngine(data, { validate = true } = {}) {
   function pass(state) {
     const d = begin(state);
     requirePending(d, 'opportunity');
+    logAction(d, 'pass');
     recordDecision(d, passRecord(d.pending.card, d.cash));
     d.pending = null;
     d.events.push({ type: 'passed' });
@@ -288,6 +313,7 @@ export function createEngine(data, { validate = true } = {}) {
     const d = begin(state);
     requirePending(d, 'offer');
     const { assetId, proceeds } = d.pending;
+    logAction(d, 'acceptOffer');
     d.assets = d.assets.filter((a) => a.id !== assetId);
     d.cash += proceeds;
     d.stats.dealsSold += 1;
@@ -299,6 +325,7 @@ export function createEngine(data, { validate = true } = {}) {
   function declineOffer(state) {
     const d = begin(state);
     requirePending(d, 'offer');
+    logAction(d, 'declineOffer');
     d.pending = null;
     settle(d);
     return d;
@@ -310,6 +337,7 @@ export function createEngine(data, { validate = true } = {}) {
     requirePending(d, 'charity');
     const { cost } = d.pending;
     if (d.cash < cost) fail('not enough cash');
+    logAction(d, 'donate');
     payFromCash(d, cost);
     d.charityTurns = CHARITY_TURNS;
     d.stats.donations += 1;
@@ -321,6 +349,7 @@ export function createEngine(data, { validate = true } = {}) {
   function declineCharity(state) {
     const d = begin(state);
     requirePending(d, 'charity');
+    logAction(d, 'declineCharity');
     d.events.push({ type: 'charityDeclined', cost: d.pending.cost });
     d.pending = null;
     settle(d);
@@ -334,6 +363,7 @@ export function createEngine(data, { validate = true } = {}) {
       fail(`loan must be a positive multiple of ${LOAN_STEP}`);
     }
     if (amount > maxLoan(d)) fail('loan limit reached');
+    logAction(d, 'takeLoan', amount);
     // Rate the loan on the state before it is taken (spec 2.2). A loan that covers an expense / shortfall is forced, not rated.
     const p = d.pending;
     const forced = p?.kind === 'expense' || p?.kind === 'shortfall';
@@ -366,6 +396,7 @@ export function createEngine(data, { validate = true } = {}) {
     if (!Number.isInteger(amount) || amount <= 0 || amount > l.principal ||
         (!whole && amount % LOAN_STEP !== 0)) fail('bad repayment amount');
     if (d.cash < amount) fail('not enough cash');
+    logAction(d, 'repayLoan', liabilityId, amount);
     d.cash -= amount;
     const remaining = l.principal - amount;
     const before = l.monthlyPayment;
@@ -388,11 +419,13 @@ export function createEngine(data, { validate = true } = {}) {
     if (asset.type === 'stock') {
       const q = qty ?? asset.qty;
       if (!Number.isInteger(q) || q < 1 || q > asset.qty) fail('bad quantity');
+      logAction(d, 'sellAsset', assetId, q);
       proceeds = saleValue(d, asset, q);
       asset.qty -= q;
       asset.monthlyCashFlow = asset.qty * asset.dividend;
       if (asset.qty === 0) d.assets = d.assets.filter((a) => a.id !== assetId);
     } else {
+      logAction(d, 'sellAsset', assetId);
       proceeds = saleValue(d, asset);
       d.assets = d.assets.filter((a) => a.id !== assetId);
     }
@@ -401,6 +434,17 @@ export function createEngine(data, { validate = true } = {}) {
     d.events.push({ type: 'sold', assetId, proceeds });
     if (d.pending?.kind === 'expense' && d.pending.funded !== 'loan') d.pending.funded = 'sale';
     settle(d);
+    return d;
+  }
+
+  /** Daily challenge only: the player gives the day's attempt up. Ends it as not completed (never a win). */
+  function forfeit(state) {
+    const d = begin(state);
+    if (!d.daily) fail('only a daily challenge can be given up');
+    logAction(d, 'forfeit');
+    d.pending = null;
+    d.status = 'lost'; d.phase = 'ended'; d.daily.gaveUp = true;
+    d.events.push({ type: 'gameOver' });
     return d;
   }
 
@@ -417,7 +461,7 @@ export function createEngine(data, { validate = true } = {}) {
   }
 
   return {
-    data, newGame, debugForce, roll, buy, pass, acceptOffer, declineOffer, donate,
+    data, newGame, debugForce, forfeit, roll, buy, pass, acceptOffer, declineOffer, donate,
     declineCharity, takeLoan, repayLoan, sellAsset,
   };
 }

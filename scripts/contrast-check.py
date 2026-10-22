@@ -61,6 +61,11 @@ dark=[ # (label, fg, bg, min)
  ('real-world disclaimer (card-muted) / white tile','#46527E','#FFFFFF',4.5),('guess hint (card-muted) / white tile','#46527E','#FFFFFF',4.5),
  ('guess skip / white tile','#0F1E46','#FFFFFF',4.5),('guess-bad button text / coral','#2E0502','#FF8A78',4.5),
  ('term underline target: text / card cream','#0F1E46','#FFF6E3',4.5),
+ # round 11: a negative result is never red (family chip / popover result / summary result): neutral amber
+ ('amber ink / bg','#FFD27A','#0F1E46',4.5),('amber ink / amber fill over bg','#FFD27A','#%02x%02x%02x'%over(h('F6C453'),.16,NAVY),4.5),
+ ('amber ink / amber fill over surface-2 (popover)','#FFD27A','#%02x%02x%02x'%over(h('F6C453'),.16,h('1D3573')),4.5),
+ ('summary result (amber) / navy band','#FFD27A','#0F1E46',4.5),('summary amber ink / amber fill (cream card)','#6E4200','#FFEBC2',4.5),
+ ('toast action ink / gold','#2A1700','#E3A020',4.5),
 ]
 light=[
  ('text / bg','#0F1E46','#FBF3E1',4.5),('text / surface','#0F1E46','#FFFFFF',4.5),('text / sunken','#0F1E46','#F1E5C8',4.5),
@@ -78,6 +83,8 @@ light=[
  ('tile outline navy / bg (tiles keep a 3px navy outline in light)','#0F1E46','#FBF3E1',3),
  ('fox orange 700 text / bg','#B3501A','#FBF3E1',4.5),
  ('player token ring (navy outline in light) / bg (non-text)','#0F1E46','#FBF3E1',3),
+ ('amber ink / bg (light)','#6E4200','#FBF3E1',4.5),('amber ink / amber fill over bg (light)','#6E4200','#%02x%02x%02x'%over(h('F2B53A'),.30,h('FBF3E1')),4.5),
+ ('amber ink / amber fill over surface-2 (light popover)','#6E4200','#%02x%02x%02x'%over(h('F2B53A'),.30,h('FFF9EC')),4.5),
  ('others-panel cash / cream panel','#7A4A00','#FFFBF2',4.5),
  ('float income / pill over cream tile','#5FE0AE','#%02x%02x%02x'%over(h('0A1533'),.86,h('FBF3E1')),4.5),
  ('float expense / pill over cream tile','#FFB3A7','#%02x%02x%02x'%over(h('0A1533'),.86,h('FBF3E1')),4.5),
@@ -87,6 +94,16 @@ light=[
  ('settings help (text-muted) / surface','#3F4C78','#FFFFFF',4.5),
  ('note kicker (card-muted) / cream bubble','#46527E','#FFF6E3',4.5),
  ('eye chip gold / navy','#FFD479','#0F1E46',4.5),
+ ('tutorial: summary passive amount / income tint','#0A7560','#E1F8EC',4.5),('tutorial: summary salary / cream','#0F1E46','#FFF6E3',4.5),
+ ('tutorial: summary expense amount / cream','#B3261E','#FFF6E3',4.5),('tutorial: summary left (income-ink) / cream','#0B6B43','#FFF6E3',4.5),
+ ('tutorial: summary muted caption / cream','#46527E','#FFF6E3',4.5),('tutorial: summary result gold / navy band','#F6C453','#0F1E46',4.5),
+ ('tutorial: summary negative result amber / navy band','#FFD27A','#0F1E46',4.5),('tutorial: popover left pill (positive)','#032A1A','#4FD6A0',4.5),
+ ('tutorial: popover left pill (negative, amber ink on amber fill over cream card)','#6E4200','#FFEBC2',4.5),('tutorial: hint strip text / navy','#FFFFFF','#0F1E46',4.5),
+ ('tutorial: hint strip number gold / navy','#FFD479','#0F1E46',4.5),('tutorial: story title gold / night','#F2B53A','#091330',4.5),
+ ('tutorial: story card muted / cream','#46527E','#FFF6E3',4.5),
+ # round 12: story numerals follow their background (light on the night story, ink in the cream card); family mode has no red (amber)
+ ('tutorial: story numeral white / night (bottom of the gradient)','#FFFFFF','#1B3068',4.5),('tutorial: story numeral ink / cream card','#0F1E46','#FFF6E3',4.5),
+ ('family: expense amber / bg','#FFD27A','#0F1E46',4.5),('family: expense amber / surface','#FFD27A','#16295E',4.5),('family: expense amber ink / cream card','#6E4200','#FFF6E3',4.5),('tutorial: highlight ring gold-700 on cream (non-text)','#A56A0A','#FFF6E3',3),('tutorial: highlight ring gold-300 on navy (non-text)','#FFD479','#0F1E46',3),
 ]
 bad=0; md='--md' in sys.argv
 for name,rows in (('DARK',dark),('LIGHT',light)):

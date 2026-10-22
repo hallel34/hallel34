@@ -5,7 +5,7 @@
 import { h } from './dom.js';
 import { parseMarkup } from '../i18n/markup.js';
 import { getLearnMode } from '../learn/context.js';
-import { conceptAvailable, conceptById } from '../learn/content.js';
+import { conceptAvailable, conceptById, termName } from '../learn/content.js';
 
 /** Tracks which terms were already turned into buttons on one screen / card / sheet (first occurrence only). */
 export const createTermScope = () => {
@@ -17,13 +17,14 @@ export function termButton(id, display) {
   return h('button', { type: 'button', class: 'term', 'data-term': id, 'aria-haspopup': 'dialog' }, h('span', { class: 'term-t' }, display));
 }
 
-function slotNodes(text, params) {
+function slotNodes(text, params, used = new Set()) {
   const out = [];
   for (const part of text.split(/(\{\w+\})/)) {
     const m = part.match(/^\{(\w+)\}$/);
     if (m && m[1] in params) {
       const v = params[m[1]];
-      out.push(v?.nodeType ? v : String(v));
+      // a node can sit in the DOM once: the first use keeps the live node (callers update it later), repeats get a copy
+      if (v?.nodeType) { out.push(used.has(v) ? v.cloneNode(true) : v); used.add(v); } else out.push(String(v));
     } else if (part) out.push(part);
   }
   return out;
@@ -32,15 +33,16 @@ function slotNodes(text, params) {
 /** DocumentFragment for a raw (marked-up) string. */
 export function richNodes(raw, params = {}, { scope = null, mode = getLearnMode() } = {}) {
   const frag = document.createDocumentFragment();
+  const used = new Set();
   for (const part of parseMarkup(raw)) {
-    if (!part.term) { frag.append(...slotNodes(part.text, params)); continue; }
+    if (!part.term) { frag.append(...slotNodes(part.text, params, used)); continue; }
     const c = conceptById(part.term);
     if (!c && import.meta.env?.DEV) console.warn(`[glossary] unknown term id in markup: ${part.term}`);
-    const display = part.display || c?.term || '';
+    const display = part.display || termName(part.term, mode) || '';
     if (c && conceptAvailable(part.term, mode) && !scope?.has(part.term)) {
       scope?.add(part.term);
       frag.append(termButton(part.term, display));
-    } else frag.append(...slotNodes(display, params));
+    } else frag.append(...slotNodes(display, params, used));
   }
   return frag;
 }

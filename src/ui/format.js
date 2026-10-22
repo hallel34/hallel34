@@ -1,6 +1,6 @@
 // Money/number formatting via Intl.NumberFormat (ILS). Numbers are wrapped in <bdi dir="ltr">
 // so "+₪1,200" and "-₪800" never flip inside RTL text.
-import { getMeta } from '../i18n/index.js';
+import { getMeta, t } from '../i18n/index.js';
 import { h } from './dom.js';
 
 let nf;
@@ -24,6 +24,15 @@ export function moneyText(n, { sign = false } = {}) {
   const digits = parts.filter((p) => p.type !== 'currency' && p.type !== 'literal').map((p) => p.value).join('');
   const s = v < 0 ? '-' : (sign && v > 0 ? '+' : '');
   return `${s}${symbol}${digits}`;
+}
+
+/**
+ * The amount as a screen reader should hear it inside a sentence: a negative one is 'מינוס ₪58,240', never 'ל--₪58,240'
+ * (a Hebrew prefix hyphen glued to the minus sign reads as a double hyphen).
+ */
+export function moneySpoken(n) {
+  const v = Math.round(n);
+  return v < 0 ? `${t('a11y.minus')} ${moneyText(-v)}` : moneyText(v);
 }
 
 /** <bdi class="money"> element. */

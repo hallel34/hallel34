@@ -53,11 +53,20 @@ export function createNotes({ zone, onActive, onDismiss }) {
         h('div', { class: 'note-fox', 'aria-hidden': 'true' }, foxImg('tip', { height: 84, cls: 'note-fox-img' })),
         h('div', { class: 'note-bubble' },
           h('div', { class: 'note-main' },
-            h('p', { class: 'note-head' }, h('strong', { class: 'note-term' }, c.term), h('span', { class: 'note-kicker' }, item.label)),
-            h('p', { class: 'note-text' }, c.short), why),
+            h('p', { class: 'note-head' }, h('strong', { class: 'note-term' }, item.name ?? c.term), h('span', { class: 'note-kicker' }, item.label)),
+            h('p', { class: 'note-text' }, item.short ?? c.short), why),
           h('div', { class: 'note-actions' },
             button(item.gotIt, { variant: 'primary', size: 'sm', cls: 'note-btn', 'data-action': 'explain-ok', 'aria-label': t('learn.gotItLabel'), onClick: () => { hideCurrent({ reason: 'answered' }); onDismiss?.(); } }),
-            button(t('learn.more'), { variant: 'secondary', size: 'sm', cls: 'note-btn', 'data-action': 'explain-more', 'aria-label': t('learn.moreLabel', { term: c.term }), onClick: () => { hideCurrent({ reason: 'answered' }); item.onMore?.(c.id); } }))));
+            button(t('learn.more'), { variant: 'secondary', size: 'sm', cls: 'note-btn', 'data-action': 'explain-more', 'aria-label': t('learn.moreLabel', { term: item.name ?? c.term }), onClick: () => { hideCurrent({ reason: 'answered' }); item.onMore?.(c.id); } }))));
+    }
+    if (item.kind === 'hint') {
+      // a guided hint (first game): the fox points, one short bubble, tap anywhere to close. Never takes a button of its own.
+      return h('div', { class: 'note note-hint', role: 'note', 'aria-label': item.label, 'data-note': 'hint', 'data-hint': item.id, onClick: () => hideCurrent() },
+        h('div', { class: 'note-fox', 'aria-hidden': 'true' }, foxImg(item.pose ?? 'tip', { height: 84, cls: 'note-fox-img' })),
+        h('div', { class: 'note-bubble' },
+          h('div', { class: 'note-main' },
+            h('p', { class: 'note-text' }, item.body),
+            item.more ? h('p', { class: 'note-why' }, item.more) : null)));
     }
     return h('div', { class: 'note note-feedback', role: 'status', 'data-note': 'feedback', 'data-group': item.group, 'data-tone': item.tone,
       onClick: () => hideCurrent() },
@@ -73,7 +82,9 @@ export function createNotes({ zone, onActive, onDismiss }) {
     animate(el, motionOK()
       ? [{ opacity: 0, transform: 'translateY(14px)' }, { opacity: 1, transform: 'translateY(0)' }]
       : [{ opacity: 0 }, { opacity: 1 }], { duration: motionOK() ? 260 : cssMs('--dur-base', 120), easing: 'cubic-bezier(.16,1,.3,1)' });
-    const hold = item.kind === 'explain' ? (window.matchMedia?.('(max-height: 600px)').matches ? 6000 : 20000) : holdFor(item.plain ?? '');
+    // hints: 6-12 s (spec section 5), longer for longer text; explainers wait for their button
+    const hold = item.kind === 'explain' ? (window.matchMedia?.('(max-height: 600px)').matches ? 6000 : 20000)
+      : item.kind === 'hint' ? Math.min(12000, Math.max(6000, 3000 + (item.plain?.length ?? 60) * 70)) : holdFor(item.plain ?? '');
     current = { el, item, shownAt: performance.now(), timer: setTimeout(() => hideCurrent({ reason: 'timeout' }), hold) };
   }
 
@@ -86,7 +97,7 @@ export function createNotes({ zone, onActive, onDismiss }) {
   }
 
   return {
-    /** item: { kind: 'feedback', body: Node|string, plain, pose, tone, group } | { kind: 'explain', concept, label, gotIt, whyLabel, onShow, onMore } */
+    /** item: { kind: 'feedback', body: Node|string, plain, pose, tone, group } | { kind: 'explain', concept, label, gotIt, whyLabel, onShow, onMore } | { kind: 'hint', id, body, more, plain, onShow, onHide } */
     push(item) {
       // An urgent item (an explainer that was already pushed aside once) takes the screen at once instead of waiting behind
       // a feedback note, so a player who rolls fast still meets every concept within two turns.

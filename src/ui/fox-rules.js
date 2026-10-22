@@ -1,5 +1,8 @@
 // Pure fox rules (no DOM): which reaction goes where, and when family-mode tips appear. See design/fox-usage.md.
 
+/** Every fox pose the UI can show (cutouts + reaction crops). */
+export const POSE_NAMES = ['tired', 'wave', 'roll', 'hammock', 'tip', 'think', 'celebrate', 'worried', 'ponder'];
+
 /** Reaction crops (512px circle crops with a baked navy background). */
 export const REACTIONS = ['think', 'celebrate', 'worried', 'ponder'];
 

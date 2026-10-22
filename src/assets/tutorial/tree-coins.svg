@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 240" width="320" height="240" role="img" aria-label="עץ שפירותיו מטבעות זהב">
+<defs>
+<g id="c"><circle cy="2" r="13" fill="#A56A0A"/><circle r="13" fill="#F2B53A" stroke="#0F1E46" stroke-width="3"/><circle r="8" fill="#F8CB62" stroke="#A56A0A" stroke-width="1.5"/><path d="M-9-6Q-6-11 0-12" fill="none" stroke="#fff" stroke-opacity=".7" stroke-width="2.5" stroke-linecap="round"/></g>
+<radialGradient id="h" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#F2B53A" stop-opacity=".35"/><stop offset="1" stop-color="#F2B53A" stop-opacity="0"/></radialGradient>
+</defs>
+<ellipse cx="160" cy="105" rx="150" ry="100" fill="url(#h)"/>
+<ellipse cx="160" cy="218" rx="96" ry="13" fill="#091330" opacity=".55"/>
+<path d="M146 216C150 190 150 170 140 148L182 148C172 172 172 192 178 216Z" fill="#B3501A" stroke="#0F1E46" stroke-width="3" stroke-linejoin="round"/>
+<path d="M156 200C158 184 158 170 154 156" fill="none" stroke="#F59A5B" stroke-width="3" stroke-linecap="round"/>
+<g fill="#0F1E46" stroke="#0F1E46" stroke-width="6"><circle cx="160" cy="62" r="46"/><circle cx="105" cy="92" r="40"/><circle cx="215" cy="92" r="40"/><circle cx="135" cy="115" r="36"/><circle cx="187" cy="115" r="36"/></g>
+<g fill="#2FB885"><circle cx="160" cy="62" r="46"/><circle cx="105" cy="92" r="40"/><circle cx="215" cy="92" r="40"/><circle cx="135" cy="115" r="36"/><circle cx="187" cy="115" r="36"/></g>
+<path d="M120 50C130 28 160 20 184 32M72 82C76 68 88 60 100 58" fill="none" stroke="#7AE8C0" stroke-width="5" stroke-linecap="round" opacity=".8"/>
+<path d="M92 118C110 134 130 140 150 138M200 138C222 138 240 126 250 108" fill="none" stroke="#167A58" stroke-width="5" stroke-linecap="round" opacity=".7"/>
+<use href="#c" x="150" y="46"/><use href="#c" x="104" y="82"/><use href="#c" x="206" y="70"/><use href="#c" x="232" y="104"/><use href="#c" x="78" y="108" transform="translate(0 0)"/><use href="#c" x="128" y="120"/><use href="#c" x="182" y="116"/>
+<use href="#c" x="226" y="176"/><use href="#c" x="96" y="200" transform="translate(0 0)"/><use href="#c" x="256" y="206" />
+<path d="M270 40Q270 52 282 52Q270 52 270 64Q270 52 258 52Q270 52 270 40Z" fill="#FFD479"/>
+<path d="M50 40Q50 48 58 48Q50 48 50 56Q50 48 42 48Q50 48 50 40Z" fill="#FFD479"/>
+</svg>

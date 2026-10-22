@@ -362,3 +362,79 @@
   .screen-match-end .stand-value { font-size: .75rem; }
   .screen-match-end .stand-row .ptoken { inline-size: 24px; block-size: 24px; }
 }
+
+/* ===== Daily challenge (v2.5) ===== */
+.daily-card {
+  position: relative; display: flex; align-items: center; gap: 12px; inline-size: 100%; min-block-size: 56px; padding: 8px 14px; border-radius: 20px; text-align: start;
+  border: 2px solid var(--c-gold-400); background: rgb(242 181 58 / .14); color: var(--text); touch-action: manipulation;
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  transition: transform var(--dur-fast) var(--ease-bounce), background var(--dur-fast);
+}
+.daily-card:active { transform: scale(var(--press-scale)); }
+:root[data-theme="light"] .daily-card { background: #FFF1C2; border-color: #B25E00; }
+.daily-icon { flex: none; inline-size: 36px; block-size: 36px; border-radius: 50%; display: grid; place-items: center; background: var(--c-gold-400); color: var(--c-gold-ink); }
+.daily-text { flex: 1; min-inline-size: 0; display: flex; flex-direction: column; gap: 1px; }
+.daily-title { font-size: 1.0625rem; font-weight: var(--fw-bold); line-height: 1.2; }
+.daily-line { font-size: .8125rem; line-height: 1.25; color: var(--text-soft); overflow-wrap: anywhere; }
+.daily-status { font-weight: var(--fw-bold); color: var(--text); }
+.daily-go { flex: none; color: var(--c-gold-400); display: grid; }
+:root[data-theme="light"] .daily-go { color: #8A4B00; }
+.daily-card[data-status="done"] .daily-icon { background: transparent; border: 2px solid var(--c-gold-400); color: var(--c-gold-400); }
+:root[data-theme="light"] .daily-card[data-status="done"] .daily-icon { color: #8A4B00; border-color: #B25E00; }
+.daily-reset { align-self: center; min-block-size: 48px; }
+@media (max-height: 700px) {
+  .daily-card { min-block-size: 52px; padding-block: 6px; gap: 10px; }
+  .daily-icon { inline-size: 32px; block-size: 32px; }
+  .daily-line { font-size: .75rem; }
+  .daily-title { font-size: 1rem; }
+}
+
+.screen-daily { gap: var(--sp-3); padding-block-end: max(20px, env(safe-area-inset-bottom)); block-size: 100dvh; min-block-size: 0; }
+/* the result card scrolls inside itself; the hero and the actions (share, back) stay put and always inside the viewport */
+.screen-daily .daily-hero { flex: none; }
+.screen-daily .daily-card-result { flex: 0 1 auto; min-block-size: 0; overflow-y: auto; overscroll-behavior: contain; }
+.screen-daily .daily-actions { flex: none; margin-block-start: 0; }
+.daily-hero { padding-block-start: 4px; }
+.daily-fox { display: grid; place-items: center; min-block-size: 96px; }
+.daily-h1 { font-size: clamp(1.625rem, 4.6dvh, 2.25rem); margin-block-start: 4px; text-align: center; }
+.daily-sub { margin-block-start: 4px; font-size: .9375rem; }
+.daily-card-result { gap: 8px; padding: 14px 16px; }
+.daily-net { font-variant-numeric: tabular-nums; }
+.daily-prof { font-weight: var(--fw-bold); font-size: 1.0625rem; }
+.daily-learn, .daily-streakline, .daily-newbadge, .daily-next-line { margin: 0; font-size: .9375rem; line-height: 1.35; color: var(--text-soft); }
+.daily-learn b { color: var(--text); }
+.daily-streakline { display: flex; align-items: center; gap: 8px; color: var(--text); font-weight: var(--fw-bold); }
+.daily-flame { color: var(--c-gold-400); display: grid; }
+:root[data-theme="light"] .daily-flame { color: #8A4B00; }
+.daily-badges { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.daily-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px 4px 12px; border-radius: 999px; font-size: .8125rem; font-weight: var(--fw-bold); background: var(--glass-chip); color: var(--text-soft); border: 1.5px dashed var(--border-strong); }
+.daily-badge[data-earned="true"] { background: rgb(242 181 58 / .22); color: var(--text); border: 1.5px solid var(--c-gold-400); }
+.daily-badge-icon { display: grid; opacity: .6; }
+.daily-badge[data-earned="true"] .daily-badge-icon { opacity: 1; color: var(--c-gold-400); }
+:root[data-theme="light"] .daily-badge[data-earned="true"] { background: #FFF1C2; border-color: #B25E00; }
+:root[data-theme="light"] .daily-badge[data-earned="true"] .daily-badge-icon { color: #8A4B00; }
+.daily-newbadge { color: var(--text); font-weight: var(--fw-bold); }
+.daily-actions { gap: 8px; }
+.daily-copied { margin: 0; text-align: center; font-weight: var(--fw-bold); font-size: .9375rem; min-block-size: 1.4em; visibility: hidden; color: var(--text); }
+.daily-copied[data-visible="true"] { visibility: visible; }
+.daily-sharebox { inline-size: 100%; box-sizing: border-box; border-radius: 12px; padding: 8px; font: inherit; font-size: .875rem; background: var(--glass-chip); color: var(--text); border: 1.5px solid var(--border-strong); resize: none; }
+.btn-giveup { --bg-btn: transparent; --fg-btn: var(--text-soft); box-shadow: none; text-decoration: underline; text-underline-offset: 3px; backdrop-filter: none; min-block-size: 48px; }
+@media (max-height: 700px) {
+  .daily-fox { min-block-size: 70px; }
+  .daily-fox .hammock { max-block-size: 84px; inline-size: auto; }
+  .daily-card-result { padding: 10px 14px; gap: 6px; }
+  .daily-learn, .daily-streakline, .daily-newbadge, .daily-next-line { font-size: .8125rem; }
+  .screen-daily .btn-lg { min-block-size: 56px; }
+}
+/* very short phones (320x568): the daily card needs its room, so the tagline gives way and the hero tightens */
+@media (max-height: 600px) {
+  .screen-start .tagline { display: none; }
+  .screen-start .wordmark img { inline-size: clamp(96px, 20dvh, 232px); }
+  .screen-start .fox-stage { min-block-size: 96px; }
+  .daily-streak { display: none; }
+  .screen-daily { gap: 8px; padding-block-end: max(12px, env(safe-area-inset-bottom)); }
+  .daily-sub { display: none; }
+  .daily-fox { min-block-size: 56px; }
+  .daily-fox .hammock { max-block-size: 64px; }
+  .daily-card[data-status="done"] .daily-streak { display: block; }
+}

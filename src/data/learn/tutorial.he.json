@@ -1,0 +1,708 @@
+{
+  "version": 1,
+  "notes": {
+    "purpose": "המשחק הראשון עם פסיבו: סיפור פתיחה (5 מסכים), רמזים מודרכים ב-6 התורות הראשונים, שורת מטרה ב-HUD, מילון ילדים למצב משפחה, כרטיס להורה ובדיקה אופציונלית. הספק המלא: docs/v2/tutorial/spec.md",
+    "metaphor": "מטאפורה אחת לאורך כל הדרך: עץ פירות. משכורת = כסף שמגיע רק כשעובדים. נכס = עץ שנותן פירות גם כשישנים. הוצאות = החשבונות של כל חודש. חופש = הפירות מכסים את החשבונות. הלוואה = כסף מושאל שמחזירים עם תוספת.",
+    "numbers": "כל מספר בדוגמאות הוא מהנתונים (professions.he.json, cards.he.json, config.js) וחושב ידנית ב-2026-10-21 (לא היה מעטפת להרצת node). כל דוגמה נושאת בלוק computed. QA/מפתח: להשוות אל הנתונים ואל loanTerms(). מחירי הלוואה, שיעורים ותקרות אינם מוקלדים בטקסט חי: הם מגיעים מ-slots. היוצא מן הכלל היחיד הוא דוגמת ההלוואה של 10,000 בסיפור, שהיא דוגמה קבועה ומסומנת (example.fixed) ונבדקת מול loanTerms(10000).",
+    "slots": {
+      "profession": "שם המקצוע שנבחר (professions.he.json title)",
+      "salary": "משכורת חודשית של המקצוע, כסף מעוצב",
+      "expenses": "totalExpenses(state): הוצאות קבועות + תשלומי חובות + ילדים, כסף מעוצב. זה אותו מספר שמופיע ב-HUD",
+      "debts": "loanPayments(state): תשלומי חובות חודשיים בלבד, כסף מעוצב",
+      "monthly": "monthlyCashFlow(state) או, בקלף, monthlyCashFlow של הנכס, כסף מעוצב",
+      "months": "PAYDAY_MONTHS (24)",
+      "amount": "בסיכום שנתיים: monthly x months. בהלוואה: הקרן שנבחרה. בהוצאה: סכום ההוצאה",
+      "monthlyPayment": "loanTerms(amount).monthly",
+      "perSummary": "loanTerms(amount).perPayday",
+      "downPayment": "downPayment של הקלף, כסף מעוצב",
+      "years": "ביטוי מלא עם יחידה מפונקציית הרבים (שנה אחת, שנתיים, 3.7 שנים), אותו ערך כמו card.payback",
+      "passive": "passiveIncome(state)",
+      "lossAbs": "סכום הערכים המוחלטים של התזרימים השליליים של הנכסים, כסף מעוצב (round 11)",
+      "passiveSigned": "passiveIncome(state) עם סימן, כסף מעוצב (round 11)",
+      "left": "max(0, totalExpenses - passiveIncome), כסף מעוצב",
+      "pct": "אחוז התקדמות המד, מעוגל",
+      "cash": "state.cash",
+      "cashLeft": "state.cash אחרי ההוצאה",
+      "loss": "הסכום החודשי השלילי של נכס שהוא הפסד",
+      "passiveTotal": "הכנסה פסיבית של הנכס כפול months (למשל 2,600 x 24)",
+      "monthlyAbs": "הערך המוחלט של monthly, כסף מעוצב (במינוס)",
+      "amountAbs": "הערך המוחלט של amount, כסף מעוצב (במינוס)",
+      "monthlySigned": "monthlyCashFlow עם סימן (+/-), כסף מעוצב",
+      "income": "משכורת ועוד הכנסה פסיבית בחודש, כסף מעוצב",
+      "cashBefore": "state.cash לפני סיכום שנתיים",
+      "cashAfter": "state.cash אחרי סיכום שנתיים",
+      "n": "מספר (תשובות נכונות, מספר מסך)",
+      "total": "סך הכול (3 שאלות, 5 מסכים)",
+      "term": "המונח המקצועי מהמילון",
+      "title": "כותרת מסך בסיפור"
+    },
+    "storage": "מפתח localStorage אחד: passivo.tutorial = { storyDone, quizDone, hintsSeen: { <hintId>: <turn> }, helpOn }",
+    "rules": [
+      "כל רמז מוצג פעם אחת למכשיר. 'הפעילו שוב את הרמזים' בהגדרות מאפס את hintsSeen.",
+      "רמז לא מכסה מספרים או כפתורים: הוא יושב במקום תנוחת ההטלה (תחתית הלוח) או כפס בתוך הקלף. הדגשת יעד היא טבעת זוהרת (outline) ללא כיסוי.",
+      "לא יותר מרמז צף אחד בתור, והוא מגיע אחרי שורת הפידבק של פסיבו.",
+      "במשחק הראשון הטיפים הכלליים של מצב משפחה (תורות 1 עד 3) מוחלפים ברמזים המודרכים; הם חוזרים מתור 8 כרגיל."
+    ]
+  },
+  "ui": {
+    "title": "המשחק הראשון עם פסיבו",
+    "next": "המשיכו",
+    "back": "חזרה",
+    "skip": "דלגו",
+    "skipToast": "אפשר לראות את הסיפור שוב בהגדרות",
+    "go": "יוצאים לדרך",
+    "dots": "מסך {n} מתוך {total}",
+    "replay": "ראו שוב את הסיפור",
+    "replayHints": "הפעילו שוב את הרמזים",
+    "helpToggle": "עזרה למתחילים",
+    "helpToggleHelp": "שורת מטרה ורמזים של פסיבו בתורות הראשונים",
+    "offerCheck": "רוצים לבדוק את עצמכם? שלוש שאלות קצרות",
+    "doCheck": "בואו נבדוק",
+    "skipCheck": "לא עכשיו",
+    "gotIt": "הבנתי",
+    "more": "עוד",
+    "simplificationLabel": "במשחק זה מפושט",
+    "exampleLabel": "דוגמה מהמשחק",
+    "parentCardOpen": "למבוגר שמשחק עם ילד",
+    "professionalWord": "המילה המקצועית: {term}",
+    "hintNext": "הבא",
+    "howtoStory": "ראו שוב את הסיפור (דקה)",
+    "howtoRules": "כללי המשחק בקצרה",
+    "storyLayer": "המשחק הראשון עם פסיבו, מסך {n} מתוך {total}",
+    "hintFoxLabel": "פסיבו מצביע",
+    "parentCardAnswer": "תשובה",
+    "close": "סגירה",
+    "cashLabel": "הכסף שיש לכם עכשיו",
+    "cashCaption": "מזומן = הכסף שיש לכם עכשיו",
+    "cashTooltip": "הכסף שיש לכם עכשיו. ממנו משלמים על נכסים והוצאות.",
+    "cashFirstUse": "מזומן (הכסף שיש לכם עכשיו)",
+    "summarySquareHint": "חפשו על הלוח את משבצת סיכום שנתיים — שם הכסף מגיע",
+    "summarySquareHintShort": "כאן הכסף מגיע",
+    "firstPaymentSource": "אין מספיק מזומן? אפשר לקחת הלוואה, או לחכות למשבצת סיכום שנתיים שמביאה כסף",
+    "partNext": "הבא",
+    "partOf": "{n} מתוך {total}",
+    "howtoEntry": "איך משחקים?",
+    "howtoEntrySub": "סיפור קצר, מילון ועוד",
+    "handoffHomeLink": "חזרה לבית",
+    "handoffHomeSub": "המשחק נשמר ואפשר להמשיך אותו אחר כך",
+    "handoffHomeAria": "חזרה לדף הבית. המשחק נשמר"
+  },
+  "story": {
+    "targetSeconds": [60, 90],
+    "maxScreens": 5,
+    "screens": [
+      {
+        "id": "s1-passive",
+        "order": 1,
+        "concept": "passive_income",
+        "pose": "tip",
+        "illustration": "tree-with-coins (SVG חדש מהמעצבת)",
+        "title": "כסף שעובד בשבילכם",
+        "lines": [
+          "משכורת היא כסף שמקבלים על עבודה. כשמפסיקים לעבוד, היא נעצרת.",
+          "נכס הוא כמו עץ פירות: הוא נותן פירות גם כשישנים. הכסף שהנכס מכניס נקרא הכנסה פסיבית."
+        ],
+        "example": {
+          "cardId": "opp-biz-006",
+          "text": "עגלת פופקורן ליד בית ספר: משלמים בהתחלה ₪40,000, ואחר כך היא מכניסה ₪900 בחודש.",
+          "footnote": "₪900 הם אחרי ההחזר של הלוואת העסק של העגלה, והוא כבר מחושב בקלף.",
+          "computed": { "downPayment": 40000, "profit": 1600, "loanPayment": 700, "monthlyCashFlow": 900 }
+        },
+        "simplification": "במשחק העגלה מכניסה כסף לבד. בחיים עסק צריך עבודה, ועץ צריך זמן ומים.",
+        "readSec": 15
+      },
+      {
+        "id": "s2-expenses",
+        "order": 2,
+        "concept": "expenses",
+        "pose": "tired",
+        "illustration": "bills-stack (SVG חדש מהמעצבת)",
+        "title": "החשבונות של כל חודש",
+        "lines": [
+          "הוצאות הן החשבונות שחייבים לשלם בכל חודש, כמו שכר דירה, אוכל ומסים.",
+          "גם בחודש שלא עובדים, החשבונות ממשיכים להגיע."
+        ],
+        "example": {
+          "professionId": "teacher",
+          "text": "אצל {profession} ההוצאות הן {expenses} בחודש, כולל {debts} החזרי חובות. המשכורת היא {salary}.",
+          "sampleText": "אצל מורה ההוצאות הן ₪7,310 בחודש, כולל ₪510 החזרי חובות. המשכורת היא ₪8,800.",
+          "computed": { "fixed": 6800, "debts": 510, "expenses": 7310, "salary": 8800, "leftEachMonth": 1490 }
+        },
+        "simplification": null,
+        "readSec": 14
+      },
+      {
+        "id": "s3-freedom",
+        "order": 3,
+        "concept": "freedom",
+        "pose": "hammock",
+        "illustration": null,
+        "title": "חופש",
+        "lines": [
+          "כשהכסף שעובד בשבילכם גדול מההוצאות, אפשר לשלם את כל החשבונות בלי לעבוד.",
+          "זה החופש, וזו המטרה של המשחק."
+        ],
+        "example": {
+          "professionId": "teacher",
+          "text": "אצל {profession} ההוצאות הן {expenses} בחודש. עגלת הפופקורן מביאה {monthly}, ועוד {left} בחודש לחופש.",
+          "sampleText": "אצל מורה ההוצאות הן ₪7,310 בחודש. עגלת הפופקורן מביאה ₪900, ועוד ₪6,410 בחודש לחופש.",
+          "computed": { "expenses": 7310, "cart": 900, "left": 6410 }
+        },
+        "simplification": "בחיים אמיתיים זה לוקח שנים ואין הבטחה שזה יצליח. המשחק מתרגל את הרעיון, והמספרים בו מפושטים.",
+        "readSec": 16
+      },
+      {
+        "id": "s4-loan",
+        "order": 4,
+        "concept": "loan",
+        "pose": "tip",
+        "illustration": "bank-building (SVG חדש מהמעצבת)",
+        "title": "הלוואה",
+        "lines": [
+          "הלוואה היא כסף שמשאילים מהבנק. מחזירים אותו, ובכל חודש משלמים עוד קצת: תוספת.",
+          "הלוואה היא לא מתנה: בסוף משלמים יותר ממה שלקחו."
+        ],
+        "example": {
+          "fixed": true,
+          "text": "לוקחים ₪10,000. כל חודש משלמים ₪100 תוספת, עד שמחזירים את ה-₪10,000. בשנתיים התוספת היא ₪2,400.",
+          "computed": { "amount": 10000, "monthly": 100, "perSummary": 2400, "totalIfRepaidAtSummary": 12400, "source": "loanTerms(10000)" }
+        },
+        "simplification": "במשחק משלמים בכל חודש רק את התוספת, ואת הסכום עצמו מחזירים כשבוחרים. בחיים בדרך כלל כל תשלום מחזיר גם חלק מהחוב.",
+        "readSec": 17
+      },
+      {
+        "id": "s5-turn",
+        "order": 5,
+        "concept": "summary",
+        "pose": "roll",
+        "illustration": null,
+        "title": "מתי הכסף מגיע אליכם",
+        "round11": "המסך נחלק ל-5 חלקים קצרים (parts), רעיון אחד בכל חלק. הנקודות למעלה נשארות 5 (מסכים); חלקים מתקדמים ב'הבא'/'המשיכו' בתוך המסך. lines ו-example.text הישנים הוחלפו ב-parts.",
+        "lines": [],
+        "parts": [
+          {
+            "id": "p1-buy",
+            "text": "קונים דירה, והיא מכניסה כסף כל חודש.",
+            "exampleText": "{passive} בחודש",
+            "sampleText": "הדירה בקריית שמונה מכניסה ₪2,600 בחודש."
+          },
+          {
+            "id": "p2-gather",
+            "text": "הכסף מצטבר, ומגיע אליכם במשבצת ״סיכום שנתיים״.",
+            "sampleText": "הכסף מצטבר, ומגיע אליכם במשבצת ״סיכום שנתיים״."
+          },
+          {
+            "id": "p3-calc",
+            "text": "שם מחשבים מה נשאר בחודש: משכורת {salary} + כסף שעובד {passive} − הוצאות {expenses} = {monthly}.",
+            "sampleText": "שם מחשבים מה נשאר בחודש: משכורת ₪8,800 + כסף שעובד ₪2,600 − הוצאות ₪7,310 = ₪4,090."
+          },
+          {
+            "id": "p4-times",
+            "text": "{monthly} × {months} = {amount}. הסכום נכנס למזומן (הכסף שיש לכם עכשיו).",
+            "sampleText": "₪4,090 × 24 = ₪98,160. הסכום נכנס למזומן (הכסף שיש לכם עכשיו)."
+          },
+          {
+            "id": "p5-source",
+            "text": "אין מספיק מזומן? אפשר לקחת הלוואה, או לחכות למשבצת סיכום שנתיים שמביאה כסף.",
+            "boardHint": "חפשו על הלוח את משבצת סיכום שנתיים — שם הכסף מגיע",
+            "boardHintKey": "ui.summarySquareHint",
+            "boardRing": "מציגים את הטבעת על משבצת סיכום שנתיים בלוח כשהסיפור נסגר, ושוב ברמז h-summary-square (ראו hints)",
+            "sampleText": "אין מספיק מזומן? אפשר לקחת הלוואה, או לחכות למשבצת סיכום שנתיים שמביאה כסף."
+          }
+        ],
+        "chain": ["קונים דירה", "כל חודש היא מכניסה כסף (כסף שעובד)", "הכסף מצטבר", "בסיכום שנתיים הוא מגיע למזומן (הכסף שיש לכם עכשיו)"],
+        "chainShort": ["דירה", "כסף שעובד", "מצטבר", "מזומן"],
+        "example": {
+          "cardId": "opp-apt-004",
+          "professionId": "teacher",
+          "text": null,
+          "sampleText": "קונים את הדירה בקריית שמונה: היא מכניסה ₪2,600 בחודש. משכורת ₪8,800 + כסף שעובד ₪2,600 − הוצאות ₪7,310 = ₪4,090 בחודש. ₪4,090 × 24 = ₪98,160.",
+          "computed": { "rent": 9500, "loanPayment": 6900, "passive": 2600, "salary": 8800, "expenses": 7310, "monthly": 4090, "months": 24, "amount": 98160 }
+        },
+        "simplification": "במשחק הכסף מגיע למזומן רק בסיכום שנתיים, ומסכמים שנתיים בבת אחת כדי שהמשחק יהיה קצר. בחיים הכסף נכנס ויוצא כל חודש. ₪2,600 הם אחרי תשלום ההלוואה לדירה, והוא כבר מחושב בקלף.",
+        "simplificationAfterPart": "p4-times",
+        "simplificationShowOnParts": ["p4-times"],
+        "simplificationHideOnParts": ["p1-buy", "p2-gather", "p3-calc", "p5-source"],
+        "round12": "הקופסה 'במשחק זה מפושט' מוצגת רק בחלק p4-times ולא חוזרת ב-p5-source (גם לא כשחוזרים אחורה ל-p5 ממסך אחר).",
+        "readSec": 20
+      }
+    ]
+  },
+  "terms": [
+    {
+      "id": "salary",
+      "kid": "משכורת היא כסף שמקבלים על עבודה, ונעצרת כשמפסיקים לעבוד.",
+      "example": "אצל מורה: ₪8,800 בחודש, כל עוד עובדים.",
+      "computed": { "salary": 8800 }
+    },
+    {
+      "id": "passive_income",
+      "kid": "כסף שעובד בשבילכם הוא כסף שנכנס מנכס, גם כשלא עובדים באותו רגע.",
+      "example": "עגלת פופקורן: ₪900 בחודש אחרי ההחזר לבנק.",
+      "computed": { "monthlyCashFlow": 900 }
+    },
+    {
+      "id": "expenses",
+      "kid": "הוצאות הן החשבונות שחייבים לשלם בכל חודש.",
+      "example": "אצל מורה: ₪7,310 בחודש, כולל ₪510 החזרי חובות.",
+      "computed": { "expenses": 7310, "debts": 510 }
+    },
+    {
+      "id": "freedom",
+      "kid": "חופש הוא כשהכסף שעובד בשבילכם גדול מההוצאות, ואפשר לשלם הכול בלי לעבוד.",
+      "example": "אצל מורה צריך כסף שעובד של יותר מ-₪7,310 בחודש.",
+      "computed": { "expenses": 7310 }
+    },
+    {
+      "id": "loan",
+      "kid": "הלוואה היא כסף שמשאילים מהבנק: מחזירים אותו, ועוד תוספת בכל חודש.",
+      "example": "₪10,000 בהלוואה: ₪100 תוספת בכל חודש.",
+      "computed": { "amount": 10000, "monthly": 100 }
+    },
+    {
+      "id": "interest",
+      "kid": "תוספת (ריבית) היא מה שמשלמים לבנק כל חודש על כסף שהשאילו לכם.",
+      "example": "על כל ₪1,000 בהלוואה: ₪10 בחודש.",
+      "computed": { "amount": 1000, "monthly": 10 }
+    },
+    {
+      "id": "cash",
+      "kid": "מזומן הוא הכסף שיש לכם עכשיו. ממנו משלמים על נכסים ועל הוצאות.",
+      "example": "אצל מורה מתחילים עם ₪9,000 במזומן (הכסף שיש לכם עכשיו).",
+      "computed": { "cash": 9000, "source": "professions.he.json teacher.savings" }
+    },
+    {
+      "id": "summary",
+      "kid": "סיכום שנתיים הוא המשבצת שבה הכסף של 24 חודשים מגיע למזומן: מה שנשאר בחודש כפול 24.",
+      "example": "₪1,490 × 24 = ₪35,760.",
+      "computed": { "monthly": 1490, "months": 24, "amount": 35760 }
+    }
+  ],
+  "check": {
+    "optional": true,
+    "shuffleOptions": true,
+    "title": "בדקו את עצמכם",
+    "intro": "שלוש שאלות. נסו לענות לפני שפסיבו מסביר.",
+    "retryOnce": true,
+    "round11": "ה-feedback של אפשרות נכונה לא פותח ב'נכון!' כי הכותרת correctTitle ('נכון') כבר מוצגת מעליו; אין לצרף ביניהם 'נכון. נכון!'.",
+    "ui": {
+      "question": "שאלה {n} מתוך {total}",
+      "showMe": "הראו לי",
+      "tryAgain": "נסו שוב, אפשר לנחש פעם נוספת",
+      "nextQuestion": "לשאלה הבאה",
+      "finish": "לתוצאה",
+      "go": "יוצאים לדרך",
+      "correctTitle": "נכון",
+      "explainTitle": "הנה ההסבר"
+    },
+    "result": {
+      "all": "שלוש מתוך שלוש! אתם מוכנים לצאת לדרך.",
+      "some": "{n} מתוך 3. זה בסדר, הנה הרעיון שוב ואז יוצאים לדרך.",
+      "replayLine": "לראות שוב את המסך על: {title}"
+    },
+    "questions": [
+      {
+        "id": "q-passive",
+        "concept": "passive_income",
+        "replayScreen": "s1-passive",
+        "prompt": "מה זה כסף שעובד בשבילכם?",
+        "promptNote": "round 11: ללא 'מהי'/'מה היא'; המונח המקצועי (הכנסה פסיבית) מופיע בהסבר",
+        "options": [
+          { "id": "a", "text": "כסף שנכנס מנכס, גם כשלא עובדים באותו רגע", "correct": true, "feedback": "כמו עץ שנותן פירות." },
+          { "id": "b", "text": "המשכורת שמקבלים על העבודה", "correct": false, "feedback": "משכורת מגיעה על עבודה. כסף שעובד בשבילכם מגיע מנכס." },
+          { "id": "c", "text": "כסף שמחזירים לבנק", "correct": false, "feedback": "כסף שמחזירים לבנק הוא תשלום, לא הכנסה." }
+        ],
+        "explain": "המילה המקצועית היא הכנסה פסיבית: כסף שהנכס מכניס. עגלת הפופקורן מכניסה ₪900 בחודש. המשכורת נעצרת כשמפסיקים לעבוד.",
+        "computed": { "cart": 900 }
+      },
+      {
+        "id": "q-loan",
+        "concept": "loan",
+        "replayScreen": "s4-loan",
+        "prompt": "מה זו הלוואה?",
+        "options": [
+          { "id": "a", "text": "כסף שמשאילים מהבנק, מחזירים אותו ומשלמים עוד תוספת", "correct": true, "feedback": "הלוואה היא כסף שצריך להחזיר, ועוד תוספת." },
+          { "id": "b", "text": "כסף שהבנק נותן במתנה", "correct": false, "feedback": "הלוואה היא לא מתנה: צריך להחזיר אותה ועוד תוספת." },
+          { "id": "c", "text": "כסף שנכנס מנכס כל חודש", "correct": false, "feedback": "כסף שנכנס מנכס הוא כסף שעובד בשבילכם. הלוואה היא כסף שצריך להחזיר." }
+        ],
+        "explain": "בהלוואה של ₪10,000 משלמים ₪100 תוספת בכל חודש, ואת ה-₪10,000 מחזירים בסוף.",
+        "computed": { "amount": 10000, "monthly": 100 }
+      },
+      {
+        "id": "q-bigloan",
+        "concept": "interest",
+        "replayScreen": "s4-loan",
+        "prompt": "למה לא כדאי לקחת הלוואה ענקית?",
+        "options": [
+          { "id": "a", "text": "כי על כל סכום שלוקחים משלמים תוספת בכל חודש, וזה אוכל את הכסף שנשאר", "correct": true, "feedback": "התוספת החודשית אוכלת חלק מהכסף שנשאר." },
+          { "id": "b", "text": "כי הבנק דורש להחזיר הכול ביום אחד", "correct": false, "feedback": "במשחק אפשר להחזיר מתי שרוצים. הבעיה היא התוספת החודשית." },
+          { "id": "c", "text": "אין סיבה, הלוואה גדולה יותר תמיד עדיפה", "correct": false, "feedback": "הלוואה גדולה מגדילה את התוספת החודשית, ויכולה להשאיר מעט כסף או מינוס." }
+        ],
+        "explain": "על כל ₪1,000 משלמים ₪10 בחודש. הלוואה של ₪100,000 היא ₪1,000 בחודש: אצל מורה, מתוך ₪1,490 שנשארים בחודש נשארים רק ₪490. ובמשחק יש גם תקרה שלא מאפשרת ללוות יותר מדי.",
+        "computed": { "perThousand": 10, "loan": 100000, "monthly": 1000, "teacherFlow": 1490, "teacherLeft": 490, "bigger150000Monthly": 1500, "bigger150000Left": -10 }
+      }
+    ]
+  },
+  "hints": {
+    "maxPerTurn": 1,
+    "activeUntilFirstGameEnds": true,
+    "expectedTurns": 6,
+    "bubble": { "maxChars": 90, "moreMaxChars": 170, "moreFromHeightPx": 740, "minShowSeconds": 6, "maxShowSeconds": 12, "dismiss": "tap" },
+    "items": [
+      {
+        "id": "h-roll",
+        "priority": 6,
+        "trigger": "ראשון: מצב משפחה, משחק ראשון, תור 1, phase roll, לפני ההטלה הראשונה",
+        "pose": "tip",
+        "target": "btn-roll (טבעת הדגשה בלבד)",
+        "text": "זרקו את הקובייה ונראה על איזו משבצת נוחתים. הלוח הוא מעגל: ממשיכים סביבו.",
+        "more": null
+      },
+      {
+        "id": "h-summary",
+        "priority": 4,
+        "trigger": "הסיכום הראשון (מעבר או נחיתה על סיכום שנתיים) אחרי אנימציית הסכום הצף ואחרי שורת הפידבק",
+        "pose": "tip",
+        "target": "hud-cash (טבעת הדגשה)",
+        "variants": {
+          "positive": {
+            "text": "זו משבצת ״סיכום שנתיים״. כאילו עברו שנתיים: {monthly} × {months} = {amount}.",
+            "more": "מקבלים בבת אחת את מה שנשאר מ-{months} חודשים. במשחק מקצרים כך כדי שהמשחק יהיה מהיר."
+          },
+          "negative": {
+            "text": "זו משבצת ״סיכום שנתיים״. הפעם ההוצאות גדולות מההכנסות, ולכן {amount} יורד מהמזומן.",
+            "more": "כל חודש יצא מינוס, וזה סיכום של {months} חודשים. נכס שמכניס כסף משנה את זה."
+          }
+        },
+        "example": {
+          "professionId": "teacher",
+          "sampleText": "זו משבצת ״סיכום שנתיים״. כאילו עברו שנתיים: ₪1,490 × 24 = ₪35,760.",
+          "computed": { "monthly": 1490, "months": 24, "amount": 35760 }
+        },
+        "ownerWording": "הניסוח המקורי 'מקבלים משכורת של שנתיים בבת אחת' אינו מדויק: הסיכום הוא התזרים החודשי (אחרי הוצאות) כפול 24, והוא יכול להיות גם שלילי. לכן הניסוח לעיל."
+      },
+      {
+        "id": "h-summary-square",
+        "priority": 2,
+        "trigger": "מיד אחרי סגירת הסיפור או בתור 1-2 של המשחק המשפחתי הראשון, עד שהשחקנים עברו את משבצת סיכום שנתיים בפעם הראשונה (לא יחד עם h-roll: אחריו, או בתור 2). פעם אחת למכשיר",
+        "pose": "tip",
+        "target": "משבצת סיכום שנתיים בלוח (טבעת הדגשה בלבד, בלי כיסוי; הטבעת נעלמת אחרי הקשה או 12 שניות או כשעוברים את המשבצת)",
+        "targetKey": "board-square-payday",
+        "text": "חפשו על הלוח את משבצת סיכום שנתיים — שם הכסף מגיע.",
+        "textKey": "ui.summarySquareHint",
+        "more": "אין מספיק מזומן לתשלום הראשון? אפשר לקחת הלוואה, או לחכות למשבצת הזאת.",
+        "reducedMotion": "טבעת קבועה בלי הבהוב",
+        "a11y": "הדגשה: משבצת סיכום שנתיים"
+      },
+      {
+        "id": "h-summary-income",
+        "priority": 3,
+        "trigger": "הסיכום הראשון שבו passiveIncome(state) גדול מ-0 (יש נכס שמכניס כסף). מוצג יחד עם הודעת summaryBreakdown, מחליף את h-summary אם h-summary טרם הוצג",
+        "pose": "tip",
+        "target": "שורת 'כסף שעובד' בהודעת הסיכום (טבעת הדגשה)",
+        "text": "הנכס שקניתם עבד בשבילכם: הנה הכסף שהוא הכניס.",
+        "textAsset": { "apartment": "הדירה שקניתם עבדה בשבילכם: הנה הכסף שהיא הכניסה.", "business": "העסק שקניתם עבד בשבילכם: הנה הכסף שהוא הכניס." },
+        "more": "בכל חודש הנכס הכניס {passive}. {months} חודשים זה {passiveTotal}, והם כבר בתוך הסכום שהגיע למזומן.",
+        "moreAsset": {
+          "apartment": "בכל חודש היא הכניסה {passive}. {months} חודשים זה {passiveTotal}, והם כבר בתוך הסכום שהגיע למזומן.",
+          "business": "בכל חודש הוא הכניס {passive}. {months} חודשים זה {passiveTotal}, והם כבר בתוך הסכום שהגיע למזומן."
+        },
+        "example": {
+          "cardId": "opp-apt-004",
+          "sampleText": "הדירה שקניתם עבדה בשבילכם: הנה הכסף שהיא הכניסה. בכל חודש היא הכניסה ₪2,600. 24 חודשים זה ₪62,400, והם כבר בתוך הסכום שהגיע למזומן.",
+          "computed": { "passive": 2600, "months": 24, "passiveTotal": 62400 }
+        },
+        "ownerWording": "הניסוח המקורי בלשון יחיד ('שקנית') הוחלף בלשון רבים. אם מעדיפים יחיד מותאם, ללא החלטה כוללת במסמך decisions."
+      },
+      {
+        "id": "h-card",
+        "priority": 1,
+        "trigger": "הקלף הראשון מסוג דירה או עסק במשחק. הסיור מתחיל מיד בפתיחת הקלף, בלי חלון 'עסקה טובה?' (הניחוש מתחיל בקלף השני). 3 שלבים, 'הבא' בכל שלב, הדגשת המספר בקלף. הפס בתוך הקלף, מתחת לרשת המספרים ומעל הכפתורים, לא מכסה אותם",
+        "pose": "tip",
+        "target": "data-tut=downPayment, monthly, payback (בסדר הזה)",
+        "steps": [
+          { "target": "downPayment", "text": "1. התשלום הראשון: {downPayment}. זה מה שמשלמים עכשיו מהמזומן, הכסף שיש לכם עכשיו." },
+          { "target": "hud-cash", "id": "source", "text": "אין מספיק מזומן? אפשר לקחת הלוואה, או לחכות למשבצת סיכום שנתיים שמביאה כסף.", "ring": "hud-cash (טבעת בלבד)", "note": "צעד חדש (round 11) בין 1 ל-2, בלי מספר" },
+          { "target": "monthly", "text": "2. נשאר בחודש: {monthly}. זה מה שהנכס מכניס כל חודש, אחרי התשלום לבנק.", "negativeText": "2. שימו לב: הנכס הזה עולה {loss} בכל חודש. זה מינוס, ולא כסף שעובד בשבילכם." },
+          { "target": "payback", "text": "3. הכסף חוזר: {years}. אחרי כל כך הרבה זמן התשלום הראשון חוזר אליכם.", "neverText": "3. הכסף חוזר: אף פעם. הנכס לא מחזיר את התשלום הראשון." }
+        ],
+        "closing": "עכשיו מחליטים: קונים או מדלגים. שניהם בסדר.",
+        "example": {
+          "cardId": "opp-biz-006",
+          "sampleText": "1. מקדמה: ₪40,000. 2. נשאר בחודש: ₪900. 3. החזר: 3.7 שנים.",
+          "computed": { "downPayment": 40000, "monthly": 900, "years": 3.7 }
+        },
+        "afterwards": "בקלף הבא (הראשון עם חלון 'עסקה טובה?') רמז קצר אחד: 'עכשיו נסו לנחש לפני שרואים את המספרים'."
+      },
+      {
+        "id": "h-guess-intro",
+        "priority": 2,
+        "trigger": "פתיחת חלון 'עסקה טובה?' בפעם הראשונה (הקלף השני של דירה או עסק)",
+        "pose": "tip",
+        "target": "prompt (בלי כיסוי)",
+        "text": "עכשיו נסו לנחש לפני שרואים את המספרים. אין טעות מביישת, רק לומדים.",
+        "more": null
+      },
+      {
+        "id": "h-loan",
+        "priority": 2,
+        "trigger": "פתיחת חלון הלוואה בפעם הראשונה (לקנייה, להוצאה או מרצון). הרמז הוא פס בתוך החלון מעל הכפתורים; הסכום מתעדכן לפי הבחירה",
+        "pose": "tip",
+        "target": "rows של ריבית עד הסיכום הבא וסך הכול להחזיר (טבעת הדגשה)",
+        "text": "לוקחים {amount}. כל חודש משלמים {monthlyPayment} תוספת, והחוב של {amount} נשאר עד שמחזירים אותו.",
+        "more": "על כל ₪1,000 משלמים ₪10 בחודש. בסיכום שנתיים התוספת היא {perSummary}. אפשר להחזיר מוקדם כדי לשלם פחות.",
+        "example": {
+          "fixed": true,
+          "sampleText": "לוקחים ₪10,000. כל חודש משלמים ₪100 תוספת, והחוב של ₪10,000 נשאר עד שמחזירים אותו.",
+          "computed": { "amount": 10000, "monthlyPayment": 100, "perSummary": 2400, "perThousandMonthly": 10 }
+        },
+        "ownerWording": "הניסוח המקורי 'מחזירים 100 כל חודש עד שמחזירים הכול' עלול להישמע כהחזר שמקטין את החוב. במשחק 100 הם תוספת (ריבית) והחוב נשאר, ולכן הניסוח לעיל."
+      },
+      {
+        "id": "h-expense-paid",
+        "priority": 3,
+        "trigger": "ההוצאה הלא צפויה הראשונה כשהמזומן מספיק לשלם. מוצג אחרי הקלף, בתור הבא ברגע הפנוי",
+        "pose": "tip",
+        "target": "cash (טבעת הדגשה)",
+        "text": "הוצאה לא צפויה של {amount}! היה כסף בצד, ושילמתם בלי הלוואה. כסף בצד לשעת צורך.",
+        "more": "נשארו לכם {cashLeft}. כסף בצד חוסך הלוואה ותוספת.",
+        "example": {
+          "professionId": "teacher",
+          "cardId": "exp-002",
+          "sampleText": "הוצאה לא צפויה של ₪7,500! היה כסף בצד, ושילמתם בלי הלוואה. נשארו ₪1,500.",
+          "computed": { "amount": 7500, "cash": 9000, "cashLeft": 1500 }
+        }
+      },
+      {
+        "id": "h-expense-loan",
+        "priority": 3,
+        "trigger": "ההוצאה הלא צפויה הראשונה כשהמזומן לא מספיק ויש פתיחת הלוואה. אם רמז h-loan כבר מוצג באותו תור, מוצג רק h-loan",
+        "pose": "tip",
+        "target": "cash (טבעת הדגשה)",
+        "text": "הוצאה של {amount} והכסף לא מספיק. קורה לכולם. כסף בצד היה חוסך את התוספת.",
+        "more": "בפעם הבאה אפשר לשמור קצת מזומן בצד לימים כאלה: כסף בצד לשעת צורך.",
+        "example": {
+          "professionId": "cook",
+          "cardId": "exp-002",
+          "sampleText": "הוצאה של ₪7,500 והכסף לא מספיק. אצל טבח/ית יש ₪5,000, חסרים ₪2,500.",
+          "computed": { "amount": 7500, "cash": 5000, "short": 2500 }
+        }
+      },
+      {
+        "id": "h-meter",
+        "priority": 5,
+        "trigger": "הפעם הראשונה שההכנסה הפסיבית גדלה (אחרי הקנייה הראשונה), ברגע הפנוי הראשון אחרי הפידבק",
+        "pose": "tip",
+        "target": "hud meter (טבעת הדגשה על הפס; הרמז עצמו למטה)",
+        "text": "הפס למעלה מראה כמה קרובים לחופש. כסף שעובד: {passive} מתוך הוצאות של {expenses}.",
+        "more": "עוד {left} בחודש לחופש. כל נכס מקרב אתכם.",
+        "example": {
+          "professionId": "teacher",
+          "cardId": "opp-biz-006",
+          "assumes": "קנייה במזומן אחרי הסיכום הראשון (9,000 + 35,760 = 44,760 לפחות 40,000), בלי הלוואת בנק",
+          "sampleText": "הפס למעלה מראה כמה קרובים לחופש. כסף שעובד: ₪900 מתוך הוצאות של ₪7,310. עוד ₪6,410 בחודש לחופש.",
+          "computed": { "passive": 900, "expenses": 7310, "left": 6410, "pct": 12 }
+        }
+      },
+      {
+        "id": "h-almost",
+        "priority": 5,
+        "trigger": "הפעם הראשונה שהמד מגיע ל-75% או יותר (חופף לאבן הדרך הקיימת, שהצגתה מחליפה את הרמז)",
+        "pose": "tip",
+        "target": "hud meter",
+        "text": "כמעט חופשיים! עוד {left} בחודש ועוד קצת, והכסף שעובד יעקוף את ההוצאות.",
+        "more": null,
+        "round11": "ניצחון דורש כסף שעובד גדול מההוצאות (לא שווה), לכן 'ועוד קצת'. כש-left=0 (שווה בדיוק) להציג goalLine.progress.onTheLine במקום."
+      }
+    ]
+  },
+  "summaryBreakdown": {
+    "note": "הודעת סיכום שנתיים מפורטת, מוצגת בכל סיכום (במצב משפחה תמיד; במלא אופציונלי). מחליפה/מרחיבה את game.paydayCalc. פס בתוך כרטיס קטן, מעל הכפתור, לא מכסה את HUD. כל שורה אפשר להקיש לפתיחת המושג. הנוסחה: salary + passive - expenses = monthly; monthly x PAYDAY_MONTHS = amount. passive כאן הוא passiveIncome(state) (כבר נטו אחרי משכנתא/הלוואת עסק), expenses הוא totalExpenses(state).",
+    "rows": [
+      { "id": "salary", "label": "המשכורת שלכם", "template": "המשכורת שלכם {salary}" },
+      { "id": "passive", "label": "כסף שעובד", "template": "כסף שעובד {passive}", "zeroTemplate": "כסף שעובד: עוד אין נכסים שמכניסים כסף", "labelFull": "הכנסה פסיבית", "templateFull": "הכנסה פסיבית {passive}", "zeroTemplateFull": "הכנסה פסיבית: עוד אין נכסים שמכניסים כסף" },
+      { "id": "expenses", "label": "הוצאות", "template": "הוצאות {expenses}" }
+    ],
+    "round11": "family: 'כסף שעובד' בלבד (בלי הסוגריים 'הכנסה פסיבית'); full: labelFull/templateFull (הכנסה פסיבית). ראו lossAsset לנכס מפסיד.",
+    "lossAsset": {
+      "label": "נכס מפסיד",
+      "template": "נכס מפסיד −{lossAbs} בחודש",
+      "kid": "הנכס הזה עולה לכם כסף כל חודש במקום להכניס",
+      "passiveSignedTemplate": "כסף שעובד {passiveSigned}",
+      "when": "כשיש נכס עם monthlyCashFlow שלילי (למשל opp-apt-009 מינוס 6,000): במקום 'עוד אין' מציגים את הסכום החתום האמיתי (passiveIncome(state) יכול להיות שלילי) ושורה נוספת 'נכס מפסיד' עם הסבר kid בהקשה. אם יש גם נכסים מרוויחים, passive הוא הסכום נטו וה-lossAbs הוא סכום הנכסים המפסידים בלבד. הצבע ניטרלי (לא אדום).",
+      "slots": { "lossAbs": "סכום הערכים המוחלטים של התזרימים השליליים, כסף מעוצב", "passiveSigned": "passiveIncome(state) עם סימן, כסף מעוצב" },
+      "sample": "כסף שעובד −₪6,000 | נכס מפסיד −₪6,000 בחודש | הנכס הזה עולה לכם כסף כל חודש במקום להכניס"
+    },
+    "zeroShort": "עוד אין",
+    "negativeNote": "זה יורד מהמזומן",
+    "arrivalSr": "הכסף מגיע למזומן עכשיו: מ-{cashBefore} ל-{cashAfter}",
+    "negativeMonthly": "יצא מינוס של {monthlyAbs} בחודש",
+    "resultMonthly": "נשארו {monthly} בחודש",
+    "resultTotal": "{monthly} × {months} = {amount}",
+    "oneLine": "המשכורת שלכם {salary}, כסף שעובד {passive}, הוצאות {expenses} → נשארו {monthly} בחודש × {months} = {amount}",
+    "negativeResult": "יצא מינוס של {monthlyAbs} בחודש × {months} = מינוס {amountAbs}. זה יורד מהמזומן",
+    "arrival": "הכסף מגיע למזומן עכשיו: {cashBefore} → {cashAfter}",
+    "example": {
+      "professionId": "teacher",
+      "cardId": "opp-apt-004",
+      "sampleOneLine": "המשכורת שלכם ₪8,800, כסף שעובד ₪2,600, הוצאות ₪7,310 → נשארו ₪4,090 בחודש × 24 = ₪98,160",
+      "sampleNoAsset": "המשכורת שלכם ₪8,800, כסף שעובד ₪0, הוצאות ₪7,310 → נשארו ₪1,490 בחודש × 24 = ₪35,760",
+      "computed": { "salary": 8800, "passive": 2600, "expenses": 7310, "monthly": 4090, "amount": 98160, "noAssetMonthly": 1490, "noAssetAmount": 35760 }
+    },
+    "animation": "שלוש שורות נכנסות אחת אחרי השנייה (150ms), אז התוצאה, אז ספירה למעלה של המזומן. תחת reduced-motion: הכול בבת אחת."
+  },
+  "hudFamily": {
+    "note": "מצב משפחה: ה-flow-chip הקיים ליד המזומן הופך ל'נשאר בחודש +X' (במקום תזרים). הקשה עליו פותחת פופאובר קטן שמתחת ל-HUD (לא מכסה כפתורים) עם נכנס ויוצא. פס המד נשאר: כסף שעובד מול הוצאות.",
+    "chip": "נשאר בחודש {monthlySigned}",
+    "cashCaption": "הכסף שיש לכם עכשיו",
+    "cashCaptionKey": "ui.cashLabel",
+    "cashTooltip": "מזומן = הכסף שיש לכם עכשיו. ממנו משלמים על נכסים והוצאות.",
+    "cashTooltipKey": "ui.cashTooltip",
+    "cashCaptionNote": "caption קצר קבוע (11px) מתחת/ליד מספר המזומן ב-HUD במצב משפחה, או tooltip/הקשה. ב-≤640px גובה: tooltip בלבד. aria-label: 'מזומן, הכסף שיש לכם עכשיו: {cash}'.",
+    "popoverTitle": "בכל חודש",
+    "incomeTitle": "כסף שנכנס בחודש",
+    "incomeRows": ["משכורת {salary}", "כסף שעובד {passive}"],
+    "incomeTotal": "יחד {income}",
+    "outTitle": "כסף שיוצא בחודש",
+    "outRows": ["הוצאות {expenses}"],
+    "resultRow": "נשאר בחודש {monthly}",
+    "arrivalLine": "הכסף מצטבר ומגיע למזומן בסיכום שנתיים הבא: {monthly} × {months}",
+    "example": {
+      "professionId": "teacher",
+      "cardId": "opp-apt-004",
+      "sample": "כסף שנכנס בחודש: משכורת ₪8,800 + כסף שעובד ₪2,600 = ₪11,400. כסף שיוצא בחודש: ₪7,310. נשאר בחודש ₪4,090.",
+      "computed": { "income": 11400, "out": 7310, "monthly": 4090 }
+    }
+  },
+  "goalLine": {
+    "showWhile": "helpOn ופחות מ-3 משחקים שהסתיימו במכשיר (הצעה, ראו שאלה פתוחה)",
+    "text": "המטרה: שהכסף שעובד בשבילכם יהיה גדול מההוצאות",
+    "textShort": "המטרה: כסף שעובד מעל ההוצאות",
+    "shortFromHeightPx": 640,
+    "progress": {
+      "text": "עוד {left} בחודש לחופש",
+      "almost": "כמעט חופשיים! עוד {left} בחודש",
+      "onTheLine": "ממש על הקו! עוד קצת",
+      "won": "חופשיים!",
+      "note": "left = max(0, totalExpenses - passiveIncome). הניצחון הוא passive גדול מ-expenses (hasWon), ולכן כששווה עדיין לא ניצחון: מציגים onTheLine. 'almost' כשהמד 75% ומעלה."
+    },
+    "a11y": "המטרה: שהכסף שעובד בשבילכם יהיה גדול מההוצאות. עוד {left} בחודש לחופש"
+  },
+  "kidNames": {
+    "note": "מצב משפחה בלבד. term נשאר המונח האמיתי במילון. בגיליון המילון: הכותרת היא kidName ומתחתיה 'המילה המקצועית: {term}'. [[term:id]] בלי תצוגה מציג את kidName במצב משפחה. הטקסטים של הגדרות מלאות נשארים ב-glossary.he.json.",
+    "concepts": [
+      { "id": "cashflow", "term": "תזרים חודשי", "kidName": "מה נשאר בחודש", "kidShort": "הכסף שנכנס בחודש פחות הכסף שיוצא. מה שנשאר בסוף.", "level": "family" },
+      { "id": "passive_income", "term": "הכנסה פסיבית", "kidName": "כסף שעובד בשבילכם", "kidShort": "כסף שנכנס מנכס, גם כשלא עובדים באותו רגע.", "level": "family" },
+      { "id": "asset", "term": "נכס", "kidName": "נכס שמכניס כסף", "kidShort": "משהו שיש לכם והוא מכניס כסף כל חודש, כמו עץ שנותן פירות.", "level": "family" },
+      { "id": "liability", "term": "התחייבות", "kidName": "חוב", "kidShort": "כסף שחייבים להחזיר ומשלמים עליו בכל חודש.", "level": "family" },
+      { "id": "down_payment", "term": "מקדמה", "kidName": "התשלום הראשון", "kidShort": "החלק שמשלמים מהכיס ברגע הקנייה. את השאר מממנת הלוואה מהבנק.", "level": "family" },
+      { "id": "mortgage", "term": "משכנתא", "kidName": "הלוואה לדירה", "kidShort": "הלוואה גדולה מהבנק לקניית דירה, שמחזירים בתשלומים כל חודש.", "level": "family" },
+      { "id": "yield", "term": "תשואה", "kidName": "כמה הנכס מכניס בשנה", "kidShort": "כמה כסף הנכס מכניס בשנה, באחוזים ממה ששילמתם בהתחלה.", "level": "family" },
+      { "id": "payback", "term": "החזר השקעה", "kidName": "תוך כמה שנים הכסף חוזר", "kidShort": "כמה שנים עד שהנכס מחזיר את התשלום הראשון.", "level": "family" },
+      { "id": "interest", "term": "ריבית", "kidName": "תוספת על ההלוואה", "kidShort": "הכסף הנוסף שמשלמים לבנק כל חודש על כסף שהשאילו לכם.", "level": "family" },
+      { "id": "dividend", "term": "דיבידנד", "kidName": "חלק מהרווח של החברה", "kidShort": "כסף שחברה מחלקת למי שמחזיק בחלק קטן ממנה, אם היא מחליטה לחלק.", "level": "full" },
+      { "id": "cushion", "term": "כרית ביטחון", "kidName": "כסף בצד לשעת צורך", "kidShort": "כסף שמחזיקים בצד לימים שקורה משהו לא צפוי.", "level": "family" },
+      { "id": "net_worth", "term": "שווי נקי", "kidName": "מה שיש לכם פחות החובות", "kidShort": "כל מה שיש לכם, מזומן ונכסים, פחות כל מה שאתם חייבים.", "level": "full" },
+      { "id": "diversification", "term": "פיזור", "kidName": "לא הכול בסל אחד", "kidShort": "לא שמים את כל הכסף במקום אחד, כדי שבעיה אחת לא תפגע בהכול.", "level": "full" }
+    ]
+  },
+  "familyStrings": {
+    "note": "החלפות מחרוזות של src/i18n/he.json במצב משפחה בלבד (שכבת override, he.json לא משתנה). כל מפתח כאן קיים ב-he.json, והערך הקיים מצוין ב-was. סימון [[term:...]] נשמר.",
+    "overrides": [
+      { "key": "game.passive", "was": "הכנסה פסיבית", "family": "כסף שעובד" },
+      { "key": "pick.goal", "was": "המטרה: [[term:passive_income|הכנסה פסיבית]] גדולה מההוצאות", "family": "המטרה: [[term:passive_income|כסף שעובד בשבילכם]] גדול מההוצאות" },
+      { "key": "pick.cashflow", "was": "[[term:cashflow|תזרים התחלתי]]", "family": "[[term:cashflow|נשאר בחודש בהתחלה]]" },
+      { "key": "pick.liabilities", "was": "[[term:liability|חובות קיימים]]", "family": "[[term:liability|חובות מההתחלה]]" },
+      { "key": "statement.goalLine", "was": "היעד: הכנסה פסיבית מעל ההוצאות", "family": "היעד: כסף שעובד מעל ההוצאות" },
+      { "key": "statement.passiveIncome", "was": "[[term:passive_income|הכנסה פסיבית]]", "family": "[[term:passive_income|כסף שעובד]]" },
+      { "key": "statement.monthlyCashFlow", "was": "[[term:cashflow|תזרים חודשי]]", "family": "[[term:cashflow|נשאר בחודש]]" },
+      { "key": "statement.liabilities", "was": "[[term:liability|התחייבויות]]", "family": "[[term:liability|חובות]]" },
+      { "key": "statement.principal", "was": "קרן {amount}", "family": "החוב: {amount}" },
+      { "key": "statement.interestOnly", "was": "[[term:interest|ריבית]] בלבד, {rate}% בחודש", "family": "רק [[term:interest|תוספת]]: {rate}% מהחוב בכל חודש" },
+      { "key": "card.downPayment", "was": "[[term:down_payment|מקדמה]]", "family": "[[term:down_payment|התשלום הראשון]]" },
+      { "key": "card.mortgage", "was": "[[term:mortgage|משכנתא]]", "family": "[[term:mortgage|הלוואה לדירה]]" },
+      { "key": "card.monthlyCashFlow", "was": "[[term:cashflow|תזרים חודשי]]", "family": "[[term:cashflow|נשאר בחודש]]" },
+      { "key": "card.rentLine", "was": "שכירות {gross} − [[term:mortgage|משכנתא]] {payment} = [[term:cashflow|תזרים]] {flow}", "family": "שכירות {gross} − [[term:mortgage|הלוואה לדירה]] {payment} = [[term:cashflow|נשאר]] {flow}" },
+      { "key": "card.profitLine", "was": "רווח {gross} − החזר הלוואה {payment} = [[term:cashflow|תזרים]] {flow}", "family": "רווח {gross} − החזר הלוואה {payment} = [[term:cashflow|נשאר]] {flow}" },
+      { "key": "card.payback", "was": "[[term:payback|החזר]]: {years}", "family": "[[term:payback|הכסף חוזר]] תוך {years}" },
+      { "key": "card.paybackNever", "was": "[[term:payback|החזר]]: אף פעם", "family": "[[term:payback|הכסף חוזר]]: אף פעם" },
+      { "key": "card.newPassive", "was": "[[term:passive_income|ההכנסה הפסיבית]] שלכם תעלה ל-{amount} לחודש", "family": "[[term:passive_income|הכסף שעובד בשבילכם]] יעלה ל-{amount} בחודש" },
+      { "key": "loan.rateLine", "was": "[[term:interest|ריבית]]: {apr}% בשנה, כלומר {unitPay} בחודש על כל {unit}", "family": "[[term:interest|תוספת]]: {unitPay} בחודש על כל {unit}" },
+      { "key": "loan.interestUntil", "was": "[[term:interest|ריבית]] עד הסיכום הבא ({months} חודשים)", "family": "[[term:interest|תוספת]] עד הסיכום הבא ({months} חודשים)" },
+      { "key": "loan.textVoluntary", "was": "בכפולות של {step}. משלמים רק ריבית, והקרן נשארת עד שמחזירים", "family": "בכפולות של {step}. כל חודש משלמים רק את התוספת, והחוב נשאר עד שמחזירים אותו" },
+      { "key": "game.paydayCalc", "was": "{monthly} × {months} חודשים = {amount}", "family": "נשארו {monthly} בחודש × {months} = {amount}" }
+    ],
+    "overridesRound11": [
+      { "key": "report:sections.worstDeal.empty", "was": "אף עסקה לא הייתה איטית במיוחד או עם תזרים שלילי.", "family": "אף עסקה לא הייתה איטית במיוחד, ואף נכס לא עלה לכם כסף כל חודש." },
+      { "key": "fox.tip3", "was": "הכנסה פסיבית גדולה מההוצאות היא חופש כלכלי", "family": "כשהכסף שעובד גדול מההוצאות, זה חופש כלכלי" },
+      { "key": "fox.tip4", "was": "נכס טוב מחזיר את המקדמה תוך כמה שנים", "family": "נכס טוב מחזיר את התשלום הראשון תוך כמה שנים" },
+      { "key": "game.outText", "was": "נגמרו המזומן וההלוואות והתזרים שלילי. המשחק ממשיך עם מי שנשאר", "family": "נגמר הכסף וההלוואות, ובכל חודש יוצא יותר ממה שנכנס. המשחק ממשיך עם מי שנשאר" },
+      { "key": "card.offerProceeds", "was": "תמורה אחרי משכנתא", "family": "מה נשאר אחרי ההלוואה לדירה" },
+      { "key": "statement.inAssetFlow", "was": "כלול בתזרים הנכס", "family": "כלול כבר בחישוב של הנכס" },
+      { "key": "statement.assetMortgage", "was": "משכנתא {amount}", "family": "הלוואה לדירה {amount}" },
+      { "key": "statement.totalLiabilities", "was": "סך התחייבויות", "family": "סך החובות" },
+      { "key": "statement.paidFromFlow", "was": "מתוכם יורדים מהתזרים", "family": "מתוכם נספרים בהוצאות של כל חודש" },
+      { "key": "statement.insideAssets", "was": "מתוכם כבר בתזרים הנכסים", "family": "מתוכם כבר חושבו בנכסים" },
+      { "key": "statement.liabilityNote", "was": "תשלום משכנתא כבר מנוכה מתזרים הנכס, ולכן לא נספר שוב בהוצאות", "family": "התשלום על ההלוואה לדירה כבר הורד מהכסף שהנכס מכניס, ולכן לא סופרים אותו שוב בהוצאות" },
+      { "key": "statement.mortgageLabel", "was": "[[term:mortgage|משכנתא]]: {asset}", "family": "[[term:mortgage|הלוואה לדירה]]: {asset}" },
+      { "key": "loan.paydayNext", "was": "סיכום שנתיים הבא ({months} חודשים × תזרים): {amount}", "family": "סיכום שנתיים הבא ({months} חודשים × מה שנשאר בחודש): {amount}" },
+      { "key": "loan.remaining", "was": "יתרת קרן אחרי ההחזר", "family": "החוב שנשאר אחרי ההחזר" },
+      { "key": "loan.newFlow", "was": "תזרים חודשי חדש", "family": "מה נשאר בחודש, אחרי ההלוואה" },
+      { "key": "loan.newFlowPurchase", "was": "תזרים חודשי חדש, אחרי הקנייה", "family": "מה נשאר בחודש, אחרי הקנייה" },
+      { "key": "win.text", "was": "ההכנסה הפסיבית שלכם עקפה את ההוצאות", "family": "הכסף שעובד בשבילכם עקף את ההוצאות" },
+      { "key": "win.passive", "was": "הכנסה פסיבית", "family": "כסף שעובד" },
+      { "key": "win.shareText", "was": "הגעתי לחופש כלכלי {turns} ב״פסיבו״! הכנסה פסיבית: {passive}", "family": "הגענו לחופש כלכלי {turns} ב״פסיבו״! כסף שעובד: {passive}" },
+      { "key": "standings.winnerText", "was": "ההכנסה הפסיבית עקפה את ההוצאות", "family": "הכסף שעובד עקף את ההוצאות" },
+      { "key": "standings.passive", "was": "פסיבית", "family": "כסף שעובד" },
+      { "key": "standings.row", "was": "{name}, מקום {place}: הכנסה פסיבית {passive}, הוצאות {expenses}, שווי נקי {net}, {turns}", "family": "{name}, מקום {place}: כסף שעובד {passive}, הוצאות {expenses}, מה שיש לכם פחות החובות {net}, {turns}" },
+      { "key": "standings.netWorth", "was": "שווי נקי", "family": "מה שיש לכם פחות החובות" },
+      { "key": "gameOver.text", "was": "נגמר המזומן ותקרת ההלוואות, והתזרים שלילי", "family": "נגמר הכסף ואי אפשר ללוות עוד, ובכל חודש יוצא יותר ממה שנכנס" },
+      { "key": "gameOver.tip1", "was": "אל תקנו עסקה רק כי היא נראית יפה. בדקו כמה תזרים היא מוסיפה", "family": "אל תקנו עסקה רק כי היא נראית יפה. בדקו כמה כסף היא מכניסה בחודש" },
+      { "key": "gameOver.tip3", "was": "מזומן בצד הוא כרית הביטחון שלכם מול ההוצאה הבאה", "family": "כסף בצד עוזר לשלם את ההוצאה הבאה בלי הלוואה" },
+      { "key": "stats.peakPassive", "was": "שיא הכנסה פסיבית", "family": "שיא של כסף שעובד" },
+      { "key": "a11y.passiveMeter", "was": "התקדמות ההכנסה הפסיבית אל ההוצאות", "family": "התקדמות הכסף שעובד אל ההוצאות" },
+      { "key": "a11y.passiveMeterValue", "was": "{pct}% (הכנסה פסיבית {passive} מתוך הוצאות {expenses})", "family": "{pct}% (כסף שעובד {passive} מתוך הוצאות {expenses})" },
+      { "key": "howto.step1", "was": "(ארוך, עם 'תזרים')", "family": "ראו howtoKid.steps; הגיליון במצב משפחה לא מציג howto.step1-4 ולא howto.note" }
+    ],
+    "overridesRound11Note": "מפתחות נוספים לשכבת ה-override (family-only), מעבר ל-22 הקיימים. ה-was הוא ערך he.json ב-HEAD 00c9162. [[term:..]] נשמר. 'statement.balance*' ו'netWorthTitle' מוצגים במצב מלא בלבד (net_worth level=full) ולכן אין להם override; אם יוצגו במשפחה, יש להוסיף.",
+    "howto": "במצב משפחה, לחיצה על 'איך משחקים' פותחת גיליון עם שלוש שורות: 'ראו שוב את הסיפור (דקה)', 'המילון של פסיבו', 'כללי המשחק בקצרה' (howto.step1 עד step4 הקיימים, עם תיקון בשלב 1: ללא 'תזרים' ללא הסבר). בפעם הראשונה בלבד, במקום הגיליון, מתחיל הסיפור.",
+    "keepAsIs": ["game.expenses", "game.payday", "loan.title", "loan.totalDue", "card.businessLoan", "square.*", "game.milestone"]
+  },
+  "howtoKid": {
+    "title": "איך משחקים",
+    "steps": [
+      "זורקים קובייה והדמות שלכם מתקדמת על הלוח. הלוח הוא מעגל, ממשיכים סביבו.",
+      "קונים נכסים שמכניסים כסף כל חודש: דירות ועסקים קטנים. משלמים את התשלום הראשון מהמזומן, הכסף שיש לכם עכשיו.",
+      "בכל חודש נכנסים משכורת וכסף שעובד, ויוצאים החשבונות. מה שנשאר מגיע אליכם במשבצת סיכום שנתיים: נשאר בחודש כפול 24. הוצאות לא צפויות יורדות מהמזומן.",
+      "אין מספיק מזומן? אפשר לקחת הלוואה. הלוואה = כסף מהבנק שמחזירים עם תוספת כל חודש.",
+      "המטרה: שהכסף שעובד בשבילכם יהיה גדול מההוצאות. אז הגעתם לחופש כלכלי."
+    ],
+    "note": "במשחק המספרים פשוטים יותר מבחיים",
+    "round11": "מחליף את howto.step1-4 ואת howto.note (הערת המבוגר) בגיליון של מצב משפחה. אל תציגו את howto.note ולא howto.dailyNote בגיליון הילדים."
+  },
+  "parentCard": {
+    "title": "למבוגר שמשחק עם ילד",
+    "howToExplain": [
+      "בכל החלטה, בקשו מהילדים לנחש לפני שרואים את המספרים, ורק אז בדקו יחד מה יצא.",
+      "הסבירו כל מושג בדוגמה מהבית: חשבון החשמל הוא הוצאה, והדירה שמושכרת לשוכרים היא נכס.",
+      "עצרו אחרי כל רעיון אחד, ותזכירו שבמשחק המספרים מפושטים: זה לא ייעוץ השקעות, ובחיים אין הבטחה להרוויח."
+    ],
+    "questions": [
+      "מה ההבדל בין משכורת לבין כסף שעובד בשבילכם?",
+      "אם לוקחים הלוואה של ₪10,000, כמה משלמים כל חודש, וכמה עדיין חייבים?",
+      "למה כדאי לשמור קצת כסף בצד לפני שקונים משהו?"
+    ],
+    "answers": [
+      "משכורת באה מעבודה ונעצרת כשמפסיקים. כסף שעובד בא מנכס.",
+      "₪100 בחודש, והחוב של ₪10,000 נשאר עד שמחזירים אותו.",
+      "כדי לשלם הוצאה לא צפויה בלי הלוואה ובלי תוספת."
+    ],
+    "computed": { "loan": 10000, "monthly": 100 }
+  },
+  "needs_review": [
+    "finance: האם 'בחיים בדרך כלל כל תשלום מחזיר גם חלק מהחוב' (s4-loan) נשאר מקובל. אותו משפט מופיע ב-glossary.liability.",
+    "finance: 'משכורת נעצרת כשמפסיקים לעבוד' (s1) הוא כללי. בעולם האמיתי יש חופשה בתשלום, פנסיה ופיצויים. הניסוח 'בדרך כלל' לא נוסף כדי לא להכביד על ילדים. להחליט אם להוסיף.",
+    "finance: 'עץ צריך זמן ומים' ו'בחיים עסק צריך עבודה' כלליים וללא מספרים.",
+    "developer: אין מעטפת בסביבה זו, לכן לא הורץ node. יש להריץ JSON.parse על הקובץ ולהשוות את בלוקי computed אל הנתונים ואל loanTerms()."
+  ]
+}

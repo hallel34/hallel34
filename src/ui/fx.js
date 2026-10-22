@@ -189,14 +189,53 @@ export function pulse(el, scale = 1.12) {
 /** Wait helper that collapses under reduced motion. */
 export const pause = (ms) => new Promise((r) => setTimeout(r, motionOK() ? ms : Math.min(ms, 30)));
 
+/**
+ * A toast never covers a button: it is lifted just above the highest tappable control it would sit on (the roll button, the hand-over
+ * button, a card's buttons). When there is no room above (or it still overlaps), it becomes non-interactive and loses its button.
+ * Returns true when the toast is clear of every control.
+ */
+export function placeToast(layer, el) {
+  el.style.marginBlockEnd = '0px';
+  el.classList.remove('is-passive');
+  const w = el.getBoundingClientRect();
+  el.style.visibility = 'hidden'; // out of the hit test while measuring: the toast itself must not count as 'on top' of a control
+  const base = layer.getBoundingClientRect().bottom;
+  const hgt = el.offsetHeight;
+  const controls = [...document.querySelectorAll('button, [role="button"], a[href], input, [data-action]')].filter((c) => {
+    if (el.contains(c) || c.closest('[inert]')) return false;
+    const r = c.getBoundingClientRect();
+    if (r.width === 0 || r.height === 0 || getComputedStyle(c).visibility === 'hidden') return false;
+    const hit = document.elementFromPoint(Math.min(Math.max(r.left + r.width / 2, 0), innerWidth - 1), Math.min(Math.max(r.top + r.height / 2, 0), innerHeight - 1));
+    return !!hit && (c === hit || c.contains(hit));
+  }).map((c) => c.getBoundingClientRect());
+  const hits = (bottom) => controls.filter((r) => r.left < w.right - 0.5 && r.right > w.left + 0.5 && r.top < bottom - 0.5 && r.bottom > bottom - hgt + 0.5);
+  let bottom = base;
+  for (let i = 0; i < 6; i += 1) {
+    const over = hits(bottom);
+    if (!over.length) break;
+    bottom = Math.min(...over.map((r) => r.top)) - 8;
+  }
+  el.style.visibility = '';
+  const clear = hits(bottom).length === 0 && bottom - hgt >= 8;
+  if (clear) el.style.marginBlockEnd = `${Math.round(base - bottom)}px`;
+  else { el.classList.add('is-passive'); el.querySelector('.toast-btn')?.setAttribute('tabindex', '-1'); }
+  return clear;
+}
+
 /** Short, polite status toast (e.g. "copied"). */
-export function toast(text, ms = 2200) {
+export function toast(text, ms = 2200, { action = null } = {}) {
   const layer = document.getElementById('toast-layer');
   if (!layer) return;
-  const el = h('div', { class: 'toast', role: 'status' }, text);
+  // an action ({ label, onClick }) makes the toast tappable: a button inside it (the layer itself never takes taps)
+  const el = h('div', { class: `toast${action ? ' toast-action' : ''}`, role: 'status' }, text,
+    action ? h('button', { type: 'button', class: 'toast-btn', 'data-action': 'toast-action', onClick: () => { action.onClick(); el.remove(); } }, action.label) : null);
   layer.append(el);
+  placeToast(layer, el);
+  // a sheet may still be sliding in or a new layer may open under it: the toast keeps stepping aside while it lives
+  const keep = action ? setInterval(() => { if (!el.isConnected) clearInterval(keep); else placeToast(layer, el); }, 200) : 0;
   animate(el, [{ opacity: 0, transform: motionOK() ? 'translateY(12px)' : 'none' }, { opacity: 1, transform: 'none' }], { duration: 200 });
   setTimeout(() => {
+    clearInterval(keep);
     animate(el, [{ opacity: 1 }, { opacity: 0 }], { duration: 200 }).finished.then(() => el.remove(), () => el.remove());
   }, ms);
 }

@@ -1,41 +1,101 @@
 // App shell: screen routing, persistence (save/resume), engine wiring.
 import { h, clear } from './dom.js';
-import { createEngine, serialize, deserialize, newMatch, rematch, isMultiplayer } from '../engine/index.js';
+import {
+  createEngine, serialize, deserialize, newMatch, rematch, isMultiplayer, currentState, dailySeed, dailyProfessionId, DAILY_MODE,
+} from '../engine/index.js';
 import { loadData } from '../data/index.js';
 import { readRaw, writeRaw, remove } from '../services/storage.js';
+import { createMatchStore } from '../services/match-store.js';
 import { createStart } from './screens/start.js';
 import { createPick } from './screens/pick.js';
 import { createPlayers } from './screens/players.js';
 import { playerName } from './players.js';
 import { createPlay } from './play.js';
 import { createWin, createOver } from './screens/end.js';
+import { createDailyResult } from './screens/daily.js';
+import { dayKey } from '../daily/calendar.js';
+import { streakView } from '../daily/streak.js';
+import { dailyStatus } from '../daily/attempt.js';
+import { loadResults, loadStreak, endDailyGame, resetDay } from '../daily/store.js';
 import { showInterstitial } from '../services/ads.js';
 import { getLocale } from '../i18n/index.js';
 import { destroyAllLayers } from './modal.js';
 import { initTermButtons } from './learn.js';
 import { setLearnMode } from '../learn/context.js';
+import { loadTutorial } from '../learn/tutorial-store.js';
+import { setSession } from './session.js';
 
 export function createApp(host) {
   const data = loadData(getLocale());
   initTermButtons(); // glossary term buttons + validation of the learning content (fails loudly)
   const engine = createEngine(data);
+  setSession({ engine });
   const professionIds = data.professions.map((p) => p.id);
   let active = null;
   let mode = readRaw('mode') === 'full' ? 'full' : 'family';
   // Hot-seat setup being built: count, names, and each player's chosen profession.
   let setup = { count: 1, names: [''], professionIds: [] };
 
-  const store = {
-    save: (s) => writeRaw('save', serialize(s)),
-    clear: () => remove('save'),
-  };
+  // a daily challenge keeps its own slot, so starting it never overwrites a normal game in progress; the slot always comes from the match
+  const store = createMatchStore({ write: writeRaw, remove, serialize });
 
   function loadSave() {
     const raw = readRaw('save');
     if (!raw) return null;
     const m = deserialize(raw);
-    if (!m || !['playing', 'lost', 'won'].includes(m.status) || !m.players.every((p) => engine.data.professions.some((x) => x.id === p.state.profession?.id))) return null;
+    if (!m || m.daily || !['playing', 'lost', 'won'].includes(m.status) || !m.players.every((p) => engine.data.professions.some((x) => x.id === p.state.profession?.id))) return null;
     return m;
+  }
+
+  /** Today's unfinished daily game, or null. A save from an earlier day is dropped (that day is over, nothing is consumed). */
+  function loadDailySave(today = dayKey()) {
+    const raw = readRaw('dailySave');
+    if (!raw) return null;
+    const m = deserialize(raw);
+    const ok = m && m.daily?.date === today && m.status === 'playing' && m.players.length === 1
+      && engine.data.professions.some((x) => x.id === m.players[0].state.profession?.id);
+    if (!ok) { remove('dailySave'); return null; }
+    return m;
+  }
+
+  function dailyInfo() {
+    const today = dayKey();
+    const results = loadResults();
+    const hasSave = !results.byDate[today] && !!loadDailySave(today);
+    return { date: today, status: dailyStatus({ results, hasSave }, today), entry: results.byDate[today] ?? null, streak: streakView(loadStreak(), today) };
+  }
+
+  function goDaily() {
+    const info = dailyInfo();
+    if (info.status === 'done') { goDailyResult(info.entry); return; }
+    if (info.status === 'playing') { goPlay(loadDailySave(info.date)); return; }
+    // one attempt per day: only a day without a result and without a saved game starts a new one
+    const seed = dailySeed(info.date);
+    const professionId = dailyProfessionId(seed, engine.data.professions);
+    goPlay(newMatch(engine, { mode: DAILY_MODE, seed, players: [{ name: '', professionId }], daily: { date: info.date } }));
+  }
+
+  function goDailyResult(entry, { fresh = false, badges = [] } = {}) {
+    const res = createDailyResult({
+      entry, professionTitle: engine.data.professions.find((x) => x.id === entry.record.professionId)?.title ?? '', streak: streakView(loadStreak(), dayKey()),
+      newBadges: badges, celebrate: fresh,
+      url: new URL('.', location.href).href,
+      onMenu: () => goStart(),
+    });
+    mount({ el: res.el, destroy: () => res.destroy() }, { start: () => res.start() });
+  }
+
+  // The result is written (then the save slot cleared) the instant the game ends, BEFORE the end-of-game pause, so a reload at any
+  // moment keeps the attempt. The outcome is remembered so the screen shown after the pause still celebrates the fresh result.
+  const dailyOutcomes = new WeakMap();
+  function commitDaily(m) {
+    if (!dailyOutcomes.has(m)) dailyOutcomes.set(m, endDailyGame(currentState(m), () => store.clear(m)));
+    return dailyOutcomes.get(m);
+  }
+  function finishDaily(m) {
+    // a daily finish is not a 'game played' for the interstitial cadence (decisions.md)
+    const out = commitDaily(m);
+    goDailyResult(out.entry, { fresh: true, badges: out.newBadges });
   }
 
   function mount(screen, { start } = {}) {
@@ -64,6 +124,7 @@ export function createApp(host) {
 
   const nav = {
     menu: () => goStart(),
+    commit: (m) => { if (m.daily) commitDaily(m); },
     win: (s) => goWin(s),
     over: (s) => goOver(s),
   };
@@ -76,6 +137,10 @@ export function createApp(host) {
       save: loadSave(),
       mode,
       gamesPlayed: gamesPlayed(),
+      daily: dailyInfo(),
+      onDaily: () => goDaily(),
+      onDailyReset: () => { resetDay(dayKey()); goStart(); },
+      onRefresh: () => goStart(),
       onMode: (m) => { mode = m; writeRaw('mode', m); },
       onPlay: (m) => { mode = m; writeRaw('mode', m); goPlayers(); },
       onResume: () => {
@@ -109,11 +174,18 @@ export function createApp(host) {
     }) });
   }
 
-  function startNew() {
+  async function startNew() {
     const m = newMatch(engine, {
       mode, seed: nextSeed(),
       players: setup.professionIds.map((professionId, i) => ({ name: setup.names[i], professionId })),
     });
+    // 'המשחק הראשון עם פסיבו': the first family game of this device opens with the five-screen story (lazy chunk, skippable)
+    if (mode === 'family' && !loadTutorial().storyDone) {
+      try {
+        const { runFirstGameIntro } = await import('./tutorial/index.js');
+        await runFirstGameIntro({ engine, professionId: setup.professionIds[0] });
+      } catch (err) { console.error(err); } // never block the game on the introduction
+    }
     goPlay(m);
   }
 
@@ -139,7 +211,8 @@ export function createApp(host) {
   }
 
   async function goWin(m) {
-    store.clear();
+    if (m.daily) { finishDaily(m); return; }
+    store.clear(m);
     countGame();
     const multi = isMultiplayer(m);
     const win = createWin({
@@ -152,7 +225,8 @@ export function createApp(host) {
   }
 
   function goOver(m) {
-    store.clear();
+    if (m.daily) { finishDaily(m); return; }
+    store.clear(m);
     countGame();
     const multi = isMultiplayer(m);
     const over = createOver({

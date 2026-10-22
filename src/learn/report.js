@@ -12,6 +12,13 @@ const byMode = (v, mode) => (v && typeof v === 'object' ? v[mode] ?? v.all ?? v.
 /** A {one, two, other} family of texts (Intl plural categories) picked by `n`. */
 const pluralOf = (forms, n) => (n === 1 ? forms.one : n === 2 ? forms.two ?? forms.other : forms.other);
 
+/** The 'החלטות ירוקות' line of a { green, total, kind } count (also the headline of the daily result). */
+export function greenText(g) {
+  const G = learnContent().report.sections.greenDecisions;
+  const forms = G.templatePlural ? pluralOf(G.templatePlural, g.green) : G.template;
+  return { all: G.allGreen, none: G.noneGreen, noData: G.noData }[g.kind] ?? fillSlots(forms, { green: numberText(g.green), total: numberText(g.total) });
+}
+
 /**
  * @param state    one player's final engine state
  * @param opts     { seed, theme: index into the conversation order }. The concept count is THIS player's in THIS game
@@ -55,10 +62,7 @@ export function reportView(state, { seed = 0, theme = 0 } = {}) {
   }
 
   // green decisions
-  const G = S.greenDecisions;
-  const gForms = G.templatePlural ? pluralOf(G.templatePlural, data.green.green) : G.template;
-  const gt = { all: G.allGreen, none: G.noneGreen, noData: G.noData }[data.green.kind] ?? fillSlots(gForms, { green: numberText(data.green.green), total: numberText(data.green.total) });
-  sections.push({ id: 'greenDecisions', title: G.title, text: gt });
+  sections.push({ id: 'greenDecisions', title: S.greenDecisions.title, text: greenText(data.green) });
 
   // guesses ('עין של משקיע')
   const guessLine = data.guesses.of > 0 ? fillSlots(guess.investorEye.endOfGame, { right: numberText(data.guesses.right), of: numberText(data.guesses.of) }) : null;
@@ -74,7 +78,7 @@ export function reportView(state, { seed = 0, theme = 0 } = {}) {
       ? fillSlots(C.template, {
         // {count}: "מושג אחד" / "שני מושגים" / "5 מושגים" (never "1 מושגים"); older content keeps {n}
         count: C.count ? fillSlots(pluralOf(C.count, unlocked.length), { n: numberText(unlocked.length) }) : tp('plural.concepts', unlocked.length),
-        n: numberText(unlocked.length), all: numberText(available.length), list: unlocked.map((c) => c.term).join(', '),
+        n: numberText(unlocked.length), all: numberText(available.length), list: unlocked.map((c) => (mode === 'family' && C.names?.[c.id]) || c.term).join(', '), // family: the children's names (round 12)
       })
       : C.none,
     unlocked: unlocked.map((c) => c.id),

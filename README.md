@@ -34,6 +34,11 @@ Run `npm run build` first. It uses the Chromium that Playwright finds; set `CHRO
 `SMOKE_MOTION=full` (default is reduced motion for speed), `SMOKE_SEED`, `SMOKE_URL` (test a deployed URL).
 In CI run `npx playwright install --with-deps chromium` once.
 
+Further browser checks (all take `AXE=/path/to/axe.min.js` for an axe pass after the fades): `npm run smoke:tutorial` (first game, hints,
+hand-over; `THEME=dark|light`, `SMOKE_W`/`SMOKE_H`, `PLAYERS`), `npm run smoke:daily`, `npm run smoke:r11`, `npm run smoke:r12`.
+Every state those visit also measures the **rendered contrast of every amount** (`tests/e2e/contrast-lib.mjs`: screenshot with the text
+hidden, pixels behind each `.money` element against its effective colour, fails below 4.5:1), because axe cannot judge text on a gradient.
+
 ## Project layout
 
 ```
@@ -42,6 +47,7 @@ src/data/       cards.<locale>.json, professions.<locale>.json (+ index.js that 
 src/i18n/       <locale>.json UI strings (+ index.js: t(), setLocale)
 src/ui/         screens, modals, widgets, effects (die, pawn hop, count-up, coin burst, confetti), fox.js (fox poses + reactions)
 src/styles/     tokens.css (design tokens, dark + light), fonts.css (self-hosted Rubik), base/components/screens.css
+src/daily/      daily challenge (client only): calendar, streak, share text, one-attempt rule, storage
 src/services/   ads.js (stub), storage.js, pwa.js
 src/assets/     SVG art (dice, coins, tiles, pawn, wordmark, icons) + fox/*.webp poses (@1x/@2x) + app icon
 public/         manifest.webmanifest, sw.js (service worker), icons/ (PWA PNGs)
@@ -116,6 +122,11 @@ errors are listed with the card id. Required fields:
 { "id": "mkt-097", "deck": "market", "modes": ["family", "full"], "effect": "cash", "title": "...", "text": "...", "amount": -1000 }
 ```
 
+**Children's wording (family mode).** Any card may carry `"titleFamily"` and/or `"textFamily"`: a family game draws the card with
+that wording in `title` / `text` (numbers are never touched; full mode shows the plain `title` / `text`). Use it when the plain
+text needs an adult money word (תשואה, מקדמה, משכנתא, תזרים, הכנסה פסיבית ...); `tests/round12.test.js` scans every family-mode card
+for the forbidden list in `docs/v2/tutorial/spec.md` and fails with the card id.
+
 Professions live in `src/data/professions.he.json` (salary, savings, perChild, itemised expenses, starting liabilities).
 Starting debts carry `"debt": "car" | "card" | "student"`; their monthly payment must equal principal x the rate of that kind
 (`BASE_DEBT_RATES` in `config.js`: car 2%, card 3%, student 1%, rounded to 10). The validator enforces it.
@@ -158,6 +169,23 @@ is in localStorage (`passivo.learn.seen`, `passivo.learn.badges`); the explainer
 ('הסברים של פסיבו', 'ניחוש לפני קנייה': on by default in family mode, off in full mode). Save schema 3 added `state.learn`; older saves migrate.
 Tuning parameters: `LOAN_COSTLY_PAYMENT_SHARE`, `INVESTOR_EYE_STREAK`, `REPORT_*` in `src/engine/config.js`.
 
+## The first game with Passivo (learnability package)
+Spec: `docs/v2/tutorial/spec.md`, art: `docs/v2/tutorial/art.md`, all wording: `src/data/learn/tutorial.he.json` (validated at load by
+`src/learn/validate-tutorial.js`, pruned for the production bundle by `scripts/prune-learn.js`).
+- **One-tap hand-over (hot-seat):** when a turn resolves the pass-the-phone sheet opens at once with a recap and one button
+  `זרקו קובייה, <שם>` that rolls for the next player. Single player has no hand-over.
+- **Summary card:** every `סיכום שנתיים` (all modes) shows salary + money that works - expenses = left a month, x 24 = amount, cash before -> after
+  (`src/ui/summary-card.js`, figures from `summaryFigures()` in `src/learn/tutorial.js` = the engine's payday numbers).
+- **Family HUD:** `נשאר בחודש` chip + popover, goal line (until 3 finished games), `עוד X בחודש לחופש` (`src/ui/hud-family.js`).
+- **Story** (5 screens, family, first game per device, replayable from settings and the help button) and the optional **3-question check**
+  live in `src/ui/tutorial/` and load with `import()`; the three illustrations are in `src/assets/tutorial/`.
+- **Guided hints** (10, first game only, once per device): scheduler in `src/learn/tutorial.js`, device record `passivo.tutorial`
+  (`storyDone`, `quizDone`, `hintsSeen`, `helpOn`). Settings: help switch, replay the story, replay the hints, parent card.
+- **Family vocabulary:** 22 strings and 13 kid names swap in family mode only (`familyStrings.overrides`, `kidNames` in the same JSON); the dictionary
+  shows the real term under the kid name. Add a word = edit the JSON.
+- Tests: `tests/tutorial.test.js` (rules), `tests/tutorial-content.test.js` (every `computed` figure recomputed from the game data),
+  `npm run smoke:tutorial` (Playwright, optional axe via `AXE=/path/to/axe.min.js`).
+
 ## The fox (Passivo)
 
 Poses live in `src/assets/fox/` as transparent WebP (`tired`, `wave`, `roll`, `hammock`, `tip` with `@2x`) plus four
@@ -176,10 +204,34 @@ are not DOM (which crop for which square, when family tips show) are in `src/ui/
 To add a pose: drop `name.webp` (+ `name@2x.webp`) in that folder, add it to `POSES` in `src/ui/fox.js`
 (intrinsic size; `tests/fox.test.js` checks it against the file) and use `foxImg('name', { height })`.
 
+## Daily challenge (v2.5, client only)
+
+A start-screen card ("אתגר יומי") opens one family-mode game per calendar day. There is no server: everything is on the device and works offline.
+
+- **The day** is the LOCAL calendar date `YYYY-MM-DD` (`src/daily/calendar.js`). Players in different time zones get different days around
+  midnight; this is accepted. Day maths uses UTC day numbers, so daylight-saving days never skip or repeat a day.
+- **Same game for everyone.** `dailySeed(date)` hashes the date string (`src/engine/daily.js`). The profession, die k of turn i and the card
+  drawn at turn i are pure functions of `(seed, i)`, never of the rng state, so two players see the same dice and the same cards whatever they
+  buy, pass or borrow. It is an opt-in rules flag (`engine.newGame({ daily: { date } })`); normal games, bots and `npm run simulate` do not use it.
+- **One attempt per day.** Finishing, running into the turn cap (`DAILY_TURN_CAP`, 40: no freedom by then = "לא הצלחתי היום") or giving up
+  (home sheet, two steps) stores the result and uses the attempt. Leaving mid-game keeps a save in its own slot (`passivo.dailySave`, so a normal
+  game in progress is never overwritten) and resumes. `?debug=1` adds a reset button on the card.
+- **Result and share.** The result screen shows turns to freedom, net worth, the learning headline, the streak and badges (3 / 7 / 30 days,
+  kept once earned). "שתפו" builds a WhatsApp text (first line, one coloured square per turn by traffic-light tier, the link) with
+  `navigator.share`, else the clipboard, with a visible "הועתק". It never contains cards, choices or names (`src/daily/share.js`).
+- **Streak** (`src/daily/streak.js`): schema-versioned (`passivo.dailyStreak`, `v: 1`), a missed day resets it (the "החמצתם יום?" line only after a streak of 2+ and 1-3 missed days, otherwise a neutral welcome back). A stored last play more than a day ahead of today is treated as clock tampering and ignored.
+- **Saves never cross.** `src/services/match-store.js`: `store.save(match)` / `store.clear(match)` pick the slot (`save` or `dailySave`) from the match and throw without one; a unit test checks every call is explicit.
+- **Charity changes the route.** Donating gives two dice for 3 turns, so the later squares differ from other players' (die 0 of every turn stays identical). The charity card and the how-to say so: "תרומה משנה את המסלול שלכם בגלל הקובייה הנוספת".
+- **Ready for a leaderboard.** `dailyResult(state)` is the pure record `{ date, seed, turns, netWorth, professionId, mode, actionsLog }`;
+  `replayDaily(engine, record)` re-runs the engine from the date and the action log, which is exactly what a server check would do.
+
+Tests: `tests/daily.test.js` (unit) and `node tests/e2e/daily-smoke.mjs` after `npm run build` (UI flow at 360x800, 360x640 and 320x568;
+set `AXE_PATH` to an `axe.min.js` to include the accessibility checks). Screenshots go to `qa/screens/daily/`.
+
 ## Debug helpers
 
 Open the app with `?debug=1` (for example `/?debug=1&seed=11`) to get two dev-only buttons on the board
-("ניצחון" / "הפסד") and `window.__passivoDebug.forceWin()` / `forceLose()`. Without the flag nothing is created
+("ניצחון" / "הפסד") and `window.__passivoDebug.forceWin()` / `forceLose()`, and a reset button on the daily challenge card. Without the flag nothing is created
 and the helpers do not exist.
 
 ## Add a language

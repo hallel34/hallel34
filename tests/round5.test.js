@@ -107,7 +107,7 @@ describe('P1-1: the play screen tears everything down before the start screen mo
   });
   it('a destroyed controller cannot write: the store is wrapped, apply() refuses and every modal is gated', () => {
     expect(play).toMatch(/save: \(m\) => \{ if \(!destroyed\) rawStore\.save\(m\); \}/);
-    expect(play).toMatch(/clear: \(\) => \{ if \(!destroyed\) rawStore\.clear\(\); \}/);
+    expect(play).toMatch(/clear: \(m\) => \{ if \(!destroyed\) rawStore\.clear\(m\); \}/);
     expect(play).toMatch(/function apply\(fn\) \{\s*if \(destroyed\) return false;/);
     expect(play).toMatch(/if \(destroyed\) return undefined;/);
   });
@@ -176,7 +176,7 @@ describe('P2: names, plurals, copy', () => {
   });
   it('hot-seat hand-over: no handoff to the same player; cards wait for the home sheet; sell sheet closes when empty', () => {
     const play = src('src/ui/play.js');
-    expect(play).toMatch(/if \(match\.currentIndex !== prevIndex\) await showHandoff\(\)/);
+    expect(play).toMatch(/if \(match\.currentIndex === prev\) \{ busy = false; settleButton\(\); return; \}/);
     expect(play).toMatch(/\(!multi \|\| lastPlayerStanding\(match\)\) && canEndTurn\(match\)/);
     expect(play).toMatch(/while \(homeGate && !destroyed\) await homeGate/);
     expect(play).toMatch(/s\.assets\.length === 0/);

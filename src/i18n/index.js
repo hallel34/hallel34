@@ -41,9 +41,20 @@ let termLookup = () => '';
 export const setGlossaryTermLookup = (fn) => { termLookup = fn; };
 const glossaryTerm = (id) => termLookup(id);
 
+// Family vocabulary: a layer of replacement strings on top of the locale bundle (kid-friendly wording, family mode only).
+// null = no layer (full mode). The bundle itself is never changed.
+let overrides = null;
+export const setStringOverrides = (map) => { overrides = map && Object.keys(map).length ? map : null; };
+/** The bundle's own text for a key (ignores the family layer), or undefined. Used by validators. */
+export const rawString = (key, loc = locale) => {
+  const s = lookup(bundles[loc] ?? bundles[FALLBACK], key);
+  return typeof s === 'string' ? s : undefined;
+};
+
 /** Same as t() but keeps the glossary markup. */
 export function tRaw(key, params) {
-  let s = lookup(bundles[locale], key);
+  let s = overrides?.[key];
+  if (typeof s !== 'string') s = lookup(bundles[locale], key);
   if (typeof s !== 'string') s = lookup(bundles[FALLBACK], key);
   if (typeof s !== 'string') {
     if (import.meta.env?.DEV) console.warn(`[i18n] missing key: ${key}`);

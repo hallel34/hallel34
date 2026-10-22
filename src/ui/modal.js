@@ -42,7 +42,7 @@ export function openLayer(content, { kind = 'modal', label = '', dismissable = t
       else document.getElementById('app')?.removeAttribute('inert');
       resolve(result);
     },
-    async close(result) {
+    async close(result, _opts) {
       if (api.done) return;
       api.done = true;
       const i = stack.indexOf(api);
@@ -114,7 +114,7 @@ export function closeTopLayer() {
 }
 
 /** Closes every open layer (used by the ?debug=1 helpers). */
-export const closeAllLayers = () => [...stack].reverse().forEach((l) => l.close(undefined));
+export const closeAllLayers = () => [...stack].reverse().forEach((l) => l.close(undefined, { force: true }));
 
 /**
  * Tears down every open layer immediately (cards, dialogs, sheets): they leave the DOM synchronously, so nothing

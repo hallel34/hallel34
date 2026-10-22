@@ -5,7 +5,7 @@ import { t } from '../i18n/index.js';
 import { openLayer } from './modal.js';
 import { icon } from './icons.js';
 import { foxImg } from './fox.js';
-import { learnContent, conceptById, dictionaryOrder, glossaryUi, conceptAvailable } from '../learn/content.js';
+import { learnContent, conceptById, dictionaryOrder, glossaryUi, conceptAvailable, termName, hasKidName, kidOf } from '../learn/content.js';
 import { getLearnMode } from '../learn/context.js';
 import { glossarySlots, fillSlots } from '../learn/slots.js';
 import { factsForConcept, realWorldView } from '../learn/rw.js';
@@ -26,6 +26,9 @@ export function recordSeen(id) {
 /** Are the automatic 'פסיבו מסביר' explainers on? (The dictionary always works.) */
 export const explainEnabled = () => getPrefs().explain !== false;
 
+/** 'המילה המקצועית: הכנסה פסיבית' (family mode: the real term under the kid name). */
+export const professionalWord = (term) => learnContent().tutorial.ui.professionalWord.replace('{term}', term);
+
 const section = (label, ...kids) => h('section', { class: 'dict-sec' }, h('h4', { class: 'dict-label' }, label), ...kids);
 
 /** Detail of one concept: short, why, example, what the game simplifies, real-world notes. */
@@ -35,7 +38,8 @@ export function conceptDetail(c) {
   const facts = factsForConcept(c.id).map(realWorldView);
   return h('article', { class: 'dict-detail', 'data-concept': c.id },
     h('div', { class: 'dict-hero' },
-      h('div', { class: 'dict-hero-text' }, h('p', { class: 'dict-kicker' }, ui.explainTitle), h('h3', { class: 'dict-term' }, c.term)),
+      h('div', { class: 'dict-hero-text' }, h('p', { class: 'dict-kicker' }, ui.explainTitle), h('h3', { class: 'dict-term' }, termName(c.id)),
+        hasKidName(c.id) ? h('p', { class: 'dict-pro', 'data-pro': c.id }, professionalWord(c.term)) : null),
       foxImg('tip', { height: 84, cls: 'dict-fox' })),
     h('p', { class: 'dict-short' }, c.short),
     section(ui.whyLabel, h('p', null, c.why)),
@@ -62,9 +66,10 @@ export function openDictionary({ termId = null } = {}) {
       h('ul', { class: 'dict-list' }, dictionaryOrder(mode).map((c) => h('li', null,
         h('button', { type: 'button', class: 'dict-item', 'data-concept': c.id, onClick: () => showDetail(c.id) },
           h('span', { class: 'dict-item-main' },
-            h('strong', { class: 'dict-item-term' }, c.term),
+            h('strong', { class: 'dict-item-term' }, termName(c.id)),
             seen.has(c.id) ? null : h('span', { class: 'dict-new' }, ui.newTerm)),
-          h('span', { class: 'dict-item-short' }, c.short),
+          hasKidName(c.id) ? h('span', { class: 'dict-pro dict-pro-sm' }, professionalWord(c.term)) : null,
+          h('span', { class: 'dict-item-short' }, hasKidName(c.id) ? kidOf(c.id).kidShort : c.short),
           icon('arrow', { size: 20, width: 2.6 }))))));
     scroll.scrollTop = 0;
     (scroll.querySelector(`[data-concept="${focusId}"]`) ?? scroll).focus?.({ preventScroll: true });

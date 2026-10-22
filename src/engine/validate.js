@@ -52,6 +52,7 @@ export function validateCards(list) {
     ids.add(c.id);
     if (!DECKS.includes(c.deck)) errors.push(`${w}: deck`);
     if (!isStr(c.title) || !isStr(c.text)) errors.push(`${w}: title/text`);
+    for (const k of ['titleFamily', 'textFamily']) if (c[k] != null && !isStr(c[k])) errors.push(`${w}: ${k}`); // optional family-mode wording (display only)
     if (!Array.isArray(c.modes) || !c.modes.length || c.modes.some((m) => !MODES.includes(m))) {
       errors.push(`${w}: modes`);
     }
