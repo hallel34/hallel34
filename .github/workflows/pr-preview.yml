@@ -13,7 +13,7 @@ concurrency: preview-${{ github.ref }}
 jobs:
   verify:
     if: github.event.action != 'closed'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -33,7 +33,7 @@ jobs:
   preview:
     needs: [verify]
     if: always() && (github.event.action == 'closed' || needs.verify.result == 'success')
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
