@@ -278,7 +278,7 @@
 [dir="rtl"] .btn.is-arming::after { transform-origin: right center; }
 @keyframes arm-fill { to { transform: scaleX(1); } }
 @media (prefers-reduced-motion: reduce) { .btn.is-arming::after { animation: none; transform: scaleX(.5); } }
-.btn-handoff-home { min-block-size: 44px; }
+.btn-handoff-home { min-block-size: 48px; }
 
 /* family HUD: the cash is named in words (a caption on tall screens; a tap shows the tooltip on short ones) */
 .cash-cap { margin: -6px 0 0; font-size: .6875rem; line-height: 1.1; color: var(--text-muted); text-align: start; }

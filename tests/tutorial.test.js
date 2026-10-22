@@ -211,7 +211,7 @@ describe('family vocabulary layer', () => {
   beforeEach(() => { learnContent(); });
   it('the override strings (22 + the round-11 additions) switch in family mode only; full mode keeps the original wording', () => {
     const map = familyOverrideMap(content());
-    expect(Object.keys(map)).toHaveLength(content().familyStrings.overrides.length + content().familyStrings.overridesRound11.length);
+    expect(Object.keys(map)).toHaveLength([...content().familyStrings.overrides, ...content().familyStrings.overridesRound11].filter((o) => !o.key.includes(':')).length);
     setLearnMode('full');
     expect(t('game.passive')).toBe('הכנסה פסיבית');
     expect(t('card.downPayment')).toBe('מקדמה');

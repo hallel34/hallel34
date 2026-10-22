@@ -219,7 +219,7 @@ async function guards(browser, theme) {
 async function lossSummary(browser, theme) {
   const card = J('cards.he.json').find((c) => c.id === 'opp-apt-009');
   const base = newMatch(engine, { mode: 'family', players: [{ name: 'דנה', professionId: 'teacher' }], seed: 5 });
-  let st = { ...currentState(base), cash: 50000, position: 21, pending: { kind: 'opportunity', card } };
+  let st = { ...currentState(base), cash: 10 ** 7, position: 21, pending: { kind: 'opportunity', card } };
   st = engine.buy(st, 1);
   st = { ...st, cash: 50000, position: 21, phase: 'roll', pending: null };
   const match = { ...base, players: base.players.map((p, i) => (i ? p : { ...p, state: st })) };

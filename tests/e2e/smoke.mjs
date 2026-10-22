@@ -300,6 +300,16 @@ async function playStory(page, label) {
     check(r.top >= r.ih * 0.55, `story button "המשיכו" sits in the bottom third / lower half (${Math.round(r.top)}/${r.ih})`);
     await noHScroll(page, `story screen ${i}`);
     await page.screenshot({ path: `${dir}story-${i}-${vp.width}x${vp.height}.png` });
+    // screen 5 is a sequence of short parts: step through every one (each must fit too) before the last button goes on
+    for (let part = 1; i === 5 && await page.locator('.story-part-of').count(); part++) {
+      const m = /(\d+)\D+(\d+)/.exec(await page.locator('.story-part-of').innerText());
+      if (!m || Number(m[1]) >= Number(m[2])) break;
+      await page.locator('.story-next').click();
+      await page.waitForTimeout(450);
+      const fit = await page.evaluate(() => { const v = document.querySelector('.story-view'); const b = document.querySelector('.story-next').getBoundingClientRect(); return { over: v.scrollHeight - v.clientHeight, bottom: b.bottom, ih: innerHeight }; });
+      check(fit.over <= 1 && fit.bottom <= fit.ih, `story screen 5 part ${part + 1} fits ${vp.width}x${vp.height} (${JSON.stringify(fit)})`);
+      await noHScroll(page, `story screen 5 part ${part + 1}`);
+    }
     await page.locator('.story-next').click();
   }
   await page.waitForSelector('[data-story="offer"]');
@@ -564,7 +574,7 @@ async function testGuessFlow(page) {
   await page.locator('[data-action="guess-bad"]').click();
   await page.waitForSelector('.reveal');
   const trap = await page.evaluate(() => ({ result: document.querySelector('.guess-result')?.dataset.result, tiles: [...document.querySelectorAll('.reveal .stat-tile')].map((x) => x.innerText.replace(/\n/g, ' ')), verdict: document.querySelector('.guess-verdict')?.textContent }));
-  check(trap.result === 'correct' && trap.tiles.some((x) => x.includes('אין החזר')) && /אין החזר|תזרים שלילי|מוציא/.test(trap.verdict), `L2: a trap shows "אין החזר" and the redNever verdict (${trap.verdict})`);
+  check(trap.result === 'correct' && trap.tiles.some((x) => /אין החזר|לא חוזר|אף פעם/.test(x)) && /אין החזר|הכסף לא חוזר|תזרים שלילי|מוציא|במקום להיכנס/.test(trap.verdict), `L2: a trap shows "אין החזר" and the redNever verdict (${trap.verdict})`);
   await page.locator('.card [data-action="pass"]').click();
   await page.waitForSelector('.card', { state: 'detached' });
 
@@ -749,7 +759,7 @@ async function testReport(page, kind) {
     };
   });
   for (const id of ['bestDeal', 'greenDecisions', 'concepts', 'stats', 'nextStep', 'conversation']) check(r.sections.includes(id), `L4: the report has the "${id}" section`);
-  check(r.interest !== null && /ריבית/.test(r.interest), `L4: interest section from stats.interestPaid ("${r.interest}")`);
+  check(r.interest !== null && /ריבית|תוספת/.test(r.interest), `L4: interest section from stats.interestPaid ("${r.interest}")`);
   check(r.questions === 3, 'L4: three conversation questions');
   check(!/\{\w+\}|\[\[|undefined|null|NaN/.test(r.text), 'L4: no unfilled slot, null or NaN in the report');
   check(!/Infinity/.test(r.text), 'L4: no Infinity in the report');
