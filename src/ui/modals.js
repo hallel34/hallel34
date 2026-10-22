@@ -309,7 +309,13 @@ function createCardTour(tour, getCard) {
     const want = tour.steps[i].target;
     // 'hud-cash' = the step about where the first payment comes from: the ring goes on the cash in the HUD (behind the card), not on the card
     const outside = want === 'hud-cash';
-    const target = outside ? document.querySelector('.hud-cash') : want ? card?.querySelector(`[data-tut="${want}"]`) : null;
+    let target = outside ? document.querySelector('.hud-cash') : want ? card?.querySelector(`[data-tut="${want}"]`) : null;
+    // the HUD is usually under the card and its scrim: a ring on something the player cannot see is noise, so the step then has no ring (the strip says it)
+    if (outside && target) {
+      const r = target.getBoundingClientRect();
+      const hit = r.width && r.height ? document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2) : null;
+      if (!hit || !target.contains(hit)) target = null;
+    }
     if (!target) { ring?.remove(); ring = null; return; }
     if (ring) ring.move(target, { onCream: !outside }); else ring = showRing(target, { onCream: !outside, holdMs: 120000 });
   };

@@ -119,6 +119,24 @@
       "stats": {
         "passive": "כסף שעובד",
         "expenses": "הוצאות בחודש"
+      },
+      "concepts": {
+        "names": {
+          "cashflow": "מה נשאר בחודש",
+          "passive_income": "כסף שעובד בשבילכם",
+          "asset": "נכס שמכניס כסף",
+          "liability": "חוב",
+          "down_payment": "התשלום הראשון",
+          "mortgage": "הלוואה לדירה",
+          "yield": "כמה הנכס מכניס בשנה",
+          "payback": "תוך כמה שנים הכסף חוזר",
+          "interest": "תוספת על ההלוואה",
+          "dividend": "חלק מהרווח של החברה",
+          "cushion": "כסף בצד לשעת צורך",
+          "net_worth": "מה שיש לכם פחות החובות",
+          "diversification": "לא הכול בסל אחד"
+        },
+        "namesNote": "round 12: במצב משפחה רשימת 'מושגים שפתחתם' ({list}) מורכבת מ-names[id] ולא מ-glossary term. הערכים זהים ל-tutorial.he.json kidNames.concepts[].kidName. מצב מלא נשאר עם term."
       }
     },
     "nextStep": {

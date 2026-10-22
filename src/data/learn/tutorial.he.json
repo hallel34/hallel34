@@ -97,7 +97,7 @@
         "concept": "passive_income",
         "pose": "tip",
         "illustration": "tree-with-coins (SVG חדש מהמעצבת)",
-        "title": "כסף שעובד בשבילך",
+        "title": "כסף שעובד בשבילכם",
         "lines": [
           "משכורת היא כסף שמקבלים על עבודה. כשמפסיקים לעבוד, היא נעצרת.",
           "נכס הוא כמו עץ פירות: הוא נותן פירות גם כשישנים. הכסף שהנכס מכניס נקרא הכנסה פסיבית."
@@ -221,6 +221,9 @@
         },
         "simplification": "במשחק הכסף מגיע למזומן רק בסיכום שנתיים, ומסכמים שנתיים בבת אחת כדי שהמשחק יהיה קצר. בחיים הכסף נכנס ויוצא כל חודש. ₪2,600 הם אחרי תשלום ההלוואה לדירה, והוא כבר מחושב בקלף.",
         "simplificationAfterPart": "p4-times",
+        "simplificationShowOnParts": ["p4-times"],
+        "simplificationHideOnParts": ["p1-buy", "p2-gather", "p3-calc", "p5-source"],
+        "round12": "הקופסה 'במשחק זה מפושט' מוצגת רק בחלק p4-times ולא חוזרת ב-p5-source (גם לא כשחוזרים אחורה ל-p5 ממסך אחר).",
         "readSec": 20
       }
     ]
@@ -599,7 +602,7 @@
       { "id": "interest", "term": "ריבית", "kidName": "תוספת על ההלוואה", "kidShort": "הכסף הנוסף שמשלמים לבנק כל חודש על כסף שהשאילו לכם.", "level": "family" },
       { "id": "dividend", "term": "דיבידנד", "kidName": "חלק מהרווח של החברה", "kidShort": "כסף שחברה מחלקת למי שמחזיק בחלק קטן ממנה, אם היא מחליטה לחלק.", "level": "full" },
       { "id": "cushion", "term": "כרית ביטחון", "kidName": "כסף בצד לשעת צורך", "kidShort": "כסף שמחזיקים בצד לימים שקורה משהו לא צפוי.", "level": "family" },
-      { "id": "net_worth", "term": "שווי נקי", "kidName": "כמה שווה כל מה שיש לכם", "kidShort": "כל מה שיש לכם פחות כל מה שאתם חייבים.", "level": "full" },
+      { "id": "net_worth", "term": "שווי נקי", "kidName": "מה שיש לכם פחות החובות", "kidShort": "כל מה שיש לכם, מזומן ונכסים, פחות כל מה שאתם חייבים.", "level": "full" },
       { "id": "diversification", "term": "פיזור", "kidName": "לא הכול בסל אחד", "kidShort": "לא שמים את כל הכסף במקום אחד, כדי שבעיה אחת לא תפגע בהכול.", "level": "full" }
     ]
   },
@@ -631,15 +634,15 @@
     ],
     "overridesRound11": [
       { "key": "report:sections.worstDeal.empty", "was": "אף עסקה לא הייתה איטית במיוחד או עם תזרים שלילי.", "family": "אף עסקה לא הייתה איטית במיוחד, ואף נכס לא עלה לכם כסף כל חודש." },
-      { "key": "fox.tip3", "was": "הכנסה פסיבית גדולה מההוצאות היא חופש כלכלי", "family": "כסף שעובד שגדול מההוצאות הוא חופש כלכלי" },
+      { "key": "fox.tip3", "was": "הכנסה פסיבית גדולה מההוצאות היא חופש כלכלי", "family": "כשהכסף שעובד גדול מההוצאות, זה חופש כלכלי" },
       { "key": "fox.tip4", "was": "נכס טוב מחזיר את המקדמה תוך כמה שנים", "family": "נכס טוב מחזיר את התשלום הראשון תוך כמה שנים" },
       { "key": "game.outText", "was": "נגמרו המזומן וההלוואות והתזרים שלילי. המשחק ממשיך עם מי שנשאר", "family": "נגמר הכסף וההלוואות, ובכל חודש יוצא יותר ממה שנכנס. המשחק ממשיך עם מי שנשאר" },
       { "key": "card.offerProceeds", "was": "תמורה אחרי משכנתא", "family": "מה נשאר אחרי ההלוואה לדירה" },
       { "key": "statement.inAssetFlow", "was": "כלול בתזרים הנכס", "family": "כלול כבר בחישוב של הנכס" },
       { "key": "statement.assetMortgage", "was": "משכנתא {amount}", "family": "הלוואה לדירה {amount}" },
       { "key": "statement.totalLiabilities", "was": "סך התחייבויות", "family": "סך החובות" },
-      { "key": "statement.paidFromFlow", "was": "מתוכם יורדים מהתזרים", "family": "מתוכם יורדים מה שנשאר בחודש" },
-      { "key": "statement.insideAssets", "was": "מתוכם כבר בתזרים הנכסים", "family": "מתוכם כבר בחישוב של הנכסים" },
+      { "key": "statement.paidFromFlow", "was": "מתוכם יורדים מהתזרים", "family": "מתוכם נספרים בהוצאות של כל חודש" },
+      { "key": "statement.insideAssets", "was": "מתוכם כבר בתזרים הנכסים", "family": "מתוכם כבר חושבו בנכסים" },
       { "key": "statement.liabilityNote", "was": "תשלום משכנתא כבר מנוכה מתזרים הנכס, ולכן לא נספר שוב בהוצאות", "family": "התשלום על ההלוואה לדירה כבר הורד מהכסף שהנכס מכניס, ולכן לא סופרים אותו שוב בהוצאות" },
       { "key": "statement.mortgageLabel", "was": "[[term:mortgage|משכנתא]]: {asset}", "family": "[[term:mortgage|הלוואה לדירה]]: {asset}" },
       { "key": "loan.paydayNext", "was": "סיכום שנתיים הבא ({months} חודשים × תזרים): {amount}", "family": "סיכום שנתיים הבא ({months} חודשים × מה שנשאר בחודש): {amount}" },
@@ -651,8 +654,8 @@
       { "key": "win.shareText", "was": "הגעתי לחופש כלכלי {turns} ב״פסיבו״! הכנסה פסיבית: {passive}", "family": "הגענו לחופש כלכלי {turns} ב״פסיבו״! כסף שעובד: {passive}" },
       { "key": "standings.winnerText", "was": "ההכנסה הפסיבית עקפה את ההוצאות", "family": "הכסף שעובד עקף את ההוצאות" },
       { "key": "standings.passive", "was": "פסיבית", "family": "כסף שעובד" },
-      { "key": "standings.row", "was": "{name}, מקום {place}: הכנסה פסיבית {passive}, הוצאות {expenses}, שווי נקי {net}, {turns}", "family": "{name}, מקום {place}: כסף שעובד {passive}, הוצאות {expenses}, כמה שווה כל מה שיש {net}, {turns}" },
-      { "key": "standings.netWorth", "was": "שווי נקי", "family": "כמה שווה כל מה שיש" },
+      { "key": "standings.row", "was": "{name}, מקום {place}: הכנסה פסיבית {passive}, הוצאות {expenses}, שווי נקי {net}, {turns}", "family": "{name}, מקום {place}: כסף שעובד {passive}, הוצאות {expenses}, מה שיש לכם פחות החובות {net}, {turns}" },
+      { "key": "standings.netWorth", "was": "שווי נקי", "family": "מה שיש לכם פחות החובות" },
       { "key": "gameOver.text", "was": "נגמר המזומן ותקרת ההלוואות, והתזרים שלילי", "family": "נגמר הכסף ואי אפשר ללוות עוד, ובכל חודש יוצא יותר ממה שנכנס" },
       { "key": "gameOver.tip1", "was": "אל תקנו עסקה רק כי היא נראית יפה. בדקו כמה תזרים היא מוסיפה", "family": "אל תקנו עסקה רק כי היא נראית יפה. בדקו כמה כסף היא מכניסה בחודש" },
       { "key": "gameOver.tip3", "was": "מזומן בצד הוא כרית הביטחון שלכם מול ההוצאה הבאה", "family": "כסף בצד עוזר לשלם את ההוצאה הבאה בלי הלוואה" },

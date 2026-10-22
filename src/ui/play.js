@@ -249,6 +249,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   function showFloatingHint() {
     if (destroyed || multi) return false;
     const next = hints.takeFloating(state.turn);
+    console.log('DBG take', state.turn, next?.id, JSON.stringify(hints.pending), hints.floatedThisTurn);
     if (!next) return false;
     const v = floatingView(next.id, next.ctx);
     let ring = null;

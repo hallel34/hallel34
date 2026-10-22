@@ -179,6 +179,37 @@
 מותר: `החזר`, `תוספת`, `מה נשאר בחודש`, `התשלום הראשון`, `כסף שעובד`, `חופש`, `חוב`, `הלוואה`, `נכס`, `מזומן`.
 חריגים מותרים (המונח האמיתי מוצג בכוונה): (1) `story.screens[s1-passive].lines` ("נקרא הכנסה פסיבית") ו-`check.questions[q-passive].explain`; (2) שורת "המילה המקצועית: {term}" והמונחים ב-`glossary.he.json` ו-`kidNames[].term`; (3) קובצי `*.he.json` עם `ownerWording`/`notes`/`needs_review`/`sampleText` (מטא, לא מוצגים); (4) מצב מלא בלבד: כל מה שמסומן `full`/`labelFull`/`templateFull`. הערות: `מהי ` נבדק כי נראה רשמי לילדים; `קרן` מוחלפת ב-`statement.principal` (קיים) וב-`loan.remaining` (חדש ב-overridesRound11).
 
-### מה נשאר פתוח לצוות
+### מה נשאר פתוח לצוות (round 11)
 - `needs_review` (finance): שמירה של המשפט `report.family.win.line` ("בחיים זה לוקח שנים ואין הבטחות") ושל "במשחק המספרים פשוטים יותר מבחיים" (כללי, ללא מספרים).
 - developer: ודאו ש-`overridesRound11` ו-`family` של guess/report ממוזגים רק במצב משפחה, ושהבדיקה האוטומטית של רשימת האסורים רצה על הפלט המוצג (כולל מצב multi-player והדוח).
+
+## Changelog (round 12)
+
+עודכן 2026-10-22. לא הייתה מעטפת: לא הורץ `node`/`JSON.parse` ולא סריקה אוטומטית של הכרטיסים; הסריקה נעשתה בקריאה ידנית. המפתח צריך להריץ אימות JSON על `src/data/cards.he.json` ועל `src/data/learn/*.json`, וסריקת רשימת האסורים (round 11, בתוספת `תשואות`) על הפלט המוצג במשפחה. קבצים ששונו: `cards.he.json` (שדות family בלבד), `tutorial.he.json`, `feedback.he.json`, `report.he.json`, `glossary.he.json`, `real-world.he.json`, והמפרט הזה.
+
+### cards.he.json (מפתחות חדשים בכרטיס, מצב משפחה בלבד)
+- `textFamily` בכרטיסים: opp-apt-003, opp-apt-004, opp-apt-008, opp-apt-012, opp-biz-005, opp-biz-007, opp-biz-013.
+- `titleFamily` ב-opp-apt-012 בלבד ("דירה עם הלוואה "נוחה"" במקום "משכנתא").
+- כלל תצוגה: במצב משפחה `card.titleFamily ?? card.title` ו-`card.textFamily ?? card.text`; במצב מלא `title`/`text` כמו היום (לא שונו). נסרקו כל כרטיסי ההזדמנות, ההוצאה והשוק שזמינים במשפחה; אין עוד מונח אסור בכותרות או בטקסטים שלהם. המספרים והעובדות זהים לכרטיס.
+
+### report.he.json
+- `family.sections.concepts.names` (13 מזהים -> שם ילדים) ו-`namesNote`: ברשימת "מושגים שפתחתם" במשפחה להציג `names[id]` ולא `term` של המילון. מצב מלא נשאר עם `term`.
+
+### glossary.he.json (מפתח חדש לכל מושג ברמת family: order 1-9 ו-11)
+- `concepts[].family.{why, exampleText, gameSimplification}` (לא כולם בכל מושג; מה שחסר נשאר כמו הערך הרגיל). במצב משפחה: `concept.family?.why ?? concept.why`, וכך לשאר. ב-`interest` הדוגמה משתמשת באותם slots (`{amount} {monthlyPayment} {interest} {total} {monthlyRate}`) בלי `{rate}` (אין אחוז שנתי במשפחה). dividend, net_worth, diversification הם מצב מלא בלבד ולכן ללא family.
+
+### real-world.he.json
+- `facts[].gameFamily`, `facts[].realFamily` ב: rw-down-payment, rw-periphery, rw-hard-to-rent, rw-renovation, rw-building-fees, rw-long-loan, rw-pressure, rw-owner-labor, rw-franchise, rw-startup, rw-loan-rate (`realFamily` רק איפה שה-`real` הרגיל מכיל מונח אסור). במשפחה: `fact.gameFamily ?? fact.game`, `fact.realFamily ?? fact.real`. `notes.round12` מתעד.
+
+### tutorial.he.json
+- `story.screens[s5].simplificationShowOnParts: ["p4-times"]` ו-`simplificationHideOnParts` (p1,p2,p3,p5): קופסת "במשחק זה מפושט" מוצגת רק בחלק 4 ואינה חוזרת בחלק 5. (שדה `simplification` ו-`simplificationAfterPart` נשארו.) נדרש שינוי בקוד התצוגה.
+- שם מסך 1 (`story.screens[s1-passive].title`): "כסף שעובד בשבילכם" (היה "בשבילך").
+- שונה `familyStrings.overridesRound11`: `fox.tip3` -> "כשהכסף שעובד גדול מההוצאות, זה חופש כלכלי"; `statement.paidFromFlow` -> "מתוכם נספרים בהוצאות של כל חודש" (המשמעות לפי selectors.js: תשלומי חובות שנכללים בהוצאות, בלי אלה שכבר בחישוב הנכס); `statement.insideAssets` -> "מתוכם כבר חושבו בנכסים"; `standings.netWorth` -> "מה שיש לכם פחות החובות"; `standings.row` משתמש באותו ניסוח.
+- `kidNames.concepts[net_worth].kidName` -> "מה שיש לכם פחות החובות" (ו-`kidShort` מורחב ל"מזומן ונכסים"). שאר 12 השמות ללא שינוי.
+
+### feedback.he.json
+- `lose.family[2]`: "לא הפעם. הסתכלו על הדוח ״מה למדתי״, ונסו שוב עם רעיון חדש." (ציווי ברבים, כמו שאר השורות).
+
+### שאלות לבדיקה
+- finance (`needs_review`): נוסחי family משמרים אותן טענות כללי ("בעולם האמיתי הבנק דורש תשלום ראשון גדול יותר", "שכירות בישראל נמוכה בהרבה", "התוספת תלויה בהחלטות בנק ישראל"); אין בהם מספר אמיתי חדש.
+- developer: שמות הילדים של 12 המושגים האחרים ב-`kidNames` נשארו; ודאו שאין מקום נוסף שמציג `term` במשפחה (דוח, גיליון עזרה ישן, `howtoKid`).
