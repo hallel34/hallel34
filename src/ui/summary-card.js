@@ -8,15 +8,22 @@ import { button } from './widgets.js';
 import { money, moneyText } from './format.js';
 import { animate, haptic } from './fx.js';
 import { motionOK } from './prefs.js';
+import { getLearnMode } from '../learn/context.js';
 import { fillSlots } from '../learn/slots.js';
 import { summaryRowModel } from '../learn/tutorial.js';
 import { tut, fillNodes, hintStrip, showRing } from './hint-ui.js';
+
+/** The label of the money-that-works row: 'כסף שעובד' in family mode, 'הכנסה פסיבית' (labelFull) in full mode. */
+function passiveLabel() {
+  const row = tut().summaryBreakdown.rows.find((r) => r.id === 'passive');
+  return getLearnMode() === 'full' && row.labelFull ? row.labelFull : row.label;
+}
 
 /** Plain-text one-liner of a summary (toast / log / screen readers): positive and negative variants. */
 export function summaryOneLine(f) {
   const sb = tut().summaryBreakdown;
   // the label of the money-that-works row follows the mode (family: 'כסף שעובד', full: 'הכנסה פסיבית')
-  const oneLine = sb.oneLine.replaceAll(sb.rows.find((r) => r.id === 'passive').label, t('game.passive'));
+  const oneLine = sb.oneLine.replaceAll(sb.rows.find((r) => r.id === 'passive').label, passiveLabel());
   const slots = {
     salary: moneyText(f.salary), passive: moneyText(f.passive), expenses: moneyText(f.expenses),
     monthly: moneyText(f.monthly), months: String(f.months), amount: moneyText(f.amount),
@@ -35,7 +42,7 @@ export function summarySpoken(f) {
   return `${summaryOneLine(f)}. ${fillSlots(sb.arrivalSr, { cashBefore: moneyText(f.cashBefore), cashAfter: moneyText(f.cashAfter) })}`;
 }
 
-const rowLabel = (id) => (id === 'passive' ? t('game.passive') : tut().summaryBreakdown.rows.find((r) => r.id === id).label);
+const rowLabel = (id) => (id === 'passive' ? passiveLabel() : tut().summaryBreakdown.rows.find((r) => r.id === id).label);
 
 /** A tap on the card may close it only after this long: a stray second tap from the previous card never skips the figures. */
 export const MIN_OPEN_MS = 600;
@@ -59,7 +66,7 @@ export function summaryCard({ figures: f, hint = null }) {
     : h('span', { class: 'sc-amt sc-none' }, sb.zeroShort);
   const rows = [
     row('sc-salary', rowLabel('salary'), h('bdi', { class: 'sc-amt money', dir: 'ltr' }, moneyText(f.salary))),
-    row(`sc-passive${f.hasPassive ? ' has-income' : ''}${f.hasLoss ? ' has-loss' : ''}`, f.hasLoss ? [rowLabel('passive'), h('small', { class: 'sc-losstag' }, t('summary.lossAsset'))] : rowLabel('passive'), passiveCell, { 'data-row': 'passive', 'data-kind': summaryRowModel(f).rows[1].kind }),
+    row(`sc-passive${f.hasPassive ? ' has-income' : ''}${f.hasLoss ? ' has-loss' : ''}`, f.hasLoss ? [rowLabel('passive'), h('small', { class: 'sc-losstag' }, fillNodes(sb.lossAsset.template, { lossAbs: h('bdi', { class: 'money', dir: 'ltr' }, moneyText(f.lossAbs)) }))] : rowLabel('passive'), passiveCell, { 'data-row': 'passive', 'data-kind': summaryRowModel(f).rows[1].kind }),
     row('sc-expense', rowLabel('expenses'), h('bdi', { class: 'sc-amt money', dir: 'ltr' }, moneyText(-f.expenses))),
   ];
   const leftRow = h('div', { class: 'sc-left', 'data-row': 'left' },

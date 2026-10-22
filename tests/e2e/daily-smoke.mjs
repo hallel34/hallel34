@@ -61,6 +61,9 @@ async function insideViewport(page, selectors, label) {
 }
 async function axe(page, label) {
   if (!AXE) return;
+  // axe must never run mid-fade: wait until every finite animation has ended
+  await page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== 'running' || a.effect?.getComputedTiming().iterations === Infinity), null, { timeout: 5000 }).catch(() => {});
+  await page.waitForTimeout(120);
   await page.evaluate(AXE);
   const res = await page.evaluate(async () => (await window.axe.run(document, { runOnly: ['wcag2a', 'wcag2aa', 'wcag21aa', 'best-practice'] })).violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(' | ')}`));
   check(res.length === 0, `axe: 0 violations on ${label}${res.length ? ` ${JSON.stringify(res)}` : ''}`);

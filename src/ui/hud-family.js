@@ -45,12 +45,13 @@ export function createFamilyHud({ hud, chip, goalLine, freeLine }) {
       h('div', { class: 'fp-eq' },
         h('section', { class: 'fp-cell fp-in' },
           h('h3', { class: 'fp-head' }, h('i', { class: 'fp-dot' }), hf.incomeTitle),
-          h('p', { class: 'fp-total' }, fillNodes(hf.incomeTotal, { income: money(income) })),
-          h('p', { class: 'fp-sub' }, salaryLabel, ' ', salaryAmt, ' + ', passiveLabel, ' ', passiveAmt)),
+          h('p', { class: 'fp-total' }, fillNodes(hf.incomeTotal, { income: money(income) }))),
         h('span', { class: 'fp-op', 'aria-hidden': 'true' }, '−'),
         h('section', { class: 'fp-cell fp-out' },
           h('h3', { class: 'fp-head' }, h('i', { class: 'fp-dot' }), hf.outTitle),
           h('p', { class: 'fp-total' }, fillNodes(hf.outRows[0], { expenses: money(st.totalExpenses) })))),
+      // the breakdown of 'what comes in' and the arrival line only where there is room (tall screens): the popover stays <= 40% of the board
+      h('p', { class: 'fp-sub' }, salaryLabel, ' ', salaryAmt, ' + ', passiveLabel, ' ', passiveAmt),
       h('p', { class: `fp-left ${left < 0 ? 'is-negative' : 'is-positive'}`, 'data-fp': 'left' }, fillNodes(hf.resultRow, { monthly: money(left, { sign: true }) })),
       // '{monthly} × 24' is one unbreakable unit: it never wraps in the middle
       h('p', { class: 'fp-foot' }, fillNodes(hf.arrivalLine.replace('{monthly} × {months}', '{calc}'), { calc: h('bdi', { class: 'nowrap money', dir: 'ltr' }, `${moneyText(left)} × ${numberText(PAYDAY_MONTHS)}`), monthly: money(left), months: numberText(PAYDAY_MONTHS) })));

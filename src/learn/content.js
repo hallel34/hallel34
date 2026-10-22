@@ -14,7 +14,7 @@ export function learnContent() {
   const loc = getLocale();
   if (!cache || cacheLocale !== loc) {
     cache = loadLearn(loc);
-    familyCache = applyContentOverrides(cache, contentOverrides(cache.tutorial));
+    familyCache = applyContentOverrides(mergeFamilyBlocks(cache), contentOverrides(cache.tutorial));
     cacheLocale = loc;
     setGlossaryTermLookup((id) => termName(id));
     // The family vocabulary layer follows the learn mode: family mode swaps in the kid wording, full mode never does.
@@ -34,9 +34,25 @@ export function learnContent() {
  *                                   guess | realWorld | tutorial), swapped in the family view of learnContent()
  * Adding a surface = adding an entry to the JSON; no code and no per-string special cases.
  */
+const isObj = (v) => v && typeof v === 'object' && !Array.isArray(v);
+function deepMerge(target, from) {
+  for (const [k, v] of Object.entries(from)) {
+    if (k === 'note') continue; // authoring note of the block
+    if (isObj(v) && isObj(target[k])) deepMerge(target[k], v); else target[k] = structuredClone(v);
+  }
+}
+/** The `family` block of guess.he.json and report.he.json is merged over the regular values (deep merge) in family mode only. */
+export function mergeFamilyBlocks(content) {
+  const copy = structuredClone(content);
+  for (const file of ['guess', 'report']) if (isObj(copy[file]?.family)) deepMerge(copy[file], copy[file].family);
+  return copy;
+}
+
 export const isContentKey = (key) => key.includes(':');
 export const splitContentKey = (key) => { const i = key.indexOf(':'); return [key.slice(0, i), key.slice(i + 1)]; };
-export const contentOverrides = (tutorial) => tutorial.familyStrings.overrides.filter((o) => isContentKey(o.key));
+/** Every override entry: the 22 of the first package and the round-11 additions (the same shape, one mechanism). */
+export const allOverrides = (tutorial) => [...tutorial.familyStrings.overrides, ...(tutorial.familyStrings.overridesRound11 ?? [])];
+export const contentOverrides = (tutorial) => allOverrides(tutorial).filter((o) => isContentKey(o.key));
 
 /** A deep copy of `content` with each { key: 'file:path', family } entry written into it (a path that does not exist is skipped; the test reports it). */
 export function applyContentOverrides(content, entries) {
@@ -54,7 +70,7 @@ export function applyContentOverrides(content, entries) {
 }
 
 /** { key: familyText } of the locale-file strings that switch in family mode (learn-file paths are applied by learnContent()). */
-export const familyOverrideMap = (tutorial) => Object.fromEntries(tutorial.familyStrings.overrides.filter((o) => !isContentKey(o.key)).map((o) => [o.key, o.family]));
+export const familyOverrideMap = (tutorial) => Object.fromEntries(allOverrides(tutorial).filter((o) => !isContentKey(o.key)).map((o) => [o.key, o.family]));
 
 /** The kid vocabulary entry of a concept ({ term, kidName, kidShort, level }), or null. */
 export const kidOf = (id) => learnContent().tutorial.kidNames.concepts.find((c) => c.id === id) ?? null;

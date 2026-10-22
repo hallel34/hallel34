@@ -635,13 +635,14 @@ describe('report (L4)', () => {
     expect(new Set(conversationOrder('family', 'fallback', themes, 1))).toEqual(new Set(themes));
   });
   it('the view model: texts are filled, family gets 3 questions, concepts count this game only', () => {
+    setLearnMode('full'); // this test pins the regular (adult) wording; the family wording is covered in kid-vocabulary.test.js
     const s = stateWith([dec({ title: 'סטודיו', years: 4.9, yieldPct: 20.4 })], { status: 'won' });
     s.learn.concepts = ['asset'];
     const v = reportView(s, { seed: 4 });
     const text = JSON.stringify(v);
     expect(text).not.toMatch(/\{\w+\}/);
     expect(v.sections.find((x) => x.id === 'bestDeal').text).toBe('סטודיו: החזר תוך 4.9 שנים, תשואה של 20.4% בשנה.');
-    expect(v.sections.find((x) => x.id === 'interest').text).toBe(content.report.sections.interest.zero);
+    expect(v.sections.find((x) => x.id === 'interest').text).toBe(learnContent().report.sections.interest.zero);
     expect(v.sections.find((x) => x.id === 'concepts').unlocked.sort()).toEqual(['asset']);
     expect(v.conversation.questions).toHaveLength(3);
     expect(v.subtitle).toBe(content.report.subtitle.win);

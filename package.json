@@ -13,7 +13,8 @@
     "smoke": "node tests/e2e/smoke.mjs",
     "smoke:tutorial": "node tests/e2e/tutorial-smoke.mjs",
     "smoke:daily": "node tests/e2e/daily-smoke.mjs",
-    "icons": "node scripts/make-icons.mjs"
+    "icons": "node scripts/make-icons.mjs",
+    "smoke:r11": "node tests/e2e/round11-smoke.mjs"
   },
   "devDependencies": {
     "playwright": "^1.56.1",

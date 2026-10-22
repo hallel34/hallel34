@@ -48,6 +48,7 @@
 .fp-total { margin: 0; font-size: 1rem; line-height: 1.2; font-weight: var(--fw-black); color: var(--income); font-variant-numeric: tabular-nums; }
 .fp-out .fp-total { color: var(--expense); }
 .fp-sub { margin: 0; font-size: .6875rem; line-height: 1.2; color: var(--text-muted); }
+@media (max-height: 779px) { .fp-sub { display: none; } }
 .fp-sub .money { font-weight: var(--fw-bold); }
 .fp-op { align-self: center; display: grid; place-items: center; inline-size: 20px; block-size: 20px; border-radius: 50%; background: var(--surface-sunken); color: var(--text); font-weight: var(--fw-black); font-size: .9375rem; line-height: 1; }
 .fp-left { margin: 2px 0 0; display: flex; align-items: center; justify-content: space-between; min-block-size: 36px; padding-inline: 14px; border-radius: 18px; font-size: .9375rem; font-weight: var(--fw-bold); }
@@ -278,3 +279,11 @@
 @keyframes arm-fill { to { transform: scaleX(1); } }
 @media (prefers-reduced-motion: reduce) { .btn.is-arming::after { animation: none; transform: scaleX(.5); } }
 .btn-handoff-home { min-block-size: 44px; }
+
+/* family HUD: the cash is named in words (a caption on tall screens; a tap shows the tooltip on short ones) */
+.cash-cap { margin: -6px 0 0; font-size: .6875rem; line-height: 1.1; color: var(--text-muted); text-align: start; }
+@media (max-height: 640px) { .cash-cap { display: none; } }
+@media (min-height: 641px) { .screen-board:has(.cash-cap) { --board-w: min(100%, max(258px, calc(100dvh - 480px))); } }
+.story-part-of { margin: 0; font-size: .75rem; color: var(--text-muted); text-align: center; font-variant-numeric: tabular-nums; }
+.fp-total { white-space: nowrap; }
+@media (max-width: 340px) { .fp-total { font-size: .875rem; } .fp-eq { gap: 4px; } }

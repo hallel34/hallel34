@@ -48,7 +48,7 @@ describe('summary card rows reconcile (A + B - C = D) with a money-losing asset'
   });
   it('the card paints the signed figure and the neutral tag, never red, and waits before a tap may close it', () => {
     const code = src('src/ui/summary-card.js');
-    expect(code).toContain('summary.lossAsset');
+    expect(code).toContain('lossAsset.template');
     expect(code).toContain('MIN_OPEN_MS');
     expect(code).not.toMatch(/countUp/); // the total is the final figure from the first frame (no ₪0 flash)
     expect(src('src/styles/tutorial.css')).not.toMatch(/\.sc-result \{[^}]*FF9C8C|is-negative \.sc-result \{ color: #FF9C8C/);

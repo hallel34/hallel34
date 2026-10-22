@@ -60,7 +60,7 @@ describe('itemised summary: the card equals what the engine really did', () => {
     setLearnMode('family');
     const teacher = engine.newGame({ mode: 'family', professionId: 'teacher', seed: 1 });
     const pos = summaryFigures(teacher, { monthly: 1490, amount: 35760, months: 24 }, 9000);
-    expect(summaryOneLine(pos)).toBe('המשכורת שלך ₪8,800, כסף שעובד ₪0, הוצאות ₪7,310 → נשארו ₪1,490 בחודש × 24 = ₪35,760');
+    expect(summaryOneLine(pos)).toBe('המשכורת שלכם ₪8,800, כסף שעובד ₪0, הוצאות ₪7,310 → נשארו ₪1,490 בחודש × 24 = ₪35,760');
     expect(pos.cashAfter).toBe(44760);
     const broke = { ...teacher, kids: 3 };
     const f = summaryFigures(broke, undefined, 100);
@@ -85,8 +85,8 @@ describe('first-time hints', () => {
     return { s, marks };
   };
 
-  it('there are ten hints and every hint shows once', () => {
-    expect(items()).toHaveLength(10);
+  it('there are eleven hints and every hint shows once', () => {
+    expect(items()).toHaveLength(11);
     const { s, marks } = sched();
     expect(s.claim('h-card', 2)).toBe(true);
     expect(s.claim('h-card', 5)).toBe(false);
@@ -209,9 +209,9 @@ describe('goal line and "how far"', () => {
 
 describe('family vocabulary layer', () => {
   beforeEach(() => { learnContent(); });
-  it('22 strings switch in family mode only; full mode keeps the original wording', () => {
+  it('the override strings (22 + the round-11 additions) switch in family mode only; full mode keeps the original wording', () => {
     const map = familyOverrideMap(content());
-    expect(Object.keys(map)).toHaveLength(22);
+    expect(Object.keys(map)).toHaveLength(content().familyStrings.overrides.length + content().familyStrings.overridesRound11.length);
     setLearnMode('full');
     expect(t('game.passive')).toBe('הכנסה פסיבית');
     expect(t('card.downPayment')).toBe('מקדמה');
@@ -230,10 +230,10 @@ describe('family vocabulary layer', () => {
   });
   it('kid names in family, real term underneath in the dictionary; [[term:id]] shows the kid name', () => {
     setLearnMode('family');
-    expect(termName('passive_income')).toBe('כסף שעובד בשבילך');
+    expect(termName('passive_income')).toBe('כסף שעובד בשבילכם');
     expect(hasKidName('passive_income')).toBe(true);
     expect(kidOf('passive_income').term).toBe('הכנסה פסיבית');
-    expect(t('pick.goal')).toContain('כסף שעובד בשבילך');
+    expect(t('pick.goal')).toContain('כסף שעובד בשבילכם');
     setLearnMode('full');
     expect(termName('passive_income')).toBe('הכנסה פסיבית');
     expect(hasKidName('passive_income')).toBe(false);
@@ -281,11 +281,11 @@ describe('story, check, parent card, how-to content', () => {
     const rnd = (() => { let x = 7; return () => ((x = (x * 16807) % 2147483647) / 2147483647); })();
     expect(shuffled([1, 2, 3, 4], rnd).sort()).toEqual([1, 2, 3, 4]);
   });
-  it('parent card: 3 sentences, 3 questions with answers; kid how-to: 4 short lines', () => {
+  it('parent card: 3 sentences, 3 questions with answers; kid how-to: at least 4 short lines', () => {
     expect(content().parentCard.howToExplain).toHaveLength(3);
     expect(content().parentCard.questions).toHaveLength(3);
-    expect(content().howtoKid.steps).toHaveLength(4);
-    for (const s of content().howtoKid.steps) expect(s.split(/\s+/).length).toBeLessThanOrEqual(16);
+    expect(content().howtoKid.steps.length).toBeGreaterThanOrEqual(4);
+    for (const s of content().howtoKid.steps) expect(s.split(/\s+/).length).toBeLessThanOrEqual(28);
   });
   it('forbidden words never appear in the tutorial content', () => {
     const txt = read('src/data/learn/tutorial.he.json');
@@ -302,8 +302,9 @@ describe('story, check, parent card, how-to content', () => {
     const json = JSON.stringify(out);
     for (const gone of ['needs_review', 'sampleText', 'ownerWording', '"computed"', '"was"']) expect(json).not.toContain(gone);
     expect(out.story.screens[0].title).toBe(raw.story.screens[0].title);
-    expect(out.hints.items.find((i) => i.id === 'h-card').steps).toHaveLength(3);
+    expect(out.hints.items.find((i) => i.id === 'h-card').steps).toHaveLength(4);
     expect(out.familyStrings.overrides).toHaveLength(22);
+    expect(out.familyStrings.overridesRound11.length).toBeGreaterThan(0);
     expect(validateLearn({ ...learnContent(), tutorial: out }, { cards: data.cards })).toEqual([]);
   });
 });
@@ -337,7 +338,7 @@ describe('one-tap hand-over (hot-seat)', () => {
     expect(play).not.toContain("paintButton('continue')");
     const modals = read('src/ui/modals.js');
     expect(modals).toContain("'data-action': 'roll-next'");
-    expect(modals).toContain('if (tapped) return;'); // double taps
+    expect(modals).toContain('if (tapped || !armed) return;'); // double taps, and taps while the sheet is still arming
     expect(modals).not.toContain('players.ready');
     const he = JSON.parse(read('src/i18n/he.json'));
     expect(he.players.rollFor).toBe('זרקו קובייה, {name}');

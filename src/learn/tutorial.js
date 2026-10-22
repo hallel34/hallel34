@@ -51,11 +51,12 @@ export function summaryFigures(state, payday, cashBefore = state.cash) {
   const passive = passiveIncome(state);
   const expenses = totalExpenses(state);
   const monthly = salary + passive - expenses;
+  const lossAbs = (state.assets ?? []).reduce((a, x) => a + Math.max(0, -(x.monthlyCashFlow ?? 0)), 0);
   const months = payday?.months ?? PAYDAY_MONTHS;
   const amount = payday ? payday.amount : monthly * months;
   return {
     salary, passive, expenses, monthly, months, amount, cashBefore, cashAfter: cashBefore + amount,
-    negative: monthly < 0, hasPassive: passive > 0, hasLoss: passive < 0,
+    negative: monthly < 0, hasPassive: passive > 0, hasLoss: passive < 0, lossAbs,
     check: salary + passive - expenses === monthly && monthly * months === amount && (!payday || payday.monthly === monthly),
   };
 }

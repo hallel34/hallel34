@@ -121,7 +121,7 @@ export function validateTutorial(tut, { glossaryIds = new Set(), cards = [], glo
   }
   for (const id of glossaryIds) if (!kidIds.has(id)) err(`kidNames: no kid name for glossary concept ${id}`);
   const keys = new Set();
-  for (const o of tut.familyStrings?.overrides ?? []) {
+  for (const o of [...(tut.familyStrings?.overrides ?? []), ...(tut.familyStrings?.overridesRound11 ?? [])]) {
     const w = `familyStrings ${o?.key}`;
     if (keys.has(o.key)) err(`${w}: duplicate`);
     keys.add(o.key);

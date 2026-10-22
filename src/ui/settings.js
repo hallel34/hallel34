@@ -52,7 +52,7 @@ export function openSettings({ onQuit, version = '', mode = 'family', profession
       help: t('settings.guessHelp'), read: () => guessEnabled(mode), write: (v) => setPref(mode === 'full' ? 'guessFull' : 'guessFamily', v),
     }),
     // the how-to is always one tap away (after a skipped story it is the way back in)
-    button([icon('help', { size: 22, width: 2.4 }), t('hint.skipToastHowTo')], { variant: 'secondary', cls: 'btn-dictionary', 'data-action': 'howto', onClick: () => openHowTo({ mode, professionId }) }),
+    button([icon('help', { size: 22, width: 2.4 }), tut().ui.howtoEntry], { variant: 'secondary', cls: 'btn-dictionary', 'data-action': 'howto', onClick: () => openHowTo({ mode, professionId }) }),
     button([icon('book', { size: 22, width: 2.4 }), t('settings.dictionary')], { variant: 'secondary', cls: 'btn-dictionary', 'data-action': 'dictionary', onClick: () => openDictionary() }),
     ...(mode === 'family' ? familyRows(professionId) : []),
     h('div', { class: 'setting-block' }, h('span', null, t('settings.theme')), h('div', { class: 'seg', role: 'group' }, themeBtns)),
@@ -118,7 +118,7 @@ async function openHowToFamily(professionId) {
     row('book', t('settings.dictionary'), 'howto-dictionary', () => openDictionary()),
     h('h3', { class: 'howto-rules-title' }, ui.howtoRules),
     h('ol', { class: 'howto' }, tut().howtoKid.steps.map((s) => h('li', null, s))),
-    h('p', { class: 'howto-note', 'data-howto': 'note' }, t('howto.note')),
+    h('p', { class: 'howto-note', 'data-howto': 'note' }, tut().howtoKid.note ?? t('howto.note')), // the kids' sheet has its own one-line note, not the adult paragraph
     row('help', ui.parentCardOpen, 'howto-parent', async () => { const { openParentCard } = await import('./tutorial/index.js'); openParentCard(); }),
     h('div', { class: 'dialog-actions' }, button(t('card.ok'), { variant: 'primary', 'data-autofocus': '', onClick: () => layer.close() })));
   layer = openLayer(content, { kind: 'modal', label: tut().howtoKid.title, cls: 'layer-dialog' });

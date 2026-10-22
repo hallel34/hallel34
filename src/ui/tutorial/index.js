@@ -8,7 +8,6 @@ import { markConceptSeen } from '../../learn/store.js';
 import { STORY_COVERED } from '../../learn/tutorial.js';
 import { toast } from '../fx.js';
 import { tut } from '../hint-ui.js';
-import { t } from '../../i18n/index.js';
 
 /** The 'you can see the story again' toast stays long enough to read and carries the way back in. */
 export const SKIP_TOAST_MS = 4000;
@@ -26,7 +25,7 @@ export async function openStory({ engine, professionId = 'teacher', startAt = 0,
     engine, professionId, startAt,
     onSkip: () => {
       markStoryDone();
-      toast(tut().ui.skipToast, SKIP_TOAST_MS, { action: { label: t('hint.skipToastHowTo'), onClick: () => playStoryHowTo() } });
+      toast(tut().ui.skipToast, SKIP_TOAST_MS, { action: { label: tut().ui.howtoEntry, onClick: () => playStoryHowTo() } });
     },
     onEnd: async (hosts) => {
       markStoryDone();

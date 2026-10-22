@@ -37,6 +37,9 @@ const axed = new Set();
 async function axe(page, key) {
   if (!AXE || axed.has(key)) return;
   axed.add(key);
+  // axe must never run mid-fade: wait until every finite animation has ended
+  await page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== 'running' || a.effect?.getComputedTiming().iterations === Infinity), null, { timeout: 5000 }).catch(() => {});
+  await page.waitForTimeout(120);
   await page.evaluate(AXE);
   const r = await page.evaluate(async () => {
     const res = await window.axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'] } });
@@ -132,9 +135,11 @@ async function main() {
   }));
   check(/נשאר בחודש/.test(hud.chip) && /₪/.test(hud.chip), `family HUD chip reads "נשאר בחודש +₪X" (${hud.chip})`);
   check(hud.chipH >= 47.5, `flow chip is a 48px target (${hud.chipH})`);
-  check(H <= 600 || /המטרה: /.test(hud.goal ?? ''), `goal line shown to first-timers (${hud.goal ?? 'hidden at <=600px'})`);
-  check(H > 640 ? /שהכסף שעובד בשבילך יהיה גדול מההוצאות/.test(hud.goal ?? '') : true, 'tall screens: the full goal sentence');
+  // the goal line is never hidden: the full sentence, a short form at <= 640 and a minimal one-liner at <= 600
+  check(/המטרה: /.test(hud.goal ?? ''), `goal line shown to first-timers at every height (${hud.goal ?? 'HIDDEN'})`);
+  check(H > 640 ? /שהכסף שעובד בשבילכם יהיה גדול מההוצאות/.test(hud.goal ?? '') : true, 'tall screens: the full goal sentence');
   check(H > 640 || H <= 600 || /כסף שעובד מעל ההוצאות/.test(hud.goal ?? ''), 'at 640 the short goal line');
+  check(H > 600 || /המטרה: מעל ההוצאות/.test(hud.goal ?? ''), 'at <= 600 the minimal one-liner');
   check(/עוד ₪[\d,]+ בחודש לחופש/.test(hud.free ?? ''), `"עוד ₪X בחודש לחופש" under the meter (${hud.free})`);
   await shot(page, 'board-first-game');
   await axe(page, 'family board with hint');
@@ -146,7 +151,7 @@ async function main() {
     await page.waitForTimeout(350);
     const pop = await page.evaluate(() => { const p = document.querySelector('.flow-popover').getBoundingClientRect(); const r = document.querySelector('.btn-roll').getBoundingClientRect(); const cash = document.querySelector('.hud-cash').getBoundingClientRect(); return { bottom: p.bottom, rollTop: r.top, top: p.top, cashBottom: cash.bottom, text: document.querySelector('.flow-popover').innerText.replace(/\s+/g, ' '), expanded: document.querySelector('.flow-chip').getAttribute('aria-expanded') }; });
     check(pop.bottom <= pop.rollTop && pop.top >= pop.cashBottom, `popover sits under the cash and clear of the roll button (${Math.round(pop.top)}-${Math.round(pop.bottom)} / ${Math.round(pop.rollTop)})`);
-    check(/משכורת/.test(pop.text) && /כסף שעובד/.test(pop.text) && /הוצאות/.test(pop.text) && pop.expanded === 'true', 'popover shows money in (salary + working money), out and left');
+    check(/כסף שנכנס/.test(pop.text) && /הוצאות/.test(pop.text) && /נשאר בחודש/.test(pop.text) && pop.expanded === 'true', 'popover shows money in, money out and what is left');
     await shot(page, 'hud-popover');
     await axe(page, 'HUD popover open');
     await page.mouse.click(5, H - 5);
@@ -205,8 +210,8 @@ async function main() {
     } else if (st.kind === 'card-opportunity') {
       if (st.strip && st.guess === 'off' && st.step === '1') { tour += 1; if (dealCount === 0 && firstDealNoGuess === null) firstDealNoGuess = true; }
       if (st.guess === 'ask') { if (dealCount >= 1) secondDealGuess = true; guessIntro = guessIntro || st.strip; await click(`${L}[data-action="guess-${st.payback <= 96 ? 'good' : 'bad'}"]`); await page.waitForTimeout(300); continue; }
-      if (st.strip && st.step && Number(st.step) < 4) { await click(`${L}[data-action="hint-next"]`); await page.waitForTimeout(450); continue; }
-      if (st.strip && st.step === '4') { await click(`${L}[data-action="hint-next"]`); await page.waitForTimeout(300); continue; }
+      if (st.strip && st.step && Number(st.step) < 5) { await click(`${L}[data-action="hint-next"]`); await page.waitForTimeout(450); continue; }
+      if (st.strip && st.step === '5') { await click(`${L}[data-action="hint-next"]`); await page.waitForTimeout(300); continue; }
       dealCount += 1;
       const afford = st.afford === 'true' && st.ctype !== 'stock' && st.cash - st.cost >= st.exp * 0.3;
       if (!(afford && await click(`${L}[data-action="buy"]:not([disabled])`))) await click(`${L}[data-action="pass"]`);
@@ -250,7 +255,7 @@ async function main() {
     await page.locator('.topbar .icon-btn').nth(1).click(); // help
     await page.waitForSelector('[data-howto="kid"]');
     await page.waitForTimeout(400);
-    check(await page.locator('[data-action="howto-story"]').count() === 1 && await page.locator('.howto li').count() === 4, 'family how-to: story row, dictionary row and four short rules');
+    check(await page.locator('[data-action="howto-story"]').count() === 1 && await page.locator('.howto li').count() === 5, 'family how-to: story row, dictionary row and five short rules');
     await noHScroll(page, 'kid how-to');
     await shot(page, 'howto-kid');
     await axe(page, 'kid how-to');
@@ -271,7 +276,7 @@ async function main() {
     await page.locator('.topbar .icon-btn').first().click();
     await page.waitForSelector('.dict-item');
     const dict = await page.locator('.dict-list').innerText();
-    check(/כסף שעובד בשבילך/.test(dict) && /המילה המקצועית: הכנסה פסיבית/.test(dict), 'dictionary (family): kid name with the real term underneath');
+    check(/כסף שעובד בשבילכם/.test(dict) && /המילה המקצועית: הכנסה פסיבית/.test(dict), 'dictionary (family): kid name with the real term underneath');
     await shot(page, 'dictionary-family');
     await axe(page, 'dictionary family');
     await page.keyboard.press('Escape');
@@ -288,6 +293,9 @@ async function main() {
     for (let i = 0; i < 4; i++) await page.locator('.story-next').click();
     await page.waitForTimeout(500);
     await axe(page, 'story screen 5');
+    // screen 5 is five short parts ('הבא' x4), then the last button goes on
+    for (let i = 0; i < 4; i++) { await page.locator('.story-next').click(); await page.waitForTimeout(350); }
+    await axe(page, 'story screen 5 last part');
     await page.locator('.story-next').click();
     await page.waitForSelector('[data-story="offer"]');
     await axe(page, 'check offer');

@@ -9,13 +9,17 @@ import { stripMarkup } from '../src/i18n/markup.js';
 
 const he = JSON.parse(readFileSync(new URL('../src/i18n/he.json', import.meta.url), 'utf8'));
 
-/** The adult words of spec section 8 (the 'term' column), with the usual one-letter Hebrew prefixes. */
+/**
+ * The adult words of spec section 8 + the educator's list (docs/v2/tutorial/spec.md, 'Changelog (round 11)'): a plain substring
+ * search, so the usual Hebrew prefixes (ה/ב/ל/מ/ש/ו/כ) are caught too ('ההכנסה הפסיבית', 'המקדמה', 'לריבית').
+ */
 export const FORBIDDEN = [
-  'תזרים', 'הכנסה פסיבית', 'הכנסות פסיביות', 'התחייבות', 'התחייבויות', 'מקדמה', 'משכנתא', 'משכנתאות', 'תשואה', 'החזר השקעה',
-  'ריבית', 'כרית ביטחון', 'דיבידנד', 'שווי נקי', 'פיזור',
+  'ריבית', 'תזרים', 'כרית', 'תשואה', 'מקדמה', 'הכנסה פסיבית', 'הכנסות פסיביות', 'פסיבית', 'משכנתא', 'התחייבות', 'התחייבויות',
+  'החזר השקעה', 'דיבידנד', 'שווי נקי', 'פיזור', 'מהי ',
 ];
-const PREFIX = '(?:^|[^\\u0590-\\u05FF])[הוכלמבש]{0,2}';
-const FORBIDDEN_RE = new RegExp(`${PREFIX}(?:${FORBIDDEN.map((w) => w.replace(/ /g, '\\s+').replace(/^ה/, 'ה?')).join('|')})`, 'u');
+const FORBIDDEN_RE = new RegExp(FORBIDDEN.join('|'), 'u');
+/** The only places where the real term is shown on purpose (spec: 'חריגים מותרים'): the story's first screen names it once. */
+const ALLOWED = /^tutorial\.story\.screens\.0\.lines/;
 const NON_TEXT = new Set(['notes', 'computed', 'was', 'sampleText', 'sampleOneLine', 'sampleNoAsset', 'sample', 'ownerWording', 'trigger', 'note', 'howto', 'keepAsIs', 'showWhile', 'round11', 'example', 'target', 'targetKey', 'textKey', 'a11y', 'reducedMotion', 'assumes', 'id', 'pose', 'term', 'level', 'kidName', 'kidShort', 'opening', 'tier', 'when', 'minNeeded', 'readSec']);
 
 function* walk(v, path = []) {
@@ -35,18 +39,26 @@ describe('family vocabulary: no adult money words on the key screens', () => {
     const lc = learnContent();
     const map = familyOverrideMap(lc.tutorial);
     leaks = [];
-    const check = (where, text) => { const plain = stripMarkup(text); if (FORBIDDEN_RE.test(plain)) leaks.push(`${where}: ${plain}`); };
+    const check = (where, text) => { const plain = stripMarkup(text); if (!ALLOWED.test(where) && FORBIDDEN_RE.test(plain)) leaks.push(`${where}: ${plain}`); };
     // locale file with the family layer on top (what t() returns in family mode)
     for (const g of HE_GROUPS) for (const [p] of walk(he[g], [g])) { if (FULL_ONLY.test(p)) continue; check(`he.json ${p}`, tRaw(p)); }
     // learn files (family view): feedback (family + shared lines), guess, report, hints, summary card, HUD, goal line, how-to, story
+    // feedback: the lines a family player really gets = the group's family list, else its shared (all) list (feedback.js resolve)
+    const feedbackLines = {};
+    const groups = (node, path = []) => {
+      if (Array.isArray(node)) return;
+      if (node && typeof node === 'object' && (node.family || node.all || node.full) && [node.family, node.all, node.full].some(Array.isArray)) { feedbackLines[path.join('.')] = node.family ?? node.all ?? []; return; }
+      for (const [k, v] of Object.entries(node ?? {})) groups(v, [...path, k]);
+    };
+    groups(lc.feedback.lines);
     const surfaces = {
-      feedback: lc.feedback.lines, guess: lc.guess, report: lc.report,
+      feedback: feedbackLines, guess: lc.guess, report: lc.report,
       'tutorial.hints': lc.tutorial.hints.items, 'tutorial.summary': lc.tutorial.summaryBreakdown, 'tutorial.hud': lc.tutorial.hudFamily,
       'tutorial.goal': lc.tutorial.goalLine, 'tutorial.howto': lc.tutorial.howtoKid, 'tutorial.story': lc.tutorial.story,
     };
     for (const [name, node] of Object.entries(surfaces)) {
       for (const [p, text] of walk(node, [name])) {
-        if (/\.full\.|\.full$|stock|Stock|dividend|investorEye|conversation\.full/.test(p)) continue;
+        if (/\.full\.|\.full$|labelFull|templateFull|zeroTemplateFull|stock|Stock|dividend|investorEye|conversation\.full|\.family\.note/.test(p)) continue;
         check(p, text);
       }
     }
@@ -56,7 +68,7 @@ describe('family vocabulary: no adult money words on the key screens', () => {
     expect(leaks, `\n${leaks.join('\n')}`).toEqual([]);
   });
   it('the matcher itself catches the adult words (and with prefixes)', () => {
-    for (const w of ['המקדמה חוזרת', 'תשואה של 5%', 'לכרית הביטחון', 'ריבית ששילמתם', 'התזרים עולה', 'הכנסה פסיבית']) expect(FORBIDDEN_RE.test(w), w).toBe(true);
+    for (const w of ['המקדמה חוזרת', 'תשואה של 5%', 'לכרית הביטחון', 'ריבית ששילמתם', 'התזרים עולה', 'הכנסה פסיבית', 'מהי הלוואה', 'ההכנסה הפסיבית']) expect(FORBIDDEN_RE.test(w), w).toBe(true);
     for (const w of ['כסף שעובד בשבילכם', 'התשלום הראשון', 'תוספת על ההלוואה', 'מה שנשאר בחודש']) expect(FORBIDDEN_RE.test(w), w).toBe(false);
   });
   it('every override entry points at a real string and uses only the slots of the original', () => {

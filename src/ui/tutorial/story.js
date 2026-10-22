@@ -55,11 +55,18 @@ function chainRow(screen) {
 }
 
 /** One screen as an element (the layer swaps these). */
-export function storyScreen({ screen, slots, n, total }) {
+export function storyScreen({ screen, slots, n, total, part = null }) {
   const ui = tut().ui;
   const ex = screen.example;
   const slotsFor = { 's2-expenses': slots.s2, 's3-freedom': slots.s3, 's5-turn': slots.s5 }[screen.id];
-  const exampleBody = slotsFor ? fillNodes(ex.text, slotsFor) : emphasise(ex.text);
+  // a screen of short 'parts': one idea at a time (part = index), or every part as plain lines when no index is given (the quiz replay)
+  const parts = screen.parts?.length ? screen.parts : null;
+  const cur = parts && part != null ? parts[Math.min(part, parts.length - 1)] : null;
+  const lines = parts ? (cur ? [cur.text] : parts.map((p) => p.text)) : screen.lines;
+  const exampleText = cur ? cur.exampleText : parts ? null : ex.text;
+  const exampleBody = exampleText ? (slotsFor ? fillNodes(exampleText, slotsFor) : emphasise(exampleText)) : null;
+  const showChain = !!screen.chain && (!cur || cur.id === 'p2-gather' || cur.id === 'p4-times');
+  const showSimplify = screen.simplification && (!cur || !screen.simplificationAfterPart || parts.findIndex((p) => p.id === screen.simplificationAfterPart) <= parts.indexOf(cur));
   const art = ART[screen.id];
   const pose = screen.pose;
   const stage = h('div', { class: `story-stage${art ? ' has-art' : ' fox-only'}`, 'data-pose': pose },
@@ -69,15 +76,17 @@ export function storyScreen({ screen, slots, n, total }) {
   return h('div', { class: 'story-screen', 'data-story': screen.id, 'data-n': String(n), 'data-total': String(total) },
     stage,
     h('h2', { class: 'story-title', tabindex: '-1' }, screen.title),
-    h('div', { class: 'story-body' }, screen.lines.map((l) => h('p', null, l))),
-    h('div', { class: 'story-card', 'data-story-card': '' },
-      h('span', { class: 'story-card-label' }, ui.exampleLabel),
-      h('p', { class: 'story-card-text' }, exampleBody),
-      ex.footnote ? h('p', { class: 'story-card-foot' }, ex.footnote) : null,
-      screen.chain ? chainRow(screen) : null),
-    screen.simplification
+    h('div', { class: 'story-body' }, lines.map((l) => h('p', null, slotsFor ? fillNodes(l, slotsFor) : l))),
+    exampleBody || showChain
+      ? h('div', { class: 'story-card', 'data-story-card': '' },
+        exampleBody ? [h('span', { class: 'story-card-label' }, ui.exampleLabel), h('p', { class: 'story-card-text' }, exampleBody)] : null,
+        ex?.footnote && !cur ? h('p', { class: 'story-card-foot' }, ex.footnote) : null,
+        showChain ? chainRow(screen) : null)
+      : null,
+    showSimplify
       ? h('p', { class: 'story-simplify' }, h('b', { class: 'story-simplify-label' }, `${ui.simplificationLabel}: `), screen.simplification)
-      : null);
+      : null,
+    parts && cur ? h('p', { class: 'story-part-of', 'aria-live': 'polite' }, ui.partOf.replace('{n}', String(part + 1)).replace('{total}', String(parts.length))) : null);
 }
 
 const dots = (n, total) => h('div', { class: 'story-dots', role: 'img', 'aria-label': tut().ui.dots.replace('{n}', n).replace('{total}', total) },
@@ -95,6 +104,8 @@ export function runStory({ engine, professionId = 'teacher', startAt = 0, single
   const slots = storySlots(engine, professionId);
   const total = screens.length;
   let index = Math.min(Math.max(0, startAt), total - 1);
+  let part = 0; // inside a screen that has parts
+  const partsOf = (i) => (single ? 0 : screens[i].parts?.length ?? 0);
   let layer;
   let result = { completed: false, skipped: false };
   const viewHost = h('div', { class: 'story-view' });
@@ -123,26 +134,27 @@ export function runStory({ engine, professionId = 'teacher', startAt = 0, single
   function paintTop() {
     const ui = content.ui;
     const back = h('button', { type: 'button', class: 'icon-btn story-back', 'aria-label': ui.back, 'data-action': 'story-back', onClick: () => go(-1) }, icon('arrow', { size: 22, width: 3 }));
-    if (index === 0 || single) back.style.visibility = 'hidden';
+    if ((index === 0 && part === 0) || single) back.style.visibility = 'hidden';
     const skip = single ? h('span', { class: 'story-skip-gap' }) : h('button', { type: 'button', class: 'btn btn-text story-skip', 'data-action': 'story-skip', onClick: () => skip_() }, ui.skip);
     topHost.replaceChildren(back, single ? h('span') : dots(index + 1, total), skip);
   }
 
   function paintCta() {
     const ui = content.ui;
-    const last = index === total - 1;
-    const label = single ? ui.back : last ? ui.go : ui.next;
+    const nParts = partsOf(index);
+    const last = index === total - 1 && (!nParts || part === nParts - 1);
+    const label = single ? ui.back : nParts && part < nParts - 1 ? ui.partNext : last ? ui.go : ui.next;
     ctaHost.replaceChildren(button(label, { variant: 'primary', size: 'lg', cls: 'story-next', 'data-action': 'story-next', 'data-autofocus': '', onClick: () => go(1) }));
   }
 
-  function show(dir = 1) {
+  function show(dir = 1, { same = false } = {}) {
     const screen = screens[index];
-    const el = storyScreen({ screen, slots, n: index + 1, total });
+    const el = storyScreen({ screen, slots, n: index + 1, total, part: partsOf(index) ? part : null });
     viewHost.replaceChildren(el);
     paintTop();
     paintCta();
     cross(el, dir);
-    entrance(el);
+    if (!same) entrance(el);
     el.querySelector('.story-title')?.focus({ preventScroll: true });
     el.querySelector('[data-story-card]')?.addEventListener('click', () => go(1));
     layer.panel.setAttribute('aria-label', content.ui.storyLayer.replace('{n}', index + 1).replace('{total}', total));
@@ -151,10 +163,14 @@ export function runStory({ engine, professionId = 'teacher', startAt = 0, single
   async function go(dir) {
     haptic('tap');
     if (single) { finish({ completed: false, skipped: false }); return; }
+    // inside a screen of parts, 'הבא' / back move between its parts first
+    const nParts = partsOf(index);
+    if (nParts && part + dir >= 0 && part + dir < nParts) { part += dir; show(dir, { same: true }); return; }
     const next = index + dir;
     if (next < 0) return;
     if (next >= total) { result = { completed: true, skipped: false }; await end(); return; }
     index = next;
+    part = dir < 0 ? Math.max(0, partsOf(index) - 1) : 0;
     show(dir);
   }
 
@@ -191,7 +207,7 @@ export function runStory({ engine, professionId = 'teacher', startAt = 0, single
   // Back (Android / browser) steps to the previous screen; on the first screen, or once the check has begun, it closes the story
   const releaseBack = holdBack('story', () => {
     if (layer.done) return;
-    if (!closing && !single && index > 0) go(-1);
+    if (!closing && !single && (index > 0 || part > 0)) go(-1);
     else if (closing) finish({ completed: true, skipped: false });
     else if (single) finish({ completed: false, skipped: false });
     else skip_();

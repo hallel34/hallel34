@@ -17,6 +17,8 @@
       "downPayment": "downPayment של הקלף, כסף מעוצב",
       "years": "ביטוי מלא עם יחידה מפונקציית הרבים (שנה אחת, שנתיים, 3.7 שנים), אותו ערך כמו card.payback",
       "passive": "passiveIncome(state)",
+      "lossAbs": "סכום הערכים המוחלטים של התזרימים השליליים של הנכסים, כסף מעוצב (round 11)",
+      "passiveSigned": "passiveIncome(state) עם סימן, כסף מעוצב (round 11)",
       "left": "max(0, totalExpenses - passiveIncome), כסף מעוצב",
       "pct": "אחוז התקדמות המד, מעוגל",
       "cash": "state.cash",

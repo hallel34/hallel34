@@ -12,7 +12,7 @@ import { button, iconButton, meter, cashDisplay, miniMeter, fitText } from './wi
 import { createDice } from './die.js';
 import { motionOK } from './prefs.js';
 import {
-  haptic, sound, animate, cssMs, cssPx, floatText, coinBurst, shake, pulse, pause,
+  haptic, sound, animate, cssMs, cssPx, floatText, coinBurst, shake, pulse, pause, toast,
 } from './fx.js';
 import * as raw from './modals.js';
 import { openStatement } from './statement.js';
@@ -120,7 +120,11 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     : h('span', { class: 'flow-chip' });
   const goalLine = h('p', { class: 'goal-line', hidden: true, 'data-goal': '' });
   const freeLine = h('p', { class: 'free-line', hidden: true, 'data-free': '' });
-  const cashWrap = h('span', { class: 'cash-wrap', 'aria-label': t('game.cash') }, cash.el);
+  // Family: 'מזומן' is named once in words ('הכסף שיש לכם עכשיו'): a caption under the number on tall screens, a tap-for-tooltip on short ones
+  const cashUi = isFamily ? tut().ui : null;
+  const cashWrap = h('span', { class: 'cash-wrap', 'aria-label': cashUi ? `${t('game.cash')}, ${cashUi.cashLabel}` : t('game.cash'), title: cashUi?.cashTooltip }, cash.el);
+  const cashCap = cashUi ? h('p', { class: 'cash-cap', 'data-cash-caption': '' }, cashUi.cashCaption) : null;
+  if (cashUi) cashWrap.addEventListener('click', () => { if (getComputedStyle(cashCap).display === 'none') toast(cashUi.cashTooltip, 3500); });
   fitText(cash.el, { minScale: 0.5, box: cashWrap }); // very narrow screens (320px): a long amount shrinks to fit instead of overflowing
   const passiveVal = h('b', { class: 'tone-income' });
   const expenseVal = h('b', { class: 'tone-expense' });
@@ -140,6 +144,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
       h('img', { class: 'hud-coin', src: coinUrl, alt: '', width: 30, height: 30 }),
       cashWrap,
       flowChip),
+    cashCap,
     goalLine,
     h('div', { class: 'meter-labels' },
       h('span', null, t('game.passive'), ' ', passiveVal),
@@ -225,8 +230,10 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
 
   /** The text of a floating hint with its figures (all from the live state). */
   function floatingView(id, ctx = {}) {
-    const def = hintDef(id);
+    let def = hintDef(id);
     const st = statement(state);
+    // 'h-almost' says 'עוד {left} ועוד קצת': exactly on the line (left = 0) winning still needs MORE, so the line says that instead
+    if (id === 'h-almost' && leftToFreedom(state) === 0) def = { ...def, text: tut().goalLine.progress.onTheLine, more: null };
     const slots = { amount: money(ctx.amount ?? 0), cashLeft: money(ctx.cashLeft ?? state.cash), passive: money(st.passiveIncome), expenses: money(st.totalExpenses), left: money(leftToFreedom(state)) };
     return { id, pose: def.pose, body: fillNodes(def.text, slots), more: def.more ? fillNodes(def.more, slots) : null, plain: def.text };
   }

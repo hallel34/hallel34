@@ -290,6 +290,7 @@ function finishOpportunity({ state, c, body, flip, qtyGetter, plan, ctl = null, 
 }
 
 const tutLabel = () => learnContent().tutorial.ui.hintFoxLabel;
+const tutLabelHome = () => ({ link: learnContent().tutorial.ui.handoffHomeLink });
 
 /**
  * The first card's 3-step tour (spec section 5): a strip between the numbers and the buttons says what the down payment, the monthly
@@ -703,7 +704,7 @@ export function handoffSheet({ name, color, recap = null, extra = null, onHome =
     h('p', { class: 'dialog-text' }, withName(t('players.handoffText', { name: '{name}' }), name)),
     recapBlock, extraBlock,
     h('div', { class: 'sheet-cta' }, go,
-      onHome ? button(t('game.home'), { variant: 'text', cls: 'btn-handoff-home', 'data-action': 'handoff-home', onClick: () => onHome() }) : null));
+      onHome ? button(tutLabelHome().link, { variant: 'text', cls: 'btn-handoff-home', 'data-action': 'handoff-home', onClick: () => { if (armed) onHome(); } }) : null));
   layer = openLayer(content, { kind: 'sheet', label: t('players.handoffTitle', { name }), dismissable: false, cls: 'layer-handoff' });
   const armTimer = setTimeout(() => { armed = true; go.removeAttribute('aria-disabled'); go.classList.remove('is-arming'); go.classList.add('is-armed'); }, ARM_MS);
   layer.closed.then(() => clearTimeout(armTimer));
