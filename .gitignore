@@ -2,3 +2,4 @@ node_modules
 dist
 test-results
 vite.config.js.timestamp-*
+tmp/
