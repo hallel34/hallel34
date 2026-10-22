@@ -169,9 +169,9 @@ describe('first-time hints', () => {
     expect(STORY_COVERED).toEqual(['cashflow', 'passive_income', 'down_payment', 'interest', 'cushion']);
   });
 
-  it('asset kind of the first-income wording follows the latest paying asset', () => {
+  it('asset kind of the first-income wording: one asset names its kind, several are "many"', () => {
     expect(assetKindOf({ assets: [] })).toBe('apartment');
-    expect(assetKindOf({ assets: [{ type: 'apartment', monthlyCashFlow: 5 }, { type: 'business', monthlyCashFlow: 5 }] })).toBe('business');
+    expect(assetKindOf({ assets: [{ type: 'apartment', monthlyCashFlow: 5 }, { type: 'business', monthlyCashFlow: 5 }] })).toBe('many');
   });
 });
 

@@ -322,6 +322,13 @@
     "shareText": "הגעתי לחופש כלכלי {turns} ב״פסיבו״! הכנסה פסיבית: {passive}",
     "copied": "הועתק ללוח"
   },
+  "summary": { "lossAsset": "נכס מפסיד" },
+  "hint": {
+    "incomeMany": "הנכסים שקניתם הכניסו {passiveTotal} בשנתיים האלה.",
+    "incomeManyMore": "בכל חודש הם מכניסים יחד {passive}. {months} חודשים זה {passiveTotal}, והם כבר בתוך הסכום שהגיע למזומן.",
+    "skipToastHowTo": "איך משחקים?"
+  },
+  "goal": { "min": "המטרה: מעל ההוצאות" },
   "daily": {
     "title": "אתגר יומי",
     "cardTitle": "אתגר יומי · {date}",

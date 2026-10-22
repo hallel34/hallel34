@@ -35,7 +35,7 @@ import {
 } from '../engine/learn.js';
 import { REACTIONS, LAND_REACTION, tipIndexForTurn } from './fox-rules.js';
 import { summaryCard } from './summary-card.js';
-import { createFamilyHud } from './hud-family.js';
+import { createFamilyHud, GOAL_MIN_HEIGHT } from './hud-family.js';
 import {
   tut, hintDef, fillNodes, showRing, hintStrip, hintMoreAllowed,
 } from './hint-ui.js';
@@ -230,7 +230,13 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     const slots = { amount: money(ctx.amount ?? 0), cashLeft: money(ctx.cashLeft ?? state.cash), passive: money(st.passiveIncome), expenses: money(st.totalExpenses), left: money(leftToFreedom(state)) };
     return { id, pose: def.pose, body: fillNodes(def.text, slots), more: def.more ? fillNodes(def.more, slots) : null, plain: def.text };
   }
-  const ringTarget = (id) => (id === 'h-roll' ? rollBtn : id.startsWith('h-expense') ? el.querySelector('.hud-cash') : el.querySelector('.hud .meter-track'));
+  /** The nearest 'סיכום שנתיים' tile ahead of the active pawn (the hint's ring goes on the board, never over it). */
+  const nextPaydayTile = () => {
+    const from = pawnAt[match.currentIndex];
+    for (let k = 1; k <= BOARD.length; k++) { const i = (from + k) % BOARD.length; if (BOARD[i] === 'payday') return tiles[i]; }
+    return null;
+  };
+  const ringTarget = (id) => (id === 'h-roll' ? rollBtn : id === 'h-summary-square' ? nextPaydayTile() : id.startsWith('h-expense') ? el.querySelector('.hud-cash') : el.querySelector('.hud .meter-track'));
 
   /** Single player: the fox points from the roll zone (after the feedback line), ring on the target. Hot-seat: see sheetExtra(). */
   function showFloatingHint() {
@@ -242,14 +248,14 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     floating = { id: next.id, shown: false };
     flow.notes.push({
       kind: 'hint', id: next.id, label: tut().ui.hintFoxLabel, pose: v.pose, body: v.body, more: v.more, plain: v.plain,
-      onShow: () => { floating.shown = true; ring = showRing(ringTarget(next.id)); },
+      onShow: () => { floating.shown = true; const tgt = ringTarget(next.id); if (tgt) ring = showRing(tgt); },
       onHide: () => { ring?.remove(); ring = null; },
     });
     return true;
   }
   /** A floating hint that never reached the screen (the player rolled on first) is given back for a later turn. */
   function releaseUnshownHint() {
-    if (floating && !floating.shown) hints.release(floating.id);
+    if (floating && !floating.shown) hints.release(floating.id, state.turn);
     floating = null;
   }
 
@@ -261,7 +267,10 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     if (pick.variant === 'income') {
       const kind = assetKindOf(state);
       const slots = { passive: money(f.passive), months: numberText(f.months), passiveTotal: money(f.passive * f.months) };
-      return { body: fillNodes(def.textAsset[kind], slots), more: fillNodes(def.moreAsset[kind], slots), target: 'passive' };
+      // several income assets: 'הנכסים שקניתם הכניסו ₪X' (the content may supply textAsset.many / moreAsset.many, else the locale file)
+      const body = kind === 'many' ? (def.textAsset.many ?? t('hint.incomeMany')) : def.textAsset[kind];
+      const more = kind === 'many' ? (def.moreAsset.many ?? t('hint.incomeManyMore')) : def.moreAsset[kind];
+      return { body: fillNodes(body, slots), more: fillNodes(more, slots), target: 'passive' };
     }
     const v = def.variants[pick.variant];
     const slots = { monthly: money(f.monthly), months: numberText(f.months), amount: money(pick.variant === 'negative' ? Math.abs(f.amount) : f.amount) };
@@ -460,6 +469,8 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   refreshHud();
   const mqShort = typeof matchMedia === 'function' ? matchMedia(`(max-height: ${tut().goalLine.shortFromHeightPx}px)`) : null;
   mqShort?.addEventListener?.('change', refreshHud); // the goal line has a short form on short screens
+  const mqMin = typeof matchMedia === 'function' ? matchMedia(`(max-height: ${GOAL_MIN_HEIGHT}px)`) : null;
+  mqMin?.addEventListener?.('change', refreshHud); // ...and a minimal one-liner on the smallest
   lastPct = (() => { const st = statement(state); return st.totalExpenses > 0 ? st.passiveIncome / st.totalExpenses : 0; })();
 
   /** The engine state of the active player is saved into the match, then the whole match is persisted. */
@@ -669,6 +680,9 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     if (destroyed) return;
     if (match.status !== 'playing') { setBusy(false); await finishIfOver(); return; }
     if (state.status === 'lost') { await outFlow(); return; }
+    // until the first 'סיכום שנתיים' has been passed (turns 1-3) the fox points at that square on the board (after h-roll, never with it)
+    const squareMoot = hints.isSeen('h-summary') || hints.isSeen('h-summary-income') || state.turn > 3;
+    if (squareMoot) hints.drop('h-summary-square'); else if (state.turn >= 1) hints.offer('h-summary-square', state.turn);
     // the fox points from the roll zone after the feedback line (single player); in hot-seat the sheet carries it
     if (!multi) showFloatingHint();
     settleButton();
@@ -706,7 +720,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     busy = true;
     paintButton('working');
     el.classList.remove('is-busy');
-    const tapped = await handoffSheet({ name: nameOf(), color: colorOf(), recap, extra });
+    const tapped = await handoffSheet({ name: nameOf(), color: colorOf(), recap, extra, onHome: () => askHome() });
     if (!tapped || destroyed) return;
     busy = false;
     paintButton('roll');
@@ -965,6 +979,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     clearTimeout(tipTimer);
     famHud?.destroy();
     mqShort?.removeEventListener?.('change', refreshHud);
+    mqMin?.removeEventListener?.('change', refreshHud);
     reactor.hide();
     flow.destroy();
     clearLearnHooks();

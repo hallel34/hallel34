@@ -305,9 +305,12 @@ function createCardTour(tour, getCard) {
   const btn = strip.querySelector('.hint-next');
   const aim = () => {
     const card = getCard();
-    const target = tour.steps[i].target ? card?.querySelector(`[data-tut="${tour.steps[i].target}"]`) : null;
+    const want = tour.steps[i].target;
+    // 'hud-cash' = the step about where the first payment comes from: the ring goes on the cash in the HUD (behind the card), not on the card
+    const outside = want === 'hud-cash';
+    const target = outside ? document.querySelector('.hud-cash') : want ? card?.querySelector(`[data-tut="${want}"]`) : null;
     if (!target) { ring?.remove(); ring = null; return; }
-    if (ring) ring.move(target, { onCream: true }); else ring = showRing(target, { onCream: true, holdMs: 120000 });
+    if (ring) ring.move(target, { onCream: !outside }); else ring = showRing(target, { onCream: !outside, holdMs: 120000 });
   };
   function advance() {
     haptic('tap');
@@ -537,6 +540,7 @@ export function loanDialog(state, { required = 0, gain = null, hint = null } = {
     ? [h('div', { class: 'banner banner-warn', role: 'status' }, icon('bank', { size: 24 }), h('span', null, t('loan.limitReached'))), capNote(state)].filter(Boolean)
     : [
       st.el,
+      hintEl, // first loan window: the fox's line sits right under the stepper, above the figures (never below the fold)
       rateLine,
       h('div', { class: 'kv' }, h('span', null, tn('loan.monthlyPayment', { amount: payOut }))),
       h('div', { class: 'kv', 'data-loan': 'interest' }, h('span', null, tn('loan.interestUntil', { months: numberText(PAYDAY_MONTHS) }, { scope })), interestOut),
@@ -547,7 +551,6 @@ export function loanDialog(state, { required = 0, gain = null, hint = null } = {
       h('div', { class: 'limit' }, h('div', { class: 'limit-bar', 'aria-hidden': 'true' }, barFill), h('div', { class: 'limit-row' }, h('span', null, t('loan.limit')), usedLabel),
         capNote(state)),
       realWorldForPlace('loan-window'),
-      hintEl,
     ].filter(Boolean);
   const d = dialogShell({
     title: voluntary ? t('loan.titleVoluntary') : t('loan.title'),
@@ -668,15 +671,17 @@ export function sellSheet(getState, onSell, { shouldClose = () => false } = {}) 
  * extra: { body: Node|string, more?: Node|string, pose? } one learning line (a hint, an explainer or a tip) or null.
  * Resolves true on the tap, false when the screen was torn down with the sheet still open.
  */
-export function handoffSheet({ name, color, recap = null, extra = null }) {
+export const ARM_MS = 700;
+export function handoffSheet({ name, color, recap = null, extra = null, onHome = null }) {
   let layer;
   let tapped = false;
+  let armed = false; // the primary button ignores input until the sheet has settled: a quick second tap from the previous card never rolls
   let resolveTap;
   const tap = new Promise((r) => { resolveTap = r; });
   const go = button(h('span', { class: 'btn-label' }, withName(t('players.rollFor', { name: '{name}' }), name)), {
-    variant: 'primary', size: 'lg', cls: 'btn-roll-next', 'data-action': 'roll-next', 'data-autofocus': '',
+    variant: 'primary', size: 'lg', cls: 'btn-roll-next is-arming', style: `--arm-ms:${ARM_MS}ms`, 'data-action': 'roll-next', 'data-autofocus': '', 'aria-disabled': 'true',
     onClick: () => {
-      if (tapped) return; // a second tap on the closing sheet does nothing
+      if (tapped || !armed) return; // a second tap on the closing sheet, or a tap while it is still arming, does nothing
       tapped = true;
       go.disabled = true;
       haptic('tap');
@@ -697,8 +702,11 @@ export function handoffSheet({ name, color, recap = null, extra = null }) {
     h('h2', { class: 'dialog-title handoff-title' }, withName(t('players.handoffTitle', { name: '{name}' }), name)),
     h('p', { class: 'dialog-text' }, withName(t('players.handoffText', { name: '{name}' }), name)),
     recapBlock, extraBlock,
-    h('div', { class: 'sheet-cta' }, go));
+    h('div', { class: 'sheet-cta' }, go,
+      onHome ? button(t('game.home'), { variant: 'text', cls: 'btn-handoff-home', 'data-action': 'handoff-home', onClick: () => onHome() }) : null));
   layer = openLayer(content, { kind: 'sheet', label: t('players.handoffTitle', { name }), dismissable: false, cls: 'layer-handoff' });
+  const armTimer = setTimeout(() => { armed = true; go.removeAttribute('aria-disabled'); go.classList.remove('is-arming'); go.classList.add('is-armed'); }, ARM_MS);
+  layer.closed.then(() => clearTimeout(armTimer));
   // torn down with the sheet still open (home, debug): nobody tapped
   layer.closed.then(() => resolveTap(false));
   return tap;

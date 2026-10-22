@@ -9,6 +9,7 @@ import { button } from '../widgets.js';
 import { money, moneyText } from '../format.js';
 import { animate, haptic } from '../fx.js';
 import { motionOK } from '../prefs.js';
+import { holdBack } from '../history.js';
 import { tut, fillNodes } from '../hint-ui.js';
 import { storyFigures } from '../../learn/tutorial.js';
 import treeUrl from '../../assets/tutorial/tree-coins.svg?url';
@@ -187,6 +188,15 @@ export function runStory({ engine, professionId = 'teacher', startAt = 0, single
   }
 
   layer = openLayer(root, { kind: 'modal', label: content.ui.title, dismissable: false, cls: 'layer-story' });
+  // Back (Android / browser) steps to the previous screen; on the first screen, or once the check has begun, it closes the story
+  const releaseBack = holdBack('story', () => {
+    if (layer.done) return;
+    if (!closing && !single && index > 0) go(-1);
+    else if (closing) finish({ completed: true, skipped: false });
+    else if (single) finish({ completed: false, skipped: false });
+    else skip_();
+  });
+  layer.closed.then(() => releaseBack());
   show(1);
   return layer.closed.then((r) => r ?? result);
 }

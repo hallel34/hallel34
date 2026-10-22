@@ -55,15 +55,33 @@ export function summaryFigures(state, payday, cashBefore = state.cash) {
   const amount = payday ? payday.amount : monthly * months;
   return {
     salary, passive, expenses, monthly, months, amount, cashBefore, cashAfter: cashBefore + amount,
-    negative: monthly < 0, hasPassive: passive > 0,
+    negative: monthly < 0, hasPassive: passive > 0, hasLoss: passive < 0,
     check: salary + passive - expenses === monthly && monthly * months === amount && (!payday || payday.monthly === monthly),
   };
 }
 
-/** 'apartment' | 'business': the kind of the asset that pays most recently bought (wording of the first-income hint). */
+/**
+ * The three rows of the summary card as data: salary + money that works (signed: a money-losing asset makes it negative) - expenses.
+ * `reconciles` = the rows add up to the monthly result AND monthly x months = the amount that reaches the cash.
+ */
+export function summaryRowModel(f) {
+  const kind = f.passive < 0 ? 'loss' : f.passive > 0 ? 'income' : 'none';
+  const rows = [
+    { id: 'salary', value: f.salary },
+    { id: 'passive', value: f.passive, kind },
+    { id: 'expenses', value: -f.expenses },
+  ];
+  const sum = rows.reduce((a, r) => a + r.value, 0);
+  return { rows, sum, reconciles: sum === f.monthly && f.monthly * f.months === f.amount };
+}
+
+/**
+ * 'apartment' | 'business' when exactly ONE asset has a cash flow (the first-income hint may name it), else 'many':
+ * with several income assets (or a money-losing one next to them) the total belongs to all of them, never to the last one bought.
+ */
 export function assetKindOf(state) {
-  const paying = (state.assets ?? []).filter((a) => a.type !== 'stock' && a.monthlyCashFlow > 0);
-  return paying.length ? paying[paying.length - 1].type : 'apartment';
+  const flowing = (state.assets ?? []).filter((a) => a.type !== 'stock' && a.monthlyCashFlow !== 0);
+  return flowing.length === 1 ? flowing[0].type : flowing.length > 1 ? 'many' : 'apartment';
 }
 
 // ---------- story numbers (spec section 1 and 2) ----------
@@ -91,7 +109,7 @@ export function storyFigures(state, cards) {
 
 // ---------- hints (spec section 5) ----------
 /** Hints that float in the roll zone (at most one per turn); the others are strips inside a card, the summary or the loan window. */
-export const FLOATING_HINTS = ['h-roll', 'h-expense-paid', 'h-expense-loan', 'h-meter', 'h-almost'];
+export const FLOATING_HINTS = ['h-roll', 'h-expense-paid', 'h-expense-loan', 'h-meter', 'h-almost', 'h-summary-square'];
 /** The two expense hints are one lesson: whichever shows first retires the other. */
 export const EXPENSE_GROUP = ['h-expense-paid', 'h-expense-loan'];
 /** The summary hints: the income one retires the plain one. */
@@ -106,6 +124,7 @@ export function createHintScheduler({ seen = {}, active = () => true, mark = () 
   const book = { ...seen };
   let floatedThisTurn = false;
   let pending = [];
+  const taking = new Map(); // floating hints handed out this turn: id -> { turn, ctx } (so a release can queue them again)
   // the expense hints retire each other; the income summary hint retires the plain one, but not the other way round
   const group = (id) => (EXPENSE_GROUP.includes(id) ? EXPENSE_GROUP : id === 'h-summary-income' ? SUMMARY_GROUP : [id]);
   const retire = (id, turn) => { for (const g of group(id)) if (book[g] == null) { book[g] = turn; mark(g, turn); } };
@@ -116,8 +135,16 @@ export function createHintScheduler({ seen = {}, active = () => true, mark = () 
     newTurn() { floatedThisTurn = false; },
     /** Re-reads the device record (the settings may have reset the hints). */
     sync(next = {}) { for (const k of Object.keys(book)) delete book[k]; Object.assign(book, next); },
-    /** A taken hint that never reached the screen (the player rolled on first) is given back: it may show again. */
-    release(id) { for (const g of group(id)) if (book[g] != null) { delete book[g]; unmark(g); } },
+    /**
+     * A taken hint that never reached the screen (the player rolled on first) is given back AND put back in the queue with
+     * priority: it is never lost, and it shows within the next two turns (an overdue hint outranks the others).
+     */
+    release(id, turn = 0) {
+      const taken = taking.get(id);
+      for (const g of group(id)) if (book[g] != null) { delete book[g]; unmark(g); }
+      if (active() && !pending.some((p) => p.id === id)) pending.push({ id, turn: taken?.turn ?? turn, ctx: taken?.ctx ?? {}, requeued: true });
+      taking.delete(id);
+    },
     /** Inline hint at its moment: true (and remembered) when it should show now. */
     claim(id, turn = 0) {
       if (!active() || isSeen(id)) return false;
@@ -134,12 +161,17 @@ export function createHintScheduler({ seen = {}, active = () => true, mark = () 
       if (!active() || floatedThisTurn) return null;
       pending = pending.filter((p) => !isSeen(p.id));
       if (!pending.length) return null;
-      pending.sort((a, b) => priorityOf(a.id) - priorityOf(b.id) || a.turn - b.turn);
+      // a re-queued or overdue hint (waiting 2+ turns) outranks everything else: nothing waits forever behind a busier hint
+      const rank = (p) => priorityOf(p.id) - (p.requeued ? 20 : 0) - (turn - p.turn >= 2 ? 20 : 0);
+      pending.sort((a, b) => rank(a) - rank(b) || a.turn - b.turn);
       const next = pending.shift();
+      taking.set(next.id, { turn: next.turn, ctx: next.ctx });
       retire(next.id, turn);
       floatedThisTurn = true;
       return next;
     },
+    /** Forget a waiting floating hint whose moment is over (e.g. the square it points at has been passed). */
+    drop(id) { pending = pending.filter((p) => p.id !== id); },
     get floatedThisTurn() { return floatedThisTurn; },
     get pending() { return pending.map((p) => p.id); },
   };

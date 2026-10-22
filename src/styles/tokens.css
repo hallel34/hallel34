@@ -106,6 +106,8 @@
   --expense: var(--c-coral-300);
   --expense-fill: var(--c-coral-500);
   --expense-ink: var(--c-coral-700);  /* on cream/white */
+  --amber-ink: #FFD27A;               /* neutral caution text: a negative result is never red (dark theme, on navy) */
+  --amber-fill: rgb(246 196 83 / .16);
   --asset: var(--c-gold-400);
   --asset-fill: var(--c-gold-400);
   --liability: #C3BDF0;
@@ -241,6 +243,8 @@
 
   --income: var(--c-mint-700);
   --expense: var(--c-coral-700);
+  --amber-ink: #6E4200;               /* 7:1 on the light paper */
+  --amber-fill: rgb(242 181 58 / .30);
   --asset: #8A5200;                   /* 5.8:1 on bg */
   --liability: #55508A;
   --passive: #0A7560;

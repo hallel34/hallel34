@@ -190,10 +190,12 @@ export function pulse(el, scale = 1.12) {
 export const pause = (ms) => new Promise((r) => setTimeout(r, motionOK() ? ms : Math.min(ms, 30)));
 
 /** Short, polite status toast (e.g. "copied"). */
-export function toast(text, ms = 2200) {
+export function toast(text, ms = 2200, { action = null } = {}) {
   const layer = document.getElementById('toast-layer');
   if (!layer) return;
-  const el = h('div', { class: 'toast', role: 'status' }, text);
+  // an action ({ label, onClick }) makes the toast tappable: a button inside it (the layer itself never takes taps)
+  const el = h('div', { class: `toast${action ? ' toast-action' : ''}`, role: 'status' }, text,
+    action ? h('button', { type: 'button', class: 'toast-btn', 'data-action': 'toast-action', onClick: () => { action.onClick(); el.remove(); } }, action.label) : null);
   layer.append(el);
   animate(el, [{ opacity: 0, transform: motionOK() ? 'translateY(12px)' : 'none' }, { opacity: 1, transform: 'none' }], { duration: 200 });
   setTimeout(() => {

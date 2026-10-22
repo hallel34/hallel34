@@ -9,7 +9,7 @@ const words = (s) => String(s).trim().split(/\s+/).filter(Boolean).length;
 
 /** Keys that are authoring notes only (never rendered): skipped by the slot scan. */
 const AUTHORING = new Set(['notes', 'computed', 'was', 'sampleText', 'sampleOneLine', 'sampleNoAsset', 'sample', 'ownerWording', 'trigger', 'family', 'note', 'howto', 'keepAsIs', 'showWhile']);
-export const HINT_IDS = ['h-roll', 'h-card', 'h-guess-intro', 'h-summary', 'h-summary-income', 'h-loan', 'h-expense-paid', 'h-expense-loan', 'h-meter', 'h-almost'];
+export const HINT_IDS = ['h-roll', 'h-card', 'h-guess-intro', 'h-summary', 'h-summary-income', 'h-loan', 'h-expense-paid', 'h-expense-loan', 'h-meter', 'h-almost', 'h-summary-square'];
 
 function* strings(v, path = []) {
   if (typeof v === 'string') yield [path.join('.'), v];
@@ -47,9 +47,16 @@ export function validateTutorial(tut, { glossaryIds = new Set(), cards = [], glo
     ids.add(s.id);
     if (!POSE_NAMES.includes(s.pose)) err(`${w}: pose ${s.pose}`);
     if (!isStr(s.title)) err(`${w}: title`);
-    if (!Array.isArray(s.lines) || !s.lines.length || s.lines.some((l) => !isStr(l))) err(`${w}: lines`);
+    // a screen is either plain lines or a sequence of short 'parts' (one idea each, advanced with 'הבא' inside the screen)
+    const parts = Array.isArray(s.parts) && s.parts.length ? s.parts : null;
+    if (parts) {
+      const pids = new Set();
+      for (const p of parts) { if (!isStr(p?.id) || pids.has(p.id) || !isStr(p.text)) err(`${w}: part ${p?.id}`); pids.add(p?.id); }
+      if (words(parts.map((p) => p.text).join(' ')) > 60) err(`${w}: more than 60 words in the parts`);
+      if (s.simplificationAfterPart && !pids.has(s.simplificationAfterPart)) err(`${w}: simplificationAfterPart`);
+    } else if (!Array.isArray(s.lines) || !s.lines.length || s.lines.some((l) => !isStr(l))) err(`${w}: lines`);
     else if (words(s.lines.join(' ')) > 45) err(`${w}: more than 45 words`);
-    if (!isStr(s.example?.text)) err(`${w}: example.text`);
+    if (!parts && !isStr(s.example?.text)) err(`${w}: example.text`);
     if (s.example?.cardId && cards.length && !cards.some((c) => c.id === s.example.cardId)) err(`${w}: unknown card ${s.example.cardId}`);
     if (s.simplification != null && !isStr(s.simplification)) err(`${w}: simplification`);
     if (!Number.isFinite(s.readSec)) err(`${w}: readSec`); else secs += s.readSec;
@@ -89,7 +96,7 @@ export function validateTutorial(tut, { glossaryIds = new Set(), cards = [], glo
     if (!isStr(hint('h-summary-income').textAsset?.[k]) || !isStr(hint('h-summary-income').moreAsset?.[k])) err(`hint h-summary-income.${k}`);
   }
   const steps = hint('h-card').steps ?? [];
-  if (steps.length !== 3 || steps.some((st) => !isStr(st.text) || !isStr(st.target))) err('hint h-card: 3 steps with target + text');
+  if (steps.length < 3 || steps.some((st) => !isStr(st.text) || !isStr(st.target))) err('hint h-card: at least 3 steps with target + text');
   if (!isStr(hint('h-card').closing)) err('hint h-card: closing');
 
   // ---- summary breakdown / HUD / goal line ----
@@ -116,20 +123,25 @@ export function validateTutorial(tut, { glossaryIds = new Set(), cards = [], glo
   const keys = new Set();
   for (const o of tut.familyStrings?.overrides ?? []) {
     const w = `familyStrings ${o?.key}`;
-    const orig = rawString(o.key, 'he');
     if (keys.has(o.key)) err(`${w}: duplicate`);
     keys.add(o.key);
+    if (!isStr(o.family)) err(`${w}: family text`);
+    if (typeof o.key === 'string' && o.key.includes(':')) {
+      // 'file:path' = a string inside a learn file; existence and slots are checked against the loaded files (tests/kid-vocabulary.test.js)
+      if (!/^(glossary|feedback|report|guess|realWorld|tutorial):[\w.-]+$/.test(o.key)) err(`${w}: use '<file>:<dotted.path>'`);
+      continue;
+    }
+    const orig = rawString(o.key, 'he');
     if (orig == null) err(`${w}: key does not exist in the locale file`);
     else if (slotsIn(o.family).some((sl) => !slotsIn(orig).includes(sl))) err(`${w}: may only use the {slots} of the original`);
-    if (!isStr(o.family)) err(`${w}: family text`);
   }
-  if (keys.size !== 22) err(`familyStrings: expected 22 overrides, found ${keys.size}`);
+  if (keys.size < 22) err(`familyStrings: expected at least 22 overrides, found ${keys.size}`);
 
   // ---- parent card / how-to ----
   if (!Array.isArray(tut.parentCard?.howToExplain) || tut.parentCard.howToExplain.length !== 3) err('parentCard.howToExplain needs 3 sentences');
   if (!Array.isArray(tut.parentCard?.questions) || tut.parentCard.questions.length !== 3 || tut.parentCard.answers?.length !== 3) err('parentCard: 3 questions with 3 answers');
   if (!isStr(tut.parentCard?.title)) err('parentCard.title');
-  if (!Array.isArray(tut.howtoKid?.steps) || tut.howtoKid.steps.length !== 4) err('howtoKid.steps needs 4 lines');
+  if (!Array.isArray(tut.howtoKid?.steps) || tut.howtoKid.steps.length < 4) err('howtoKid.steps needs at least 4 lines');
 
   // ---- term markup resolves ----
   for (const [path, text] of strings(tut)) for (const m of text.matchAll(/\[\[term:([a-z_]+)/g)) if (!glossaryIds.has(m[1])) err(`${path}: unknown term ${m[1]}`);

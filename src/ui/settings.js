@@ -51,6 +51,8 @@ export function openSettings({ onQuit, version = '', mode = 'family', profession
     toggleRow(t('settings.guess'), 'guess', {
       help: t('settings.guessHelp'), read: () => guessEnabled(mode), write: (v) => setPref(mode === 'full' ? 'guessFull' : 'guessFamily', v),
     }),
+    // the how-to is always one tap away (after a skipped story it is the way back in)
+    button([icon('help', { size: 22, width: 2.4 }), t('hint.skipToastHowTo')], { variant: 'secondary', cls: 'btn-dictionary', 'data-action': 'howto', onClick: () => openHowTo({ mode, professionId }) }),
     button([icon('book', { size: 22, width: 2.4 }), t('settings.dictionary')], { variant: 'secondary', cls: 'btn-dictionary', 'data-action': 'dictionary', onClick: () => openDictionary() }),
     ...(mode === 'family' ? familyRows(professionId) : []),
     h('div', { class: 'setting-block' }, h('span', null, t('settings.theme')), h('div', { class: 'seg', role: 'group' }, themeBtns)),

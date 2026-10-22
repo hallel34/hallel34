@@ -6,24 +6,27 @@ import { t } from '../i18n/index.js';
 import { openLayer } from './modal.js';
 import { button } from './widgets.js';
 import { money, moneyText } from './format.js';
-import { animate, countUp, haptic } from './fx.js';
+import { animate, haptic } from './fx.js';
 import { motionOK } from './prefs.js';
 import { fillSlots } from '../learn/slots.js';
+import { summaryRowModel } from '../learn/tutorial.js';
 import { tut, fillNodes, hintStrip, showRing } from './hint-ui.js';
 
 /** Plain-text one-liner of a summary (toast / log / screen readers): positive and negative variants. */
 export function summaryOneLine(f) {
   const sb = tut().summaryBreakdown;
+  // the label of the money-that-works row follows the mode (family: 'כסף שעובד', full: 'הכנסה פסיבית')
+  const oneLine = sb.oneLine.replaceAll(sb.rows.find((r) => r.id === 'passive').label, t('game.passive'));
   const slots = {
     salary: moneyText(f.salary), passive: moneyText(f.passive), expenses: moneyText(f.expenses),
     monthly: moneyText(f.monthly), months: String(f.months), amount: moneyText(f.amount),
     monthlyAbs: moneyText(Math.abs(f.monthly)), amountAbs: moneyText(Math.abs(f.amount)),
   };
   if (f.negative) {
-    const head = fillSlots(sb.oneLine.split('→')[0], slots).trim();
+    const head = fillSlots(oneLine.split('→')[0], slots).trim();
     return `${head} → ${fillSlots(sb.negativeResult, slots)}`;
   }
-  return fillSlots(sb.oneLine, slots);
+  return fillSlots(oneLine, slots);
 }
 
 /** The sentence a screen reader hears when the card opens: the one-liner and where the cash goes. */
@@ -32,7 +35,10 @@ export function summarySpoken(f) {
   return `${summaryOneLine(f)}. ${fillSlots(sb.arrivalSr, { cashBefore: moneyText(f.cashBefore), cashAfter: moneyText(f.cashAfter) })}`;
 }
 
-const rowLabel = (id) => tut().summaryBreakdown.rows.find((r) => r.id === id).label;
+const rowLabel = (id) => (id === 'passive' ? t('game.passive') : tut().summaryBreakdown.rows.find((r) => r.id === id).label);
+
+/** A tap on the card may close it only after this long: a stray second tap from the previous card never skips the figures. */
+export const MIN_OPEN_MS = 600;
 
 /**
  * @param figures  summaryFigures(state, paydayEvent, cashBefore)
@@ -43,16 +49,17 @@ export function summaryCard({ figures: f, hint = null }) {
   const sb = tut().summaryBreakdown;
   const neg = f.negative;
   const bigAmount = h('bdi', { class: 'sc-big money', dir: 'ltr' }, moneyText(f.monthly, { sign: true }));
-  const result = h('bdi', { class: 'sc-result money', dir: 'ltr' }, moneyText(f.amount));
+  const result = h('bdi', { class: 'sc-result money', dir: 'ltr' }, moneyText(f.amount)); // the final total from the first frame (no 0 flash)
   const descId = 'summary-desc';
   const row = (cls, label, value, extra = {}) => h('li', { class: `sc-row ${cls}`, ...extra },
     h('span', { class: 'sc-label' }, label), value);
-  const passiveCell = f.hasPassive
-    ? h('bdi', { class: 'sc-amt money', dir: 'ltr' }, moneyText(f.passive))
+  // a money-losing asset: the real signed figure plus a neutral 'נכס מפסיד' tag, so the rows add up to the result
+  const passiveCell = f.hasPassive || f.hasLoss
+    ? h('bdi', { class: 'sc-amt money', dir: 'ltr' }, moneyText(f.passive, { sign: f.hasLoss }))
     : h('span', { class: 'sc-amt sc-none' }, sb.zeroShort);
   const rows = [
     row('sc-salary', rowLabel('salary'), h('bdi', { class: 'sc-amt money', dir: 'ltr' }, moneyText(f.salary))),
-    row(`sc-passive${f.hasPassive ? ' has-income' : ''}`, rowLabel('passive'), passiveCell, { 'data-row': 'passive' }),
+    row(`sc-passive${f.hasPassive ? ' has-income' : ''}${f.hasLoss ? ' has-loss' : ''}`, f.hasLoss ? [rowLabel('passive'), h('small', { class: 'sc-losstag' }, t('summary.lossAsset'))] : rowLabel('passive'), passiveCell, { 'data-row': 'passive', 'data-kind': summaryRowModel(f).rows[1].kind }),
     row('sc-expense', rowLabel('expenses'), h('bdi', { class: 'sc-amt money', dir: 'ltr' }, moneyText(-f.expenses))),
   ];
   const leftRow = h('div', { class: 'sc-left', 'data-row': 'left' },
@@ -67,7 +74,10 @@ export function summaryCard({ figures: f, hint = null }) {
 
   let layer;
   let ring = null;
-  const go = button(t('game.continue'), { variant: 'primary', size: 'lg', cls: 'sc-go', 'data-action': 'summary-ok', 'data-autofocus': '', onClick: (e) => { e.stopPropagation(); haptic('tap'); layer.close(true); } });
+  const openedAt = performance.now();
+  const ready = () => performance.now() - openedAt >= MIN_OPEN_MS;
+  const go = button(t('game.continue'), { variant: 'primary', size: 'lg', cls: 'sc-go is-arming', style: `--arm-ms:${MIN_OPEN_MS}ms`, 'aria-disabled': 'true', 'data-action': 'summary-ok', 'data-autofocus': '', onClick: (e) => { e.stopPropagation(); if (!ready()) return; haptic('tap'); layer.close(true); } });
+  setTimeout(() => { go.removeAttribute('aria-disabled'); go.classList.remove('is-arming'); }, MIN_OPEN_MS);
   const card = h('div', { class: `sheet summary-card${neg ? ' is-negative' : ' is-positive'}`, 'data-summary': neg ? 'negative' : 'positive', 'data-monthly': String(f.monthly), 'data-amount': String(f.amount) },
     h('h2', { class: 'sc-title' }, t('game.paydayFloatLabel')),
     h('ul', { class: 'sc-rows' }, rows),
@@ -76,8 +86,11 @@ export function summaryCard({ figures: f, hint = null }) {
     h('p', { id: descId, class: 'vh' }, summarySpoken(f)),
     h('div', { class: 'sc-cta' }, go));
   // tapping anywhere on the card goes on (the figures were the point; the log keeps them)
-  card.addEventListener('click', () => layer.close(true));
+  card.addEventListener('click', () => { if (ready()) layer.close(true); });
   layer = openLayer(card, { kind: 'sheet', label: t('game.paydayFloatLabel'), dismissable: true, cls: 'layer-summary' });
+  // scrim, Escape and the Back button also wait for MIN_OPEN_MS (a forced close - debug, give up - always works)
+  const rawClose = layer.close;
+  layer.close = (result, opts) => (opts?.force || ready() ? rawClose(result, opts) : undefined);
   layer.panel.setAttribute('aria-describedby', descId);
 
   // ---- entrance: three rows at 150ms steps, then the result (count-up) and the cash line; reduced motion: everything fades together ----
@@ -88,8 +101,6 @@ export function summaryCard({ figures: f, hint = null }) {
     [rows[0], rows[1], rows[2], leftRow, band, caption].forEach((n, i) => {
       animate(n, [{ opacity: 0, transform: 'translateY(12px)' }, { opacity: 1, transform: 'translateY(0)' }], { duration: 150, delay: 90 + i * 150, easing: 'cubic-bezier(.16,1,.3,1)' });
     });
-    result.textContent = moneyText(0);
-    setTimeout(() => { if (!layer.done) countUp(0, f.amount, (v) => { result.textContent = moneyText(v); }, 500).then(() => { result.textContent = moneyText(f.amount); }); }, 90 + 4 * 150);
     if (!neg) animate(band, [{ boxShadow: 'inset 0 0 0 0 rgb(255 255 255 / 0)' }, { boxShadow: 'inset 0 0 0 3px rgb(246 196 83 / .55)', offset: 0.5 }, { boxShadow: 'inset 0 0 0 0 rgb(255 255 255 / 0)' }], { duration: 500, delay: 90 + 4 * 150 });
   }
   void nodes;

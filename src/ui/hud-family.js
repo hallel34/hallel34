@@ -9,6 +9,10 @@ import { statement, PAYDAY_MONTHS } from '../engine/index.js';
 import { freedomView } from '../learn/tutorial.js';
 import { tut, fillNodes } from './hint-ui.js';
 import { fillSlots } from '../learn/slots.js';
+import { t } from '../i18n/index.js';
+
+/** At or below this viewport height the goal line is the minimal one-liner. */
+export const GOAL_MIN_HEIGHT = 600;
 
 /** 'משכורת {salary}' -> ['משכורת', node]: the label at the inline-start, the amount at the inline-end of one row. */
 function splitRow(template, slot, node) {
@@ -29,28 +33,27 @@ export function createFamilyHud({ hud, chip, goalLine, freeLine }) {
   let last = null;
   const popId = 'flow-popover';
 
+  /** The compact 'בכל חודש' popover: (money in) - (money out) = what is left, in two short rows so it never covers the board. */
   function build(st) {
     const hf = tut().hudFamily;
     const income = st.salary + st.passiveIncome;
-    const row = (template, slot, value, cls = '') => {
-      const [label, amountNode] = splitRow(template, slot, value);
-      return h('div', { class: `fp-row${cls ? ` ${cls}` : ''}` }, h('span', null, label), amountNode);
-    };
     const left = st.monthlyCashFlow;
+    const [salaryLabel, salaryAmt] = splitRow(hf.incomeRows[0], 'salary', money(st.salary));
+    const [passiveLabel, passiveAmt] = splitRow(hf.incomeRows[1], 'passive', money(st.passiveIncome, { sign: st.passiveIncome < 0 }));
     return h('div', { class: 'flow-popover', id: popId, role: 'group', 'aria-label': hf.popoverTitle, 'data-flow-popover': '', 'data-negative': String(left < 0) },
       h('span', { class: 'fp-tail', 'aria-hidden': 'true' }),
-      h('section', { class: 'fp-block fp-in' },
-        h('h3', { class: 'fp-head' }, h('i', { class: 'fp-dot' }), hf.incomeTitle),
-        row(hf.incomeRows[0], 'salary', money(st.salary)),
-        row(hf.incomeRows[1], 'passive', money(st.passiveIncome)),
-        h('p', { class: 'fp-total' }, fillNodes(hf.incomeTotal, { income: money(income) }))),
-      h('span', { class: 'fp-op', 'aria-hidden': 'true' }, '−'),
-      h('section', { class: 'fp-block fp-out' },
-        h('h3', { class: 'fp-head' }, h('i', { class: 'fp-dot' }), hf.outTitle),
-        h('p', { class: 'fp-total' }, fillNodes(hf.outRows[0], { expenses: money(st.totalExpenses) }))),
-      h('span', { class: 'fp-op', 'aria-hidden': 'true' }, '='),
+      h('div', { class: 'fp-eq' },
+        h('section', { class: 'fp-cell fp-in' },
+          h('h3', { class: 'fp-head' }, h('i', { class: 'fp-dot' }), hf.incomeTitle),
+          h('p', { class: 'fp-total' }, fillNodes(hf.incomeTotal, { income: money(income) })),
+          h('p', { class: 'fp-sub' }, salaryLabel, ' ', salaryAmt, ' + ', passiveLabel, ' ', passiveAmt)),
+        h('span', { class: 'fp-op', 'aria-hidden': 'true' }, '−'),
+        h('section', { class: 'fp-cell fp-out' },
+          h('h3', { class: 'fp-head' }, h('i', { class: 'fp-dot' }), hf.outTitle),
+          h('p', { class: 'fp-total' }, fillNodes(hf.outRows[0], { expenses: money(st.totalExpenses) })))),
       h('p', { class: `fp-left ${left < 0 ? 'is-negative' : 'is-positive'}`, 'data-fp': 'left' }, fillNodes(hf.resultRow, { monthly: money(left, { sign: true }) })),
-      h('p', { class: 'fp-foot' }, fillNodes(hf.arrivalLine, { monthly: money(left), months: numberText(PAYDAY_MONTHS) })));
+      // '{monthly} × 24' is one unbreakable unit: it never wraps in the middle
+      h('p', { class: 'fp-foot' }, fillNodes(hf.arrivalLine.replace('{monthly} × {months}', '{calc}'), { calc: h('bdi', { class: 'nowrap money', dir: 'ltr' }, `${moneyText(left)} × ${numberText(PAYDAY_MONTHS)}`), monthly: money(left), months: numberText(PAYDAY_MONTHS) })));
   }
 
   function paintPop(st) {
@@ -102,7 +105,8 @@ export function createFamilyHud({ hud, chip, goalLine, freeLine }) {
       freeLine.hidden = !goal;
       if (goal) {
         const short = window.matchMedia?.(`(max-height: ${gl.shortFromHeightPx}px)`).matches;
-        goalLine.textContent = short ? gl.textShort : gl.text;
+        const minimal = window.matchMedia?.(`(max-height: ${GOAL_MIN_HEIGHT}px)`).matches; // never hidden: at the smallest screens it is one short line
+        goalLine.textContent = minimal ? t('goal.min') : short ? gl.textShort : gl.text;
         const fv = freedomView(state);
         goalLine.setAttribute('aria-label', fillSlots(gl.a11y, { left: moneyText(fv.left) }));
         freeLine.replaceChildren(freeText(fv, gl.progress));
