@@ -1,5 +1,6 @@
 // Schema validation for professions and cards. Fails loudly.
 import { BASE_DEBT_RATES } from './config.js';
+import { CATEGORY_IDS, CATEGORY_TYPES } from '../data/categories.js';
 const MODES = ['family', 'full'];
 const DECKS = ['opportunity', 'expense', 'market'];
 const TYPES = ['apartment', 'business', 'stock'];
@@ -59,7 +60,15 @@ export function validateCards(list) {
     if (c.realWorld !== undefined && typeof c.realWorld !== 'boolean') errors.push(`${w}: realWorld must be true/false`);
     if (c.deck === 'opportunity') {
       if (!TYPES.includes(c.type)) errors.push(`${w}: type`);
-      else if (c.type === 'stock') {
+      // presentation-only deal category (icon + colour); required on every opportunity card, and consistent with the type
+      if (!CATEGORY_IDS.includes(c.category)) errors.push(`${w}: category must be one of ${CATEGORY_IDS.join(', ')}`);
+      else if (TYPES.includes(c.type)) {
+        const only = CATEGORY_TYPES[c.category]; // 'apartment' / 'stock' belong to exactly one type
+        if (only && !only.includes(c.type)) errors.push(`${w}: category ${c.category} does not fit type ${c.type}`);
+        const owner = Object.keys(CATEGORY_TYPES).find((k) => CATEGORY_TYPES[k].includes(c.type));
+        if (owner && c.category !== owner) errors.push(`${w}: a ${c.type} needs the ${owner} category`);
+      }
+      if (!TYPES.includes(c.type)) { /* type error reported above */ } else if (c.type === 'stock') {
         if (!isStr(c.symbol) || !isNum(c.price) || c.price <= 0 || !isNum(c.dividend)) {
           errors.push(`${w}: stock needs symbol, price, dividend`);
         }

@@ -3,6 +3,7 @@
     "id": "opp-apt-001",
     "deck": "opportunity",
     "type": "apartment",
+    "category": "apartment",
     "modes": [
       "family",
       "full"
@@ -21,6 +22,7 @@
     "id": "opp-apt-002",
     "deck": "opportunity",
     "type": "apartment",
+    "category": "apartment",
     "modes": [
       "family",
       "full"
@@ -38,6 +40,7 @@
     "id": "opp-apt-003",
     "deck": "opportunity",
     "type": "apartment",
+    "category": "apartment",
     "modes": [
       "family",
       "full"
@@ -56,6 +59,7 @@
     "id": "opp-apt-004",
     "deck": "opportunity",
     "type": "apartment",
+    "category": "apartment",
     "modes": [
       "family",
       "full"
@@ -75,6 +79,7 @@
     "id": "opp-apt-005",
     "deck": "opportunity",
     "type": "apartment",
+    "category": "apartment",
     "modes": [
       "family",
       "full"
@@ -92,6 +97,7 @@
     "id": "opp-apt-006",
     "deck": "opportunity",
     "type": "apartment",
+    "category": "apartment",
     "modes": [
       "full"
     ],
@@ -108,6 +114,7 @@
     "id": "opp-apt-007",
     "deck": "opportunity",
     "type": "apartment",
+    "category": "apartment",
     "modes": [
       "full"
     ],
@@ -125,6 +132,7 @@
     "id": "opp-biz-001",
     "deck": "opportunity",
     "type": "business",
+    "category": "food-stand",
     "modes": [
       "family",
       "full"
@@ -143,6 +151,7 @@
     "id": "opp-biz-002",
     "deck": "opportunity",
     "type": "business",
+    "category": "coffee",
     "modes": [
       "family",
       "full"
@@ -160,6 +169,7 @@
     "id": "opp-biz-003",
     "deck": "opportunity",
     "type": "business",
+    "category": "snack-cart",
     "modes": [
       "family",
       "full"
@@ -177,6 +187,7 @@
     "id": "opp-biz-004",
     "deck": "opportunity",
     "type": "business",
+    "category": "service",
     "modes": [
       "family",
       "full"
@@ -194,6 +205,7 @@
     "id": "opp-biz-005",
     "deck": "opportunity",
     "type": "business",
+    "category": "leisure",
     "modes": [
       "family",
       "full"
@@ -212,6 +224,7 @@
     "id": "opp-biz-006",
     "deck": "opportunity",
     "type": "business",
+    "category": "snack-cart",
     "modes": [
       "family",
       "full"
@@ -229,6 +242,7 @@
     "id": "opp-biz-007",
     "deck": "opportunity",
     "type": "business",
+    "category": "service",
     "modes": [
       "family",
       "full"
@@ -247,6 +261,7 @@
     "id": "opp-biz-008",
     "deck": "opportunity",
     "type": "business",
+    "category": "retail",
     "modes": [
       "full"
     ],
@@ -263,6 +278,7 @@
     "id": "opp-apt-008",
     "deck": "opportunity",
     "type": "apartment",
+    "category": "apartment",
     "modes": [
       "family",
       "full"
@@ -282,6 +298,7 @@
     "id": "opp-apt-009",
     "deck": "opportunity",
     "type": "apartment",
+    "category": "apartment",
     "modes": [
       "family",
       "full"
@@ -300,6 +317,7 @@
     "id": "opp-biz-009",
     "deck": "opportunity",
     "type": "business",
+    "category": "coffee",
     "modes": [
       "family",
       "full"
@@ -317,6 +335,7 @@
     "id": "opp-biz-010",
     "deck": "opportunity",
     "type": "business",
+    "category": "retail",
     "modes": [
       "family",
       "full"
@@ -334,6 +353,7 @@
     "id": "opp-apt-010",
     "deck": "opportunity",
     "type": "apartment",
+    "category": "apartment",
     "modes": [
       "full"
     ],
@@ -350,6 +370,7 @@
     "id": "opp-biz-011",
     "deck": "opportunity",
     "type": "business",
+    "category": "leisure",
     "modes": [
       "family",
       "full"
@@ -367,6 +388,7 @@
     "id": "opp-apt-011",
     "deck": "opportunity",
     "type": "apartment",
+    "category": "apartment",
     "modes": [
       "family",
       "full"
@@ -385,6 +407,7 @@
     "id": "opp-apt-012",
     "deck": "opportunity",
     "type": "apartment",
+    "category": "apartment",
     "modes": [
       "family",
       "full"
@@ -405,6 +428,7 @@
     "id": "opp-biz-012",
     "deck": "opportunity",
     "type": "business",
+    "category": "franchise",
     "modes": [
       "family",
       "full"
@@ -423,6 +447,7 @@
     "id": "opp-apt-013",
     "deck": "opportunity",
     "type": "apartment",
+    "category": "apartment",
     "modes": [
       "full"
     ],
@@ -440,6 +465,7 @@
     "id": "opp-apt-014",
     "deck": "opportunity",
     "type": "apartment",
+    "category": "apartment",
     "modes": [
       "family",
       "full"
@@ -457,6 +483,7 @@
     "id": "opp-biz-014",
     "deck": "opportunity",
     "type": "business",
+    "category": "service",
     "modes": [
       "family",
       "full"
@@ -475,6 +502,7 @@
     "id": "opp-biz-013",
     "deck": "opportunity",
     "type": "business",
+    "category": "service",
     "modes": [
       "family",
       "full"
@@ -494,6 +522,7 @@
     "id": "opp-apt-015",
     "deck": "opportunity",
     "type": "apartment",
+    "category": "apartment",
     "modes": [
       "full"
     ],
@@ -510,6 +539,7 @@
     "id": "opp-biz-015",
     "deck": "opportunity",
     "type": "business",
+    "category": "leisure",
     "modes": [
       "full"
     ],
@@ -527,6 +557,7 @@
     "id": "opp-apt-016",
     "deck": "opportunity",
     "type": "apartment",
+    "category": "apartment",
     "modes": [
       "full"
     ],
@@ -544,6 +575,7 @@
     "id": "opp-biz-016",
     "deck": "opportunity",
     "type": "business",
+    "category": "food-stand",
     "modes": [
       "full"
     ],
@@ -560,6 +592,7 @@
     "id": "opp-stk-001",
     "deck": "opportunity",
     "type": "stock",
+    "category": "stock",
     "modes": [
       "full"
     ],
@@ -575,6 +608,7 @@
     "id": "opp-stk-002",
     "deck": "opportunity",
     "type": "stock",
+    "category": "stock",
     "modes": [
       "full"
     ],
@@ -590,6 +624,7 @@
     "id": "opp-stk-003",
     "deck": "opportunity",
     "type": "stock",
+    "category": "stock",
     "modes": [
       "full"
     ],

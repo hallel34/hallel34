@@ -151,6 +151,17 @@
     "baby": "תינוק",
     "charity": "צדקה"
   },
+  "category": {
+    "apartment": "דירה",
+    "coffee": "קפה",
+    "food-stand": "אוכל",
+    "snack-cart": "חטיפים",
+    "retail": "חנות",
+    "franchise": "זכיינות",
+    "service": "שירותים",
+    "leisure": "פנאי וכושר",
+    "stock": "מניה"
+  },
   "type": { "apartment": "דירה", "business": "עסק", "stock": "מניות" },
   "card": {
     "buy": "קנו",
