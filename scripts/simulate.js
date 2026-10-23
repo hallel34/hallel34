@@ -1,8 +1,10 @@
-// npm run simulate [-- --games=100 --max=200 --bots=sensible,alwaysBuy,...]
+// npm run simulate [-- --games=100 --max=200 --bots=sensible,alwaysBuy,... --modes=family,full --perProfession --json=out.json --multiplayer=0]
 // Plays N games per mode / bot / profession and prints balance statistics.
+// cash@t10 = median cash at the first roll phase on or after turn 10 (games that reached it), as in finance's runner.
 import { readFileSync } from 'node:fs';
 import { createEngine } from '../src/engine/engine.js';
-import { playGame, playMatch, BOTS } from '../src/engine/bots.js';
+import { writeFileSync } from 'node:fs';
+import { step, playMatch, BOTS } from '../src/engine/bots.js';
 import { newMatch } from '../src/engine/match.js';
 import { monthlyCashFlow } from '../src/engine/selectors.js';
 
@@ -16,18 +18,30 @@ const args = Object.fromEntries(process.argv.slice(2).map((a) => {
 }));
 const GAMES = Number(args.games ?? 100);
 const MAX_TURNS = Number(args.max ?? 200);
-const botNames = (args.bots ?? 'sensible,cautious,alwaysBuy,alwaysPass').split(',');
+const botNames = (args.bots ?? 'sensible,cautious,alwaysBuy,overBorrow,overBorrowLite,alwaysPass').split(',');
 
 const pct = (a, q) => { const s = [...a].sort((x, y) => x - y); return s.length ? s[Math.min(s.length - 1, Math.floor(q * s.length))] : NaN; };
 const avg = (a) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : NaN);
 const f1 = (x) => (Number.isNaN(x) ? '-' : x.toFixed(1));
 
+function play(mode, bot, professionId, seed) {
+  let s = engine.newGame({ mode, professionId, seed });
+  let cash10 = null;
+  let guard = 0;
+  while (s.status === 'playing' && s.turn < MAX_TURNS && guard++ < 5000) {
+    s = step(engine, s, bot);
+    if (cash10 === null && s.turn >= 10 && s.phase === 'roll') cash10 = s.cash;
+  }
+  return { s, cash10 };
+}
+
 function run(mode, bot, professionIds, games) {
-  const res = { wins: [], lost: 0, timeout: 0, loans: [], n: 0 };
+  const res = { wins: [], lost: 0, timeout: 0, loans: [], cash10: [], n: 0 };
   for (let g = 0; g < games; g++) {
     const professionId = professionIds[g % professionIds.length];
-    const s = playGame(engine, engine.newGame({ mode, professionId, seed: 1000 + g * 7919 }), bot, MAX_TURNS);
+    const { s, cash10 } = play(mode, bot, professionId, 1000 + g * 7919);
     res.n++;
+    if (cash10 !== null) res.cash10.push(cash10);
     res.loans.push(s.stats.loansTaken);
     if (s.status === 'won') res.wins.push(s.turn);
     else if (s.status === 'lost') res.lost++;
@@ -39,20 +53,33 @@ function run(mode, bot, professionIds, games) {
 const row = (label, r) =>
   `${label.padEnd(26)} win ${(100 * r.wins.length / r.n).toFixed(0).padStart(3)}%  ` +
   `lost ${(100 * r.lost / r.n).toFixed(0).padStart(3)}%  timeout ${(100 * r.timeout / r.n).toFixed(0).padStart(3)}%  ` +
-  `avgTurns ${f1(avg(r.wins)).padStart(5)}  median ${f1(pct(r.wins, 0.5)).padStart(5)}  p90 ${f1(pct(r.wins, 0.9)).padStart(5)}  loans ${f1(avg(r.loans))}`;
+  `avgTurns ${f1(avg(r.wins)).padStart(5)}  median ${f1(pct(r.wins, 0.5)).padStart(5)}  p90 ${f1(pct(r.wins, 0.9)).padStart(5)}  loans ${f1(avg(r.loans))}  ` +
+  `cash@t10 ${Number.isNaN(pct(r.cash10, 0.5)) ? '-' : Math.round(pct(r.cash10, 0.5))}`;
+const out = { games: GAMES, maxTurns: MAX_TURNS, rows: [] };
+const record = (mode, bot, profession, r) => out.rows.push({
+  mode, bot, profession, n: r.n, win: r.wins.length / r.n, lost: r.lost / r.n, timeout: r.timeout / r.n,
+  avg: avg(r.wins), median: pct(r.wins, 0.5), p90: pct(r.wins, 0.9), loans: avg(r.loans), cash10: pct(r.cash10, 0.5),
+});
 
 const allProfs = data.professions.map((p) => p.id);
 console.log(`Simulation: ${GAMES} games per row, cap ${MAX_TURNS} turns (professions rotated)\n`);
-for (const mode of ['family', 'full']) {
+const modes = String(args.modes ?? 'family,full').split(',');
+for (const mode of modes) {
   console.log(`== mode: ${mode}`);
   for (const bot of botNames) {
     if (!BOTS[bot]) { console.log(`unknown bot ${bot}`); continue; }
-    console.log(row(bot, run(mode, bot, allProfs, GAMES)));
+    const r = run(mode, bot, allProfs, GAMES);
+    record(mode, bot, null, r);
+    console.log(row(bot, r));
   }
   if (args.perProfession) {
     for (const p of data.professions) {
       const start = monthlyCashFlow(engine.newGame({ mode, professionId: p.id }));
-      console.log(row(`  sensible/${p.id} (cf ${start})`, run(mode, 'sensible', [p.id], GAMES)));
+      for (const bot of String(args.perProfessionBots ?? 'sensible').split(',')) {
+        const r = run(mode, bot, [p.id], GAMES);
+        record(mode, bot, p.id, r);
+        console.log(row(`  ${bot}/${p.id} (cf ${start})`, r));
+      }
     }
   }
   console.log('');
@@ -75,3 +102,5 @@ if (args.multiplayer !== '0') {
       `winner's turns avg ${f1(avg(res.rounds))} median ${f1(pct(res.rounds, 0.5))} p90 ${f1(pct(res.rounds, 0.9))}  wins by seat ${res.byIndex.join('/')}`);
   }
 }
+
+if (typeof args.json === 'string') writeFileSync(args.json, JSON.stringify(out, null, 1));

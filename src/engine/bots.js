@@ -9,6 +9,10 @@ export const BOTS = {
   alwaysBuy: { reserveMonths: 0, maxPayback: Infinity, borrow: true, charity: true, acceptOffers: false },
   sensible: { reserveMonths: 0.5, maxPayback: 130, borrow: true, charity: true, acceptOffers: 1.2 },
   cautious: { reserveMonths: 2, maxPayback: 80, borrow: false, charity: true, acceptOffers: 1.15 },
+  // finance's over-borrowing bots (docs/v3/economy-experiments.md). Both buy everything and skip the "does the deal still pay
+  // after the loan payment" check. overBorrow takes the MAXIMUM loan whenever it is short; overBorrowLite borrows only the gap.
+  overBorrow: { reserveMonths: 0, maxPayback: Infinity, borrow: true, charity: true, acceptOffers: false, overBorrow: 'max' },
+  overBorrowLite: { reserveMonths: 0, maxPayback: Infinity, borrow: true, charity: true, acceptOffers: false, overBorrow: 'gap' },
   alwaysPass: { reserveMonths: 0, maxPayback: -1, borrow: false, charity: false, acceptOffers: false },
 };
 
@@ -58,10 +62,10 @@ export function step(engine, s, bot) {
       const need = c.downPayment - s.cash;
       if (need > 0) {
         const loanNeeded = Math.ceil(need / LOAN_STEP) * LOAN_STEP;
-        // only borrow if the deal still improves cash flow after the loan payment
-        if (loanNeeded > maxLoan(s) ||
-            c.monthlyCashFlow - loanNeeded * LOAN_PAYMENT_RATE <= 0) return engine.pass(s);
-        n = engine.takeLoan(s, loanNeeded);
+        if (loanNeeded > maxLoan(s)) return engine.pass(s);
+        // only borrow if the deal still improves cash flow after the loan payment (the over-borrowing bots skip this check)
+        if (!cfg.overBorrow && c.monthlyCashFlow - loanNeeded * LOAN_PAYMENT_RATE <= 0) return engine.pass(s);
+        n = engine.takeLoan(s, cfg.overBorrow === 'max' ? maxLoan(s) : loanNeeded);
       }
     }
     return n.cash >= c.downPayment ? engine.buy(n) : engine.pass(n);
