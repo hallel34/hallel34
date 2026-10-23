@@ -1,6 +1,6 @@
 {
   "name": "passivo",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "description": "פסיבו (Passivo) - financial board game (1-4 players on one device)",
