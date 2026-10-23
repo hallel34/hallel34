@@ -19,9 +19,9 @@ import { haptic, countUp } from './fx.js';
 import { categoryOf, categoryChip, categoryIcon } from './categories.js';
 import {
   monthlyCashFlow, passiveIncome, maxLoan, loanCap, saleValue, canSell, loanPaydayImpact,
-  paybackTier, PAYDAY_MONTHS, MONTHS_PER_YEAR, purchasePlan, loanTerms, dealMetrics, balanceSheet, assetLoanPayment,
+  paybackTier, PAYDAY_MONTHS, MONTHS_PER_YEAR, purchasePlan, loanTerms, dealMetrics, balanceSheet, assetLoanPayment, loanRateNow,
 } from '../engine/index.js';
-import { LOAN_STEP } from '../engine/index.js';
+import { LOAN_STEP, TIMED_EFFECT_KINDS as TIMED_EFFECTS } from '../engine/index.js';
 import { cardTitle, cardText, assetTitle } from './card-view.js';
 import hourglassSvg from '../assets/verdict/hourglass.svg?raw';
 
@@ -458,9 +458,20 @@ export function offerModal(state) {
 }
 
 // ---------- informational cards ----------
-export function marketInfoModal(state, { card, noMatch, familyOffer }) {
+const signedPct = (x) => `${x > 0 ? '+' : x < 0 ? '-' : ''}${pctText(Math.abs(x) * 100)}`;
+
+export function marketInfoModal(state, { card, noMatch }) {
   const body = [];
-  if (card.effect === 'cash') {
+  if (TIMED_EFFECTS.includes(card.effect)) {
+    // timed family-market card: what changes, for how long, and the one line it teaches
+    const value = card.effect === 'cheapLoan' ? pctText(card.rate * 100) : signedPct(card.pct);
+    const good = card.effect === 'cheapLoan' || card.pct > 0;
+    body.push(keyNumbers(
+      statTile(t(`market.effect.${card.effect}`), ltr(value), { tone: good ? 'income' : 'expense', big: true }),
+      statTile(t('market.effect.turns'), tp('plural.turns', card.turns)),
+    ));
+    if (card.teaches) body.push(banner(h('span', null, h('b', null, `${t('market.teaches')}: `), card.teaches)));
+  } else if (card.effect === 'cash') {
     body.push(keyNumbers(statTile(t('card.amount'), money(card.amount, { sign: true }), { tone: card.amount >= 0 ? 'income' : 'expense', big: true })));
   } else if (card.effect === 'stockPrice') {
     body.push(banner(tn('market.stockPrice', { symbol: card.symbol, price: money(card.newPrice) })));
@@ -468,8 +479,6 @@ export function marketInfoModal(state, { card, noMatch, familyOffer }) {
     if (held) body.push(h('div', { class: 'banner banner-info' }, categoryIcon(held, { size: 20, on: 'cream' }), h('span', null, t('market.stockHeld', { shares: tp('plural.sharesOf', held.qty, { symbol: card.symbol }) }))));
   } else if (noMatch) {
     body.push(h('div', { class: 'banner banner-info' }, icon('market', { size: 20 }), h('span', null, t('market.noAsset'))));
-  } else if (familyOffer) {
-    body.push(h('div', { class: 'banner banner-info' }, icon('market', { size: 20 }), h('span', null, t('market.familyNote'))));
   }
   const rw = realWorldForCard(card);
   if (rw) body.push(rw);
@@ -523,7 +532,8 @@ export function loanDialog(state, { required = 0, gain = null, hint = null } = {
   const start = max === 0 ? 0 : Math.min(max, Math.max(LOAN_STEP, Math.ceil(required / LOAN_STEP) * LOAN_STEP));
   const voluntary = required <= 0;
   const spend = voluntary ? 0 : state.cash + required; // what the loan is about to pay for
-  const unit = loanTerms(LOAN_STEP);
+  const rate = loanRateNow(state); // the cheap-loan card halves it for a few turns; the dialog shows what takeLoan() will charge
+  const unit = loanTerms(LOAN_STEP, rate);
 
   const amountOut = h('bdi', { class: 'big-amount money', dir: 'ltr' });
   const payOut = h('bdi', { class: 'money', dir: 'ltr' });
@@ -559,7 +569,7 @@ export function loanDialog(state, { required = 0, gain = null, hint = null } = {
   const totalOut = h('bdi', { class: 'money', dir: 'ltr' });
 
   const update = (from, to) => {
-    const terms = loanTerms(to);
+    const terms = loanTerms(to, rate);
     const pay = terms.monthly;
     setMoney(interestOut, terms.perPayday);
     setMoney(totalOut, terms.totalAtPayday);

@@ -23,7 +23,7 @@ import { closeAllLayers, destroyAllLayers, closeTopLayer } from './modal.js';
 import { debugEnabled, mountDebugTools } from './debug.js';
 import { foxImg, createReactor, warmFox, dirSign } from './fox.js';
 import { createLearnFlow } from './learn-flow.js';
-import { loanTerms } from '../engine/index.js';
+import { loanTerms, loanRateNow } from '../engine/index.js';
 import { setLearnHooks, clearLearnHooks } from './learn.js';
 import { setLearnMode } from '../learn/context.js';
 import { feedbackForChange, feedbackForEvent } from '../learn/feedback.js';
@@ -321,7 +321,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     const def = hintDef('h-loan');
     return {
       render: (amount) => {
-        const lt = loanTerms(amount);
+        const lt = loanTerms(amount, loanRateNow(state));
         const slots = { amount: money(amount), monthlyPayment: money(lt.monthly), perSummary: money(lt.perPayday) };
         return { body: fillNodes(def.text, slots), more: fillNodes(def.more, slots) };
       },
@@ -815,7 +815,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
       pushLog(t('game.logMarket', { title: ev.card.title }));
       const prior = ev.card.effect === 'stockPrice' ? (priorPrices[ev.card.symbol] ?? engine.data.cards.find((c) => c.type === 'stock' && c.symbol === ev.card.symbol)?.price ?? null) : null;
       if (prior != null && ev.card.newPrice < prior) flow.trigger('stockDrop');
-      await marketInfoModal(state, { card: ev.card, noMatch, familyOffer: ev.card.effect === 'offer' && !noMatch });
+      await marketInfoModal(state, { card: ev.card, noMatch });
       if (ev.card.effect === 'cash') { haptic(ev.card.amount >= 0 ? 'purchase' : 'error'); sound(ev.card.amount >= 0 ? 'coin' : 'error'); }
       await syncCash();
       flow.feedback(feedbackForEvent(ev, state, { priorPrice: prior }));
@@ -831,6 +831,11 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   }
   async function handleEvents(s) {
     const noMatch = s.events.some((x) => x.type === 'noMatchingAsset');
+    for (const ev of s.events) {
+      if (ev.type !== 'effectEnded') continue; // a timed market card ran out (it counts down when the player rolls)
+      const title = engine.data.cards.find((c) => c.id === ev.cardId)?.title;
+      if (title) pushLog(t('market.effectEnded', { title }));
+    }
     const shown = (ev) => ev.type === 'baby' || ev.type === 'babyMax' || (ev.type === 'expensePaid' && ev.card)
       || (ev.type === 'market' && s.pending?.kind !== 'offer');
     unseen = s.events.filter(shown).map((ev) => ({ ev, noMatch }));
