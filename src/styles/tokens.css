@@ -103,6 +103,8 @@
   --card-income-border: #9DE8C4;
   --card-felt: #0F172A;
   --card-shadow: 0 1px 0 rgb(255 255 255 / .06), 0 24px 56px rgb(0 0 0 / .55);   /* NEW: replaces --shadow-3 on cards */
+  --card-btn-border: #6B7596;         /* NEW: ghost-button outline on cream: 4.2:1 (the old --border-strong was 2.7:1 there) */
+  --card-warn-bg: #FFE9E5; --card-warn-border: #F2B8AF; --card-warn-text: #7A1810;   /* NEW: warning banner on cream (was hard-coded) */
   --focus-ring-card: #0F172A;         /* NEW: gold-300 is 1.5:1 on cream, so rings inside a card are navy (16.6:1) */
 
   /* NEW: deal verdict ribbon (3px on the card's top edge) + its text pill. Redundant with a text label + icon, never colour only. */
@@ -135,6 +137,8 @@
   --negative-ink: var(--expense-ink); /* NEW alias: a negative amount on cream/white */
   --amber-ink: #FFD27A;               /* neutral caution text: a negative result is never red (dark theme, on navy) */
   --amber-fill: rgb(246 196 83 / .16);
+  --warn-bg: rgb(229 115 115 / .14);  /* NEW: warning banner on dark surfaces (text stays --text, icon uses --negative) */
+  --warn-border: rgb(229 115 115 / .45);
   --asset: var(--c-gold-400);
   --asset-fill: var(--c-gold-400);
   --liability: #C3BDF0;
@@ -326,7 +330,9 @@
 /* ---- Family mode never shows red (no shaming): what goes out is calm amber, in both themes ---- */
 :root[data-learn="family"] { --expense: #FFD27A; --expense-fill: #F2B53A; --expense-ink: #6E4200; --negative: #FFD27A; --negative-ink: #6E4200;
   /* the 'slow / never' verdict tier is a deeper amber (text label + hourglass icon keep it distinguishable from the yellow tier) */
-  --verdict-red: #D98A1C; --verdict-red-ink: #6E4200; --verdict-red-tint: #FFEBC2; }
+  --verdict-red: #D98A1C; --verdict-red-ink: #6E4200; --verdict-red-tint: #FFEBC2;
+  --card-warn-bg: #FFEBC2; --card-warn-border: #F2C77A; --card-warn-text: #6E4200;
+  --warn-bg: rgb(242 181 58 / .14); --warn-border: rgb(242 181 58 / .45); }
 :root[data-learn="family"][data-theme="light"] { --expense: #6E4200; --negative: #6E4200; }
 
 /* ---- Base helpers ---- */

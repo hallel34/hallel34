@@ -1,0 +1,449 @@
+[
+ {
+  "id": "tax.bracket1",
+  "value": {
+   "rate": 0.1,
+   "upToAnnual": 84120,
+   "upToMonthly": 7010.0
+  },
+  "unit": "ILS/year",
+  "source": "https://www.gov.il/BlobFolder/generalpage/income-tax-monthly-deductions-booklet/he/generalInformation_income-tax-monthly-deductions-booklet_monthly-deductions-booklet-2026.pdf",
+  "verifiedAt": "2026-10-22",
+  "status": "VERIFIED",
+  "sourceKind": "official-primary",
+  "sourceAsOf": "2026-04-15 (booklet updated to April 2026)",
+  "note": "Quote (Tax Authority booklet, ch. B, 2026 after the bracket-widening law): bracket table lists 10% to 84,120; 14% to 120,720; 20% to 228,000; 31% to 301,200; 35% to 560,280; 47% on every further shekel."
+ },
+ {
+  "id": "tax.bracket2",
+  "value": {
+   "rate": 0.14,
+   "upToAnnual": 120720,
+   "upToMonthly": 10060.0
+  },
+  "unit": "ILS/year",
+  "source": "https://www.gov.il/BlobFolder/generalpage/income-tax-monthly-deductions-booklet/he/generalInformation_income-tax-monthly-deductions-booklet_monthly-deductions-booklet-2026.pdf",
+  "verifiedAt": "2026-10-22",
+  "status": "VERIFIED",
+  "sourceKind": "official-primary",
+  "sourceAsOf": "2026-04-15 (booklet updated to April 2026)",
+  "note": "Quote (Tax Authority booklet, ch. B, 2026 after the bracket-widening law): bracket table lists 10% to 84,120; 14% to 120,720; 20% to 228,000; 31% to 301,200; 35% to 560,280; 47% on every further shekel."
+ },
+ {
+  "id": "tax.bracket3",
+  "value": {
+   "rate": 0.2,
+   "upToAnnual": 228000,
+   "upToMonthly": 19000.0
+  },
+  "unit": "ILS/year",
+  "source": "https://www.gov.il/BlobFolder/generalpage/income-tax-monthly-deductions-booklet/he/generalInformation_income-tax-monthly-deductions-booklet_monthly-deductions-booklet-2026.pdf",
+  "verifiedAt": "2026-10-22",
+  "status": "CHANGED",
+  "sourceKind": "official-primary",
+  "sourceAsOf": "2026-04-15 (booklet updated to April 2026)",
+  "note": "claimed 193,800; Amendment 288 (published 31.3.2026, retroactive to 1.1.2026) widened the 20% bracket to 228,000. Quote (Tax Authority booklet, ch. B, 2026 after the bracket-widening law): bracket table lists 10% to 84,120; 14% to 120,720; 20% to 228,000; 31% to 301,200; 35% to 560,280; 47% on every further shekel."
+ },
+ {
+  "id": "tax.bracket4",
+  "value": {
+   "rate": 0.31,
+   "upToAnnual": 301200,
+   "upToMonthly": 25100.0
+  },
+  "unit": "ILS/year",
+  "source": "https://www.gov.il/BlobFolder/generalpage/income-tax-monthly-deductions-booklet/he/generalInformation_income-tax-monthly-deductions-booklet_monthly-deductions-booklet-2026.pdf",
+  "verifiedAt": "2026-10-22",
+  "status": "CHANGED",
+  "sourceKind": "official-primary",
+  "sourceAsOf": "2026-04-15 (booklet updated to April 2026)",
+  "note": "claimed 269,280; Amendment 288 widened the 31% bracket to 301,200. Quote (Tax Authority booklet, ch. B, 2026 after the bracket-widening law): bracket table lists 10% to 84,120; 14% to 120,720; 20% to 228,000; 31% to 301,200; 35% to 560,280; 47% on every further shekel."
+ },
+ {
+  "id": "tax.bracket5",
+  "value": {
+   "rate": 0.35,
+   "upToAnnual": 560280,
+   "upToMonthly": 46690.0
+  },
+  "unit": "ILS/year",
+  "source": "https://www.gov.il/BlobFolder/generalpage/income-tax-monthly-deductions-booklet/he/generalInformation_income-tax-monthly-deductions-booklet_monthly-deductions-booklet-2026.pdf",
+  "verifiedAt": "2026-10-22",
+  "status": "VERIFIED",
+  "sourceKind": "official-primary",
+  "sourceAsOf": "2026-04-15 (booklet updated to April 2026)",
+  "note": "35% now starts at 301,201 (was 269,281); upper limit unchanged. Quote (Tax Authority booklet, ch. B, 2026 after the bracket-widening law): bracket table lists 10% to 84,120; 14% to 120,720; 20% to 228,000; 31% to 301,200; 35% to 560,280; 47% on every further shekel."
+ },
+ {
+  "id": "tax.bracket6",
+  "value": {
+   "rate": 0.47,
+   "aboveAnnual": 560280,
+   "aboveMonthly": 46690
+  },
+  "unit": "ILS/year",
+  "source": "https://www.gov.il/BlobFolder/generalpage/income-tax-monthly-deductions-booklet/he/generalInformation_income-tax-monthly-deductions-booklet_monthly-deductions-booklet-2026.pdf",
+  "verifiedAt": "2026-10-22",
+  "status": "VERIFIED",
+  "sourceKind": "official-primary",
+  "sourceAsOf": "2026-04-15",
+  "note": "Booklet: \"47% מכל שקל נוסף\" above 560,280 annual / 46,690 monthly."
+ },
+ {
+  "id": "tax.surtax.rate",
+  "value": 0.03,
+  "unit": "fraction of income above threshold",
+  "source": "https://www.gov.il/BlobFolder/generalpage/income-tax-monthly-deductions-booklet/he/generalInformation_income-tax-monthly-deductions-booklet_monthly-deductions-booklet-2026.pdf",
+  "verifiedAt": "2026-10-22",
+  "status": "VERIFIED",
+  "sourceKind": "official-primary",
+  "sourceAsOf": "2026-04-15",
+  "note": "Booklet, section 121ב: individual with taxable income above 721,560 (60,130/month) pays an additional 3% on the part above it. Top marginal rate on LABOUR income = 47% + 3% = 50% only above 721,560 (do not add the 3% below it)."
+ },
+ {
+  "id": "tax.surtax.threshold",
+  "value": 721560,
+  "unit": "ILS/year",
+  "source": "https://www.gov.il/BlobFolder/generalpage/income-tax-monthly-deductions-booklet/he/generalInformation_income-tax-monthly-deductions-booklet_monthly-deductions-booklet-2026.pdf",
+  "verifiedAt": "2026-10-22",
+  "status": "VERIFIED",
+  "sourceKind": "official-primary",
+  "sourceAsOf": "2026-04-15",
+  "note": "= 60,130/month. Frozen by the Dec 2024 law (not indexed 2025-2027)."
+ },
+ {
+  "id": "tax.surtax.capitalExtra",
+  "value": 0.02,
+  "unit": "additional fraction on CAPITAL income above the threshold",
+  "source": "https://www.gov.il/BlobFolder/generalpage/income-tax-monthly-deductions-booklet/he/generalInformation_income-tax-monthly-deductions-booklet_monthly-deductions-booklet-2026.pdf",
+  "verifiedAt": "2026-10-22",
+  "status": "VERIFIED",
+  "sourceKind": "official-primary",
+  "sourceAsOf": "2026-04-15",
+  "note": "Booklet: \"בנוסף... יחיד יהיה חייב במס נוסף בשיעור של 2% על הכנסה חייבת ממקורות הוניים העולה על הסכום\" (so capital income above 721,560 carries 3% + 2% = 5% surtax). Does not affect labour-income lessons; do not state a top rate of 52%/55% for salaries."
+ },
+ {
+  "id": "tax.indexation.freeze",
+  "value": {
+   "years": [
+    2025,
+    2026,
+    2027
+   ],
+   "law": "חוק ההתייעלות הכלכלית (תיקוני חקיקה להשגת יעדי התקציב לשנת התקציב 2025) (הקפאת עדכוני מס ומס יסף), התשפ\"ה-2024, ס\"ח 3342, 26.12.2024"
+  },
+  "unit": "text",
+  "source": "https://www.gov.il/BlobFolder/generalpage/income-tax-monthly-deductions-booklet/he/generalInformation_income-tax-monthly-deductions-booklet_monthly-deductions-booklet-2026.pdf",
+  "verifiedAt": "2026-10-22",
+  "status": "VERIFIED",
+  "sourceKind": "official-primary",
+  "sourceAsOf": "2026-04-15",
+  "note": "Frozen: most amounts were NOT indexed for 2025-2027. EXCEPTION: the 2026 Economic Efficiency Law (published 31.3.2026) widened the 20% and 31% brackets. So \"all brackets frozen\" is wrong for 2026; say \"most amounts frozen\"."
+ },
+ {
+  "id": "tax.creditPoint.monthly",
+  "value": 242,
+  "unit": "ILS/month",
+  "source": "https://www.gov.il/BlobFolder/generalpage/income-tax-monthly-deductions-booklet/he/generalInformation_income-tax-monthly-deductions-booklet_monthly-deductions-booklet-2026.pdf",
+  "verifiedAt": "2026-10-22",
+  "status": "VERIFIED",
+  "sourceKind": "official-primary",
+  "sourceAsOf": "2026-04-15",
+  "note": "Booklet ch. C: \"נקודת זיכוי 33א – 242 לחודש\"."
+ },
+ {
+  "id": "tax.creditPoint.annual",
+  "value": 2904,
+  "unit": "ILS/year",
+  "source": "https://www.gov.il/BlobFolder/generalpage/income-tax-monthly-deductions-booklet/he/generalInformation_income-tax-monthly-deductions-booklet_monthly-deductions-booklet-2026.pdf",
+  "verifiedAt": "2026-10-22",
+  "status": "VERIFIED",
+  "sourceKind": "official-primary",
+  "sourceAsOf": "2026-04-15",
+  "note": "= 242 x 12."
+ },
+ {
+  "id": "tax.creditPoints.residentMan",
+  "value": 2.25,
+  "unit": "points",
+  "source": "https://www.kolzchut.org.il/he/%D7%A0%D7%A7%D7%95%D7%93%D7%95%D7%AA_%D7%96%D7%99%D7%9B%D7%95%D7%99_%D7%9E%D7%9E%D7%A1_%D7%94%D7%9B%D7%A0%D7%A1%D7%94_%D7%9C%D7%AA%D7%95%D7%A9%D7%91_%D7%99%D7%A9%D7%A8%D7%90%D7%9C",
+  "verifiedAt": "2026-10-22",
+  "status": "VERIFIED",
+  "sourceKind": "official-excerpt",
+  "sourceAsOf": "2026",
+  "note": "Kolzchut: \"הזכות הבסיסית עומדת על 2.25 נקודות לכל תושב\". Seen via search-result excerpt; direct fetch returned 403."
+ },
+ {
+  "id": "tax.creditPoints.residentWoman",
+  "value": 2.75,
+  "unit": "points",
+  "source": "https://www.kolzchut.org.il/he/%D7%A0%D7%A7%D7%95%D7%93%D7%95%D7%AA_%D7%96%D7%99%D7%9B%D7%95%D7%99_%D7%9E%D7%9E%D7%A1_%D7%94%D7%9B%D7%A0%D7%A1%D7%94_%D7%9C%D7%A0%D7%A9%D7%99%D7%9D",
+  "verifiedAt": "2026-10-22",
+  "status": "VERIFIED",
+  "sourceKind": "official-excerpt",
+  "sourceAsOf": "2026",
+  "note": "Kolzchut: woman gets an extra half point = 2.75 (665.5 NIS/month, 7,986/year). Search-result excerpt; direct fetch 403."
+ },
+ {
+  "id": "tax.creditPoints.children",
+  "value": null,
+  "unit": "points",
+  "source": "https://www.kolzchut.org.il/he/%D7%A0%D7%A7%D7%95%D7%93%D7%95%D7%AA_%D7%96%D7%99%D7%9B%D7%95%D7%99_%D7%9E%D7%9E%D7%A1_%D7%94%D7%9B%D7%A0%D7%A1%D7%94_%D7%9C%D7%AA%D7%95%D7%A9%D7%91_%D7%99%D7%A9%D7%A8%D7%90%D7%9C",
+  "verifiedAt": "2026-10-22",
+  "status": "NOT_VERIFIED",
+  "sourceKind": "official-excerpt",
+  "sourceAsOf": null,
+  "note": "Only \"child aged 6-17: +1 point\" was seen in an excerpt. Points for ages 0-5 conflict between excerpts (1.5/2.5 vs 2.5/4.5/3.5 after the 2024 change). Do NOT put per-child numbers in a lesson until checked on the Tax Authority credit-point calculator."
+ },
+ {
+  "id": "ni.employee.reducedRate",
+  "value": 0.0427,
+  "unit": "fraction (NI + health combined)",
+  "source": "https://www.btl.gov.il/Insurance/HozrimBituah/Hozrim/%D7%A9%D7%99%D7%A0%D7%95%D7%99%20%D7%91%D7%AA%D7%A9%D7%9C%D7%95%D7%9D%20%D7%93%D7%9E%D7%99%20%D7%91%D7%99%D7%98%D7%95%D7%97%20%D7%9C%D7%90%D7%95%D7%9E%D7%99%20%D7%95%D7%93%D7%9E%D7%99%20%D7%91%D7%99%D7%98%D7%95%D7%97%20%D7%91%D7%A8%D7%99%D7%90%D7%95%D7%AA%20%D7%9C%D7%A9%D7%A0%D7%AA%202026.pdf",
+  "verifiedAt": "2026-10-22",
+  "status": "VERIFIED",
+  "sourceKind": "official-primary",
+  "sourceAsOf": "2026-04-01",
+  "note": "BTL employers circular 1522 of 1.4.2026, column 1 (resident 18+ below retirement age): reduced employee 4.27% (employer 4.51%, total 8.78%). The split NI 1.04% + health 3.23% comes from a non-official calculator, only the 4.27% total is from the circular."
+ },
+ {
+  "id": "ni.employee.fullRate",
+  "value": 0.1217,
+  "unit": "fraction (NI + health combined)",
+  "source": "https://www.btl.gov.il/Insurance/HozrimBituah/Hozrim/%D7%A9%D7%99%D7%A0%D7%95%D7%99%20%D7%91%D7%AA%D7%A9%D7%9C%D7%95%D7%9D%20%D7%93%D7%9E%D7%99%20%D7%91%D7%99%D7%98%D7%95%D7%97%20%D7%9C%D7%90%D7%95%D7%9E%D7%99%20%D7%95%D7%93%D7%9E%D7%99%20%D7%91%D7%99%D7%98%D7%95%D7%97%20%D7%91%D7%A8%D7%99%D7%90%D7%95%D7%AA%20%D7%9C%D7%A9%D7%A0%D7%AA%202026.pdf",
+  "verifiedAt": "2026-10-22",
+  "status": "VERIFIED",
+  "sourceKind": "official-primary",
+  "sourceAsOf": "2026-04-01",
+  "note": "Same circular: full employee 12.17% (employer 7.60%, total 19.77%)."
+ },
+ {
+  "id": "ni.reducedBand.monthly",
+  "value": 7703,
+  "unit": "ILS/month",
+  "source": "https://www.btl.gov.il/Insurance/HozrimBituah/Hozrim/%D7%A9%D7%99%D7%A0%D7%95%D7%99%20%D7%91%D7%AA%D7%A9%D7%9C%D7%95%D7%9D%20%D7%93%D7%9E%D7%99%20%D7%91%D7%99%D7%98%D7%95%D7%97%20%D7%9C%D7%90%D7%95%D7%9E%D7%99%20%D7%95%D7%93%D7%9E%D7%99%20%D7%91%D7%99%D7%98%D7%95%D7%97%20%D7%91%D7%A8%D7%99%D7%90%D7%95%D7%AA%20%D7%9C%D7%A9%D7%A0%D7%AA%202026.pdf",
+  "verifiedAt": "2026-10-22",
+  "status": "VERIFIED",
+  "sourceKind": "official-primary",
+  "sourceAsOf": "2026-04-01",
+  "note": "Circular: \"סכום מדרגת גביה מופחתת ₪7,703\"."
+ },
+ {
+  "id": "ni.maxInsurable.monthly",
+  "value": 51910,
+  "unit": "ILS/month",
+  "source": "https://www.btl.gov.il/Insurance/HozrimBituah/Hozrim/%D7%A9%D7%99%D7%A0%D7%95%D7%99%20%D7%91%D7%AA%D7%A9%D7%9C%D7%95%D7%9D%20%D7%93%D7%9E%D7%99%20%D7%91%D7%99%D7%98%D7%95%D7%97%20%D7%9C%D7%90%D7%95%D7%9E%D7%99%20%D7%95%D7%93%D7%9E%D7%99%20%D7%91%D7%99%D7%98%D7%95%D7%97%20%D7%91%D7%A8%D7%99%D7%90%D7%95%D7%AA%20%D7%9C%D7%A9%D7%A0%D7%AA%202026.pdf",
+  "verifiedAt": "2026-10-22",
+  "status": "VERIFIED",
+  "sourceKind": "official-primary",
+  "sourceAsOf": "2026-04-01",
+  "note": "Circular: \"הכנסה מרבית לתשלום דמי ביטוח היא ₪51,910 ברוטו לחודש\"."
+ },
+ {
+  "id": "ni.rates.expiry",
+  "value": {
+   "validThrough": "2026-12-31",
+   "extension": "up to 2 more years with Finance Minister + Labour Committee approval"
+  },
+  "unit": "text",
+  "source": "https://www.btl.gov.il/Insurance/HozrimBituah/Hozrim/%D7%A9%D7%99%D7%A0%D7%95%D7%99%20%D7%91%D7%AA%D7%A9%D7%9C%D7%95%D7%9D%20%D7%93%D7%9E%D7%99%20%D7%91%D7%99%D7%98%D7%95%D7%97%20%D7%9C%D7%90%D7%95%D7%9E%D7%99%20%D7%95%D7%93%D7%9E%D7%99%20%D7%91%D7%99%D7%98%D7%95%D7%97%20%D7%91%D7%A8%D7%99%D7%90%D7%95%D7%AA%20%D7%9C%D7%A9%D7%A0%D7%AA%202026.pdf",
+  "verifiedAt": "2026-10-22",
+  "status": "VERIFIED",
+  "sourceKind": "official-primary",
+  "sourceAsOf": "2026-04-01",
+  "note": "Circular: the temporary provision (Amendment 252) raising the reduced-rate NI is valid to end of 2026 with an option to extend 2 years. Rates for 2027 are therefore not guaranteed: show \"2026\" next to every NI figure."
+ },
+ {
+  "id": "ni.averageWage.monthly",
+  "value": 13769,
+  "unit": "ILS/month",
+  "source": "https://www.btl.gov.il/Insurance/HozrimBituah/Hozrim/%D7%A9%D7%99%D7%A0%D7%95%D7%99%20%D7%91%D7%AA%D7%A9%D7%9C%D7%95%D7%9D%20%D7%93%D7%9E%D7%99%20%D7%91%D7%99%D7%98%D7%95%D7%97%20%D7%9C%D7%90%D7%95%D7%9E%D7%99%20%D7%95%D7%93%D7%9E%D7%99%20%D7%91%D7%99%D7%98%D7%95%D7%97%20%D7%91%D7%A8%D7%99%D7%90%D7%95%D7%AA%20%D7%9C%D7%A9%D7%A0%D7%AA%202026.pdf",
+  "verifiedAt": "2026-10-22",
+  "status": "VERIFIED",
+  "sourceKind": "official-primary",
+  "sourceAsOf": "2026-04-01",
+  "note": "Circular: \"שכר ממוצע הוא ₪13,769 לחודש\"."
+ },
+ {
+  "id": "labour.minWage.monthly",
+  "value": 6443.85,
+  "unit": "ILS/month",
+  "source": "https://www.btl.gov.il/Insurance/HozrimBituah/Hozrim/%D7%A9%D7%99%D7%A0%D7%95%D7%99%20%D7%91%D7%AA%D7%A9%D7%9C%D7%95%D7%9D%20%D7%93%D7%9E%D7%99%20%D7%91%D7%99%D7%98%D7%95%D7%97%20%D7%9C%D7%90%D7%95%D7%9E%D7%99%20%D7%95%D7%93%D7%9E%D7%99%20%D7%91%D7%99%D7%98%D7%95%D7%97%20%D7%91%D7%A8%D7%99%D7%90%D7%95%D7%AA%20%D7%9C%D7%A9%D7%A0%D7%AA%202026.pdf",
+  "verifiedAt": "2026-10-22",
+  "status": "VERIFIED",
+  "sourceKind": "official-primary",
+  "sourceAsOf": "2026-04-01",
+  "note": "Circular: minimum wage 6,247.67 until March 2026, 6,443.85 from April 2026."
+ },
+ {
+  "id": "pension.employee",
+  "value": 0.06,
+  "unit": "fraction of salary",
+  "source": "https://www.kolzchut.org.il/he/%D7%97%D7%95%D7%91%D7%AA_%D7%91%D7%99%D7%98%D7%95%D7%97_%D7%A4%D7%A0%D7%A1%D7%99%D7%95%D7%A0%D7%99_%D7%9C%D7%A2%D7%95%D7%91%D7%93%D7%99%D7%9D",
+  "verifiedAt": "2026-10-22",
+  "status": "VERIFIED",
+  "sourceKind": "official-excerpt",
+  "sourceAsOf": "2026",
+  "note": "Kolzchut: from 1.1.2017 employee 6%, employer 6.5% (תגמולים) + 6% (פיצויים) = 18.5% under the general extension order. Direct fetch 403; seen via search excerpt and echoed by Supreme Court ruling (בר\"מ 4413/23). Collective agreements / better arrangements may be higher; public-sector teachers have their own pension arrangements, so do not say every teacher pays exactly 6%."
+ },
+ {
+  "id": "pension.employer.pension",
+  "value": 0.065,
+  "unit": "fraction of salary (minimum)",
+  "source": "https://www.kolzchut.org.il/he/%D7%97%D7%95%D7%91%D7%AA_%D7%91%D7%99%D7%98%D7%95%D7%97_%D7%A4%D7%A0%D7%A1%D7%99%D7%95%D7%A0%D7%99_%D7%9C%D7%A2%D7%95%D7%91%D7%93%D7%99%D7%9D",
+  "verifiedAt": "2026-10-22",
+  "status": "VERIFIED",
+  "sourceKind": "official-excerpt",
+  "sourceAsOf": "2026",
+  "note": "Legal minimum, employer pension component."
+ },
+ {
+  "id": "pension.employer.severance",
+  "value": 0.06,
+  "unit": "fraction of salary (minimum)",
+  "source": "https://www.kolzchut.org.il/he/%D7%A1%D7%A2%D7%99%D7%A3_14_%D7%9C%D7%97%D7%95%D7%A7_%D7%A4%D7%99%D7%A6%D7%95%D7%99%D7%99_%D7%A4%D7%99%D7%98%D7%95%D7%A8%D7%99%D7%9D",
+  "verifiedAt": "2026-10-22",
+  "status": "VERIFIED",
+  "sourceKind": "official-excerpt",
+  "sourceAsOf": "2026",
+  "note": "Severance (פיצויים) component the employer must deposit: 6% (since 2014, section 14 applies automatically). The 8.33% is the full severance entitlement; the 6% minimum under the extension order is what is deposited."
+ },
+ {
+  "id": "pension.total.minimum",
+  "value": 0.185,
+  "unit": "fraction of salary",
+  "source": "https://www.kolzchut.org.il/he/%D7%97%D7%95%D7%91%D7%AA_%D7%91%D7%99%D7%98%D7%95%D7%97_%D7%A4%D7%A0%D7%A1%D7%99%D7%95%D7%A0%D7%99_%D7%9C%D7%A2%D7%95%D7%91%D7%93%D7%99%D7%9D",
+  "verifiedAt": "2026-10-22",
+  "status": "VERIFIED",
+  "sourceKind": "official-excerpt",
+  "sourceAsOf": "2026",
+  "note": "6 + 6.5 + 6."
+ },
+ {
+  "id": "vat.rate",
+  "value": 0.18,
+  "unit": "fraction",
+  "source": "https://www.gov.il/he/pages/dec1270-2024",
+  "verifiedAt": "2026-10-22",
+  "status": "VERIFIED",
+  "sourceKind": "official-excerpt",
+  "sourceAsOf": "2025-01-01",
+  "note": "Government decision 1270: VAT up from 17% to 18% from 1 Jan 2025 (gov.il page; direct fetch 403, confirmed via excerpt of the page and a Tax Authority interpretation directive dated 5.12.2024)."
+ },
+ {
+  "id": "boi.policyRate",
+  "value": 3.25,
+  "unit": "percent",
+  "source": "https://kamakama.gov.il/publications/pressreleases/",
+  "verifiedAt": "2026-10-22",
+  "status": "VERIFIED",
+  "sourceKind": "official-primary",
+  "sourceAsOf": "2026-10-21",
+  "note": "Bank of Israel: \"הוועדה המוניטרית החליטה ב-21/10/2026 להותיר את הריבית ללא שינוי ברמה של 3.25%\". Next decision 23/11/2026. 12-month inflation shown on the same page: 1.6%. Cut path in 2026: 4% (Jan) -> 3.5% (Jul) -> 3.25% (Sep)."
+ },
+ {
+  "id": "boi.inflation12m",
+  "value": 1.6,
+  "unit": "percent",
+  "source": "https://kamakama.gov.il/publications/pressreleases/",
+  "verifiedAt": "2026-10-22",
+  "status": "VERIFIED",
+  "sourceKind": "official-primary",
+  "sourceAsOf": "2026-10-21",
+  "note": "Shown on the Bank of Israel press-release page, \"ב-12 החודשים האחרונים\"."
+ },
+ {
+  "id": "credit.nonHousing.avgRate",
+  "value": {
+   "average": 6.96,
+   "byMaturity": {
+    "to3m": 6.93,
+    "3m-1y": 9.39,
+    "1-2y": 6.25,
+    "2-5y": 5.17,
+    "over5y": 6.72
+   }
+  },
+  "unit": "percent per year (effective), unindexed shekel",
+  "source": "https://kamakama.gov.il/boi_files/Pikuah/nonhousingloans.xls",
+  "verifiedAt": "2026-10-22",
+  "status": "VERIFIED",
+  "sourceKind": "official-primary",
+  "sourceAsOf": "2026-09-30",
+  "note": "BoI series \"ריבית ממוצעת אשראי לא לדיור\", report month Sep 2026 (published 21.10.2026), households + private banking + very small businesses, NEW non-housing bank loans. Range by maturity 5.17%-9.39%. NOT credit-card or non-bank interest, which was not found: say \"הלוואה בנקאית לא לדיור: כ-5%-9%\"."
+ },
+ {
+  "id": "mortgage.avgRate.unindexed",
+  "value": {
+   "total": 4.5,
+   "fixed": 4.62,
+   "variable": 4.11,
+   "fixedByTerm": {
+    "10-15y": 4.47,
+    "15-20y": 4.6,
+    "20-25y": 4.65,
+    "over25y": 4.77
+   }
+  },
+  "unit": "percent per year",
+  "source": "https://kamakama.gov.il/boi_files/Pikuah/dy260831.xlsx",
+  "verifiedAt": "2026-10-22",
+  "status": "VERIFIED",
+  "sourceKind": "official-primary",
+  "sourceAsOf": "2026-08-31",
+  "note": "BoI Supervisor report 877 table 2, loans granted in Aug 2026 (report date 31.8.2026): unindexed total 4.50% (fixed 4.62%, variable 4.11%); typical range of fixed unindexed by term 4.22%-4.77%."
+ },
+ {
+  "id": "mortgage.avgRate.cpiIndexed",
+  "value": {
+   "total": 3.26,
+   "fixed": 3.29,
+   "variable": 3.19,
+   "variableNote": "anchor 1.64 + margin 1.55"
+  },
+  "unit": "percent per year (+ CPI)",
+  "source": "https://kamakama.gov.il/boi_files/Pikuah/dy260831.xlsx",
+  "verifiedAt": "2026-10-22",
+  "status": "VERIFIED",
+  "sourceKind": "official-primary",
+  "sourceAsOf": "2026-08-31",
+  "note": "Same report, table 1 (CPI-indexed): total 3.26%, fixed 3.29%. Variable = anchor 1.64% + margin 1.55% = 3.19% shown in the table."
+ },
+ {
+  "id": "emergencyFund.months",
+  "value": {
+   "low": 3,
+   "high": 6
+  },
+  "unit": "months of expenses",
+  "source": null,
+  "verifiedAt": "2026-10-22",
+  "status": "NOT_VERIFIED",
+  "sourceKind": "secondary",
+  "sourceAsOf": null,
+  "note": "No government / Bank of Israel / consumer-protection source found stating 3-6 months. Only commercial personal-finance sites (bizportal, moneyplan, kipa) repeat it as a rule of thumb. Phrase it in the lesson as \"כלל אצבע נפוץ\" and never as an official recommendation."
+ },
+ {
+  "id": "anchor.teacher8800",
+  "value": {
+   "grossMonthly": 8800,
+   "incomeTaxBeforeCredit": 951.6,
+   "creditPoints": 544.5,
+   "incomeTaxAfterCredit": 407.1,
+   "niPlusHealth": 462.4,
+   "pensionEmployee6pct": 528.0,
+   "netTakeHome": 7402.5,
+   "netTakeHomeIfPensionCredit35pct": 7587.3,
+   "gameTaxLine": 900,
+   "realTaxPlusNI": 869.5,
+   "gameVsReal": "+3.5%"
+  },
+  "unit": "ILS/month",
+  "source": "https://www.gov.il/BlobFolder/generalpage/income-tax-monthly-deductions-booklet/he/generalInformation_income-tax-monthly-deductions-booklet_monthly-deductions-booklet-2026.pdf + https://www.btl.gov.il/Insurance/HozrimBituah/Hozrim/%D7%A9%D7%99%D7%A0%D7%95%D7%99%20%D7%91%D7%AA%D7%A9%D7%9C%D7%95%D7%9D%20%D7%93%D7%9E%D7%99%20%D7%91%D7%99%D7%98%D7%95%D7%97%20%D7%9C%D7%90%D7%95%D7%9E%D7%99%20%D7%95%D7%93%D7%9E%D7%99%20%D7%91%D7%99%D7%98%D7%95%D7%97%20%D7%91%D7%A8%D7%99%D7%90%D7%95%D7%AA%20%D7%9C%D7%A9%D7%A0%D7%AA%202026.pdf",
+  "verifiedAt": "2026-10-22",
+  "status": "DERIVED",
+  "sourceKind": "derived",
+  "sourceAsOf": "2026",
+  "note": "Computed from verified 2026 figures; man, 2.25 points, no children, no other credits, no tax-coordination, no study-fund. Pension credit of 35% (section 45א) is an estimate: the booklet lists a ceiling of 189/month under 45א but the exact mapping was not confirmed."
+ }
+]
