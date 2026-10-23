@@ -15,7 +15,7 @@ const he = JSON.parse(readFileSync(new URL('../src/i18n/he.json', import.meta.ur
  */
 export const FORBIDDEN = [
   'ריבית', 'תזרים', 'כרית', 'תשואה', 'מקדמה', 'הכנסה פסיבית', 'הכנסות פסיביות', 'פסיבית', 'משכנתא', 'התחייבות', 'התחייבויות',
-  'החזר השקעה', 'דיבידנד', 'שווי נקי', 'פיזור', 'מהי ',
+  'החזר השקעה', 'תקופת החזר', 'דיבידנד', 'שווי נקי', 'פיזור', 'מהי ',
 ];
 const FORBIDDEN_RE = new RegExp(FORBIDDEN.join('|'), 'u');
 /** The only places where the real term is shown on purpose (spec: 'חריגים מותרים'): the story's first screen names it once. */
