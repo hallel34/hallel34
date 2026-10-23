@@ -166,18 +166,18 @@ async function guards(browser, theme) {
       if (age < 450) {
         const early = Math.max(0, [100, 250, 400][sawHandoff % 3] - age);
         await sleep(early);
-        const armed0 = await go.getAttribute('aria-disabled').catch(() => null);
+        const armed0 = await go.evaluate((b) => (b.disabled ? 'true' : null)).catch(() => null);
         const at = Math.round(await page.evaluate(() => performance.now() - window.__born['handoff-sheet']));
         await go.click({ force: true, timeout: 2000 }).catch(() => {});
         await sleep(250);
         const still = await topKind(page);
-        check(armed0 === 'true' && still === 'handoff', `hand-over: aria-disabled while arming, and a tap ${at} ms after the sheet appeared does not roll (${armed0}/${still})`);
+        check(armed0 === 'true' && still === 'handoff', `hand-over: disabled while arming, and a tap ${at} ms after the sheet appeared does not roll (${armed0}/${still})`);
         if (sawHandoff === 0) await axe(page, `hand-over sheet ${theme}`);
         sawHandoff += 1;
       }
       await sleep(850);
       if (await topKind(page) === 'handoff') {
-        check(await go.getAttribute('aria-disabled') === null, 'hand-over: armed once the fill is done');
+        check(await go.evaluate((b) => b.disabled) === false, 'hand-over: armed once the fill is done');
         await go.click();
         await page.waitForSelector('.layer-handoff', { state: 'detached', timeout: 3000 }).catch(() => {});
         check(await topKind(page) !== 'handoff', 'hand-over: a deliberate tap rolls');

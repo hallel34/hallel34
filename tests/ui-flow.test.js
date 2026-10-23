@@ -53,8 +53,7 @@ describe('buy button is truthful', () => {
     expect(he.card.noFundsMax).toBe('אין מספיק כסף, גם עם הלוואה מקסימלית');
     expect(src).toMatch(/purchasePlan\(state, c\.price\)/);
     expect(src).toMatch(/purchasePlan\(state, c\.downPayment\)/);
-    expect(src).toMatch(/'aria-disabled': a\.blocked \? 'true' : null/);
-    expect(src).toMatch(/if \(a\.blocked\) \{ haptic\('error'\); shake\(b\); return; \}/);
+    expect(src).toMatch(/disabled: !!\(a\.disabled \|\| a\.blocked\)/);
     expect(src).toMatch(/blocked: plan\.status === 'blocked'/);
   });
   it('when a loan can cover the gap, tapping buy asks for exactly that loan (buyLoan), then the purchase completes', () => {

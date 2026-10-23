@@ -338,7 +338,7 @@ describe('one-tap hand-over (hot-seat)', () => {
     expect(play).not.toContain("paintButton('continue')");
     const modals = read('src/ui/modals.js');
     expect(modals).toContain("'data-action': 'roll-next'");
-    expect(modals).toContain('if (tapped || !armed) return;'); // double taps, and taps while the sheet is still arming
+    expect(modals).toContain('if (tapped) return;'); // double taps; taps while the sheet is still arming hit a real `disabled` (arm())
     expect(modals).not.toContain('players.ready');
     const he = JSON.parse(read('src/i18n/he.json'));
     expect(he.players.rollFor).toBe('זרקו קובייה, {name}');

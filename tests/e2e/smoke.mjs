@@ -500,7 +500,7 @@ async function testGuessFlow(page) {
       buy: !!c.querySelector('[data-action="buy"]'), pass: !!c.querySelector('[data-action="pass"]'), skip: !!c.querySelector('[data-action="guess-skip"]'),
     };
   });
-  check(rev.done === 'done' && rev.light === 'green' && rev.role === 'img' && /רמזור ירוק/.test(rev.aria) && rev.label === 'החזר מהיר' && rev.lampIcon, `L2: green light with an icon shape and a text label (${rev.label})`);
+  check(rev.done === 'done' && rev.light === 'green' && rev.role === 'img' && /רמזור ירוק/.test(rev.aria) && rev.label === (MODE === 'family' ? 'הכסף חוזר מהר' : 'תקופת החזר קצרה') && rev.lampIcon, `L2: green light with an icon shape and a text label (${rev.label})`);
   check(rev.result === 'correct', 'L2: a right guess says so');
   check(rev.tiles.some((x) => x.includes('20.4%')) && rev.tiles.some((x) => x.includes('4.9 שנים')), `L2: annual yield and payback match the engine (${rev.tiles.join(' | ')})`);
   check(/20\.4%/.test(rev.verdict) && /4\.9/.test(rev.verdict) && /8 שנים/.test(rev.legend) && /1 מתוך 3/.test(rev.eye), `L2: verdict, legend (thresholds from the config) and the streak chip (${rev.eye})`);
@@ -560,7 +560,7 @@ async function testGuessFlow(page) {
   await page.locator('[data-action="guess-good"]').click();
   await page.waitForSelector('.reveal');
   const wrong = await page.evaluate(() => ({ result: document.querySelector('.guess-result')?.dataset.result, light: document.querySelector('.light')?.dataset.light, label: document.querySelector('.light-label')?.textContent.trim(), eye: document.querySelector('.eye-chip')?.textContent }));
-  check(wrong.light === 'red' && wrong.result === 'wrong' && wrong.label === 'החזר איטי או אין החזר' && /0 מתוך 3/.test(wrong.eye), `L2: a red deal guessed good is "wrong", the light is red with its text label, streak 0 (${wrong.eye})`);
+  check(wrong.light === 'red' && wrong.result === 'wrong' && wrong.label === (MODE === 'family' ? 'הכסף חוזר לאט או לא חוזר' : 'תקופת החזר ארוכה או שהכסף לא חוזר') && /0 מתוך 3/.test(wrong.eye), `L2: a red deal guessed good is "wrong", the light is red with its text label, streak 0 (${wrong.eye})`);
   await page.screenshot({ path: `${OUT}/learn-guess-red-${HEIGHT}.png` });
   await page.reload();
   await page.waitForSelector('[data-action="resume"]');
@@ -717,7 +717,7 @@ async function testDictionary(page) {
   await page.locator('.topbar .icon-btn').first().click(); // menu entry
   await page.waitForSelector('.dict-sheet .dict-list');
   await page.waitForTimeout(350);
-  const want = MODE === 'full' ? 13 : 10;
+  const want = MODE === 'full' ? 14 : 11;
   const terms = await page.locator('.dict-item .dict-item-term').allInnerTexts();
   check(terms.length === want, `L1: the dictionary lists ${want} concepts in ${MODE} mode (${terms.length})`);
   const sorted = [...terms].sort((a, b) => a.localeCompare(b, 'he'));
@@ -1004,11 +1004,11 @@ async function testBuyStates(page) {
     const b = document.querySelector('.card [data-action="buy"]');
     const hint = document.querySelector('#buy-hint');
     const cs = getComputedStyle(b);
-    return { aria: b.getAttribute('aria-disabled'), buy: document.querySelector('.card').dataset.buy, hint: hint?.textContent.trim(), described: b.getAttribute('aria-describedby'), border: cs.borderTopStyle, hintVisible: !!hint && hint.getBoundingClientRect().height > 0 };
+    return { disabled: b.disabled, tag: b.querySelector('.btn-tag')?.textContent, buy: document.querySelector('.card').dataset.buy, hint: hint?.textContent.trim(), described: b.getAttribute('aria-describedby'), hintVisible: !!hint && hint.getBoundingClientRect().height > 0 };
   });
-  check(st.buy === 'blocked' && st.aria === 'true', 'unaffordable even after the max loan: buy is aria-disabled');
+  check(st.buy === 'blocked' && st.disabled === true, 'unaffordable even after the max loan: buy is disabled');
   check(st.hint?.startsWith('אין מספיק כסף, גם עם הלוואה מקסימלית') && st.hintVisible && st.described === 'buy-hint', 'blocked buy shows the reason line and is described by it');
-  check(st.border === 'dashed', 'blocked buy looks disabled (dashed outline, flat colour)');
+  check(st.tag === 'לא זמין', 'blocked buy looks disabled and says "לא זמין"');
   await insideViewport(page, ['#modal-root .layer:last-child .card-actions .btn[data-action="buy"]', '#buy-hint'], 'blocked buy + reason');
   await page.screenshot({ path: `${OUT}/buy-blocked.png` });
   await page.locator('.card [data-action="buy"]').click({ force: true });
@@ -1300,7 +1300,7 @@ async function main() {
   const pose = await page.evaluate(() => document.querySelector('.roll-zone')?.dataset.pose);
   check((MODE === 'family' ? ['tip', 'note'].includes(pose) : pose === 'roll') || PLAYERS > 1, `roll zone shows the ${MODE === 'family' ? 'family tip' : 'roll pose'} at the start (got ${pose})`);
   const theme = await page.evaluate(() => document.querySelector('meta[name="theme-color"]').content);
-  check(theme.toLowerCase() === '#0f1e46', 'theme-color is navy');
+  check(theme.toLowerCase() === '#0f172a', 'theme-color is navy');
 
   // a11y wiring: named progressbar, <main> + h1 landmarks, debug helpers off without the flag
   const a11y = await page.evaluate(() => ({

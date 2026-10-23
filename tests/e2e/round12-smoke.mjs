@@ -169,11 +169,11 @@ async function tourAndHandoff(browser, theme) {
   const two = await open(browser, { w: 360, h: 640, theme });
   await begin(two.page, { players: 2 });
   await two.page.waitForSelector('.handoff-sheet, [data-action="roll-next"]', { timeout: 8000 }).catch(() => {});
-  const arming = await two.page.evaluate(() => { const l = document.querySelector('[data-action="handoff-home"]'); return l ? { arming: l.classList.contains('is-arming'), disabled: l.getAttribute('aria-disabled'), bar: getComputedStyle(l, '::after').content } : null; });
+  const arming = await two.page.evaluate(() => { const l = document.querySelector('[data-action="handoff-home"]'); return l ? { arming: l.hasAttribute('data-arming'), disabled: l.disabled ? 'true' : null, bar: getComputedStyle(l, '::after').content } : null; });
   if (arming) {
     check(arming.arming && arming.disabled === 'true' && arming.bar !== 'none', `hand-over: the home link shows the arming sweep at first (${JSON.stringify(arming)})`);
     await sleep(900);
-    const after = await two.page.evaluate(() => { const l = document.querySelector('[data-action="handoff-home"]'); return l ? { arming: l.classList.contains('is-arming'), disabled: l.getAttribute('aria-disabled') } : null; });
+    const after = await two.page.evaluate(() => { const l = document.querySelector('[data-action="handoff-home"]'); return l ? { arming: l.hasAttribute('data-arming'), disabled: l.disabled ? 'true' : null } : null; });
     check(after && !after.arming && after.disabled === null, 'hand-over: the home link is armed together with the primary button');
     await contrast(two.page, `hand-over sheet ${theme}`);
   } else check(true, 'hand-over sheet had no home link on this first turn (skipped)');
