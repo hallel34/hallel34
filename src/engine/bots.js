@@ -1,6 +1,6 @@
 // Bots used by the balance simulation (and handy for QA / demo mode).
-import { maxLoan, monthlyCashFlow, totalExpenses } from './selectors.js';
-import { LOAN_STEP, LOAN_PAYMENT_RATE } from './config.js';
+import { maxLoan, monthlyCashFlow, totalExpenses, loanRateNow } from './selectors.js';
+import { LOAN_STEP } from './config.js';
 import { act, canEndTurn, endTurn } from './match.js';
 
 // reserveMonths: cash buffer (in months of expenses) kept after a purchase.
@@ -64,7 +64,7 @@ export function step(engine, s, bot) {
         const loanNeeded = Math.ceil(need / LOAN_STEP) * LOAN_STEP;
         if (loanNeeded > maxLoan(s)) return engine.pass(s);
         // only borrow if the deal still improves cash flow after the loan payment (the over-borrowing bots skip this check)
-        if (!cfg.overBorrow && c.monthlyCashFlow - loanNeeded * LOAN_PAYMENT_RATE <= 0) return engine.pass(s);
+        if (!cfg.overBorrow && c.monthlyCashFlow - loanNeeded * loanRateNow(s) <= 0) return engine.pass(s);
         n = engine.takeLoan(s, cfg.overBorrow === 'max' ? maxLoan(s) : loanNeeded);
       }
     }

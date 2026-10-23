@@ -1,5 +1,5 @@
 // Schema validation for professions and cards. Fails loudly.
-import { BASE_DEBT_RATES } from './config.js';
+import { BASE_DEBT_RATES, TIMED_EFFECT_KINDS, TIMED_EFFECT_MAX_TURNS, TIMED_EFFECT_MAX_PCT, LOAN_PAYMENT_RATE } from './config.js';
 import { CATEGORY_IDS, CATEGORY_TYPES } from '../data/categories.js';
 const MODES = ['family', 'full'];
 const DECKS = ['opportunity', 'expense', 'market'];
@@ -102,7 +102,16 @@ export function validateCards(list) {
         if (!isStr(c.symbol) || !isNum(c.newPrice) || c.newPrice <= 0) errors.push(`${w}: stockPrice`);
       } else if (c.effect === 'cash') {
         if (!isNum(c.amount)) errors.push(`${w}: cash amount`);
+      } else if (TIMED_EFFECT_KINDS.includes(c.effect)) {
+        // timed effect (family market deck): lasts `turns` turns and carries the one line it teaches
+        if (!Number.isInteger(c.turns) || c.turns < 1 || c.turns > TIMED_EFFECT_MAX_TURNS) errors.push(`${w}: turns must be 1-${TIMED_EFFECT_MAX_TURNS}`);
+        if (c.effect === 'cheapLoan') {
+          if (!isNum(c.rate) || c.rate <= 0 || c.rate >= LOAN_PAYMENT_RATE) errors.push(`${w}: cheapLoan rate must be above 0 and below ${LOAN_PAYMENT_RATE}`);
+        } else if (!isNum(c.pct) || c.pct === 0 || Math.abs(c.pct) > TIMED_EFFECT_MAX_PCT) errors.push(`${w}: pct must be non-zero, at most ${TIMED_EFFECT_MAX_PCT}`);
+        if (!isStr(c.teaches)) errors.push(`${w}: a timed market card needs its teaches line`);
       } else errors.push(`${w}: unknown effect`);
+      if (c.effect === 'offer' && c.modes?.includes('family')) errors.push(`${w}: offer cards are full mode only (a family game never sells)`);
+      if (c.teaches !== undefined && !isStr(c.teaches)) errors.push(`${w}: teaches`);
     }
   }
   for (const mode of MODES) {

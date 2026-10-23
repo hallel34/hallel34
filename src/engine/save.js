@@ -17,6 +17,17 @@ const migrations = {
       ? m.players.map((p) => (p?.state ? { ...p, state: { ...p.state, schemaVersion: 3, learn: p.state.learn ?? emptyLearn() } } : p))
       : m.players,
   }),
+  // 3 -> 4 (v3 phase 3 economy): every player's state gets `lap` and `effects`. The laps of an old game cannot be rebuilt from
+  // its turns, so lap starts at 0 (its new deals start inflating from the load on); there are no timed effects yet.
+  3: (m) => ({
+    ...m,
+    schemaVersion: 4,
+    players: Array.isArray(m.players)
+      ? m.players.map((p) => (p?.state ? {
+        ...p, state: { ...p.state, schemaVersion: 4, lap: Number.isInteger(p.state.lap) ? p.state.lap : 0, effects: Array.isArray(p.state.effects) ? p.state.effects : [] },
+      } : p))
+      : m.players,
+  }),
 };
 
 export function serialize(match) {

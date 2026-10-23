@@ -3,18 +3,44 @@
 // The input state is never mutated. All randomness comes from state.rngState.
 import {
   BOARD, SCHEMA_VERSION, MAX_KIDS, CHARITY_PCT, CHARITY_TURNS, LOAN_STEP,
-  LOAN_PAYMENT_RATE, MAX_STOCK_QTY, PAYDAY_MONTHS,
+  MAX_STOCK_QTY, PAYDAY_MONTHS, INFLATION_PRICE_ROUND, TIMED_EFFECT_KINDS, INFLATION_FLOW_ROUND, INFLATION_EXPENSE_ROUND,
 } from './config.js';
 import { validateData } from './validate.js';
 import { cardView } from './card-view.js';
 import {
   monthlyCashFlow, hasWon, maxLoan, saleValue, stockPrice, totalIncome,
-  passiveIncome, canSell, loanMonthlyPayment,
+  passiveIncome, canSell, loanMonthlyPayment, loanRateNow, priceFactor, expenseFactor,
 } from './selectors.js';
 import { emptyLearn, recordDecision, buyRecord, passRecord, loanRating, isDeal } from './learn.js';
 import { dailyDie, dailyPick, DAILY_TURN_CAP } from './daily.js';
 
 export class EngineError extends Error {}
+
+const TIMED_KINDS = new Set(TIMED_EFFECT_KINDS);
+const roundTo = (x, q) => Math.round(x / q) * q;
+
+/**
+ * Price inflation of a NEW apartment / business deal (mutates the drawn copy, never the card data or an owned asset).
+ * Prices and down payments round to INFLATION_PRICE_ROUND, mortgage = price - down; rent / profit / loan payment round to
+ * INFLATION_FLOW_ROUND and the cash flow is recomputed from them, so the card's breakdown keeps adding up.
+ */
+export function inflateDeal(card, f) {
+  if (f === 1 || card.type === 'stock') return card;
+  card.price = roundTo(card.price * f, INFLATION_PRICE_ROUND);
+  card.downPayment = roundTo(card.downPayment * f, INFLATION_PRICE_ROUND);
+  card.mortgage = card.price - card.downPayment;
+  const gross = card.type === 'business' ? 'profit' : 'rent';
+  if (Number.isFinite(card[gross]) && Number.isFinite(card.loanPayment)) {
+    card[gross] = roundTo(card[gross] * f, INFLATION_FLOW_ROUND);
+    card.loanPayment = roundTo(card.loanPayment * f, INFLATION_FLOW_ROUND);
+    card.monthlyCashFlow = card[gross] - card.loanPayment;
+  } else {
+    card.monthlyCashFlow = roundTo(card.monthlyCashFlow * f, INFLATION_FLOW_ROUND);
+    if (Number.isFinite(card.loanPayment)) card.loanPayment = roundTo(card.loanPayment * f, INFLATION_FLOW_ROUND);
+  }
+  card.inflation = f; // display: the deal is shown at today's prices
+  return card;
+}
 
 const clone = (x) => structuredClone(x);
 const fail = (msg) => { throw new EngineError(msg); };
@@ -78,6 +104,8 @@ export function createEngine(data, { validate = true } = {}) {
       kids: 0,
       position: 0,
       turn: 0,
+      lap: 0, // passes of square 0 (price inflation reads it)
+      effects: [], // timed market effects: { kind, pct | rate, turnsLeft, cardId }
       charityTurns: 0,
       stockPrices: {},
       decks: { opportunity: [], expense: [], market: [] },
@@ -185,6 +213,7 @@ export function createEngine(data, { validate = true } = {}) {
     if (d.phase !== 'roll') fail('cannot roll now');
     d.turn += 1;
     logAction(d, 'roll');
+    tickEffects(d);
     const diceCount = d.charityTurns > 0 ? 2 : 1;
     if (d.charityTurns > 0) d.charityTurns -= 1;
     const dice = forcedDice ?? Array.from({ length: diceCount }, (_, k) => (d.daily ? dailyDie(d.seed, d.turn, k) : 1 + randInt(d, 6)));
@@ -194,6 +223,7 @@ export function createEngine(data, { validate = true } = {}) {
     for (let i = 0; i < steps; i++) {
       d.position = (d.position + 1) % BOARD.length;
       path.push(d.position);
+      if (d.position === 0) d.lap = (d.lap ?? 0) + 1;
       if (BOARD[d.position] === 'payday') payday(d); // passing or landing
     }
     d.lastRoll = { dice, steps };
@@ -210,11 +240,14 @@ export function createEngine(data, { validate = true } = {}) {
       case 'opportunity': {
         const card = clone(draw(d, 'opportunity'));
         if (card.type === 'stock') card.price = stockPrice(d, card.symbol, card.price);
+        else inflateDeal(card, priceFactor(d));
         d.pending = { kind: 'opportunity', card };
         break;
       }
       case 'expense': {
         const card = clone(draw(d, 'expense'));
+        const fx = expenseFactor(d);
+        if (fx !== 1) { card.amount = Math.round((card.amount * fx) / INFLATION_EXPENSE_ROUND) * INFLATION_EXPENSE_ROUND; card.inflation = fx; }
         d.pending = { kind: 'expense', card, amount: card.amount };
         break;
       }
@@ -234,15 +267,35 @@ export function createEngine(data, { validate = true } = {}) {
     }
   }
 
+  /** Counts the running timed effects down at the start of a roll; an effect at 0 is gone before the player moves. */
+  function tickEffects(d) {
+    if (!Array.isArray(d.effects)) d.effects = [];
+    for (const e of d.effects) e.turnsLeft -= 1;
+    const ended = d.effects.filter((e) => e.turnsLeft <= 0);
+    d.effects = d.effects.filter((e) => e.turnsLeft > 0);
+    for (const e of ended) d.events.push({ type: 'effectEnded', kind: e.kind, cardId: e.cardId });
+  }
+
+  /** Starts a timed effect from a market card. A running effect of the same kind is replaced (no stacking). */
+  function startEffect(d, card) {
+    const e = { kind: card.effect, turnsLeft: card.turns, cardId: card.id };
+    if (card.effect === 'cheapLoan') e.rate = card.rate; else e.pct = card.pct;
+    if (!Array.isArray(d.effects)) d.effects = [];
+    d.effects = [...d.effects.filter((x) => x.kind !== e.kind), e];
+    d.events.push({ type: 'effectStarted', ...e });
+  }
+
   function marketEvent(d) {
     const card = clone(draw(d, 'market'));
     d.events.push({ type: 'market', card });
-    if (card.effect === 'cash') {
+    if (TIMED_KINDS.has(card.effect)) {
+      startEffect(d, card);
+    } else if (card.effect === 'cash') {
       d.cash += card.amount;
     } else if (card.effect === 'stockPrice') {
       d.stockPrices[card.symbol] = card.newPrice;
     } else if (card.effect === 'offer') {
-      if (d.mode !== 'full') return; // family: no selling
+      if (d.mode !== 'full') return; // offer cards are full-mode only (validated); a family game never sells
       const matches = d.assets.filter((a) => a.type === card.targetType);
       if (!matches.length) { d.events.push({ type: 'noMatchingAsset' }); return; }
       const asset = matches.reduce((a, b) => (b.price > a.price ? b : a));
@@ -285,6 +338,7 @@ export function createEngine(data, { validate = true } = {}) {
         id: `asset-${d.seq}`, cardId: card.id, type: card.type, title: card.title,
         price: card.price, downPayment: card.downPayment, mortgage: card.mortgage,
         monthlyCashFlow: card.monthlyCashFlow,
+        ...(Number.isFinite(card.rent) ? { rent: card.rent } : {}), // a rent card changes the flow by rent x pct
         ...(Number.isFinite(card.loanPayment) ? { loanPayment: card.loanPayment } : {}),
       });
       d.events.push({ type: 'bought', cardId: card.id, cost: card.downPayment, qty: 1 });
@@ -376,9 +430,10 @@ export function createEngine(data, { validate = true } = {}) {
     });
     if (p?.kind === 'expense') { p.funded = 'loan'; p.loanTotal = (p.loanTotal ?? 0) + amount; }
     d.seq += 1;
+    const rate = loanRateNow(d); // a loan taken while a cheap-loan card runs keeps that rate until it is repaid
     d.liabilities.push({
       id: `loan-${d.seq}`, kind: 'loan', label: 'loan', principal: amount,
-      monthlyPayment: loanMonthlyPayment(amount), rate: LOAN_PAYMENT_RATE,
+      monthlyPayment: loanMonthlyPayment(amount, rate), rate,
     });
     d.cash += amount;
     d.stats.loansTaken += 1;
