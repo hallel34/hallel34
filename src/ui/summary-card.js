@@ -4,8 +4,8 @@
 import { h } from './dom.js';
 import { t } from '../i18n/index.js';
 import { openLayer } from './modal.js';
-import { button } from './widgets.js';
-import { money, moneyText, moneySpoken } from './format.js';
+import { button, arm } from './widgets.js';
+import { money, moneyText, moneySpoken, numberText } from './format.js';
 import { animate, haptic } from './fx.js';
 import { motionOK } from './prefs.js';
 import { getLearnMode } from '../learn/context.js';
@@ -71,8 +71,14 @@ export function summaryCard({ figures: f, hint = null }) {
   ];
   const leftRow = h('div', { class: 'sc-left', 'data-row': 'left' },
     neg ? fillNodes(sb.negativeMonthly, { monthlyAbs: h('bdi', { class: 'sc-big money', dir: 'ltr' }, moneyText(Math.abs(f.monthly))) }) : fillNodes(sb.resultMonthly, { monthly: bigAmount }));
+  // the stacked equation (spec 4.9): monthly / x months / rule / = total, one LTR grid, every amount its own isolate, nothing wraps
+  const eqRow = (cls, op, value) => h('span', { class: `eq-row ${cls}` }, h('span', { class: 'eq-op', 'aria-hidden': op ? null : 'true' }, op), h('span', { class: 'eq-val' }, value));
   const band = h('div', { class: 'sc-band', 'data-row': 'total' },
-    h('span', { class: 'sc-calc' }, h('bdi', { dir: 'ltr', class: 'money' }, moneyText(f.monthly, { sign: neg })), ' × ', h('bdi', { dir: 'ltr' }, String(f.months)), ' = '), result,
+    h('div', { class: `eq sc-calc${neg ? ' is-neg' : ''}`, dir: 'ltr' },
+      eqRow('eq-monthly', '', h('bdi', { dir: 'ltr', class: 'money' }, moneyText(f.monthly, { sign: neg }))),
+      eqRow('eq-months', '×', h('bdi', { dir: 'rtl' }, t('payday.a.months', { months: numberText(f.months) }))),
+      h('i', { class: 'eq-rule', 'aria-hidden': 'true' }),
+      eqRow('eq-total', '=', result)),
     neg ? h('span', { class: 'sc-note' }, sb.negativeNote) : null);
   const [arrA, arrB] = sb.arrival.split('→');
   // the label may wrap, the two amounts and the arrow never split (7-digit cash on a 320px screen): they move to the next line as one piece
@@ -85,8 +91,9 @@ export function summaryCard({ figures: f, hint = null }) {
   let ring = null;
   const openedAt = performance.now();
   const ready = () => performance.now() - openedAt >= MIN_OPEN_MS;
-  const go = button(t('game.continue'), { variant: 'primary', size: 'lg', cls: 'sc-go is-arming', style: `--arm-ms:${MIN_OPEN_MS}ms`, 'aria-disabled': 'true', 'data-action': 'summary-ok', 'data-autofocus': '', onClick: (e) => { e.stopPropagation(); if (!ready()) return; haptic('tap'); layer.close(true); } });
-  setTimeout(() => { go.removeAttribute('aria-disabled'); go.classList.remove('is-arming'); }, MIN_OPEN_MS);
+  const go = button(t('game.continue'), { variant: 'primary', size: 'lg', cls: 'sc-go', 'data-action': 'summary-ok', 'data-autofocus': '', onClick: (e) => { e.stopPropagation(); if (!ready()) return; haptic('tap'); layer.close(true); } });
+  // a real `disabled` + aria-busy + data-arming for MIN_OPEN_MS, then the solid primary look and the focus lands on it
+  const armer = arm(go, MIN_OPEN_MS);
   const card = h('div', { class: `sheet summary-card${neg ? ' is-negative' : ' is-positive'}`, 'data-summary': neg ? 'negative' : 'positive', 'data-monthly': String(f.monthly), 'data-amount': String(f.amount) },
     h('h2', { class: 'sc-title' }, t('game.paydayFloatLabel')),
     h('ul', { class: 'sc-rows' }, rows),
@@ -101,6 +108,7 @@ export function summaryCard({ figures: f, hint = null }) {
   const rawClose = layer.close;
   layer.close = (result, opts) => (opts?.force || ready() ? rawClose(result, opts) : undefined);
   layer.panel.setAttribute('aria-describedby', descId);
+  layer.closed.then(() => armer.cancel());
 
   // ---- entrance: three rows at 150ms steps, then the result (count-up) and the cash line; reduced motion: everything fades together ----
   const nodes = [...rows, h('i'), leftRow, band, caption];
@@ -110,7 +118,6 @@ export function summaryCard({ figures: f, hint = null }) {
     [rows[0], rows[1], rows[2], leftRow, band, caption].forEach((n, i) => {
       animate(n, [{ opacity: 0, transform: 'translateY(12px)' }, { opacity: 1, transform: 'translateY(0)' }], { duration: 150, delay: 90 + i * 150, easing: 'cubic-bezier(.16,1,.3,1)' });
     });
-    if (!neg) animate(band, [{ boxShadow: 'inset 0 0 0 0 rgb(255 255 255 / 0)' }, { boxShadow: 'inset 0 0 0 3px rgb(246 196 83 / .55)', offset: 0.5 }, { boxShadow: 'inset 0 0 0 0 rgb(255 255 255 / 0)' }], { duration: 500, delay: 90 + 4 * 150 });
   }
   void nodes;
 

@@ -76,7 +76,7 @@ export function hintStrip({ body, more = null, action = null, cls = '', pose = '
     h('div', { class: 'hint-body' },
       h('p', { class: 'hint-text' }, body),
       more && hintMoreAllowed() ? h('p', { class: 'hint-more' }, more) : null),
-    action ? h('button', { type: 'button', class: 'btn btn-primary btn-sm hint-next', 'data-action': 'hint-next', onClick: action.onClick }, action.label) : null);
+    action ? h('button', { type: 'button', class: 'btn btn-secondary btn-sm hint-next', 'data-action': 'hint-next', onClick: action.onClick }, action.label) : null);
   return strip;
 }
 

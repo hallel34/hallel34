@@ -58,7 +58,9 @@
     "showExpenses": "הצגת הפירוט",
     "hideExpenses": "הסתרת הפירוט",
     "selected": "נבחר",
-    "previewTitle": "{profession}"
+    "previewTitle": "{profession}",
+    "cardExpenses": "הוצאות",
+    "cardLeft": "נשאר"
   },
   "game": {
     "roll": "הטילו קובייה",
@@ -118,7 +120,10 @@
     "charityBoost": "שתי קוביות · {turns}",
     "noMatchingAsset": "אין לכם נכס שמתאים להצעה",
     "milestone": "{pct}% מהדרך לחופש!",
-    "boardLabel": "לוח המשחק, אתם במשבצת {n} מתוך {total}: {square}"
+    "boardLabel": "לוח המשחק, אתם במשבצת {n} מתוך {total}: {square}",
+    "paydayChipOpen": "הצגת החישוב",
+    "paydayChipClose": "סגירת החישוב",
+    "passivePct": "{pct}% מההוצאות"
   },
   "players": {
     "title": "כמה שחקנים?",
@@ -205,7 +210,11 @@
     "noFundsMax": "אין מספיק כסף, גם עם הלוואה מקסימלית",
     "needLoan": "חסרים לכם {amount}. הלחיצה על קנו תפתח הלוואה בסכום הנכון",
     "decrease": "פחות",
-    "increase": "יותר"
+    "increase": "יותר",
+    "perMonthCaption": "בחודש",
+    "debtAfter": "סך החובות שלכם יהיה {debt}",
+    "showNumbers": "הראו לי את המספרים",
+    "unavailable": "לא זמין"
   },
   "baby": {
     "title": "תינוק חדש!",
@@ -230,6 +239,28 @@
     "boost": "מזל טוב: שתי קוביות לשלושה תורות",
     "boostDaily": "תרומה נותנת שתי קוביות לשלושה תורות, ולכן משנה את המסלול שלכם",
     "cost": "עלות התרומה"
+  },
+  "payday": {
+    "a": {
+      "kicker": "נשארו בחודש",
+      "months": "{months} חודשים"
+    },
+    "b": {
+      "kicker": "נכנסו למזומן",
+      "kickerFamily": "הגיעו אליכם",
+      "kickerNeg": "ירדו מהמזומן",
+      "kickerNegFamily": "יצאו מהמזומן",
+      "caption": "{months} חודשים בבת אחת",
+      "captionFamily": "כסף של {months} חודשים בבת אחת"
+    },
+    "c": {
+      "kicker": "המזומן שלכם",
+      "before": "לפני",
+      "after": "אחרי",
+      "caption": "אחרי סיכום שנתיים",
+      "captionFamily": "אחרי סיכום שנתיים"
+    },
+    "label": "סיכום שנתיים"
   },
   "statement": {
     "title": "דוח חודשי",
@@ -282,7 +313,7 @@
   "loan": {
     "title": "צריך הלוואה?",
     "titleVoluntary": "הלוואה מהבנק",
-    "text": "חסרים לכם {amount}. אפשר לקחת הלוואה בכפולות של {step}",
+    "text": "חסרים לכם {amount}.",
     "textVoluntary": "בכפולות של {step}. משלמים רק ריבית, והקרן נשארת עד שמחזירים",
     "take": "קחו הלוואה",
     "takeAnyway": "קחו בכל זאת",
@@ -308,7 +339,15 @@
     "repayAmount": "סכום להחזר",
     "remaining": "יתרת קרן אחרי ההחזר",
     "less": "פחות",
-    "more": "יותר"
+    "more": "יותר",
+    "numMonthly": "תשלום חודשי",
+    "numRate": "ריבית שנתית",
+    "numCost": "עלות ב-{months} חודשים",
+    "stepNote": "בכפולות של {step}",
+    "nextSummary": "בסיכום הבא",
+    "detailsShow": "פרטים נוספים",
+    "detailsHide": "הסתרת הפרטים",
+    "costNote": "העלות היא התשלומים בלבד. החוב עצמו נשאר עד שמחזירים אותו"
   },
   "sell": {
     "title": "מה למכור?",
@@ -331,7 +370,8 @@
     "change": "שנו מצב או מקצוע",
     "share": "שתפו את התוצאה",
     "shareText": "הגעתי לחופש כלכלי {turns} ב״פסיבו״! הכנסה פסיבית: {passive}",
-    "copied": "הועתק ללוח"
+    "copied": "הועתק ללוח",
+    "copyFailed": "לא הצלחנו לשתף. נסו שוב בעוד רגע"
   },
   "hint": {
     "incomeMany": "הנכסים שקניתם הכניסו {passiveTotal} בשנתיים האלה.",

@@ -42,7 +42,7 @@ export function openSettings({ onQuit, version = '', mode = 'family', profession
       },
     }, label);
   });
-  const content = h('div', { class: 'dialog' },
+  const content = h('div', { class: 'dialog settings-dialog' },
     h('div', { class: 'dialog-head' }, h('h2', { class: 'dialog-title' }, t('settings.title')), closeButton(() => layer.close())),
     toggleRow(t('settings.sound'), 'sound'),
     toggleRow(t('settings.haptics'), 'haptics'),

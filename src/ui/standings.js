@@ -2,7 +2,7 @@
 import { h } from './dom.js';
 import { t, tp } from '../i18n/index.js';
 import { icon } from './icons.js';
-import { money, moneyText, numberText } from './format.js';
+import { money, moneyIsolated, moneyText, numberText } from './format.js';
 import { playerToken, playerName, nameBdi } from './players.js';
 import { standings } from '../engine/index.js';
 
@@ -27,7 +27,7 @@ export function standingsList(match) {
       cell(t('standings.passive'), money(r.passive)),
       cell(t('standings.expenses'), money(r.expenses)),
       cell(t('standings.netWorth'), money(r.netWorth)))));
-    list.lastChild.setAttribute('aria-label', t('standings.row', { name, place: r.place, passive: moneyText(r.passive), expenses: moneyText(r.expenses), net: moneyText(r.netWorth), turns: tp('plural.turns', r.turns) }));
+    list.lastChild.setAttribute('aria-label', t('standings.row', { name, place: r.place, passive: moneyIsolated(r.passive), expenses: moneyIsolated(r.expenses), net: moneyIsolated(r.netWorth), turns: tp('plural.turns', r.turns) }));
   }
   return list;
 }

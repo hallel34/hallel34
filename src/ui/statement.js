@@ -3,7 +3,8 @@ import { h } from './dom.js';
 import { t, tp } from '../i18n/index.js';
 import { openLayer } from './modal.js';
 import { icon } from './icons.js';
-import { money, moneyText, tn, numberText, paydayCalc } from './format.js';
+import { money, tn, numberText, paydayCalc } from './format.js';
+import { categoryChip } from './categories.js';
 import { button, meter } from './widgets.js';
 import { createTermScope } from './rich.js';
 import { animate } from './fx.js';
@@ -45,6 +46,19 @@ export function openStatement({ getState, ops, title = t('statement.title') }) {
       h('p', { class: 'st-goal st-payday' }, paydayCalc(st.monthlyCashFlow, PAYDAY_MONTHS, st.monthlyCashFlow * PAYDAY_MONTHS, 'statement.paydayLine')),
       h('p', { class: 'st-goal' }, t('statement.goalLine'))));
 
+    // net-worth panel (spec 4.6): net worth, an assets-vs-liabilities bar and the two totals (family: 'חובות' wording, no red)
+    const nwb = st.balance;
+    const totalBoth = Math.max(1, nwb.assetsTotal + nwb.liabilitiesTotal);
+    body.append(h('section', { class: 'nw', 'data-networth': String(nwb.netWorth) },
+      h('div', { class: 'nw-top' }, h('span', null, lab('statement.netWorthTitle'))),
+      h('div', { class: `nw-value${nwb.netWorth < 0 ? ' is-neg' : ''}` }, money(nwb.netWorth, { size: 'xl' })),
+      h('div', { class: 'nw-bar', 'aria-hidden': 'true' },
+        h('i', { class: 'nw-assets', style: `inline-size:${(nwb.assetsTotal / totalBoth) * 100}%` }),
+        h('i', { class: 'nw-liab', style: `inline-size:${(nwb.liabilitiesTotal / totalBoth) * 100}%` })),
+      h('div', { class: 'nw-cols' },
+        h('div', { class: 'nw-col' }, h('span', null, t('statement.balanceAssets')), h('span', { class: 'nw-assets-v' }, money(nwb.assetsTotal))),
+        h('div', { class: 'nw-col', style: 'text-align:end' }, h('span', null, t('statement.totalLiabilities')), h('span', { class: 'nw-liab-v' }, money(nwb.liabilitiesTotal))))));
+
     body.append(section(t('statement.income'), 'income',
       row(t('statement.salary'), money(st.salary)),
       row(lab('statement.passiveIncome'), money(st.passiveIncome, { sign: st.passiveIncome > 0 }), 'income'),
@@ -56,15 +70,14 @@ export function openStatement({ getState, ops, title = t('statement.title') }) {
     body.append(section(t('statement.expenses'), 'expense', ...expenseRows, row(t('statement.totalExpenses'), money(st.totalExpenses), 'total')));
 
     const assetRows = s.assets.length
-      ? s.assets.map((a) => row(
-        assetTitle(a, s.mode),
-        money(a.monthlyCashFlow, { sign: true }),
-        'asset',
+      ? s.assets.map((a) => h('div', { class: 'st-row st-asset st-asset-row', 'data-category': categoryChip(a, { size: 32, on: 'dark' }).dataset.category },
+        categoryChip(a, { size: 32, on: 'dark' }),
+        h('span', { class: 'st-label' }, assetTitle(a, s.mode)),
+        h('span', { class: 'st-value' }, money(a.monthlyCashFlow, { sign: true })),
         h('span', { class: 'st-sub', 'data-asset': a.id },
           a.type === 'stock'
             ? t('statement.stockLine', { shares: tp('plural.shares', a.qty) })
-            : `${t(`type.${a.type}`)}${a.mortgage > 0 ? ` · ${t('statement.assetMortgage', { amount: moneyText(a.mortgage) })}` : ''}`),
-      ))
+            : [t(`type.${a.type}`), ...(a.mortgage > 0 ? [' · ', tn('statement.assetMortgage', { amount: money(a.mortgage) })] : [])])))
       : [h('p', { class: 'st-empty' }, t('statement.noAssets'))];
     body.append(section(lab('statement.assets'), 'asset', ...assetRows));
 
@@ -76,8 +89,8 @@ export function openStatement({ getState, ops, title = t('statement.title') }) {
         const label = l.kind === 'mortgage' ? lab('statement.mortgageLabel', { asset: l.assetTitle })
           : l.kind === 'bizloan' ? t('statement.bizLoanLabel', { asset: l.assetTitle })
             : (l.label === 'loan' ? t('statement.loanLabel') : l.label);
-        const notes = [t('statement.balance', { amount: moneyText(l.principal) })];
-        if (l.kind === 'loan') notes.push(lab('statement.interestOnly', { rate: numberText(Math.round((l.rate ?? LOAN_PAYMENT_RATE) * 1e4) / 100) }));
+        const notes = [tn('statement.balance', { amount: money(l.principal) })];
+        if (l.kind === 'loan') notes.push(lab('statement.interestOnly', { rate: h('bdi', { dir: 'ltr' }, numberText(Math.round((l.rate ?? LOAN_PAYMENT_RATE) * 1e4) / 100)) }));
         if (l.includedInAssets) notes.push(t('statement.inAssetFlow'));
         const sub = notes.flatMap((n, i) => (i ? [' · ', n] : [n]));
         return h('div', { class: 'st-row st-liab', 'data-liab': l.id, 'data-kind': l.kind },

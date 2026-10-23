@@ -1,10 +1,11 @@
 // Win and game-over screens.
-import { h, html } from '../dom.js';
+import { h } from '../dom.js';
 import { t, tp } from '../../i18n/index.js';
 import { foxImg, riseIn } from '../fox.js';
 import { motionOK } from '../prefs.js';
 import { button } from '../widgets.js';
-import { money, moneyText, numberText } from '../format.js';
+import { money, moneyIsolated, numberText } from '../format.js';
+import { shareText } from './daily.js';
 import { meter } from '../widgets.js';
 import { confetti, haptic, sound, toast, animate } from '../fx.js';
 import { statement, isMultiplayer } from '../../engine/index.js';
@@ -13,10 +14,6 @@ import { playerName, withName } from '../players.js';
 import { icon } from '../icons.js';
 
 const reportButton = (match) => button([icon('book', { size: 22, width: 2.4 }), t('learn.reportOpen')], { variant: 'secondary', cls: 'btn-report', 'data-action': 'report', onClick: async () => { const { openReport } = await import('../report.js'); openReport({ match }); } });
-
-const rays = () => html(`<svg class="rays" aria-hidden="true" focusable="false" viewBox="-300 -300 600 600"><g fill="#FFE27A" opacity=".16">${
-  Array.from({ length: 12 }, (_, i) => `<path d="M0 0L-60 -420L60 -420z" transform="rotate(${i * 30})"/>`).join('')
-}</g></svg>`);
 
 const statBox = (value, label) => h('div', { class: 'win-stat' }, h('span', { class: 'win-stat-num' }, numberText(value)), h('span', { class: 'win-stat-label' }, tp(`plural.label.${label}`, value)));
 
@@ -42,24 +39,22 @@ export function createWin({ match, onAgain, onMenu }) {
   const st = statement(state);
   const m = meter({ large: true });
   m.set(st.passiveIncome, st.totalExpenses, { animate: false });
-  const text = t('win.shareText', { turns: tp('plural.turnsIn', state.turn), passive: moneyText(st.passiveIncome) });
+  const text = t('win.shareText', { turns: tp('plural.turnsIn', state.turn), passive: moneyIsolated(st.passiveIncome) });
   const share = async () => {
     haptic('tap');
-    try {
-      if (navigator.share) { await navigator.share({ title: t('app.title'), text }); return; }
-      await navigator.clipboard.writeText(text);
-      toast(t('win.copied'));
-    } catch { /* user cancelled */ }
+    // the Web Share API when there is one; otherwise (or when it fails) the clipboard, then a toast says what happened
+    const r = await shareText(text, { title: t('app.title') });
+    if (r === 'copied') toast(t('win.copied'));
+    else if (r === 'failed') toast(t('win.copyFailed'));
   };
   const hammock = foxImg('hammock', { height: 250, altKey: 'fox.alt.hammock', cls: 'hammock', lazy: true });
   const winFox = h('div', { class: 'win-fox' }, h('div', { class: 'fox-halo fox-halo-win', 'aria-hidden': 'true' }), hammock, h('i', { class: 'glint', 'aria-hidden': 'true' }));
   const el = h('section', { class: 'screen screen-win', 'data-screen': 'win' },
-    h('div', { class: 'rays-wrap', 'aria-hidden': 'true' }, rays()),
     h('div', { class: 'end-hero' },
       winFox,
       h('h1', { class: 'title title-win' }, t('win.title')),
       h('p', { class: 'tagline' }, t('win.text'))),
-    h('div', { class: 'glass glass-strong end-card' },
+    h('div', { class: 'end-card' },
       h('div', { class: 'win-compare' },
         h('div', null, h('span', { class: 'stat-label' }, t('win.passive')), h('div', { class: 'win-big tone-income' }, money(st.passiveIncome))),
         h('div', { class: 'align-end' }, h('span', { class: 'stat-label' }, t('win.expenses')), h('div', { class: 'win-mid tone-expense' }, money(st.totalExpenses)))),
@@ -94,7 +89,7 @@ export function createOver({ match, onRetry, onMenu }) {
       overFox,
       h('h1', { class: 'title title-over' }, t('gameOver.title')),
       h('p', { class: 'tagline' }, t('gameOver.foxLine'))),
-    h('div', { class: 'glass glass-strong end-card' },
+    h('div', { class: 'end-card' },
       h('p', { class: 'cause' }, t('gameOver.text')),
       winStats([
         statBox(state.turn, 'turns'), statBox(state.stats.paydays, 'paydays'), statBox(state.stats.dealsBought, 'deals'),
@@ -105,7 +100,8 @@ export function createOver({ match, onRetry, onMenu }) {
       h('p', { class: 'tip' }, h('b', null, `${t('gameOver.tipTitle')}: `), tip)),
     h('div', { class: 'end-actions' },
       button(t('gameOver.retry'), { variant: 'primary', size: 'lg', 'data-action': 'retry', 'data-autofocus': '', onClick: onRetry }),
-      h('div', { class: 'end-row' }, reportButton(match), button(t('gameOver.menu'), { variant: 'secondary', 'data-action': 'menu', onClick: onMenu }))));
+      reportButton(match),
+      button(t('gameOver.menu'), { variant: 'text', cls: 'btn-menu-text', 'data-action': 'menu', onClick: onMenu })));
   return { el, start() { haptic('error'); riseIn(overFox); } };
 }
 
@@ -116,12 +112,11 @@ function createMatchWin({ match, onAgain, onMenu }) {
   const hammock = foxImg('hammock', { height: 250, altKey: 'fox.alt.hammock', cls: 'hammock', lazy: true });
   const winFox = h('div', { class: 'win-fox' }, h('div', { class: 'fox-halo fox-halo-win', 'aria-hidden': 'true' }), hammock, h('i', { class: 'glint', 'aria-hidden': 'true' }));
   const el = h('section', { class: 'screen screen-win screen-match-end', 'data-screen': 'win', 'data-multi': 'true' },
-    h('div', { class: 'rays-wrap', 'aria-hidden': 'true' }, rays()),
     h('div', { class: 'end-hero' },
       winFox,
       h('h1', { class: `title title-win pc-text-${winner.color}` }, withName(t('standings.winnerTitle', { name: '{name}' }), name)),
       h('p', { class: 'tagline' }, t('standings.winnerText'))),
-    h('div', { class: 'glass glass-strong end-card', tabindex: '0', role: 'region', 'aria-label': t('standings.title') }, h('h2', { class: 'end-card-title' }, t('standings.title')), standingsList(match)),
+    h('div', { class: 'end-card', tabindex: '0', role: 'region', 'aria-label': t('standings.title') }, h('h2', { class: 'end-card-title' }, t('standings.title')), standingsList(match)),
     h('div', { class: 'end-actions' },
       button(t('win.again'), { variant: 'primary', size: 'lg', 'data-action': 'again', 'data-autofocus': '', onClick: onAgain }),
       h('div', { class: 'end-row' }, reportButton(match), button(t('players.changeSettings'), { variant: 'secondary', 'data-action': 'menu', onClick: onMenu }))));
@@ -143,7 +138,7 @@ function createMatchOver({ match, onRetry, onMenu }) {
       overFox,
       h('h1', { class: 'title title-over' }, t('standings.allOutTitle')),
       h('p', { class: 'tagline' }, t('standings.allOutText'))),
-    h('div', { class: 'glass glass-strong end-card', tabindex: '0', role: 'region', 'aria-label': t('standings.title') }, h('h2', { class: 'end-card-title' }, t('standings.title')), standingsList(match)),
+    h('div', { class: 'end-card', tabindex: '0', role: 'region', 'aria-label': t('standings.title') }, h('h2', { class: 'end-card-title' }, t('standings.title')), standingsList(match)),
     h('div', { class: 'end-actions' },
       button(t('gameOver.retry'), { variant: 'primary', size: 'lg', 'data-action': 'retry', 'data-autofocus': '', onClick: onRetry }),
       h('div', { class: 'end-row' }, reportButton(match), button(t('players.changeSettings'), { variant: 'secondary', 'data-action': 'menu', onClick: onMenu }))));

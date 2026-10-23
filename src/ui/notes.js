@@ -6,6 +6,7 @@ import { h } from './dom.js';
 import { t } from '../i18n/index.js';
 import { foxImg } from './fox.js';
 import { button } from './widgets.js';
+import { isolateMoney } from './format.js';
 import { animate, cssMs } from './fx.js';
 import { motionOK } from './prefs.js';
 import { layerDepth } from './modal.js';
@@ -56,8 +57,8 @@ export function createNotes({ zone, onActive, onDismiss }) {
             h('p', { class: 'note-head' }, h('strong', { class: 'note-term' }, item.name ?? c.term), h('span', { class: 'note-kicker' }, item.label)),
             h('p', { class: 'note-text' }, item.short ?? c.short), why),
           h('div', { class: 'note-actions' },
-            button(item.gotIt, { variant: 'primary', size: 'sm', cls: 'note-btn', 'data-action': 'explain-ok', 'aria-label': t('learn.gotItLabel'), onClick: () => { hideCurrent({ reason: 'answered' }); onDismiss?.(); } }),
-            button(t('learn.more'), { variant: 'secondary', size: 'sm', cls: 'note-btn', 'data-action': 'explain-more', 'aria-label': t('learn.moreLabel', { term: item.name ?? c.term }), onClick: () => { hideCurrent({ reason: 'answered' }); item.onMore?.(c.id); } }))));
+            button(item.gotIt, { variant: 'secondary', size: 'sm', cls: 'note-btn', 'data-action': 'explain-ok', 'aria-label': t('learn.gotItLabel'), onClick: () => { hideCurrent({ reason: 'answered' }); onDismiss?.(); } }),
+            button(t('learn.more'), { variant: 'text', size: 'sm', cls: 'note-btn', 'data-action': 'explain-more', 'aria-label': t('learn.moreLabel', { term: item.name ?? c.term }), onClick: () => { hideCurrent({ reason: 'answered' }); item.onMore?.(c.id); } }))));
     }
     if (item.kind === 'hint') {
       // a guided hint (first game): the fox points, one short bubble, tap anywhere to close. Never takes a button of its own.
@@ -65,13 +66,13 @@ export function createNotes({ zone, onActive, onDismiss }) {
         h('div', { class: 'note-fox', 'aria-hidden': 'true' }, foxImg(item.pose ?? 'tip', { height: 84, cls: 'note-fox-img' })),
         h('div', { class: 'note-bubble' },
           h('div', { class: 'note-main' },
-            h('p', { class: 'note-text' }, item.body),
+            h('p', { class: 'note-text' }, isolateMoney(item.body)),
             item.more ? h('p', { class: 'note-why' }, item.more) : null)));
     }
     return h('div', { class: 'note note-feedback', role: 'status', 'data-note': 'feedback', 'data-group': item.group, 'data-tone': item.tone,
       onClick: () => hideCurrent() },
     h('div', { class: 'fox-pop note-pop', 'aria-hidden': 'true' }, foxImg(item.pose, { size: 52 })),
-    h('p', { class: 'note-text' }, item.body));
+    h('p', { class: 'note-text' }, isolateMoney(item.body)));
   }
 
   function display(item) {

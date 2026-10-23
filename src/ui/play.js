@@ -7,7 +7,7 @@ import {
   totalExpenses, resumePlan, lastPlayerStanding, nextActiveIndex,
 } from '../engine/index.js';
 import { icon } from './icons.js';
-import { money, moneyText, tn, signedMoney, paydayCalc, numberText } from './format.js';
+import { money, moneyText, moneyIsolated, tn, signedMoney, paydayCalc, numberText } from './format.js';
 import { button, iconButton, meter, cashDisplay, miniMeter, fitText } from './widgets.js';
 import { createDice } from './die.js';
 import { motionOK } from './prefs.js';
@@ -35,6 +35,7 @@ import {
 } from '../engine/learn.js';
 import { REACTIONS, LAND_REACTION, tipIndexForTurn } from './fox-rules.js';
 import { summaryCard } from './summary-card.js';
+import { professionGlyph } from './professions.js';
 import { createFamilyHud, GOAL_MIN_HEIGHT } from './hud-family.js';
 import {
   tut, hintDef, fillNodes, leftWords, showRing, hintStrip, hintMoreAllowed,
@@ -132,6 +133,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   const passiveVal = h('b', { class: 'tone-income' });
   const expenseVal = h('b', { class: 'tone-expense' });
   const m = meter();
+  const meterPct = h('span', { class: 'meter-pct', 'data-meter-pct': '' });
   const settingsBtn = iconButton('gear', t('game.settings'), () => openSettings({ onQuit: () => goHome(), version: __APP_VERSION__, mode: state.mode, professionId: state.profession.id }), 'icon-btn-glass');
   const stmtBtn = iconButton('statement', t('game.statement'), () => openStmt(), 'icon-btn-glass');
   stmtBtn.dataset.action = 'statement';
@@ -150,7 +152,8 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     cashCap,
     goalLine,
     h('div', { class: 'meter-labels' },
-      h('span', null, t('game.passive'), ' ', passiveVal),
+      // full mode: the adult term plus passive income as a % of expenses; family keeps its kid wording (no percentage)
+      h('span', null, t('game.passive'), ' ', passiveVal, isFamily ? null : [' · ', meterPct]),
       h('span', null, t('game.expenses'), ' ', expenseVal)),
     m.el, freeLine);
   const famHud = isFamily ? createFamilyHud({ hud, chip: flowChip, goalLine, freeLine }) : null;
@@ -342,9 +345,11 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
 
   // What happened in the turn that is being played, for the hot-seat recap (nodes: amounts keep their <bdi>).
   let turnLog = [];
-  function pushLog(text, tone = '', { record = true } = {}) {
+  function pushLog(text, tone = '', { record = true, payday = false } = {}) {
     if (!text) return;
+    chip.querySelector('.payday-chip')?.closePopover?.();
     chip.replaceChildren(text); // a string or DOM nodes (amounts wrapped in <bdi dir="ltr">)
+    chip.classList.toggle('is-payday', payday);
     chip.dataset.tone = tone;
     if (record) turnLog.push([...chip.childNodes].map((n) => n.cloneNode(true)));
     if (motionOK()) animate(chip, [{ transform: 'scale(.94)', opacity: 0.4 }, { transform: 'scale(1)', opacity: 1 }], { duration: 220, easing: 'cubic-bezier(.34,1.56,.64,1)' });
@@ -411,11 +416,12 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     if (multi) {
       avatar.textContent = String(colorOf());
       avatar.className = `avatar pc-${colorOf()}`;
+      avatar.style.background = '';
       hudProf.textContent = nameOf();
       hud.dataset.pc = String(colorOf());
     } else {
-      avatar.textContent = state.profession.title.trim()[0];
-      avatar.style.background = avatarColor(state.profession.id, professionIds);
+      // one avatar treatment for all eight professions: the line glyph in a neutral circle (no letter, no per-profession hue)
+      if (avatar.dataset.prof !== state.profession.id) { avatar.replaceChildren(professionGlyph(state.profession.id)); avatar.dataset.prof = state.profession.id; }
       hudProf.textContent = state.profession.title;
     }
     el.dataset.player = String(match.currentIndex + 1);
@@ -429,7 +435,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
       const ps = match.players[i].state;
       return h('span', { class: `os-cell pc-${colorOf(i)}${ps.status === 'lost' ? ' is-out' : ''}`, 'data-player': String(i) },
         h('span', { class: 'vh' }, nameBdi(nameOf(i)), ps.status === 'lost' ? ` ${t('standings.out')} ` : ' '),
-        ps.status === 'lost' ? h('span', { class: 'out-tag', 'aria-hidden': 'true' }, t('standings.out')) : h('bdi', { class: 'money os-cash', dir: 'ltr' }, moneyText(ps.cash)),
+        ps.status === 'lost' ? h('span', { class: 'out-tag', 'aria-hidden': 'true' }, t('standings.out')) : money(ps.cash, { class: 'os-cash' }),
         h('span', { class: 'os-top' }, playerToken(colorOf(i)),
           h('span', { class: 'os-bar' }, h('i', { style: `--fill:${progressPct(passiveIncome(ps), totalExpenses(ps))}` }))));
     }));
@@ -441,7 +447,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
         h('div', { class: 'or-top' }, playerToken(colorOf(i)), h('strong', { class: 'or-name' }, nameBdi(nameOf(i))),
           ps.status === 'lost' ? h('span', { class: 'out-tag' }, t('standings.out')) : null, h('span', { class: 'or-cash' }, money(ps.cash))),
         h('div', { class: 'or-sub' },
-          miniMeter(pct, t('game.otherRow', { name: nameOf(i), cash: moneyText(ps.cash), pct: Math.round(pct * 100) })),
+          miniMeter(pct, t('game.otherRow', { name: nameOf(i), cash: moneyIsolated(ps.cash), pct: Math.round(pct * 100) })),
           h('span', { class: 'or-pct' }, `${Math.round(pct * 100)}%`),
           h('span', { class: 'or-flow' }, tn('game.perMonth', { amount: money(monthlyCashFlow(ps), { sign: true }) }))));
     }));
@@ -470,6 +476,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     passiveVal.replaceChildren(money(st.passiveIncome));
     expenseVal.replaceChildren(money(st.totalExpenses));
     m.set(st.passiveIncome, st.totalExpenses);
+    if (!isFamily) meterPct.textContent = t('game.passivePct', { pct: st.totalExpenses > 0 ? Math.round((st.passiveIncome / st.totalExpenses) * 100) : 0 });
     // one baby icon plus the count (up to three icons would not fit next to the buttons on a 320px screen)
     babies.replaceChildren(...(state.kids ? [icon('baby', { size: 18, width: 2.2 }), h('b', null, String(state.kids))] : []));
     babies.setAttribute('aria-label', t('game.kids', { n: state.kids }));
@@ -635,9 +642,12 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     haptic('land'); sound('payday');
     await summaryCardGated({ figures: f, hint: summaryHintFor(f) });
     if (destroyed) return;
-    const calc = paydayCalc(f.monthly, f.months, f.amount);
-    pushLog(tn('game.logPayday', { calc }), f.amount >= 0 ? 'good' : 'bad');
+    // the log / hand-over recap keeps the one-line form; the roll-zone chip shows one of three phrasings (turn % 3), tap = the equation
+    // (the 3-variant chip of spec 4.9 lives in ui/payday.js; it is not wired here because tests/e2e/smoke.mjs 'B1'/'N3' pin the one-line
+    // log in the chip: see docs/v4/test-changes.md, 'blocked items')
+    pushLog(tn('game.logPayday', { calc: paydayCalc(f.monthly, f.months, f.amount) }), f.amount >= 0 ? 'good' : 'bad');
     setStatus(tn('game.statusPayday', { calc: paydayCalc(f.monthly, f.months, f.amount) }));
+    // (spec 4.9 asks for the plaza: floatText supports { within: center }, but tests/ui.test.js 'B2' pins { below: hud }; see docs/v4/test-changes.md)
     floatText(cash.el, h('div', { class: 'float-stack' }, signedMoney(f.amount), h('span', { class: 'float-sub' }, t('game.paydayFloatLabel'))), f.amount >= 0 ? 'income' : 'expense', { below: hud });
     pulse(el.querySelector('.hud-cash'), 1.04);
     if (f.amount > 0) react('celebrate');
