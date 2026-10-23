@@ -6,7 +6,7 @@
     "slots": {
       "okYears": "PAYBACK_OK_YEARS phrase with unit ('8 שנים'), same helper as guess.he.json",
       "slowYears": "PAYBACK_SLOW_YEARS phrase with unit ('14 שנים')",
-      "months": "PAYDAY_MONTHS as a number (24)",
+      "months": "PAYDAY_MONTHS as a number (12)",
       "monthlyRate": "LOAN_PAYMENT_RATE as percent, with sign, e.g. '1%' (derived, per month)",
       "rate": "LOAN_APR_NOMINAL as percent with sign, e.g. '12%' (nominal yearly: monthly rate x 12; NOT the effective rate)",
       "amount": "principal of the example loan, formatted money (the example uses 5,000)",
@@ -36,7 +36,7 @@
       "family": {
         "why": "אם יוצא יותר ממה שנכנס המזומן נגמר, ואם נכנס יותר יש מה לחסוך ולהשקיע.",
         "exampleText": "למורה יש משכורת של ₪8,800, הוצאות של ₪6,800 ותשלומי חובות של ₪510 (הלוואת רכב ₪360 וחוב בכרטיס אשראי ₪150), ולכן נשארים ₪1,490 בחודש.",
-        "gameSimplification": "במשחק מחשבים מה נשאר בחודש אחד, ובמשבצת ״סיכום שנתיים״ מסכמים {months} חודשים בבת אחת: מה שנשאר בחודש כפול {months}. זה מקצר את המשחק. בחיים הכסף נכנס ויוצא כל חודש, והסכומים משתנים."
+        "gameSimplification": "במשחק מחשבים מה נשאר בחודש אחד, ובמשבצת ״סיכום שנתי״ מסכמים {months} חודשים בבת אחת: מה שנשאר בחודש כפול {months}. זה מקצר את המשחק. בחיים הכסף נכנס ויוצא כל חודש, והסכומים משתנים."
       },
       "term": "תזרים חודשי",
       "level": "family",
@@ -45,9 +45,9 @@
       "example": {
         "professionId": "teacher",
         "text": "למורה יש משכורת של ₪8,800, הוצאות של ₪6,800 ותשלומי חובות של ₪510 (הלוואת רכב ₪360 וחוב בכרטיס אשראי ₪150), ולכן התזרים החודשי הוא ₪1,490.",
-        "computed": { "salary": 8800, "expenses": 6800, "debtPayments": 510, "cashFlow": 1490, "perSummary": 35760 }
+        "computed": { "salary": 8800, "expenses": 6800, "debtPayments": 510, "cashFlow": 1490, "perSummary": 17880 }
       },
-      "gameSimplification": "במשחק מחשבים תזרים של חודש אחד, ובמשבצת ״סיכום שנתיים״ מסכמים {months} חודשים בבת אחת: התזרים החודשי כפול {months}. זה מקצר את המשחק. בחיים הכסף נכנס ויוצא כל חודש, והסכומים משתנים.",
+      "gameSimplification": "במשחק מחשבים תזרים של חודש אחד, ובמשבצת ״סיכום שנתי״ מסכמים {months} חודשים בבת אחת: התזרים החודשי כפול {months}. זה מקצר את המשחק. בחיים הכסף נכנס ויוצא כל חודש, והסכומים משתנים.",
       "needs_review": null
     },
     {
@@ -224,7 +224,7 @@
       "order": 10,
       "family": {
         "why": "תוספת גבוהה הופכת הלוואה ליקרה בהרבה, ולכן כדאי ללוות רק כמה שצריך ולהחזיר כשאפשר.",
-        "exampleText": "הלוואה של {amount} מהבנק במשחק עולה {monthlyPayment} תוספת בחודש. בכל סיכום שנתיים זה {interest}, והחוב של {amount} נשאר עד שמחזירים אותו. אם מחזירים בסיכום הקרוב משלמים {total}: החוב ועוד {interest} תוספת.",
+        "exampleText": "הלוואה של {amount} מהבנק במשחק עולה {monthlyPayment} תוספת בחודש. בכל סיכום שנתי זה {interest}, והחוב של {amount} נשאר עד שמחזירים אותו. אם מחזירים בסיכום הקרוב משלמים {total}: החוב ועוד {interest} תוספת.",
         "gameSimplification": "במשחק ההלוואה היא תוספת בלבד: כל חודש משלמים {monthlyRate} מהחוב, והחוב עצמו נשאר עד שמחליטים להחזיר אותו. התוספת קבועה וגבוהה במכוון, כדי להראות שהלוואה עולה כסף. בעולם האמיתי התוספת משתנה לפי הבנק, סוג ההלוואה ומי שלוקח אותה."
       },
       "term": "ריבית",
@@ -232,9 +232,9 @@
       "short": "ריבית היא המחיר של כסף שלוקחים בהלוואה: מחזירים יותר ממה שלקחו.",
       "why": "ריבית גבוהה הופכת הלוואה ליקרה בהרבה, ולכן כדאי ללוות רק כמה שצריך ולהחזיר כשאפשר.",
       "example": {
-        "text": "הלוואה של {amount} מהבנק במשחק עולה {monthlyPayment} בחודש. זו ריבית של {rate} בשנה. בכל סיכום שנתיים זה {interest}, והחוב של {amount} נשאר עד שמחזירים אותו. אם מחזירים בסיכום הקרוב משלמים {total}: החוב ועוד {interest} ריבית.",
+        "text": "הלוואה של {amount} מהבנק במשחק עולה {monthlyPayment} בחודש. זו ריבית של {rate} בשנה. בכל סיכום שנתי זה {interest}, והחוב של {amount} נשאר עד שמחזירים אותו. אם מחזירים בסיכום הקרוב משלמים {total}: החוב ועוד {interest} ריבית.",
         "slotsFrom": "loanTerms(5000)",
-        "computed": { "amount": 5000, "monthlyPayment": 50, "perYear": 600, "interest": 1200, "total": 6200, "rateNominalPct": 12, "perThousand": { "monthly": 10, "perSummary": 240, "total": 1240 } }
+        "computed": { "amount": 5000, "monthlyPayment": 50, "perYear": 600, "interest": 600, "total": 5600, "rateNominalPct": 12, "perThousand": { "monthly": 10, "perSummary": 120, "total": 1120 } }
       },
       "gameSimplification": "במשחק ההלוואה היא ריבית בלבד: כל חודש משלמים {monthlyRate} מהחוב, והחוב עצמו נשאר עד שמחליטים להחזיר אותו. הריבית קבועה ({rate} בשנה) וגבוהה במכוון, כדי להראות שהלוואה עולה כסף. בעולם האמיתי הריבית משתנה לפי הבנק, סוג ההלוואה ומי שלוקח אותה.",
       "needs_review": "finance: לאשר שהשוואה לריבית אמיתית ('בדרך כלל נמוכה מ-{rate}') נשארת מחוץ לטקסט עד אימות. בהצעה: ממוצע הלוואה לא צמודה למשקי בית כ-8.23% ביולי 2026 (מקור משני, icf.co.il, עודכן 25.8.2026). ראו real-world.he.json, rw-loan-rate."

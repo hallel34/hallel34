@@ -200,8 +200,8 @@ describe('the engine records every decision (state.learn)', () => {
 });
 
 describe('save schema 3 and migration', () => {
-  it('the schema is 3 and a round trip keeps the learn record', () => {
-    expect(SCHEMA_VERSION).toBe(3);
+  it('the schema is 4 and a round trip keeps the learn record', () => {
+    expect(SCHEMA_VERSION).toBe(4);
     let m = newMatch(engine, { mode: 'family', seed: 3, players: [{ professionId: 'teacher' }] });
     m = { ...m, players: [{ ...m.players[0], state: unlockConcept(markShown(engine.buy(withCard('opp-apt-001')), 'x'), 'yield') }] };
     const back = deserialize(serialize(m));
@@ -215,16 +215,16 @@ describe('save schema 3 and migration', () => {
     old.schemaVersion = 2;
     for (const p of old.players) { delete p.state.learn; p.state.schemaVersion = 2; }
     const back = deserialize(JSON.stringify(old));
-    expect(back.schemaVersion).toBe(3);
+    expect(back.schemaVersion).toBe(4);
     expect(back.players.map((p) => p.state.learn)).toEqual([emptyLearn(), emptyLearn()]);
     expect(back.players[0].state.profession.id).toBe('teacher');
   });
-  it('a schema 1 save (a bare state) migrates through 2 to 3', () => {
+  it('a schema 1 save (a bare state) migrates through 2 and 3 to 4', () => {
     const s = engine.newGame({ mode: 'family', professionId: 'teacher', seed: 4 });
     const v1 = { ...s, schemaVersion: 1 };
     delete v1.learn;
     const back = deserialize(JSON.stringify(v1));
-    expect(back.schemaVersion).toBe(3);
+    expect(back.schemaVersion).toBe(4);
     expect(back.players[0].state.learn).toEqual(emptyLearn());
   });
   it('an old game that has no interestPaid still reports without that section', () => {
@@ -345,9 +345,9 @@ describe('years and percent slots', () => {
 describe('slot rendering (spec 2.1)', () => {
   it('loan slots are loanTerms(): monthly, interest per summary, total only if repaid at the summary, nominal rate', () => {
     const s5 = loanSlots(5000);
-    expect(s5).toEqual({ amount: '₪5,000', loanAmount: '₪5,000', monthlyPayment: '₪50', interest: '₪1,200', total: '₪6,200', rate: '12%' });
+    expect(s5).toEqual({ amount: '₪5,000', loanAmount: '₪5,000', monthlyPayment: '₪50', interest: '₪600', total: '₪5,600', rate: '12%' });
     const s1 = loanSlots(1000);
-    expect([s1.monthlyPayment, s1.interest, s1.total]).toEqual(['₪10', '₪240', '₪1,240']);
+    expect([s1.monthlyPayment, s1.interest, s1.total]).toEqual(['₪10', '₪120', '₪1,120']);
     const exp = loanSlots(8000, { amount: 7500 });
     expect(exp.amount).toBe('₪7,500');
     expect(exp.loanAmount).toBe('₪8,000');
@@ -435,7 +435,7 @@ describe('feedback requests from what changed', () => {
     const ex = { ...cook, pending: { kind: 'expense', card: card('exp-002'), amount: 7500 }, phase: 'mustPay' };
     const r = run(ex, (x) => engine.takeLoan(x, 8000));
     expect(r.req.map((q) => q.group)).toEqual(['expense.loan']);
-    expect(r.req[0].slots).toMatchObject({ amount: '₪7,500', loanAmount: '₪8,000', monthlyPayment: '₪80', interest: '₪1,920', total: '₪9,920' });
+    expect(r.req[0].slots).toMatchObject({ amount: '₪7,500', loanAmount: '₪8,000', monthlyPayment: '₪80', interest: '₪960', total: '₪8,960' });
   });
   it('repay, charity and a market offer', () => {
     const base = engine.takeLoan({ ...engine.newGame({ mode: 'full', professionId: 'teacher', seed: 3 }), cash: 50000 }, 5000);
@@ -535,7 +535,7 @@ describe('concepts: first-seen logic (spec 3)', () => {
       expect(fillSlots(c.example.text, slots), c.id).not.toMatch(/\{\w+\}/);
       if (c.gameSimplification) expect(fillSlots(c.gameSimplification, slots), c.id).not.toMatch(/\{\w+\}/);
     }
-    expect(fillSlots(conceptById('interest').example.text, glossarySlots(conceptById('interest')))).toContain('₪6,200');
+    expect(fillSlots(conceptById('interest').example.text, glossarySlots(conceptById('interest')))).toContain('₪5,600');
   });
 });
 

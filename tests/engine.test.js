@@ -335,14 +335,14 @@ describe('bank loans', () => {
     expect(loanMonthlyPayment(7000)).toBe(70);
     expect(loanMonthlyPayment(33000)).toBe(330);
   });
-  it('loanTerms: 1,000 costs 10 a month, 120 a year, 240 until the next payday; 12% nominal', () => {
+  it('loanTerms: 1,000 costs 10 a month, 120 a year, 120 until the next payday; 12% nominal', () => {
     const t1 = loanTerms(1000);
-    expect(t1).toMatchObject({ amount: 1000, monthly: 10, perYear: 120, perPayday: 240, totalAtPayday: 1240, months: PAYDAY_MONTHS });
+    expect(t1).toMatchObject({ amount: 1000, monthly: 10, perYear: 120, perPayday: 120, totalAtPayday: 1120, months: PAYDAY_MONTHS });
     expect(t1.aprNominal).toBe(12);
     expect(t1.aprNominal).toBe(LOAN_APR_NOMINAL);
     expect(t1.aprEffective).toBeCloseTo(12.68, 2);
     const t5 = loanTerms(5000);
-    expect(t5).toMatchObject({ monthly: 50, perYear: 600, perPayday: 1200, totalAtPayday: 6200 });
+    expect(t5).toMatchObject({ monthly: 50, perYear: 600, perPayday: 600, totalAtPayday: 5600 });
     // everything derives from the config constant
     expect(loanTerms(1000).monthly).toBe(1000 * LOAN_PAYMENT_RATE);
   });
@@ -418,10 +418,10 @@ describe('interest accounting (stats.interestPaid)', () => {
     const r = toPayday(s);
     expect(r.stats.interestPaid).toBe(50 * PAYDAY_MONTHS);
     const ev = r.events.find((x) => x.type === 'payday');
-    expect(ev).toMatchObject({ months: PAYDAY_MONTHS, monthly: monthlyCashFlow(s), amount: monthlyCashFlow(s) * PAYDAY_MONTHS, interest: 1200 });
+    expect(ev).toMatchObject({ months: PAYDAY_MONTHS, monthly: monthlyCashFlow(s), amount: monthlyCashFlow(s) * PAYDAY_MONTHS, interest: 600 });
     // a second payday adds again; a repaid loan adds nothing
     const again = e.roll(at({ ...r, phase: 'roll', pending: null }, idx('payday', 2) - 3), [3]);
-    expect(again.stats.interestPaid).toBe(2 * 1200);
+    expect(again.stats.interestPaid).toBe(2 * 600);
   });
   it('does not count starting debts or mortgages as interest', () => {
     const withDebt = mk(BASE, { ...profession, liabilities: [{ id: 'car', label: 'רכב', principal: 20000, monthlyPayment: 400 }] });

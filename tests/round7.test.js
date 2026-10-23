@@ -28,13 +28,13 @@ describe('round 7: buy-with-loan figures include the asset being bought', () => 
     s.pending = { kind: 'opportunity', card: c }; s.phase = 'decision';
     return { s, c };
   };
-  it('QA case: teacher, 3 kids, cash 100,000, opp-apt-001, loan 100,000 -> new flow +2,540, next summary +60,960, no warning', () => {
+  it('QA case: teacher, 3 kids, cash 100,000, opp-apt-001, loan 100,000 -> new flow +2,540, next summary +30,480, no warning', () => {
     const { s, c } = teacher3();
     const gain = purchaseCashFlow(c);
     const imp = loanPaydayImpact(s, 100000, c.downPayment, gain);
     expect(monthlyCashFlow(s) + gain - loanTerms(100000).monthly).toBe(2540);
     expect(imp.flow).toBe(2540);
-    expect(imp.payday).toBe(60960);
+    expect(imp.payday).toBe(30480);
     expect(imp.risky).toBe(false);
     // the old (pre-purchase) figures were what produced the false warning
     expect(loanPaydayImpact(s, 100000, c.downPayment).risky).toBe(true);

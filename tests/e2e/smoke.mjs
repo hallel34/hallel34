@@ -1135,14 +1135,14 @@ async function testPhaseA(page) {
     };
   });
   const seen = await page.evaluate(() => window.__seen);
-  const chipMsg = seen.find((x) => x.key === 'chip' && x.text.includes('סיכום שנתיים'));
-  const statusMsg = seen.find((x) => x.key === 'status' && x.text.includes('סיכום שנתיים'));
+  const chipMsg = seen.find((x) => x.key === 'chip' && x.text.includes('סיכום שנתי'));
+  const statusMsg = seen.find((x) => x.key === 'status' && x.text.includes('סיכום שנתי'));
   f.chip = chipMsg?.text ?? ''; f.chipBdi = chipMsg?.bdi ?? 0;
   f.statusText = statusMsg?.text ?? ''; f.statusBdi = statusMsg?.bdi ?? 0;
   check(!f.overlapsHud, `B2: the payday float does not overlap any HUD text (float top ${Math.round(f.fl.top)}, hud bottom ${Math.round(f.hud.bottom)})`);
   check(f.fl.top >= f.hud.bottom - 1 && f.fl.left >= 0 && f.fl.right <= 360, 'B2: the payday float stays under the HUD and inside the viewport');
   check(f.chipBdi >= 2 && f.statusBdi >= 2 && f.floatBdi >= 1, `B1: payday amounts are wrapped in <bdi> (chip ${f.chipBdi}, status ${f.statusBdi}, float ${f.floatBdi})`);
-  check(f.chip.includes('סיכום שנתיים') && f.chip.includes(`× ${PAYDAY_MONTHS}`) && /×.*=/.test(f.chip), `N3: log shows the maths ("${f.chip}")`);
+  check(f.chip.includes('סיכום שנתי') && f.chip.includes(`× ${PAYDAY_MONTHS}`) && /×.*=/.test(f.chip), `N3: log shows the maths ("${f.chip}")`);
   check(!/יום משכורת/.test(f.chip + f.statusText), 'N3: no "יום משכורת" left in the payday messages');
   await page.waitForTimeout(1500);
 

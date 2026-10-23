@@ -161,8 +161,8 @@ describe('v2 phase A: amounts, payday copy, no typed numbers', () => {
     const fx = src('ui/fx.js');
     expect(fx).toContain('below.getBoundingClientRect().bottom');
   });
-  it('N3: the payday event is called "סיכום שנתיים" everywhere, with the maths from the config', () => {
-    expect(lookup('square.payday')).toBe('סיכום שנתיים');
+  it('N3: the payday event is called "סיכום שנתי" everywhere, with the maths from the config', () => {
+    expect(lookup('square.payday')).toBe('סיכום שנתי');
     for (const key of ['game.payday', 'game.paydayFloatLabel', 'game.statusPayday', 'game.logPayday', 'statement.paydayLine', 'loan.paydayNext', 'howto.step1']) {
       expect(lookup(key), key).toContain('שנתי');
     }

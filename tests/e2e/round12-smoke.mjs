@@ -224,7 +224,7 @@ async function almost(browser, theme) {
     seen = await page.evaluate(() => /ועוד קצת/.test(document.querySelector('.note-hint')?.textContent ?? ''));
   }
   const many = await page.evaluate(() => window.__many);
-  check(many === '' || /הכניסו ₪[\d,]+ בשנתיים/.test(many), `the several-assets income hint carries its amount (${many || 'not shown in this run'})`);
+  check(many === '' || /הכניסו ₪[\d,]+ בשנה הזאת/.test(many), `the several-assets income hint carries its amount (${many || 'not shown in this run'})`);
   check(seen, `at ~94% of the expenses the h-almost hint ("... ועוד קצת") shows within a few turns (${theme})`);
   await ctx.close();
 }

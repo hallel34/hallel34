@@ -21,7 +21,7 @@
       "loanAmount": "principal of THIS loan (a multiple of LOAN_STEP), formatted. For expense.loan it can be larger than {amount}, which is the expense",
       "rate": "LOAN_APR_NOMINAL with percent sign, e.g. '12%': the NOMINAL yearly rate (monthly rate x 12), not the effective rate. Derived from config, never typed. Not used in family lists",
       "monthlyPayment": "loanTerms(loanAmount).monthly: what this loan adds to the monthly payments (interest only, loanAmount x LOAN_PAYMENT_RATE), formatted",
-      "interest": "loanTerms(loanAmount).perPayday = monthlyPayment x PAYDAY_MONTHS: the interest charged at each summary (24 months) while the loan stays open, formatted. Same number as the loan window row 'ריבית עד הסיכום הבא'",
+      "interest": "loanTerms(loanAmount).perPayday = monthlyPayment x PAYDAY_MONTHS: the interest charged at each summary (PAYDAY_MONTHS = 12 months) while the loan stays open, formatted. Same number as the loan window row 'ריבית עד הסיכום הבא'",
       "total": "loanTerms(loanAmount).totalAtPayday = loanAmount + interest, formatted. It is the sum to hand back ONLY if the loan is repaid at the next summary (principal stays owed until repaid, interest continues every month). Texts must always say 'אם תפרעו/מחזירים בסיכום הקרוב' next to it. It is NOT a total until the loan ends (there is no end date). Same number as the loan window row 'סך הכול להחזיר'",
       "saved": "monthly payment that disappears after a repayment (loanMonthlyPayment of the repaid amount), formatted",
       "qty": "number of shares",
@@ -165,18 +165,18 @@
       "family": [
         "לקחתם {amount}. התשלום הוא {monthlyPayment} בחודש, עדיין נשאר לכם כסף בכל חודש. יפה!",
         "כל חודש משלמים {monthlyPayment} תוספת, והחוב נשאר עד שמחזירים אותו. כשיהיה מזומן אפשר להחזיר.",
-        "הלוואה קטנה שמשאירה לכם כסף בכל חודש היא כלי עבודה. שימו לב: {interest} תוספת בכל סיכום שנתיים."
+        "הלוואה קטנה שמשאירה לכם כסף בכל חודש היא כלי עבודה. שימו לב: {interest} תוספת בכל סיכום שנתי."
       ],
       "full": [
         "ריבית של {rate} בשנה: {monthlyPayment} בחודש, ו-{interest} עד הסיכום הבא. אם תפרעו אז, תחזירו {total}. התשלום קטן ביחס לתזרים, החלטה סבירה.",
         "הלוואה של {amount} עולה {monthlyPayment} בחודש, והחוב נשאר עד שתחזירו אותו. התזרים מחזיק, וכשיהיה מזומן כדאי לפרוע.",
-        "הלוואה צריכה להיות קטנה ולשרת החלטה טובה. כאן הריבית היא {interest} בכל סיכום שנתיים, והתזרים נשאר חיובי."
+        "הלוואה צריכה להיות קטנה ולשרת החלטה טובה. כאן הריבית היא {interest} בכל סיכום שנתי, והתזרים נשאר חיובי."
       ]
     },
     "loan.costly": {
       "family": [
         "התשלום של {monthlyPayment} בחודש אוכל הרבה ממה שנשאר לכם בחודש. כדאי לקחת פחות או להחזיר מהר.",
-        "ההלוואה עולה {interest} תוספת בכל סיכום שנתיים. אם תחזירו אותה בסיכום הקרוב, תחזירו {total}: את {amount} ועוד התוספת.",
+        "ההלוואה עולה {interest} תוספת בכל סיכום שנתי. אם תחזירו אותה בסיכום הקרוב, תחזירו {total}: את {amount} ועוד התוספת.",
         "כל הלוואה עולה תוספת, וכאן התשלום החודשי גדול ביחס למה שנשאר לכם בחודש. שווה לבדוק אם צריך את כולה."
       ],
       "full": [
@@ -213,11 +213,11 @@
       "family": [
         "לא היה מספיק מזומן, אז לקחתם הלוואה. קורה! יותר כסף בצד יחסוך את זה בפעם הבאה.",
         "ההוצאה של {amount} דרשה הלוואה, ועכשיו יש תשלום חודשי של {monthlyPayment}. כשיש מזומן בצד אין צורך בהלוואה.",
-        "שילמתם דרך הלוואה: החוב נשאר עד שמחזירים, ועוד {interest} תוספת בכל סיכום שנתיים. כך הוצאה אחת הופכת לחוב."
+        "שילמתם דרך הלוואה: החוב נשאר עד שמחזירים, ועוד {interest} תוספת בכל סיכום שנתי. כך הוצאה אחת הופכת לחוב."
       ],
       "full": [
         "ההוצאה של {amount} מומנה בהלוואה של {loanAmount} בריבית של {rate} בשנה: {monthlyPayment} בחודש.",
-        "אין מזומן, אז הלוואה: {interest} ריבית בכל סיכום שנתיים עד שמחזירים. מזומן בצד היה חוסך את זה.",
+        "אין מזומן, אז הלוואה: {interest} ריבית בכל סיכום שנתי עד שמחזירים. מזומן בצד היה חוסך את זה.",
         "הלוואה לכיסוי הוצאה עולה יותר מההוצאה עצמה: אם תפרעו בסיכום הקרוב תחזירו {total} על הלוואה של {loanAmount}."
       ]
     },
