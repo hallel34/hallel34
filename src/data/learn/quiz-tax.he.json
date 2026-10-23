@@ -1,0 +1,378 @@
+{
+  "version": 1,
+  "notes": {
+    "purpose": "v4 tax-audit square ('ביקורת מס'): a bank of multiple-choice questions on Israeli money rules. Same guess-first mechanic as guess.he.json (ask, the player picks, then a reasoned reveal with one fox line) and the same option shape as the tutorial check (tutorial.he.json check.questions). Not loaded by src/data/index.js LEARN_KINDS: existing tests and counts are unchanged.",
+    "schema": {
+      "ui": "labels of the square and the reveal. progress has {right} and {of}; badge.progress has {n} and {goal}.",
+      "result": "fox lines after the answer, like guess.he.json guessResult: correct[], wrong[], skipped[]. One line at random, never the same twice in a row.",
+      "reward": "knowledge points and a badge ONLY. A question never changes cash, income, expenses, loans or assets. points: per correct answer; badge: earned at badge.goal correct answers in total (not in a row).",
+      "questions[]": "{ id, topic, level ('full'), prompt, options[{ id, text, correct, feedback }], explanation, asOf, source { name, url, kind }, family?, needs_review }. Exactly one option has correct:true. The UI shuffles options. feedback of the correct option never starts with 'נכון' (the UI already shows the title).",
+      "family": "optional children's variant { prompt, options, explanation } with the same answer logic and simpler numbers. Family variants avoid the adult words of the family vocabulary list (ריבית, תזרים, מקדמה, תשואה, משכנתא, הכנסה פסיבית, התחייבות, כרית...). A question without `family` is full mode only.",
+      "topic": "vat | income-tax | credit-points | national-insurance | pension | business | labour | interest | prices",
+      "source": "as in israel.he.json. NOTE: scripts/prune-learn.js drops 'source' keys from the build."
+    },
+    "rules": "Only VERIFIED figures from docs/v3/real-world-verified.json (2026). Not used: child credit points, credit-card interest, an official 3-6 month emergency fund, the 2026 recuperation daily rate, VAT on a second-hand apartment, teacher pension rates. The Bank of Israel rate (3.25%) is not written in any question because tests/round7.test.js forbids the string in the build (see guide.he.json lesson-interest).",
+    "counts": "16 questions, 8 with a family variant (tq-vat-rate, tq-vat-extract, tq-raise-myth, tq-pension, tq-osek-turnover, tq-annual-leave, tq-loan-vs-boi, tq-inflation)."
+  },
+  "ui": {
+    "title": "ביקורת מס",
+    "subtitle": "שאלה אחת על כללי הכסף בישראל. נחשו לפני שפסיבו מסביר.",
+    "showAnswer": "הראו לי",
+    "skip": "דלגו",
+    "continue": "ממשיכים",
+    "explainTitle": "הנה ההסבר",
+    "correctTitle": "נכון",
+    "asOfLabel": "נכון ל-{asOf}",
+    "sourceLabel": "מקור",
+    "progress": "ענו נכון על {right} מתוך {of} שאלות",
+    "noMoney": "בביקורת המס לא מרוויחים ולא מפסידים כסף, רק ידע.",
+    "disclaimer": "מידע כללי ולימודי בלבד, לא ייעוץ מס."
+  },
+  "result": {
+    "correct": [
+      "בדיוק! נקודת ידע אחת נוספה.",
+      "עין חדה למספרים. עוד נקודת ידע.",
+      "ידעתם את זה! נקודת ידע בכיס."
+    ],
+    "wrong": [
+      "לא הפעם, ואין בעיה. עכשיו אתם יודעים.",
+      "זה כלל שהרבה מבוגרים לא מכירים. עכשיו אתם כן.",
+      "כמעט! ההסבר כאן למטה."
+    ],
+    "skipped": [
+      "בלי ניחוש הפעם. הנה התשובה."
+    ]
+  },
+  "reward": {
+    "pointsPerCorrect": 1,
+    "pointsLabel": "נקודות ידע",
+    "badge": {
+      "id": "tax-savvy",
+      "badgeName": "יודעים חשבון",
+      "description": "עניתם נכון על כמה שאלות על כללי הכסף בישראל.",
+      "goal": 5,
+      "progress": "{n} מתוך {goal} תשובות נכונות",
+      "earned": "קיבלתם את התג ״יודעים חשבון״! אתם מכירים את כללי הכסף בישראל.",
+      "earnedShort": "קיבלתם תג: יודעים חשבון"
+    },
+    "familyBadge": {
+      "badgeName": "בלשי המחירים",
+      "earned": "קיבלתם את התג ״בלשי המחירים״! אתם יודעים מה מסתתר בתוך מחיר."
+    }
+  },
+  "questions": [
+    {
+      "id": "tq-vat-rate",
+      "topic": "vat",
+      "level": "full",
+      "prompt": "מה שיעור המע״מ בישראל ב-2026?",
+      "options": [
+        { "id": "a", "text": "17%", "correct": false, "feedback": "זה היה השיעור עד סוף 2024." },
+        { "id": "b", "text": "18%", "correct": true, "feedback": "18% מ-1 בינואר 2025." },
+        { "id": "c", "text": "25%", "correct": false, "feedback": "בישראל השיעור נמוך מזה: 18%." }
+      ],
+      "explanation": "שיעור המע״מ עלה מ-17% ל-18% ב-1 בינואר 2025, והוא 18% גם ב-2026.",
+      "asOf": "2026",
+      "source": { "name": "רשות המסים, הוראת פרשנות 01/2025", "url": "https://www.gov.il/BlobFolder/dynamiccollectorresultitem/represent-info-051224-2/he/vat_represent-info-051224-2.pdf", "kind": "official-primary" },
+      "family": {
+        "prompt": "משחק עולה ₪100 לפני מס. החנות מוסיפה מע״מ של 18%. כמה משלמים בקופה?",
+        "options": [
+          { "id": "a", "text": "₪100", "correct": false, "feedback": "החנות מוסיפה מס למחיר, ולכן משלמים יותר." },
+          { "id": "b", "text": "₪118", "correct": true, "feedback": "₪100 ועוד ₪18 מס." },
+          { "id": "c", "text": "₪180", "correct": false, "feedback": "18% מ-₪100 הם ₪18, לא ₪80." }
+        ],
+        "explanation": "מע״מ הוא מס שמוסיפים למחיר. על ₪100 מוסיפים 18%, כלומר ₪18, ומשלמים ₪118."
+      },
+      "needs_review": null
+    },
+    {
+      "id": "tq-vat-add",
+      "topic": "vat",
+      "level": "full",
+      "prompt": "מחיר לפני מע״מ הוא ₪1,000. כמה משלמים עם מע״מ?",
+      "options": [
+        { "id": "a", "text": "₪1,018", "correct": false, "feedback": "18% מ-₪1,000 הם ₪180, לא ₪18." },
+        { "id": "b", "text": "₪1,180", "correct": true, "feedback": "₪1,000 × 1.18." },
+        { "id": "c", "text": "₪1,800", "correct": false, "feedback": "זו תוספת של 80%." }
+      ],
+      "explanation": "כדי להוסיף מע״מ כופלים ב-1.18: ₪1,000 × 1.18 = ₪1,180, ומתוכם ₪180 הם מס.",
+      "asOf": "2026",
+      "source": { "name": "רשות המסים, הוראת פרשנות 01/2025 (שיעור 18%)", "url": "https://www.gov.il/BlobFolder/dynamiccollectorresultitem/represent-info-051224-2/he/vat_represent-info-051224-2.pdf", "kind": "official-primary" },
+      "needs_review": null
+    },
+    {
+      "id": "tq-vat-extract",
+      "topic": "vat",
+      "level": "full",
+      "prompt": "מחיר כולל מע״מ הוא ₪1,180. כמה מתוכו הם מע״מ?",
+      "options": [
+        { "id": "a", "text": "₪180", "correct": true, "feedback": "₪1,180 ÷ 1.18 = ₪1,000, והשאר, ₪180, הוא המס." },
+        { "id": "b", "text": "₪212.4", "correct": false, "feedback": "זה 18% מ-₪1,180, אבל המס מחושב מהמחיר שלפני המס." },
+        { "id": "c", "text": "₪118", "correct": false, "feedback": "זה 10% מהמחיר, לא החלק של המס." }
+      ],
+      "explanation": "כשהמחיר כבר כולל מע״מ, מחלקים ב-1.18 כדי למצוא את המחיר שלפני המס. המע״מ הוא ההפרש: ₪1,180 − ₪1,000 = ₪180. דרך קצרה: מחיר × 18 ÷ 118.",
+      "asOf": "2026",
+      "source": { "name": "רשות המסים, הוראת פרשנות 01/2025 (שיעור 18%)", "url": "https://www.gov.il/BlobFolder/dynamiccollectorresultitem/represent-info-051224-2/he/vat_represent-info-051224-2.pdf", "kind": "official-primary" },
+      "family": {
+        "prompt": "כדור עולה ₪118, והמחיר כבר כולל מס של 18%. כמה מתוך ה-₪118 הם מס?",
+        "options": [
+          { "id": "a", "text": "₪18", "correct": true, "feedback": "הכדור עצמו ₪100, והמס ₪18." },
+          { "id": "b", "text": "₪1.18", "correct": false, "feedback": "זה קטן מדי. המס הוא ₪18." },
+          { "id": "c", "text": "₪100", "correct": false, "feedback": "₪100 הם המחיר של הכדור עצמו, לפני המס." }
+        ],
+        "explanation": "₪100 לכדור ועוד 18% מס, ₪18, הם ₪118. לכן ₪18 מתוך המחיר הם מס."
+      },
+      "needs_review": null
+    },
+    {
+      "id": "tq-new-apartment",
+      "topic": "vat",
+      "level": "full",
+      "prompt": "קונים דירה חדשה מקבלן. האם יש מע״מ במחיר?",
+      "options": [
+        { "id": "a", "text": "כן, הקבלן הוא עוסק, והמע״מ כלול במחיר", "correct": true, "feedback": "על מכירה של עוסק חל מע״מ, וגם על דירה חדשה מקבלן." },
+        { "id": "b", "text": "לא, על דירות אף פעם אין מע״מ", "correct": false, "feedback": "על דירה חדשה מקבלן יש מע״מ." },
+        { "id": "c", "text": "רק אם הדירה קטנה", "correct": false, "feedback": "גודל הדירה לא קובע. מה שקובע הוא שהמוכר הוא עוסק." }
+      ],
+      "explanation": "קבלן שמוכר דירה הוא עוסק, ולכן על המכירה חל מע״מ של 18%, והוא כלול במחיר.",
+      "asOf": "2026",
+      "source": { "name": "רשות המסים, הוראת פרשנות 01/2025 (דוגמת עוסק במקרקעין שמוכר דירת מגורים)", "url": "https://www.gov.il/BlobFolder/dynamiccollectorresultitem/represent-info-051224-2/he/vat_represent-info-051224-2.pdf", "kind": "official-primary" },
+      "needs_review": "Only the verified contractor half. No question or explanation says anything about a second-hand apartment (NOT VERIFIED)."
+    },
+    {
+      "id": "tq-marginal",
+      "topic": "income-tax",
+      "level": "full",
+      "prompt": "משכורת עולה מ-₪8,800 ל-₪9,300 בחודש. כמה מס הכנסה נוסף משלמים על ₪500 התוספת?",
+      "options": [
+        { "id": "a", "text": "₪70, כי השקלים האלה במדרגת 14%", "correct": true, "feedback": "₪500 × 14% = ₪70." },
+        { "id": "b", "text": "כל המשכורת עוברת למדרגה גבוהה יותר", "correct": false, "feedback": "רק השקלים שבתוך המדרגה משלמים את השיעור שלה." },
+        { "id": "c", "text": "₪0, על תוספת לא משלמים מס", "correct": false, "feedback": "על תוספת למשכורת משלמים מס, לפי המדרגה שלה." }
+      ],
+      "explanation": "מדרגת 14% היא מ-₪7,011 עד ₪10,060 בחודש. גם ₪8,800 וגם ₪9,300 בתוכה, ולכן כל אחד מ-₪500 התוספת משלם 14%: ₪70. זה המס השולי.",
+      "asOf": "2026",
+      "source": { "name": "רשות המסים, חוברת לוח עזר 2026, פרק ב", "url": "https://www.gov.il/BlobFolder/generalpage/income-tax-monthly-deductions-booklet/he/generalInformation_income-tax-monthly-deductions-booklet_monthly-deductions-booklet-2026.pdf", "kind": "official-primary" },
+      "needs_review": "Income tax only; national insurance on the same ₪500 (12.17%) is not part of the question."
+    },
+    {
+      "id": "tq-raise-myth",
+      "topic": "income-tax",
+      "level": "full",
+      "prompt": "״אם אקבל העלאה ואעבור מדרגה, יישאר לי פחות כסף.״ נכון?",
+      "options": [
+        { "id": "a", "text": "לא נכון: רק השקלים שמעל הגבול משלמים יותר", "correct": true, "feedback": "השקלים שכבר הרווחתם ממשיכים לשלם את אותו שיעור." },
+        { "id": "b", "text": "נכון: כל המשכורת ממוסה לפי המדרגה החדשה", "correct": false, "feedback": "המס עובד במדרגות, ולא על כל המשכורת בשיעור אחד." },
+        { "id": "c", "text": "נכון, אבל רק בחודש הראשון", "correct": false, "feedback": "אין כלל כזה. המס מחושב במדרגות בכל חודש." }
+      ],
+      "explanation": "מס הכנסה מחושב במדרגות: 10% עד ₪7,010, 14% עד ₪10,060, 20% עד ₪19,000 וכן הלאה (2026, בחודש). מעבר מדרגה משנה רק את השיעור על השקלים החדשים, ולכן אחרי העלאה נשאר יותר כסף, לא פחות.",
+      "asOf": "2026",
+      "source": { "name": "רשות המסים, חוברת לוח עזר 2026, פרק ב", "url": "https://www.gov.il/BlobFolder/generalpage/income-tax-monthly-deductions-booklet/he/generalInformation_income-tax-monthly-deductions-booklet_monthly-deductions-booklet-2026.pdf", "kind": "official-primary" },
+      "family": {
+        "prompt": "במשפחה של דנה יש כלל: מדמי הכיס עד ₪50 שמים 10% בקופה המשותפת, ומכל שקל מעל ₪50 שמים 20%. דנה קיבלה תוספת, ועכשיו יש לה ₪60. האם נשאר לה פחות מאשר כשהיו לה ₪50?",
+        "options": [
+          { "id": "a", "text": "לא: נשארים לה ₪53 במקום ₪45", "correct": true, "feedback": "על ₪50 הראשונים היא שמה ₪5, ועל ₪10 החדשים ₪2." },
+          { "id": "b", "text": "כן: עכשיו היא שמה 20% מכל ₪60", "correct": false, "feedback": "רק השקלים שמעל ₪50 נכנסים ל-20%." },
+          { "id": "c", "text": "כן: תמיד עדיף לא לקבל תוספת", "correct": false, "feedback": "תוספת משאירה יותר, גם כשחלק ממנה הולך לקופה." }
+        ],
+        "explanation": "כך עובד מס במדרגות: רק השקלים שמעל הגבול משלמים יותר. עם ₪50 נשארו לדנה ₪45, ועם ₪60 נשארים לה ₪53."
+      },
+      "needs_review": "Family variant is an analogy (pocket money and a shared jar), not a real tax rule; the explanation names it as the way bracket tax works."
+    },
+    {
+      "id": "tq-credit-point",
+      "topic": "credit-points",
+      "level": "full",
+      "prompt": "כמה שווה נקודת זיכוי אחת בחודש ב-2026?",
+      "options": [
+        { "id": "a", "text": "₪242", "correct": true, "feedback": "וזה ₪2,904 בשנה." },
+        { "id": "b", "text": "₪2,904", "correct": false, "feedback": "זה השווי בשנה. בחודש: ₪242." },
+        { "id": "c", "text": "₪24.2", "correct": false, "feedback": "פי עשרה מזה: ₪242." }
+      ],
+      "explanation": "כל נקודת זיכוי מורידה ₪242 ממס ההכנסה של החודש (₪2,904 בשנה). לכל תושב יש 2.25 נקודות בסיס, כלומר ₪544.5 בחודש.",
+      "asOf": "2026",
+      "source": { "name": "רשות המסים, חוברת לוח עזר 2026, פרק ג", "url": "https://www.gov.il/BlobFolder/generalpage/income-tax-monthly-deductions-booklet/he/generalInformation_income-tax-monthly-deductions-booklet_monthly-deductions-booklet-2026.pdf", "kind": "official-primary" },
+      "needs_review": "2.25 points per resident: kolzchut excerpt (one manual check). No child points."
+    },
+    {
+      "id": "tq-credit-base",
+      "topic": "credit-points",
+      "level": "full",
+      "prompt": "כמה נקודות זיכוי בסיסיות יש לכל תושב/ת ישראל?",
+      "options": [
+        { "id": "a", "text": "2.25 לתושב, ו-2.75 לתושבת", "correct": true, "feedback": "לתושבת יש חצי נקודה נוספת." },
+        { "id": "b", "text": "אין נקודות בסיס, רק למי שיש ילדים", "correct": false, "feedback": "לכל תושב יש נקודות בסיס, גם בלי ילדים." },
+        { "id": "c", "text": "10 נקודות לכולם", "correct": false, "feedback": "הרבה פחות: 2.25 לתושב ו-2.75 לתושבת." }
+      ],
+      "explanation": "לכל תושב יש 2.25 נקודות, ולתושבת חצי נקודה נוספת, 2.75. בכל נקודה ₪242 בחודש, ולכן ₪544.5 לתושב ו-₪665.5 לתושבת.",
+      "asOf": "2026",
+      "source": { "name": "כל זכות, נקודות זיכוי ממס הכנסה לתושב ישראל", "url": "https://www.kolzchut.org.il/he/%D7%A0%D7%A7%D7%95%D7%93%D7%95%D7%AA_%D7%96%D7%99%D7%9B%D7%95%D7%99_%D7%9E%D7%9E%D7%A1_%D7%94%D7%9B%D7%A0%D7%A1%D7%94_%D7%9C%D7%AA%D7%95%D7%A9%D7%91_%D7%99%D7%A9%D7%A8%D7%90%D7%9C", "kind": "official-excerpt" },
+      "needs_review": "finance: kolzchut excerpt, one manual check. Option b's feedback mentions children only to say base points do not depend on them; no child point numbers are given (NOT VERIFIED)."
+    },
+    {
+      "id": "tq-ni-band",
+      "topic": "national-insurance",
+      "level": "full",
+      "prompt": "עד איזה סכום בחודש משלמים ביטוח לאומי ובריאות בשיעור המופחת, 4.27%?",
+      "options": [
+        { "id": "a", "text": "₪7,703", "correct": true, "feedback": "מעליו השיעור הוא 12.17%." },
+        { "id": "b", "text": "₪51,910", "correct": false, "feedback": "זו התקרה: מעליה לא משלמים בכלל." },
+        { "id": "c", "text": "₪13,769", "correct": false, "feedback": "זה השכר הממוצע במשק, לא גבול המדרגה." }
+      ],
+      "explanation": "ב-2026 העובד משלם 4.27% על ₪7,703 הראשונים, 12.17% על החלק שעד ₪51,910, ומעל התקרה לא משלם על החלק הנוסף.",
+      "asOf": "2026",
+      "source": { "name": "המוסד לביטוח לאומי, חוזר מעסיקים 1522 (1.4.2026)", "url": "https://www.btl.gov.il/Insurance/HozrimBituah/Hozrim/%D7%A9%D7%99%D7%A0%D7%95%D7%99%20%D7%91%D7%AA%D7%A9%D7%9C%D7%95%D7%9D%20%D7%93%D7%9E%D7%99%20%D7%91%D7%99%D7%98%D7%95%D7%97%20%D7%9C%D7%90%D7%95%D7%9E%D7%99%20%D7%95%D7%93%D7%9E%D7%99%20%D7%91%D7%99%D7%98%D7%95%D7%97%20%D7%91%D7%A8%D7%99%D7%90%D7%95%D7%AA%20%D7%9C%D7%A9%D7%A0%D7%AA%202026.pdf", "kind": "official-primary" },
+      "needs_review": "Rates valid to end of 2026 (temporary provision); refresh for 2027."
+    },
+    {
+      "id": "tq-pension",
+      "topic": "pension",
+      "level": "full",
+      "prompt": "לפי הכלל הכללי, כמה אחוזים מהמשכורת העובד עצמו מפקיד לפנסיה?",
+      "options": [
+        { "id": "a", "text": "6%", "correct": true, "feedback": "והמעסיק מוסיף עוד 12.5%." },
+        { "id": "b", "text": "18.5%", "correct": false, "feedback": "זה הסכום של כולם יחד: 6% מהעובד ו-12.5% מהמעסיק." },
+        { "id": "c", "text": "0%, רק המעסיק מפקיד", "correct": false, "feedback": "גם העובד מפקיד: 6%." }
+      ],
+      "explanation": "מאז 2017 המינימום הוא 6% מהעובד, 6.5% מהמעסיק ועוד 6% מהמעסיק לפיצויים, יחד 18.5%. בהסכמים קיבוציים ובמגזר הציבורי יש הסדרים משלהם.",
+      "asOf": "2026",
+      "source": { "name": "כל זכות, חובת ביטוח פנסיוני לעובדים", "url": "https://www.kolzchut.org.il/he/%D7%97%D7%95%D7%91%D7%AA_%D7%91%D7%99%D7%98%D7%95%D7%97_%D7%A4%D7%A0%D7%A1%D7%99%D7%95%D7%A0%D7%99_%D7%9C%D7%A2%D7%95%D7%91%D7%93%D7%99%D7%9D", "kind": "official-excerpt" },
+      "family": {
+        "prompt": "כל חודש חלק קטן מהמשכורת של ההורים נכנס לחיסכון לימים שבהם כבר לא יעבדו. למי שייך הכסף הזה?",
+        "options": [
+          { "id": "a", "text": "להורים, זה החיסכון שלהם לעתיד", "correct": true, "feedback": "הכסף נשאר שלהם, ומחכה להם." },
+          { "id": "b", "text": "למדינה, זה מס", "correct": false, "feedback": "זה לא מס. זה חיסכון של העובד." },
+          { "id": "c", "text": "לבנק, במתנה", "correct": false, "feedback": "הבנק לא מקבל אותו במתנה. הכסף של העובד." }
+        ],
+        "explanation": "החיסכון הזה נקרא פנסיה. גם העובד וגם המעסיק מפקידים אליו כל חודש, והכסף שייך לעובד."
+      },
+      "needs_review": "kolzchut excerpt. Not claimed for teachers (NOT VERIFIED)."
+    },
+    {
+      "id": "tq-study-fund",
+      "topic": "pension",
+      "level": "full",
+      "prompt": "האם קרן השתלמות היא חובה בחוק לכל עובד במגזר הפרטי?",
+      "options": [
+        { "id": "a", "text": "לא, לרוב היא לפי הסכם או חוזה עבודה", "correct": true, "feedback": "לכן כדאי לבדוק בחוזה אם יש קרן השתלמות." },
+        { "id": "b", "text": "כן, כמו פנסיה", "correct": false, "feedback": "פנסיה היא חובה; קרן השתלמות לרוב לא." },
+        { "id": "c", "text": "רק לעובדים מעל גיל 60", "correct": false, "feedback": "אין כלל כזה. היא תלויה בהסכם או בחוזה." }
+      ],
+      "explanation": "קרן השתלמות נפוצה, אבל לרוב העובדים במגזר הפרטי היא לא חובה בחוק. יש לה הטבת מס על שכר של עד ₪15,712 בחודש (2026).",
+      "asOf": "2026",
+      "source": { "name": "תקרה: רשות המסים, חוברת לוח עזר 2026, פרק ג. הסטטוס: כל זכות, קרן השתלמות", "url": "https://www.kolzchut.org.il/he/%D7%A7%D7%A8%D7%9F_%D7%94%D7%A9%D7%AA%D7%9C%D7%9E%D7%95%D7%AA", "kind": "official-excerpt" },
+      "needs_review": "Rates (7.5% / 2.5%) deliberately not in the question text: '2.5%' is a token of the hidden-figure guard."
+    },
+    {
+      "id": "tq-osek-turnover",
+      "topic": "business",
+      "level": "full",
+      "prompt": "לפי מה בודקים אם עסק יכול להיות עוסק פטור (עד ₪122,833 בשנה, 2026)?",
+      "options": [
+        { "id": "a", "text": "לפי המחזור: כל מה שהלקוחות שילמו", "correct": true, "feedback": "המחזור נמדד לפני ההוצאות." },
+        { "id": "b", "text": "לפי הרווח, אחרי ההוצאות", "correct": false, "feedback": "לא הרווח: המחזור, שגדול ממנו." },
+        { "id": "c", "text": "לפי מספר העובדים", "correct": false, "feedback": "התקרה היא בשקלים של מחזור, לא במספר עובדים." }
+      ],
+      "explanation": "עסק שמחזור ההכנסות שלו בשנה לא עולה על ₪122,833 (2026) רשאי להיות עוסק פטור. המחזור הוא כל מה שהלקוחות משלמים, לפני ההוצאות. בחלק מהמקצועות, כמו עריכת דין, חייבים להיות עוסק מורשה.",
+      "asOf": "2026",
+      "source": { "name": "כל זכות, עוסק פטור", "url": "https://www.kolzchut.org.il/he/%D7%A2%D7%95%D7%A1%D7%A7_%D7%A4%D7%98%D7%95%D7%A8", "kind": "official-excerpt" },
+      "family": {
+        "prompt": "דוכן לימונדה מכר השנה ב-₪1,000, והלימונים והכוסות עלו ₪400. מה היה המחזור של הדוכן?",
+        "options": [
+          { "id": "a", "text": "₪1,000, כל מה שהלקוחות שילמו", "correct": true, "feedback": "המחזור הוא כל הכסף שנכנס מהמכירות." },
+          { "id": "b", "text": "₪600, מה שנשאר", "correct": false, "feedback": "₪600 הם הרווח. המחזור גדול יותר: ₪1,000." },
+          { "id": "c", "text": "₪400, מה שהוצאתם", "correct": false, "feedback": "₪400 הן ההוצאות, לא המחזור." }
+        ],
+        "explanation": "מחזור הוא כל הכסף שהלקוחות משלמים. רווח הוא מה שנשאר אחרי ההוצאות. בישראל עסק קטן מאוד בודק את המחזור שלו כדי לדעת אם הוא צריך להוסיף מס למחיר."
+      },
+      "needs_review": "kolzchut excerpt for the ceiling (one manual check)."
+    },
+    {
+      "id": "tq-annual-leave",
+      "topic": "labour",
+      "level": "full",
+      "prompt": "כמה ימי חופשה בשנה מגיעים לפי החוק בכל אחת מ-5 שנות העבודה הראשונות?",
+      "options": [
+        { "id": "a", "text": "16 יום, כולל ימי המנוחה השבועית", "correct": true, "feedback": "בשבוע עבודה של 5 ימים זה 12 ימי עבודה." },
+        { "id": "b", "text": "אין חופשה בשנה הראשונה", "correct": false, "feedback": "גם עובד חדש צובר ימי חופשה לפי החוק." },
+        { "id": "c", "text": "28 יום מהיום הראשון", "correct": false, "feedback": "28 הוא המקסימום שבחוק, אחרי הרבה שנים." }
+      ],
+      "explanation": "לפי חוק חופשה שנתית: 16 יום בכל אחת מ-5 השנים הראשונות, 18 בשנה השישית, 21 בשביעית, ואז עוד יום בכל שנה עד 28. זה המינימום, והימים כוללים את ימי המנוחה השבועית.",
+      "asOf": "2026",
+      "source": { "name": "חוק חופשה שנתית, סעיף 3(א), באתר המוסד לביטוח לאומי", "url": "https://www.btl.gov.il/Laws1/00_0082_000000.pdf", "kind": "official-primary" },
+      "family": {
+        "prompt": "אמא התחילה עבודה חדשה. האם מגיעים לה ימי חופשה כבר בשנה הראשונה?",
+        "options": [
+          { "id": "a", "text": "כן, לפי החוק גם עובדת חדשה צוברת חופשה", "correct": true, "feedback": "בחמש השנים הראשונות: 16 יום בשנה." },
+          { "id": "b", "text": "לא, רק אחרי 10 שנים", "correct": false, "feedback": "ימי חופשה מגיעים כבר מהשנה הראשונה." },
+          { "id": "c", "text": "רק אם הבוס מסכים", "correct": false, "feedback": "זו זכות לפי חוק, לא טובה של הבוס." }
+        ],
+        "explanation": "בישראל יש חוק שקובע שלכל עובד מגיעים ימי חופשה בתשלום, גם בשנה הראשונה. ככל שעובדים יותר שנים, מגיעים יותר ימים."
+      },
+      "needs_review": "12 working days: kolzchut excerpt."
+    },
+    {
+      "id": "tq-recuperation",
+      "topic": "labour",
+      "level": "full",
+      "prompt": "ממתי מגיעים דמי הבראה לעובד במשרה מלאה?",
+      "options": [
+        { "id": "a", "text": "אחרי שנת ותק אחת", "correct": true, "feedback": "אחרי השנה הראשונה: 5 ימים." },
+        { "id": "b", "text": "מהיום הראשון בעבודה", "correct": false, "feedback": "דמי הבראה מגיעים אחרי שנת ותק." },
+        { "id": "c", "text": "רק אחרי 20 שנה", "correct": false, "feedback": "אחרי 20 שנה מספר הימים הוא הגבוה ביותר, 10. הזכות מתחילה כבר אחרי שנה." }
+      ],
+      "explanation": "לפי צו ההרחבה הכללי, דמי הבראה משולמים אחרי שנת ותק, לפי ימים: 5 אחרי השנה הראשונה, 6 בשנים 2 עד 3, 7 בשנים 4 עד 10, ועד 10 ימים אחרי 20 שנה. בחלק מהענפים ההסדר שונה.",
+      "asOf": "2026",
+      "source": { "name": "כל זכות, דמי הבראה", "url": "https://www.kolzchut.org.il/he/%D7%93%D7%9E%D7%99_%D7%94%D7%91%D7%A8%D7%90%D7%94", "kind": "official-excerpt" },
+      "needs_review": "No amount per day anywhere (the 2026 daily rate is NOT VERIFIED)."
+    },
+    {
+      "id": "tq-loan-vs-boi",
+      "topic": "interest",
+      "level": "full",
+      "prompt": "בספטמבר 2026, מה הייתה בערך הריבית הממוצעת על הלוואה חדשה בבנק שאינה לדיור?",
+      "options": [
+        { "id": "a", "text": "כ-7% בשנה (6.96%)", "correct": true, "feedback": "יותר מהריבית של בנק ישראל." },
+        { "id": "b", "text": "0%, בנקים מלווים בחינם", "correct": false, "feedback": "הלוואה עולה כסף: זו הריבית." },
+        { "id": "c", "text": "30% בשנה", "correct": false, "feedback": "הרבה פחות. לפי התקופה, בין 5.17% ל-9.39%." }
+      ],
+      "explanation": "לפי בנק ישראל, הממוצע היה 6.96% בשנה, ולפי תקופת ההלוואה בין 5.17% ל-9.39%. זה יותר מהריבית שבנק ישראל קובע. במשחק הלוואה עולה {rate} בשנה, גבוה במכוון.",
+      "asOf": "2026",
+      "source": { "name": "בנק ישראל, ריבית ממוצעת אשראי לא לדיור (חודש דיווח ספטמבר 2026)", "url": "https://kamakama.gov.il/boi_files/Pikuah/nonhousingloans.xls", "kind": "official-primary" },
+      "family": {
+        "prompt": "כשלוקחים הלוואה מהבנק, מה מחזירים?",
+        "options": [
+          { "id": "a", "text": "את מה שלקחנו, ועוד תוספת", "correct": true, "feedback": "התוספת היא המחיר של ההלוואה." },
+          { "id": "b", "text": "בדיוק את מה שלקחנו", "correct": false, "feedback": "הבנק גובה תוספת על ההלוואה." },
+          { "id": "c", "text": "כלום, זו מתנה", "correct": false, "feedback": "הלוואה צריך להחזיר, ועוד תוספת." }
+        ],
+        "explanation": "הלוואה היא כסף שמחזירים, ועוד תוספת. בבנקים בישראל התוספת על הלוואה רגילה הייתה בספטמבר 2026 בערך ₪7 בשנה על כל ₪100. במשחק היא גבוהה יותר, בכוונה."
+      },
+      "slots": { "rate": "LOAN_APR_NOMINAL with percent sign, same helper as glossary.he.json" },
+      "needs_review": "Monthly series; refresh before each release. Family explanation: '₪7 בשנה על כל ₪100' is 6.96% rounded; the game's ₪12 per ₪100 a year is higher (12%), so 'גבוהה יותר' is true. Not about credit cards (NOT VERIFIED)."
+    },
+    {
+      "id": "tq-inflation",
+      "topic": "prices",
+      "level": "full",
+      "prompt": "ב-12 החודשים האחרונים המחירים עלו בממוצע ב-1.6%. סל קניות שעלה ₪100 לפני שנה עולה היום בערך:",
+      "options": [
+        { "id": "a", "text": "₪101.6", "correct": true, "feedback": "₪100 ועוד 1.6%." },
+        { "id": "b", "text": "₪116", "correct": false, "feedback": "זו עלייה של 16%, פי עשרה." },
+        { "id": "c", "text": "₪98.4", "correct": false, "feedback": "זה אם המחירים היו יורדים. הם עלו." }
+      ],
+      "explanation": "כשהמחירים עולים, אותו סכום קונה פחות. זה נקרא אינפלציה, ולפי בנק ישראל היא הייתה 1.6% ב-12 החודשים האחרונים (אוקטובר 2026).",
+      "asOf": "2026",
+      "source": { "name": "בנק ישראל, הודעות לעיתונות (21.10.2026)", "url": "https://kamakama.gov.il/publications/pressreleases/", "kind": "official-primary" },
+      "family": {
+        "prompt": "גלידה עלתה ₪10 בשנה שעברה, והשנה היא עולה ₪11. מה קרה לכסף שלכם?",
+        "options": [
+          { "id": "a", "text": "אותו ₪10 קונה עכשיו פחות", "correct": true, "feedback": "כשהמחירים עולים, הכסף קונה פחות." },
+          { "id": "b", "text": "הכסף שלכם גדל", "correct": false, "feedback": "יש לכם אותו סכום, אבל הדברים יקרים יותר." },
+          { "id": "c", "text": "שום דבר לא השתנה", "correct": false, "feedback": "השתנה: עם ₪10 כבר לא קונים את הגלידה." }
+        ],
+        "explanation": "כשהמחירים עולים, אותו כסף קונה פחות. לכן כדאי שהכסף שחוסכים גם יגדל קצת עם הזמן."
+      },
+      "needs_review": "The family example (₪10 → ₪11) is an invented illustration, not real inflation data; it is labelled as a story in the prompt. 'כדאי שהכסף שחוסכים גם יגדל קצת' is general advice, not a product recommendation."
+    }
+  ]
+}

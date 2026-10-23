@@ -13,6 +13,7 @@
     "disclaimer": "הסבר לימודי בלבד. זה לא ייעוץ השקעות וזו לא הבטחה לרווח.",
     "v3PaybackRoi": "2026-10-22: 'תקופת החזר' (זמן) ו'החזר השקעה' (אחוז בשנה) הופרדו. נוסחי ילדים נשארים 'תוך כמה שנים הכסף חוזר'. rw-periphery ו-rw-pressure: הובהר ש-8.1% ו-6.1% הם שכירות ממחיר הדירה, ואילו שנות ההחזר מחושבות על המקדמה אחרי תשלום ההלוואה, ולכן אין להמיר ביניהם (100 ÷ 8.1 אינו 4.5). 'ההחזר על ההלוואה' הוחלף ב'התשלום על ההלוואה' ליד שנות החזר כדי לא לבלבל.",
     "round12": "2026-10-22: נוספו gameFamily/realFamily (נוסח ילדים בלי מקדמה/משכנתא/ריבית/תזרים/הכנסה פסיבית/החזר השקעה) לעובדות שמוצגות במצב משפחה. מצב מלא נשאר ללא שינוי. אותן טענות ואותם מספרים; needs_review של finance חל גם עליהן. rw-loan-rate: הוסר '12% בשנה' במשפחה (אין אחוז שנתי בחלון ההלוואה במשפחה). העובדות rw-tel-aviv, rw-subscriptions, rw-stock-dividend, rw-market-offers מוצגים במצב מלא בלבד ולכן ללא נוסח משפחה.",
+    "v4Israel": "2026-10-23 (educator): three facts with VERIFIED 2026 figures from docs/v3/real-world-verified.json: rw-osek-patur (business cards), rw-vat-new-apartment (apartment cards), rw-salary-brackets (the statement row 'מסים וביטוח לאומי'). The figures are verified, so they are in `real` (with 'נכון ל-2026') and NOT in `numbers` (numbers stays the gate for unverified figures; every `numbers.publish` is still false). Matching: cardIds stays [] (each realWorld card already has exactly one fact, and unflagged cards may not be listed), so these facts use `appliesTo` (a place key, like 'loan-window') plus a new optional `categories` array with the `category` values of cards.he.json. factForPlace(appliesTo) finds them; the UI decides when to show them. New optional fields: `asOf` ('2026'), `source` ({ name, url, kind }; NOTE scripts/prune-learn.js drops every 'source' key from the build), `israelConcept` (id in israel.he.json), status 'verified'. `concept` is an existing glossary id (the validator requires it) and `dictionary` is false, so no dictionary sheet changes. Not added: anything about VAT on a second-hand apartment (NOT VERIFIED). Every game/real text avoids the adult family words and the hidden-figure tokens (2.5%, 3.25%, 4.75%, 8.2%).",
     "round7":"2026-10-21, round-7 QA: removed the duplicate 'בעולם האמיתי' prefix from `real`; added `dictionary` flag; softened qualitative claims. No fact has a source with a URL for its qualitative claim; all qualitative `real` claims remain needs_review for finance citations (B2B / store use). Honest status: general knowledge, not verified against a primary source."
   },
   "ui": {
@@ -319,6 +320,82 @@
         { "name": "חישוב מתוך src/engine/config.js: BOARD (5 משבצות סיכום בלוח של 24), PAYDAY_MONTHS = 24, קובייה אחת בממוצע 3.5", "url": null, "sourceDate": "2026-10-21", "checkedOn": "2026-10-21", "tag": "estimate" }
       ],
       "needs_review": "כשיש צדקה (שתי קוביות) התור ארוך יותר, ולכן המספר הוא הערכה. 'יותר מ-25 שנים' לשמירה על הזהירות; החישוב הוא 20 × 17.5 חודשים = 350 חודשים = כ-29.2 שנים."
+    },
+    {
+      "id": "rw-osek-patur",
+      "cardIds": [],
+      "appliesTo": "business-tax",
+      "categories": ["food-stand", "coffee", "snack-cart", "service", "leisure", "retail", "franchise"],
+      "concept": "passive_income",
+      "israelConcept": "osek",
+      "game": "בקלפי העסקים במשחק מופיע רק כמה העסק מרוויח בחודש, למשל ₪1,600 בעגלת הפופקורן. אין במשחק מחזור, מע״מ או דיווח לרשות המסים.",
+      "real": "עסק שמחזור ההכנסות שלו בשנה לא עולה על ₪122,833 (נכון ל-2026) רשאי להיות עוסק פטור, שלא גובה מע״מ. המחזור הוא כל מה שהלקוחות משלמים, לפני ההוצאות, ולכן הוא גדול מהרווח. בחלק מהמקצועות, כמו עריכת דין, ראיית חשבון והנדסה, חייבים להיות עוסק מורשה.",
+      "gameFamily": "בקלפי העסקים במשחק רואים רק כמה העסק מרוויח בחודש, למשל ₪1,600 בעגלת הפופקורן.",
+      "realFamily": "עסק קטן מאוד, שהלקוחות שלו משלמים לו בשנה עד ₪122,833 (נכון ל-2026), יכול להיות ״עוסק פטור״ ולא להוסיף מס למחיר. עסק גדול יותר מוסיף למחיר מס שנקרא מע״מ.",
+      "dictionary": false,
+      "type": "fact",
+      "status": "verified",
+      "asOf": "2026",
+      "computed": { "biz006": { "profit": 1600 }, "profitYearly": 19200, "ceilingYearly": 122833 },
+      "source": {
+        "name": "כל זכות, עוסק פטור: מחזור שאינו עולה על ₪122,833 (נכון לשנת 2026)",
+        "url": "https://www.kolzchut.org.il/he/%D7%A2%D7%95%D7%A1%D7%A7_%D7%A4%D7%98%D7%95%D7%A8",
+        "kind": "official-excerpt"
+      },
+      "sources": [
+        { "name": "כל זכות, עוסק פטור (קטע חיפוש, הגישה הישירה נחסמה 403)", "url": "https://www.kolzchut.org.il/he/%D7%A2%D7%95%D7%A1%D7%A7_%D7%A4%D7%98%D7%95%D7%A8", "sourceDate": "2026", "checkedOn": "2026-10-23", "tag": "source" }
+      ],
+      "needs_review": "finance: התקרה אומתה דרך קטע חיפוש של כל זכות; בדיקה ידנית אחת לפני פרסום. 'עוסק פטור לא גובה מע״מ' היא משמעות הסטטוס ומופיעה באותו עמוד, אבל לא צוטטה בקטע: לאשר."
+    },
+    {
+      "id": "rw-vat-new-apartment",
+      "cardIds": [],
+      "appliesTo": "apartment-tax",
+      "categories": ["apartment"],
+      "concept": "asset",
+      "israelConcept": "vat",
+      "game": "במשחק המחיר בקלף הדירה הוא המחיר הסופי, ואין בו חישוב מע״מ.",
+      "real": "כשקונים דירה חדשה מקבלן, הקבלן הוא עוסק, ולכן על המכירה חל מע״מ של 18% (נכון ל-2026), והוא כלול במחיר הדירה.",
+      "gameFamily": "במשחק המחיר בקלף הדירה הוא המחיר הסופי.",
+      "realFamily": "במחיר של דירה חדשה מחברה שבונה דירות כלול מס שנקרא מע״מ. המס הוא 18% מהמחיר שלפניו (נכון ל-2026).",
+      "dictionary": false,
+      "type": "fact",
+      "status": "verified",
+      "asOf": "2026",
+      "source": {
+        "name": "רשות המסים, הוראת פרשנות 01/2025 (5.12.2024): שיעור המע״מ 18% מ-1.1.2025, כולל דוגמה של עוסק במקרקעין שמוכר דירת מגורים",
+        "url": "https://www.gov.il/BlobFolder/dynamiccollectorresultitem/represent-info-051224-2/he/vat_represent-info-051224-2.pdf",
+        "kind": "official-primary"
+      },
+      "sources": [
+        { "name": "רשות המסים, הוראת פרשנות 01/2025 (נקראה במלואה)", "url": "https://www.gov.il/BlobFolder/dynamiccollectorresultitem/represent-info-051224-2/he/vat_represent-info-051224-2.pdf", "sourceDate": "2024-12-05", "checkedOn": "2026-10-23", "tag": "source" }
+      ],
+      "needs_review": "החצי של דירה יד שנייה מאדם פרטי לא אומת (NOT VERIFIED) ולכן הושמט במכוון. אין לכתוב 'בדירה יד שנייה אין מע״מ' עד שיימצא נוסח רשמי."
+    },
+    {
+      "id": "rw-salary-brackets",
+      "cardIds": [],
+      "appliesTo": "statement-tax",
+      "concept": "cashflow",
+      "israelConcept": "marginal_tax",
+      "game": "במשחק לכל מקצוע יש שורה קבועה אחת, ״מסים וביטוח לאומי״. אצל המורה היא ₪900 מתוך משכורת של ₪8,800, והיא לא משתנה כשההכנסה עולה.",
+      "real": "מס הכנסה מחושב במדרגות. ב-2026, בחודש: 10% עד ₪7,010, 14% עד ₪10,060, 20% עד ₪19,000, 31% עד ₪25,100, 35% עד ₪46,690 ו-47% מעל זה (ועל הכנסה גבוהה מאוד נוסף מס יסף). כל שיעור חל רק על החלק של המשכורת שבתוך המדרגה שלו, והשיעור על השקל הבא נקרא מס שולי. על ₪8,800 המס השולי הוא 14%, ואחרי נקודות הזיכוי מס ההכנסה הוא כ-₪407 בחודש (נכון ל-2026).",
+      "gameFamily": "במשחק לכל מקצוע יש שורה קבועה של מסים. אצל המורה היא ₪900 מתוך ₪8,800.",
+      "realFamily": "בחיים מס ההכנסה עולה במדרגות: על השקלים הראשונים של המשכורת משלמים אחוז קטן, ועל השקלים שמעליהם אחוז גדול יותר (נכון ל-2026).",
+      "dictionary": false,
+      "type": "fact",
+      "status": "verified",
+      "asOf": "2026",
+      "computed": { "professionId": "teacher", "salary": 8800, "gameTaxLine": 900, "taxBeforeCredits": 951.6, "credits": 544.5, "incomeTax": 407.1, "niPlusHealth": 462.4, "marginalPct": 14 },
+      "source": {
+        "name": "רשות המסים, חוברת לוח עזר לחישוב ניכויים 2026 (מעודכנת אפריל 2026), פרק ב, טור חודשי, אחרי תיקון 288",
+        "url": "https://www.gov.il/BlobFolder/generalpage/income-tax-monthly-deductions-booklet/he/generalInformation_income-tax-monthly-deductions-booklet_monthly-deductions-booklet-2026.pdf",
+        "kind": "official-primary"
+      },
+      "sources": [
+        { "name": "רשות המסים, חוברת לוח עזר 2026 (נקראה במלואה)", "url": "https://www.gov.il/BlobFolder/generalpage/income-tax-monthly-deductions-booklet/he/generalInformation_income-tax-monthly-deductions-booklet_monthly-deductions-booklet-2026.pdf", "sourceDate": "2026-04-15", "checkedOn": "2026-10-22", "tag": "source" }
+      ],
+      "needs_review": "developer: שורת המסים של המורה (₪900) עלולה להשתנות לפי ההחלטה מ-23.10.2026 על שורות המסים. אם היא משתנה, לעדכן את game ואת computed.gameTaxLine (או להפוך לסלוט). החישוב: גבר, 2.25 נקודות, בלי ילדים."
     }
   ]
 }
