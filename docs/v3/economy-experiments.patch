@@ -1,0 +1,337 @@
+diff -ruN /home/user/hallel34/src/engine/bots.js econ-copy/src/engine/bots.js
+--- /home/user/hallel34/src/engine/bots.js	2026-10-21 05:01:53.810909843 +0000
++++ econ-copy/src/engine/bots.js	2026-10-23 00:08:41.853015671 +0000
+@@ -9,6 +9,10 @@
+   alwaysBuy: { reserveMonths: 0, maxPayback: Infinity, borrow: true, charity: true, acceptOffers: false },
+   sensible: { reserveMonths: 0.5, maxPayback: 130, borrow: true, charity: true, acceptOffers: 1.2 },
+   cautious: { reserveMonths: 2, maxPayback: 80, borrow: false, charity: true, acceptOffers: 1.15 },
++  // over-borrowing: buys everything, ignores whether the loan payment eats the deal's flow, and takes the MAXIMUM loan whenever short
++  overBorrow: { reserveMonths: 0, maxPayback: Infinity, borrow: true, charity: true, acceptOffers: false, overBorrow: true },
++  // lite: ignores the 'does the deal still pay after the loan payment' check, but borrows only what the down payment needs
++  overBorrowLite: { reserveMonths: 0, maxPayback: Infinity, borrow: true, charity: true, acceptOffers: false, overBorrow: 'lite' },
+   alwaysPass: { reserveMonths: 0, maxPayback: -1, borrow: false, charity: false, acceptOffers: false },
+ };
+ 
+@@ -59,9 +63,17 @@
+       if (need > 0) {
+         const loanNeeded = Math.ceil(need / LOAN_STEP) * LOAN_STEP;
+         // only borrow if the deal still improves cash flow after the loan payment
++        if (cfg.overBorrow === 'lite') {
++          if (loanNeeded > maxLoan(s)) return engine.pass(s);
++          n = engine.takeLoan(s, loanNeeded);
++        } else if (cfg.overBorrow) {
++          if (loanNeeded > maxLoan(s)) return engine.pass(s);
++          n = engine.takeLoan(s, maxLoan(s));
++        } else {
+         if (loanNeeded > maxLoan(s) ||
+             c.monthlyCashFlow - loanNeeded * LOAN_PAYMENT_RATE <= 0) return engine.pass(s);
+         n = engine.takeLoan(s, loanNeeded);
++        }
+       }
+     }
+     return n.cash >= c.downPayment ? engine.buy(n) : engine.pass(n);
+diff -ruN /home/user/hallel34/src/engine/config.js econ-copy/src/engine/config.js
+--- /home/user/hallel34/src/engine/config.js	2026-10-21 12:05:38.508476097 +0000
++++ econ-copy/src/engine/config.js	2026-10-23 00:08:41.855020505 +0000
+@@ -13,12 +13,24 @@
+ 
+ // 24-square loop. 5 paydays, 9 opportunities, 3 expenses, 3 market,
+ // 2 baby, 2 charity.
+-export const BOARD = [
+-  'payday', 'opportunity', 'expense', 'market', 'payday', 'opportunity',
+-  'charity', 'payday', 'opportunity', 'baby', 'payday', 'opportunity',
+-  'expense', 'opportunity', 'opportunity', 'market', 'charity', 'payday',
+-  'opportunity', 'expense', 'market', 'baby', 'opportunity', 'opportunity',
+-];
++const ENV = (typeof process !== 'undefined' && process.env) || {};
++export const PAYDAY_TILES = Number(ENV.PAYDAY_TILES ?? 5);
++// Board compositions with 24 squares. Paydays are spread evenly; the other squares keep the original order roughly.
++const COMP = {
++  5: ['payday','opportunity','expense','market','payday','opportunity','charity','payday','opportunity','baby','payday','opportunity','expense','opportunity','opportunity','market','charity','payday','opportunity','expense','market','baby','opportunity','opportunity'],
++  // 3 paydays: 11 opp, 3 exp, 3 mkt, 2 baby, 2 charity
++  3: ['payday','opportunity','expense','market','opportunity','opportunity','charity','opportunity','payday','opportunity','baby','opportunity','expense','opportunity','opportunity','market','charity','payday','opportunity','expense','market','baby','opportunity','opportunity'],
++  // 2 paydays: 12 opp, 3 exp, 3 mkt, 2 baby, 2 charity
++  2: ['payday','opportunity','expense','market','opportunity','opportunity','charity','opportunity','opportunity','baby','opportunity','opportunity','payday','opportunity','expense','market','charity','opportunity','opportunity','expense','market','baby','opportunity','opportunity'],
++};
++export const BOARD = COMP[PAYDAY_TILES];
++if (BOARD.length !== 24 || BOARD.filter((q) => q === 'payday').length !== PAYDAY_TILES) throw new Error('bad board');
++// ---- experiment knobs (finance, v3) ----
++export const PRICE_INFLATION_PER_LAP = Number(ENV.PRICE_INFLATION ?? 1.0);
++export const EXPENSE_INFLATION_PER_LAP = Number(ENV.EXPENSE_INFLATION ?? 1.0);
++export const FAMILY_MARKET = ENV.FAMILY_MARKET === '1';
++export const CHEAP_LOAN_RATE = 0.005;
++
+ 
+ export const MAX_KIDS = 3;
+ export const CHARITY_PCT = 0.1; // of total monthly income
+@@ -32,19 +44,19 @@
+ // Ceiling on the total bank-loan principal for BUYING (loans for expenses / shortfalls are exempt so nobody gets stuck),
+ // in monthly salaries. Measured: without it bots borrowed up to 120-160 salaries (100% leverage on every down payment)
+ // and the always-buy bot stopped losing. null = no cap (the cash-flow limit alone applies).
+-export const LOAN_CAP_SALARIES = 12;
++export const LOAN_CAP_SALARIES = Number(ENV.LOAN_CAP ?? 12);
+ 
+ // Starting debts (professions.he.json) follow one model: monthly payment = principal x the rate of its kind.
+ // car 2% = a 60-month installment at ~6-7%; card 3% = a typical minimum payment; student 1% = cheap, long, like a bank loan.
+ // Rounded to the nearest 10 NIS. The principal is not amortized in the game (payments stay until the debt is repaid).
+ export const BASE_DEBT_RATES = { car: 0.02, student: 0.01, card: 0.03 };
+-export const LOAN_LIMIT_SALARY_PCT = 0.2; // cash flow may drop to -20% of salary
++export const LOAN_LIMIT_SALARY_PCT = Number(ENV.LOAN_LIMIT_PCT ?? 0.2); // cash flow may drop to -20% of salary
+ export const SELL_FACTOR = 0.9; // voluntary sale of property/business (full mode)
+ export const MAX_STOCK_QTY = 10000;
+ 
+ // A payday square settles this many months of cash flow (one board lap is
+ // ~a year of life, compressed). The single biggest pacing knob.
+-export const PAYDAY_MONTHS = 24;
++export const PAYDAY_MONTHS = Number(ENV.PAYDAY_MONTHS ?? 24);
+ 
+ // Payback badge thresholds (years of cash flow to earn back the down payment).
+ export const PAYBACK_OK_YEARS = 8;
+diff -ruN /home/user/hallel34/src/engine/engine.js econ-copy/src/engine/engine.js
+--- /home/user/hallel34/src/engine/engine.js	2026-10-22 14:30:21.665216276 +0000
++++ econ-copy/src/engine/engine.js	2026-10-22 23:54:50.888167790 +0000
+@@ -4,6 +4,7 @@
+ import {
+   BOARD, SCHEMA_VERSION, MAX_KIDS, CHARITY_PCT, CHARITY_TURNS, LOAN_STEP,
+   LOAN_PAYMENT_RATE, MAX_STOCK_QTY, PAYDAY_MONTHS,
++  PRICE_INFLATION_PER_LAP, EXPENSE_INFLATION_PER_LAP, FAMILY_MARKET, CHEAP_LOAN_RATE,
+ } from './config.js';
+ import { validateData } from './validate.js';
+ import { cardView } from './card-view.js';
+@@ -78,6 +79,7 @@
+       kids: 0,
+       position: 0,
+       turn: 0,
++      lap: 0, rentCutTurns: 0, cheapLoanTurns: 0,
+       charityTurns: 0,
+       stockPrices: {},
+       decks: { opportunity: [], expense: [], market: [] },
+@@ -171,7 +173,8 @@
+   // ---------- roll & movement ----------
+   function payday(d) {
+     const monthly = monthlyCashFlow(d);
+-    const amount = monthly * PAYDAY_MONTHS;
++    let amount = monthly * PAYDAY_MONTHS;
++    if (d.rentCutTurns > 0) amount -= 0.1 * d.assets.filter((a) => a.type === 'apartment').reduce((x, a) => x + (a.rent ?? 0), 0) * PAYDAY_MONTHS;
+     // Interest on bank loans over the settled months (starting debts are installments, not counted as interest).
+     const interest = d.liabilities.filter((l) => l.kind === 'loan').reduce((a, l) => a + l.monthlyPayment, 0) * PAYDAY_MONTHS;
+     d.cash += amount;
+@@ -184,6 +187,8 @@
+     const d = begin(state);
+     if (d.phase !== 'roll') fail('cannot roll now');
+     d.turn += 1;
++    if (d.rentCutTurns > 0) d.rentCutTurns -= 1;
++    if (d.cheapLoanTurns > 0) d.cheapLoanTurns -= 1;
+     logAction(d, 'roll');
+     const diceCount = d.charityTurns > 0 ? 2 : 1;
+     if (d.charityTurns > 0) d.charityTurns -= 1;
+@@ -194,6 +199,7 @@
+     for (let i = 0; i < steps; i++) {
+       d.position = (d.position + 1) % BOARD.length;
+       path.push(d.position);
++      if (d.position === 0) d.lap += 1;
+       if (BOARD[d.position] === 'payday') payday(d); // passing or landing
+     }
+     d.lastRoll = { dice, steps };
+@@ -210,11 +216,13 @@
+       case 'opportunity': {
+         const card = clone(draw(d, 'opportunity'));
+         if (card.type === 'stock') card.price = stockPrice(d, card.symbol, card.price);
++        inflate(d, card);
+         d.pending = { kind: 'opportunity', card };
+         break;
+       }
+       case 'expense': {
+         const card = clone(draw(d, 'expense'));
++        if (EXPENSE_INFLATION_PER_LAP !== 1) card.amount = Math.round((card.amount * EXPENSE_INFLATION_PER_LAP ** d.lap) / 50) * 50;
+         d.pending = { kind: 'expense', card, amount: card.amount };
+         break;
+       }
+@@ -234,7 +242,30 @@
+     }
+   }
+ 
++  function inflate(d, card) {
++    const f = PRICE_INFLATION_PER_LAP ** d.lap;
++    if (f === 1) return;
++    const r = (x, q) => Math.round((x * f) / q) * q;
++    if (card.type === 'stock') {
++      card.price = Math.round(card.price * f * 100) / 100;
++      if (Number.isFinite(card.dividend)) card.dividend = Math.round(card.dividend * f * 100) / 100;
++      return;
++    }
++    card.price = r(card.price, 1000);
++    card.downPayment = r(card.downPayment, 1000);
++    card.mortgage = card.price - card.downPayment;
++    card.monthlyCashFlow = r(card.monthlyCashFlow, 10);
++    if (Number.isFinite(card.rent)) card.rent = r(card.rent, 10);
++    if (Number.isFinite(card.loanPayment)) card.loanPayment = r(card.loanPayment, 10);
++  }
++
+   function marketEvent(d) {
++    if (FAMILY_MARKET && d.mode === 'family') {
++      const k = randInt(d, 9); // 5 existing cash cards + 2 property-value (net worth only: no cash effect) + cheap loan + rent cut
++      if (k === 5 || k === 6) { d.events.push({ type: 'marketProperty' }); return; }
++      if (k === 7) { d.cheapLoanTurns = 3; d.events.push({ type: 'marketCheapLoan' }); return; }
++      if (k === 8) { d.rentCutTurns = 3; d.events.push({ type: 'marketRentCut' }); return; }
++    }
+     const card = clone(draw(d, 'market'));
+     d.events.push({ type: 'market', card });
+     if (card.effect === 'cash') {
+@@ -284,7 +315,7 @@
+       d.assets.push({
+         id: `asset-${d.seq}`, cardId: card.id, type: card.type, title: card.title,
+         price: card.price, downPayment: card.downPayment, mortgage: card.mortgage,
+-        monthlyCashFlow: card.monthlyCashFlow,
++        monthlyCashFlow: card.monthlyCashFlow, rent: card.rent,
+         ...(Number.isFinite(card.loanPayment) ? { loanPayment: card.loanPayment } : {}),
+       });
+       d.events.push({ type: 'bought', cardId: card.id, cost: card.downPayment, qty: 1 });
+@@ -376,9 +407,10 @@
+     });
+     if (p?.kind === 'expense') { p.funded = 'loan'; p.loanTotal = (p.loanTotal ?? 0) + amount; }
+     d.seq += 1;
++    const lrate = d.cheapLoanTurns > 0 ? CHEAP_LOAN_RATE : LOAN_PAYMENT_RATE;
+     d.liabilities.push({
+       id: `loan-${d.seq}`, kind: 'loan', label: 'loan', principal: amount,
+-      monthlyPayment: loanMonthlyPayment(amount), rate: LOAN_PAYMENT_RATE,
++      monthlyPayment: Math.round(amount * lrate * 100) / 100, rate: lrate,
+     });
+     d.cash += amount;
+     d.stats.loansTaken += 1;
+diff -ruN /home/user/hallel34/src/engine/selectors.js econ-copy/src/engine/selectors.js
+--- /home/user/hallel34/src/engine/selectors.js	2026-10-23 00:14:58.482762075 +0000
++++ econ-copy/src/engine/selectors.js	2026-10-22 23:48:13.595436256 +0000
+@@ -129,27 +129,15 @@
+   // The cap limits borrowing to invest. A loan to cover an expense or a shortfall is never capped, so the player cannot get stuck.
+   const forced = s.pending?.kind === 'expense' || s.pending?.kind === 'shortfall';
+   const capOn = LOAN_CAP_SALARIES != null && !forced;
+-  // The cap is shown and enforced as a multiple of LOAN_STEP (12 salaries of 8,800 = 105,600 is the number the rule is built
+-  // from, but the largest loan the player can actually take in total is 105,000): one number for the screen and for the engine.
+-  const capAmount = capOn ? Math.floor((s.profession.salary * LOAN_CAP_SALARIES) / LOAN_STEP) * LOAN_STEP : null;
++  const capAmount = capOn ? s.profession.salary * LOAN_CAP_SALARIES : null;
+   const byCap = capOn ? Math.floor((capAmount - bankLoanPrincipal(s)) / LOAN_STEP) * LOAN_STEP : Infinity;
+-  const max = Math.max(0, Math.min(byFlow, byCap));
+-  return { byFlow, byCap, capAmount, capSalaries: capOn ? LOAN_CAP_SALARIES : null, capBinds: capOn && byCap < byFlow, max };
++  return { byFlow, byCap, capAmount, capSalaries: capOn ? LOAN_CAP_SALARIES : null, capBinds: capOn && byCap < byFlow };
+ }
+ 
+ /** Largest new loan (multiple of LOAN_STEP) allowed; 0 when limit reached. */
+ export function maxLoan(s) {
+-  return loanLimits(s).max;
+-}
+-
+-/**
+- * THE loan-limit selector for the dialog: what the screen shows is exactly what takeLoan() enforces.
+- * `limit` = largest loan that can be taken now (= maxLoan), `used` = bank-loan principal already owed, `total` = the cap on all
+- * borrowing to invest (null when it does not apply), `capBinds` = the cap (not the cash-flow floor) is what stops a bigger loan.
+- */
+-export function loanCap(s) {
+-  const l = loanLimits(s);
+-  return { limit: l.max, used: bankLoanPrincipal(s), total: l.capAmount, salaries: l.capSalaries, capBinds: l.capBinds };
++  const { byFlow, byCap } = loanLimits(s);
++  return Math.max(0, Math.min(byFlow, byCap));
+ }
+ 
+ /**
+diff -ruN /home/user/hallel34/src/engine/validate.js econ-copy/src/engine/validate.js
+--- /home/user/hallel34/src/engine/validate.js	2026-10-23 00:13:18.938050461 +0000
++++ econ-copy/src/engine/validate.js	2026-10-22 23:48:13.595462819 +0000
+@@ -1,6 +1,5 @@
+ // Schema validation for professions and cards. Fails loudly.
+ import { BASE_DEBT_RATES } from './config.js';
+-import { CATEGORY_IDS, CATEGORY_TYPES } from '../data/categories.js';
+ const MODES = ['family', 'full'];
+ const DECKS = ['opportunity', 'expense', 'market'];
+ const TYPES = ['apartment', 'business', 'stock'];
+@@ -60,15 +59,7 @@
+     if (c.realWorld !== undefined && typeof c.realWorld !== 'boolean') errors.push(`${w}: realWorld must be true/false`);
+     if (c.deck === 'opportunity') {
+       if (!TYPES.includes(c.type)) errors.push(`${w}: type`);
+-      // presentation-only deal category (icon + colour); required on every opportunity card, and consistent with the type
+-      if (!CATEGORY_IDS.includes(c.category)) errors.push(`${w}: category must be one of ${CATEGORY_IDS.join(', ')}`);
+-      else if (TYPES.includes(c.type)) {
+-        const only = CATEGORY_TYPES[c.category]; // 'apartment' / 'stock' belong to exactly one type
+-        if (only && !only.includes(c.type)) errors.push(`${w}: category ${c.category} does not fit type ${c.type}`);
+-        const owner = Object.keys(CATEGORY_TYPES).find((k) => CATEGORY_TYPES[k].includes(c.type));
+-        if (owner && c.category !== owner) errors.push(`${w}: a ${c.type} needs the ${owner} category`);
+-      }
+-      if (!TYPES.includes(c.type)) { /* type error reported above */ } else if (c.type === 'stock') {
++      else if (c.type === 'stock') {
+         if (!isStr(c.symbol) || !isNum(c.price) || c.price <= 0 || !isNum(c.dividend)) {
+           errors.push(`${w}: stock needs symbol, price, dividend`);
+         }
+diff -ruN /home/user/hallel34/scripts/dailylap.js econ-copy/scripts/dailylap.js
+--- /home/user/hallel34/scripts/dailylap.js	1970-01-01 00:00:00.000000000 +0000
++++ econ-copy/scripts/dailylap.js	2026-10-23 00:09:15.929242398 +0000
+@@ -0,0 +1,26 @@
++import { readFileSync } from 'node:fs';
++import { createEngine } from '../src/engine/engine.js';
++import { step } from '../src/engine/bots.js';
++import { dailySeed, dailyProfessionId } from '../src/engine/daily.js';
++const read = (p) => JSON.parse(readFileSync(new URL(p, import.meta.url), 'utf8'));
++const data = { professions: read('../src/data/professions.he.json'), cards: read('../src/data/cards.he.json') };
++const engine = createEngine(data);
++let diffTurns = 0, total = 0, games = 0, lapMismatchGames = 0, maxDelta = 0;
++for (let day = 1; day <= 60; day++) {
++  const date = `2026-11-${String((day % 28) + 1).padStart(2, '0')}-${day}`.slice(0, 10);
++  const key = `2027-${String(1 + (day % 12)).padStart(2, '0')}-${String(1 + (day % 28)).padStart(2, '0')}`;
++  const seed = dailySeed(key);
++  const laps = {};
++  for (const bot of ['sensible', 'alwaysPass']) {
++    let s = engine.newGame({ mode: 'family', professionId: dailyProfessionId(seed, data.professions), seed, daily: { date: key } });
++    const arr = [];
++    let g = 0;
++    while (s.status === 'playing' && s.turn < 30 && g++ < 3000) { s = step(engine, s, bot); if (s.phase === 'roll') arr[s.turn] = s.lap; }
++    laps[bot] = arr;
++  }
++  games++;
++  let mism = false;
++  for (let t = 1; t < 30; t++) { if (laps.sensible[t] == null || laps.alwaysPass[t] == null) continue; total++; if (laps.sensible[t] !== laps.alwaysPass[t]) { diffTurns++; mism = true; maxDelta = Math.max(maxDelta, Math.abs(laps.sensible[t] - laps.alwaysPass[t])); } }
++  if (mism) lapMismatchGames++;
++}
++console.log({ games, total, diffTurns, lapMismatchGames, maxDelta });
+diff -ruN /home/user/hallel34/scripts/exp.js econ-copy/scripts/exp.js
+--- /home/user/hallel34/scripts/exp.js	1970-01-01 00:00:00.000000000 +0000
++++ econ-copy/scripts/exp.js	2026-10-23 00:08:41.878088205 +0000
+@@ -0,0 +1,40 @@
++// finance experiment runner: node scripts/exp.js --games=300 --out=file.json  (knobs via env)
++import { readFileSync, writeFileSync } from 'node:fs';
++import { createEngine } from '../src/engine/engine.js';
++import { step, BOTS } from '../src/engine/bots.js';
++import { totalExpenses, monthlyCashFlow, passiveIncome } from '../src/engine/selectors.js';
++const read = (p) => JSON.parse(readFileSync(new URL(p, import.meta.url), 'utf8'));
++const data = { professions: read('../src/data/professions.he.json'), cards: read('../src/data/cards.he.json') };
++const engine = createEngine(data);
++const args = Object.fromEntries(process.argv.slice(2).map((a) => { const [k, v] = a.replace(/^--/, '').split('='); return [k, v ?? true]; }));
++const GAMES = Number(args.games ?? 300), MAX = Number(args.max ?? 200);
++const bots = (args.bots ?? 'sensible,cautious,alwaysBuy,overBorrow,overBorrowLite,alwaysPass').split(',');
++const q = (a, p) => { const s = [...a].sort((x, y) => x - y); return s.length ? s[Math.min(s.length - 1, Math.floor(p * s.length))] : null; };
++const profs = data.professions.map((p) => p.id);
++function play(mode, bot, pid, seed) {
++  let s = engine.newGame({ mode, professionId: pid, seed });
++  let cash10 = null, guard = 0;
++  while (s.status === 'playing' && s.turn < MAX && guard++ < 5000) {
++    s = step(engine, s, bot);
++    if (cash10 === null && s.turn >= 10 && s.phase === 'roll') cash10 = s.cash;
++  }
++  return { s, cash10 };
++}
++const out = { knobs: { PAYDAY_MONTHS: process.env.PAYDAY_MONTHS ?? 24, PAYDAY_TILES: process.env.PAYDAY_TILES ?? 5, PRICE_INFLATION: process.env.PRICE_INFLATION ?? 1, EXPENSE_INFLATION: process.env.EXPENSE_INFLATION ?? 1, FAMILY_MARKET: process.env.FAMILY_MARKET ?? 0, LOAN_CAP: process.env.LOAN_CAP ?? 12, LOAN_LIMIT_PCT: process.env.LOAN_LIMIT_PCT ?? 0.2 }, rows: [], prof: [] };
++for (const mode of ['family', 'full']) {
++  for (const bot of bots) {
++    const r = { wins: [], lost: 0, timeout: 0, loans: [], cash10: [], n: 0 };
++    for (let g = 0; g < GAMES; g++) {
++      const { s, cash10 } = play(mode, bot, profs[g % profs.length], 1000 + g * 7919);
++      r.n++; r.loans.push(s.stats.loansTaken); if (cash10 !== null) r.cash10.push(cash10);
++      if (s.status === 'won') r.wins.push(s.turn); else if (s.status === 'lost') r.lost++; else r.timeout++;
++    }
++    out.rows.push({ mode, bot, n: r.n, win: r.wins.length / r.n, lost: r.lost / r.n, timeout: r.timeout / r.n, median: q(r.wins, 0.5), p90: q(r.wins, 0.9), over40: r.wins.filter((t) => t > 40).length / r.n, p10: q(r.wins, 0.1), loans: r.loans.reduce((a, b) => a + b, 0) / r.n, cash10: q(r.cash10, 0.5) });
++  }
++  if (args.perProfession) for (const pid of profs) {
++    const r = { wins: [], lost: 0, n: 0 };
++    for (let g = 0; g < GAMES; g++) { const { s } = play(mode, 'sensible', pid, 1000 + g * 7919); r.n++; if (s.status === 'won') r.wins.push(s.turn); else if (s.status === 'lost') r.lost++; }
++    out.prof.push({ mode, pid, win: r.wins.length / r.n, lost: r.lost / r.n, median: q(r.wins, 0.5), p90: q(r.wins, 0.9) });
++  }
++}
++if (args.out) writeFileSync(args.out, JSON.stringify(out)); else console.log(JSON.stringify(out, null, 1));

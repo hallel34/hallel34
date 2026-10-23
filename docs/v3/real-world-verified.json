@@ -197,25 +197,33 @@
  },
  {
   "id": "ni.employee.reducedRate",
-  "value": 0.0427,
+  "value": {
+   "total": 0.0427,
+   "ni": 0.0104,
+   "health": 0.0323
+  },
   "unit": "fraction (NI + health combined)",
   "source": "https://www.btl.gov.il/Insurance/HozrimBituah/Hozrim/%D7%A9%D7%99%D7%A0%D7%95%D7%99%20%D7%91%D7%AA%D7%A9%D7%9C%D7%95%D7%9D%20%D7%93%D7%9E%D7%99%20%D7%91%D7%99%D7%98%D7%95%D7%97%20%D7%9C%D7%90%D7%95%D7%9E%D7%99%20%D7%95%D7%93%D7%9E%D7%99%20%D7%91%D7%99%D7%98%D7%95%D7%97%20%D7%91%D7%A8%D7%99%D7%90%D7%95%D7%AA%20%D7%9C%D7%A9%D7%A0%D7%AA%202026.pdf",
   "verifiedAt": "2026-10-22",
   "status": "VERIFIED",
   "sourceKind": "official-primary",
   "sourceAsOf": "2026-04-01",
-  "note": "BTL employers circular 1522 of 1.4.2026, column 1 (resident 18+ below retirement age): reduced employee 4.27% (employer 4.51%, total 8.78%). The split NI 1.04% + health 3.23% comes from a non-official calculator, only the 4.27% total is from the circular."
+  "note": "BTL circular 1522, table \"שיעורי דמי הביטוח על פי לוח י'\" (p.18): reduced employee = NI 1.04% + health 3.23% = 4.27% (employer 4.51%). Column 1 table (p.5) confirms totals."
  },
  {
   "id": "ni.employee.fullRate",
-  "value": 0.1217,
+  "value": {
+   "total": 0.1217,
+   "ni": 0.07,
+   "health": 0.0517
+  },
   "unit": "fraction (NI + health combined)",
   "source": "https://www.btl.gov.il/Insurance/HozrimBituah/Hozrim/%D7%A9%D7%99%D7%A0%D7%95%D7%99%20%D7%91%D7%AA%D7%A9%D7%9C%D7%95%D7%9D%20%D7%93%D7%9E%D7%99%20%D7%91%D7%99%D7%98%D7%95%D7%97%20%D7%9C%D7%90%D7%95%D7%9E%D7%99%20%D7%95%D7%93%D7%9E%D7%99%20%D7%91%D7%99%D7%98%D7%95%D7%97%20%D7%91%D7%A8%D7%99%D7%90%D7%95%D7%AA%20%D7%9C%D7%A9%D7%A0%D7%AA%202026.pdf",
   "verifiedAt": "2026-10-22",
   "status": "VERIFIED",
   "sourceKind": "official-primary",
   "sourceAsOf": "2026-04-01",
-  "note": "Same circular: full employee 12.17% (employer 7.60%, total 19.77%)."
+  "note": "Same table: full employee = NI 7.00% + health 5.17% = 12.17% (employer 7.60%)."
  },
  {
   "id": "ni.reducedBand.monthly",
@@ -323,12 +331,12 @@
   "id": "vat.rate",
   "value": 0.18,
   "unit": "fraction",
-  "source": "https://www.gov.il/he/pages/dec1270-2024",
-  "verifiedAt": "2026-10-22",
+  "source": "https://www.gov.il/BlobFolder/dynamiccollectorresultitem/represent-info-051224-2/he/vat_represent-info-051224-2.pdf",
+  "verifiedAt": "2026-10-23",
   "status": "VERIFIED",
-  "sourceKind": "official-excerpt",
-  "sourceAsOf": "2025-01-01",
-  "note": "Government decision 1270: VAT up from 17% to 18% from 1 Jan 2025 (gov.il page; direct fetch 403, confirmed via excerpt of the page and a Tax Authority interpretation directive dated 5.12.2024)."
+  "sourceKind": "official-primary",
+  "sourceAsOf": "2024-12-05",
+  "note": "Tax Authority interpretation directive 01/2025 (5.12.2024): \"החל מיום א' טבת תשפ\"ה, 01 בינואר 2025 ישתנה שיעור המע\"מ ... מ-17% ל-18%\" (order published 20.2.2024). Downloaded and read in full."
  },
  {
   "id": "boi.policyRate",
@@ -445,5 +453,216 @@
   "sourceKind": "derived",
   "sourceAsOf": "2026",
   "note": "Computed from verified 2026 figures; man, 2.25 points, no children, no other credits, no tax-coordination, no study-fund. Pension credit of 35% (section 45א) is an estimate: the booklet lists a ceiling of 189/month under 45א but the exact mapping was not confirmed."
+ },
+ {
+  "id": "tax.monthly.b1",
+  "value": {
+   "rate": 0.1,
+   "upToMonthly": 7010
+  },
+  "unit": "ILS/month",
+  "source": "https://www.gov.il/BlobFolder/generalpage/income-tax-monthly-deductions-booklet/he/generalInformation_income-tax-monthly-deductions-booklet_monthly-deductions-booklet-2026.pdf",
+  "verifiedAt": "2026-10-23",
+  "status": "VERIFIED",
+  "sourceKind": "official-primary",
+  "sourceAsOf": "2026-04-15",
+  "note": "Booklet ch. B monthly column (2026, after the bracket-widening law). The 47% bracket has no upper end in the table; above 60,130/month (721,560/year) the 3% surtax (section 121ב) is added = 50%."
+ },
+ {
+  "id": "tax.monthly.b2",
+  "value": {
+   "rate": 0.14,
+   "upToMonthly": 10060
+  },
+  "unit": "ILS/month",
+  "source": "https://www.gov.il/BlobFolder/generalpage/income-tax-monthly-deductions-booklet/he/generalInformation_income-tax-monthly-deductions-booklet_monthly-deductions-booklet-2026.pdf",
+  "verifiedAt": "2026-10-23",
+  "status": "VERIFIED",
+  "sourceKind": "official-primary",
+  "sourceAsOf": "2026-04-15",
+  "note": "Booklet ch. B monthly column (2026, after the bracket-widening law). The 47% bracket has no upper end in the table; above 60,130/month (721,560/year) the 3% surtax (section 121ב) is added = 50%."
+ },
+ {
+  "id": "tax.monthly.b3",
+  "value": {
+   "rate": 0.2,
+   "upToMonthly": 19000
+  },
+  "unit": "ILS/month",
+  "source": "https://www.gov.il/BlobFolder/generalpage/income-tax-monthly-deductions-booklet/he/generalInformation_income-tax-monthly-deductions-booklet_monthly-deductions-booklet-2026.pdf",
+  "verifiedAt": "2026-10-23",
+  "status": "VERIFIED",
+  "sourceKind": "official-primary",
+  "sourceAsOf": "2026-04-15",
+  "note": "Booklet ch. B monthly column (2026, after the bracket-widening law). The 47% bracket has no upper end in the table; above 60,130/month (721,560/year) the 3% surtax (section 121ב) is added = 50%."
+ },
+ {
+  "id": "tax.monthly.b4",
+  "value": {
+   "rate": 0.31,
+   "upToMonthly": 25100
+  },
+  "unit": "ILS/month",
+  "source": "https://www.gov.il/BlobFolder/generalpage/income-tax-monthly-deductions-booklet/he/generalInformation_income-tax-monthly-deductions-booklet_monthly-deductions-booklet-2026.pdf",
+  "verifiedAt": "2026-10-23",
+  "status": "VERIFIED",
+  "sourceKind": "official-primary",
+  "sourceAsOf": "2026-04-15",
+  "note": "Booklet ch. B monthly column (2026, after the bracket-widening law). The 47% bracket has no upper end in the table; above 60,130/month (721,560/year) the 3% surtax (section 121ב) is added = 50%."
+ },
+ {
+  "id": "tax.monthly.b5",
+  "value": {
+   "rate": 0.35,
+   "upToMonthly": 46690
+  },
+  "unit": "ILS/month",
+  "source": "https://www.gov.il/BlobFolder/generalpage/income-tax-monthly-deductions-booklet/he/generalInformation_income-tax-monthly-deductions-booklet_monthly-deductions-booklet-2026.pdf",
+  "verifiedAt": "2026-10-23",
+  "status": "VERIFIED",
+  "sourceKind": "official-primary",
+  "sourceAsOf": "2026-04-15",
+  "note": "Booklet ch. B monthly column (2026, after the bracket-widening law). The 47% bracket has no upper end in the table; above 60,130/month (721,560/year) the 3% surtax (section 121ב) is added = 50%."
+ },
+ {
+  "id": "tax.monthly.b6",
+  "value": {
+   "rate": 0.47,
+   "upToMonthly": 60130
+  },
+  "unit": "ILS/month",
+  "source": "https://www.gov.il/BlobFolder/generalpage/income-tax-monthly-deductions-booklet/he/generalInformation_income-tax-monthly-deductions-booklet_monthly-deductions-booklet-2026.pdf",
+  "verifiedAt": "2026-10-23",
+  "status": "VERIFIED",
+  "sourceKind": "official-primary",
+  "sourceAsOf": "2026-04-15",
+  "note": "Booklet ch. B monthly column (2026, after the bracket-widening law). The 47% bracket has no upper end in the table; above 60,130/month (721,560/year) the 3% surtax (section 121ב) is added = 50%."
+ },
+ {
+  "id": "tax.monthly.surtaxAbove",
+  "value": {
+   "rate": 0.5,
+   "aboveMonthly": 60130,
+   "aboveAnnual": 721560
+  },
+  "unit": "ILS/month",
+  "source": "https://www.gov.il/BlobFolder/generalpage/income-tax-monthly-deductions-booklet/he/generalInformation_income-tax-monthly-deductions-booklet_monthly-deductions-booklet-2026.pdf",
+  "verifiedAt": "2026-10-23",
+  "status": "VERIFIED",
+  "sourceKind": "official-primary",
+  "sourceAsOf": "2026-04-15",
+  "note": "47% + 3% surtax."
+ },
+ {
+  "id": "vat.osekPatur.ceiling",
+  "value": 122833,
+  "unit": "ILS/year turnover",
+  "source": "https://www.kolzchut.org.il/he/%D7%A2%D7%95%D7%A1%D7%A7_%D7%A4%D7%98%D7%95%D7%A8",
+  "verifiedAt": "2026-10-23",
+  "status": "VERIFIED",
+  "sourceKind": "official-excerpt",
+  "sourceAsOf": "2026",
+  "note": "Kolzchut: \"מי שמחזור ההכנסות שלו מהעסק אינו עולה על 122,833 ₪ (נכון לשנת 2026), רשאי להיות עוסק פטור\" (search excerpt; direct fetch 403; no gov.il page found). Some professions (lawyers, accountants, engineers...) must be עוסק מורשה regardless. NOTE: the number 122,833 that appears in the income-tax booklet is a renewable-energy ceiling, a different item."
+ },
+ {
+  "id": "pension.study.fund",
+  "value": {
+   "employerMaxExempt": 0.075,
+   "employeeMax": 0.025,
+   "salaryCeilingMonthly": 15712,
+   "salaryCeilingAnnual": 188544
+  },
+  "unit": "fraction / ILS",
+  "source": "https://www.gov.il/BlobFolder/generalpage/income-tax-monthly-deductions-booklet/he/generalInformation_income-tax-monthly-deductions-booklet_monthly-deductions-booklet-2026.pdf ; https://www.kolzchut.org.il/he/%D7%A7%D7%A8%D7%9F_%D7%94%D7%A9%D7%AA%D7%9C%D7%9E%D7%95%D7%AA",
+  "verifiedAt": "2026-10-23",
+  "status": "VERIFIED",
+  "sourceKind": "official-primary+excerpt",
+  "sourceAsOf": "2026",
+  "note": "Ceiling 188,544/year (\"משכורת קובעת להפרשות לקרן השתלמות\", booklet ch. C) = 15,712/month: VERIFIED primary. Rates 7.5% employer / 2.5% employee are the tax-exempt maximums per kolzchut (excerpt); a study fund is NOT mandatory by law for most private employees, it comes from agreements/contracts. Do not call 7.5/2.5 \"mandatory\"."
+ },
+ {
+  "id": "labour.severance",
+  "value": {
+   "perYear": "one last monthly salary",
+   "depositEquivalent": 0.0833,
+   "taxExemptCeilingPerYear": 13750
+  },
+  "unit": "rule",
+  "source": "https://www.kolzchut.org.il/he/%D7%A4%D7%99%D7%A6%D7%95%D7%99%D7%99_%D7%A4%D7%99%D7%98%D7%95%D7%A8%D7%99%D7%9D_%D7%9C%D7%A2%D7%95%D7%91%D7%93_%D7%A9%D7%A4%D7%95%D7%98%D7%A8 ; https://www.gov.il/BlobFolder/generalpage/income-tax-monthly-deductions-booklet/he/generalInformation_income-tax-monthly-deductions-booklet_monthly-deductions-booklet-2026.pdf",
+  "verifiedAt": "2026-10-23",
+  "status": "VERIFIED",
+  "sourceKind": "official-excerpt",
+  "sourceAsOf": "2026",
+  "note": "Kolzchut (excerpt): employee dismissed after 1 year of continuous work is entitled to one monthly salary per year, by the last salary. Tax-exempt ceiling 13,750 per year of work: booklet ch. C (\"תקרת הפטור למענק הון עקב פרישה 13,750 לכל שנת עבודה\")."
+ },
+ {
+  "id": "labour.recuperation.days",
+  "value": {
+   "year1": 5,
+   "year2-3": 6,
+   "year4-10": 7,
+   "year11-15": 8,
+   "year16-19": 9,
+   "year20+": 10
+  },
+  "unit": "days per year (full-time, general extension order)",
+  "source": "https://www.kolzchut.org.il/he/%D7%93%D7%9E%D7%99_%D7%94%D7%91%D7%A8%D7%90%D7%94",
+  "verifiedAt": "2026-10-23",
+  "status": "VERIFIED",
+  "sourceKind": "official-excerpt",
+  "sourceAsOf": "2026",
+  "note": "Kolzchut (excerpt). Paid after 1 year of seniority (gov.il guide confirms the 1-year condition). Some sectors differ."
+ },
+ {
+  "id": "labour.recuperation.dayRate",
+  "value": null,
+  "unit": "ILS/day",
+  "source": "https://www.kolzchut.org.il/he/%D7%93%D7%9E%D7%99_%D7%94%D7%91%D7%A8%D7%90%D7%94",
+  "verifiedAt": "2026-10-23",
+  "status": "NOT_VERIFIED",
+  "sourceKind": "secondary",
+  "sourceAsOf": null,
+  "note": "Conflicting: kolzchut excerpts say 451.5/day private sector \"נכון ל-2026\"; a Knesset Labour Committee draft (fs.knesset.gov.il/25/Committees/25_cs_sl_5702941.pdf) proposes freezing 2026 at the 2025 amount and shows 418 with a question mark. No Ministry of Labour publication found. Do not ship a daily rate."
+ },
+ {
+  "id": "labour.annualLeave",
+  "value": {
+   "years1-5": 16,
+   "year6": 18,
+   "year7": 21,
+   "year8+": "+1 per year up to 28"
+  },
+  "unit": "days per year (calendar days incl. weekly rest)",
+  "source": "https://www.btl.gov.il/Laws1/00_0082_000000.pdf",
+  "verifiedAt": "2026-10-23",
+  "status": "VERIFIED",
+  "sourceKind": "official-primary",
+  "sourceAsOf": "2016 amendment, text read 2026-10-23",
+  "note": "Annual Leave Law 1951 section 3(א) as amended 2016: \"בעד כל אחת מ-5 השנים הראשונות - 16 יום; השנה הששית - 18; השביעית - 21; השמינית ואילך - יום נוסף ... עד 28\". These include weekly rest days; on a 5-day week kolzchut converts 16 → 12 working days (excerpt)."
+ },
+ {
+  "id": "vat.newApartment",
+  "value": {
+   "fromContractor": "VAT 18% applies (seller is a dealer/עוסק; price incl. VAT)",
+   "secondHandFromPrivate": null
+  },
+  "unit": "rule",
+  "source": "https://www.gov.il/BlobFolder/dynamiccollectorresultitem/represent-info-051224-2/he/vat_represent-info-051224-2.pdf",
+  "verifiedAt": "2026-10-23",
+  "status": "VERIFIED",
+  "sourceKind": "official-primary",
+  "sourceAsOf": null,
+  "note": "Directive 01/2025 example: \"עוסק במקרקעין ערך הסכם למכירת דירת מגורים\" with VAT charged at the possession date; kolzchut (purchase tax) says contractor price includes VAT. The \"no VAT on a second-hand apartment from a private person\" half is NOT VERIFIED in an official source (it follows from VAT applying to dealers, but not read). Ship only the contractor half, or mark the other half unverified."
+ },
+ {
+  "id": "vat.secondHandApartment.noVat",
+  "value": null,
+  "unit": "rule",
+  "source": null,
+  "verifiedAt": "2026-10-23",
+  "status": "NOT_VERIFIED",
+  "sourceKind": "secondary",
+  "sourceAsOf": null,
+  "note": "No official text found in this round stating a private seller of a second-hand apartment charges no VAT."
  }
 ]
