@@ -13,7 +13,8 @@ function root() { return document.getElementById('modal-root'); }
  * Opens a layer. kind: 'modal' (centered) | 'sheet' (bottom sheet).
  * Returns { el, close(result), closed: Promise }.
  */
-export function openLayer(content, { kind = 'modal', label = '', dismissable = true, cardFlip = false, cls = '' } = {}) {
+export function openLayer(content, { kind = 'modal', label = '', dismissable = true, cls = '' } = {}) {
+  const isCard = cls.split(' ').includes('layer-card');
   const prevFocus = document.activeElement;
   let resolve;
   const closed = new Promise((r) => { resolve = r; });
@@ -54,8 +55,11 @@ export function openLayer(content, { kind = 'modal', label = '', dismissable = t
       const out = kind === 'sheet'
         ? [{ transform: 'translateY(0)' }, { transform: 'translateY(100%)' }]
         : [{ transform: 'translateY(0) scale(1)', opacity: 1 }, { transform: motionOK() ? 'translateY(40px) scale(.96)' : 'none', opacity: 0 }];
-      animate(scrim, [{ opacity: 1 }, { opacity: 0 }], { duration: d });
-      await animate(panel, motionOK() || kind !== 'sheet' ? out : [{ opacity: 1 }, { opacity: 0 }], { duration: d, easing: 'cubic-bezier(.7,0,.84,0)' }).finished.catch(() => {});
+      // a card leaves with a 120ms fade only (no slide), like it arrived
+      const exit = isCard || !motionOK() ? [{ opacity: 1 }, { opacity: 0 }] : out;
+      const exitMs = isCard ? 120 : d;
+      animate(scrim, [{ opacity: 1 }, { opacity: 0 }], { duration: exitMs });
+      await animate(panel, exit, { duration: exitMs, easing: 'cubic-bezier(.7,0,.84,0)' }).finished.catch(() => {});
       el.remove();
       // Restore focus; if the opener was re-rendered away, fall back to the layer underneath.
       const back = prevFocus?.isConnected ? prevFocus : stack[stack.length - 1]?.panel;
@@ -77,21 +81,19 @@ export function openLayer(content, { kind = 'modal', label = '', dismissable = t
     }
   });
 
-  // Entrance
+  // Entrance. A card: 180ms fade + 12px rise (no flip, no pop); reduced motion: a 120ms fade only.
   const dur = cssMs('--dur-slow', 400);
-  animate(scrim, [{ opacity: 0 }, { opacity: 1 }], { duration: cssMs('--dur-base', 250) });
+  animate(scrim, [{ opacity: 0 }, { opacity: 1 }], { duration: isCard ? 180 : cssMs('--dur-base', 250) });
   if (kind === 'sheet') {
     animate(panel, motionOK() ? [{ transform: 'translateY(100%)' }, { transform: 'translateY(0)' }] : [{ opacity: 0 }, { opacity: 1 }], { duration: cssMs('--dur-base', 250), easing: 'cubic-bezier(.16,1,.3,1)' });
-  } else if (cardFlip && motionOK()) {
-    animate(panel, [
-      { transform: 'perspective(900px) rotateY(90deg) scale(.9)', opacity: 0 },
-      { transform: 'perspective(900px) rotateY(0deg) scale(1)', opacity: 1 },
-    ], { duration: dur, easing: 'cubic-bezier(.16,1,.3,1)' });
+  } else if (isCard) {
+    animate(panel, motionOK() ? [{ opacity: 0, transform: 'translateY(12px)' }, { opacity: 1, transform: 'translateY(0)' }] : [{ opacity: 0 }, { opacity: 1 }], { duration: motionOK() ? 180 : 120, easing: 'cubic-bezier(.16,1,.3,1)' });
   } else {
     animate(panel, motionOK() ? [{ transform: 'translateY(30px) scale(.94)', opacity: 0 }, { transform: 'translateY(0) scale(1)', opacity: 1 }] : [{ opacity: 0 }, { opacity: 1 }], { duration: dur, easing: 'cubic-bezier(.34,1.3,.64,1)' });
   }
   queueMicrotask(() => {
-    const target = panel.querySelector('[data-autofocus]') || panel.querySelector('button') || panel;
+    // a disabled (arming) button cannot take focus: the panel does, and arm() hands the focus to the button when it is ready
+    const target = panel.querySelector('[data-autofocus]:not([disabled])') || panel.querySelector('button:not([disabled])') || panel;
     target.focus?.({ preventScroll: true });
   });
   return api;

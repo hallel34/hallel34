@@ -40,12 +40,32 @@ export function categoryOf(cardOrAsset, cards) {
 export function categoryIcon(cardOrAsset, { size = 24, on = 'dark', cards } = {}) {
   const c = categoryOf(cardOrAsset, cards);
   const glyph = c.svg ? html(c.svg) : icon('opportunity', { size, width: 2 });
-  if (c.svg) { glyph.setAttribute('width', String(size)); glyph.setAttribute('height', String(size)); glyph.setAttribute('aria-hidden', 'true'); glyph.setAttribute('focusable', 'false'); }
+  glyph.setAttribute('aria-hidden', 'true'); glyph.setAttribute('focusable', 'false');
   const span = document.createElement('span');
-  span.className = `cat-icon cat-on-${on}`;
+  span.className = `cat-glyph cat-on-${on}`;
   span.dataset.category = c.id;
   span.style.setProperty('--cat', `var(${on === 'cream' ? c.inkVar : c.colorVar})`);
   span.setAttribute('aria-hidden', 'true');
+  glyph.removeAttribute('width'); glyph.removeAttribute('height');
+  glyph.style.inlineSize = `${size}px`; glyph.style.blockSize = `${size}px`;
   span.append(glyph);
   return span;
+}
+
+/**
+ * The round chip: 40px on the cream deal card (`on: 'cream'`, the -ink colour on a 12% tint), 32px in lists on navy surfaces
+ * (`on: 'dark'`, 16% tint). The glyph is 24px / 20px, stroke 2 at any size. aria-hidden: the label next to it carries the meaning.
+ */
+export function categoryChip(cardOrAsset, { size = 40, on = 'cream', cards } = {}) {
+  const c = categoryOf(cardOrAsset, cards);
+  const glyph = c.svg ? html(c.svg) : icon('opportunity', { size: 24, width: 2 });
+  glyph.removeAttribute('width'); glyph.removeAttribute('height');
+  glyph.setAttribute('aria-hidden', 'true'); glyph.setAttribute('focusable', 'false');
+  const chip = document.createElement('span');
+  chip.className = `cat-chip cat-chip--${size} cat-on-${on}`;
+  chip.dataset.category = c.id;
+  chip.style.setProperty('--cat', `var(${on === 'cream' ? c.inkVar : c.colorVar})`);
+  chip.setAttribute('aria-hidden', 'true');
+  chip.append(glyph);
+  return chip;
 }

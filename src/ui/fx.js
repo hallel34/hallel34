@@ -4,11 +4,14 @@ import { h } from './dom.js';
 import { getPrefs, motionOK } from './prefs.js';
 import coinSmall from '../assets/coin-small.svg?url';
 
+// spec 4.4/4.5: tap 10ms, buy [15,40,15], stepper tick 8ms, take loan [20,30,20], guess correct 20 / wrong 40, win once.
 const HAPTICS = {
-  roll: 15, land: 10, purchase: [20, 40, 20], win: [30, 60, 30, 60, 90], error: 40, tap: 8,
+  roll: 15, land: 10, purchase: [15, 40, 15], loan: [20, 30, 20], tick: 8, correct: 20, wrong: 40,
+  win: [20, 40, 20, 40, 60], error: 40, tap: 10,
 };
+/** Vibration is motion: off when the player turned haptics off, or under prefers-reduced-motion / the in-app reduced-motion switch. */
 export function haptic(name) {
-  if (!getPrefs().haptics || !('vibrate' in navigator)) return;
+  if (!getPrefs().haptics || !motionOK() || !('vibrate' in navigator)) return;
   try { navigator.vibrate(HAPTICS[name] ?? 10); } catch { /* ignore */ }
 }
 
@@ -23,8 +26,9 @@ const TONES = {
   win: [[523, 0.12], [659, 0.12], [784, 0.12], [1047, 0.3]],
   tap: [[500, 0.03]],
 };
+/** Sound effects follow the same rule (prefers-reduced-motion asks for a calmer app: no feedback noise either). */
 export function sound(name) {
-  if (!getPrefs().sound) return;
+  if (!getPrefs().sound || !motionOK()) return;
   try {
     ctx ||= new (window.AudioContext || window.webkitAudioContext)();
     if (ctx.state === 'suspended') ctx.resume();
@@ -78,29 +82,48 @@ export function countUp(from, to, render, duration = cssMs('--dur-countup', 700)
 }
 
 /**
- * Floating "+₪1,200" label that rises 40px and fades.
- * `below` (an element, e.g. the HUD): the label starts just under that element's bottom edge and drifts DOWN a few pixels,
- * so it never travels over the text above it (title, profession, buttons, cash). Always clamped inside the viewport.
+ * Floating "+₪1,200" pill.
+ * `within` (the board plaza): the pill is confined to that box (spec 4.9): it starts 12px + 16px under the plaza's top edge, drifts
+ * up at most 16px (never above the plaza top + 12px), its width is capped to the plaza width - 24px, so it can never cover the top
+ * tile row, the HUD or a pawn. Reduced motion: it fades in place. Without `within` it rises 40px from the anchor (legacy).
  */
-export function floatText(anchor, node, tone = 'income', { below = null } = {}) {
+export function floatText(anchor, node, tone = 'income', { within = null, below = null, duration = 1200 } = {}) {
   const layer = document.getElementById('fx-layer');
-  if (!layer || !anchor) return Promise.resolve();
-  const r = anchor.getBoundingClientRect();
-  const el = h('div', { class: `float-text float-${tone}`, 'aria-hidden': 'true' }, node);
+  if (!layer || !(anchor || within)) return Promise.resolve();
+  const el = h('div', { class: `float-text float-${tone}`, 'aria-hidden': 'true', 'data-float': '' }, node);
   layer.append(el);
   const vw = document.documentElement.clientWidth || 360;
-  const half = (el.offsetWidth || 120) / 2;
-  const x = Math.min(Math.max(r.left + r.width / 2, half + 8), vw - half - 8);
-  const move = motionOK() ? 40 : 0;
-  const y = below ? below.getBoundingClientRect().bottom + 6 : r.top;
-  const dir = below ? 1 : -1; // under the HUD: down; otherwise: up
-  const travel = below ? move * 0.5 : move;
+  let x; let y; let travel;
+  if (within) {
+    const p = within.getBoundingClientRect();
+    el.style.maxInlineSize = `${Math.max(80, p.width - 24)}px`;
+    const half = (el.offsetWidth || 120) / 2;
+    x = p.left + p.width / 2;
+    travel = motionOK() ? 16 : 0;
+    y = p.top + 12 + travel; // ends at p.top + 12
+    x = Math.min(Math.max(x, p.left + 12 + half), p.right - 12 - half);
+  } else if (below) {
+    // legacy placement (v2 B2): just under the HUD's bottom edge, drifting DOWN a few pixels, so it never covers the HUD text
+    const r = anchor.getBoundingClientRect();
+    const half = (el.offsetWidth || 120) / 2;
+    x = Math.min(Math.max(r.left + r.width / 2, half + 8), vw - half - 8);
+    y = below.getBoundingClientRect().bottom + 6;
+    travel = motionOK() ? -20 : 0;
+  } else {
+    const r = anchor.getBoundingClientRect();
+    const half = (el.offsetWidth || 120) / 2;
+    x = Math.min(Math.max(r.left + r.width / 2, half + 8), vw - half - 8);
+    y = r.top;
+    travel = motionOK() ? 40 : 0;
+  }
   const base = `translate(${x}px, ${y}px)`;
+  const fadeAt = Math.max(0.5, 1 - 300 / duration);
   const a = animate(el, [
     { transform: `${base} translate(-50%, 0)`, opacity: 0 },
-    { transform: `${base} translate(-50%, ${dir * travel * 0.4}px)`, opacity: 1, offset: 0.2 },
-    { transform: `${base} translate(-50%, ${dir * travel}px)`, opacity: 0 },
-  ], { duration: motionOK() ? 1100 : 700, easing: 'ease-out' });
+    { transform: `${base} translate(-50%, ${-travel * 0.3}px)`, opacity: 1, offset: 0.15 },
+    { transform: `${base} translate(-50%, ${-travel * fadeAt}px)`, opacity: 1, offset: fadeAt },
+    { transform: `${base} translate(-50%, ${-travel}px)`, opacity: 0 },
+  ], { duration: motionOK() ? duration : 900, easing: 'cubic-bezier(.16,1,.3,1)' });
   const done = () => el.remove();
   a.finished.then(done, done);
   return a.finished.catch(() => {});
