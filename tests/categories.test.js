@@ -41,11 +41,11 @@ describe('deal categories', () => {
       expect(tokens).toContain(`--cat-${id}-ink:`);
     }
   });
-  it('the loader rejects a missing, unknown or mismatching category', () => {
+  it('the loader rejects an unknown or mismatching category', () => {
     const base = cards.filter((c) => c.deck !== 'opportunity' || c.id === 'opp-apt-001');
     expect(validateCards(base)).toEqual([]);
     const without = base.map((c) => (c.id === 'opp-apt-001' ? { ...c, category: undefined } : c));
-    expect(validateCards(without).join()).toMatch(/opp-apt-001: category/);
+    expect(validateCards(without)).toEqual([]); // optional in the schema (neutral icon); every shipped card has one (first test)
     const unknown = base.map((c) => (c.id === 'opp-apt-001' ? { ...c, category: 'boat' } : c));
     expect(validateCards(unknown).join()).toMatch(/category must be one of/);
     const wrong = base.map((c) => (c.id === 'opp-apt-001' ? { ...c, category: 'coffee' } : c));

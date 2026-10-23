@@ -129,15 +129,27 @@ export function loanLimits(s) {
   // The cap limits borrowing to invest. A loan to cover an expense or a shortfall is never capped, so the player cannot get stuck.
   const forced = s.pending?.kind === 'expense' || s.pending?.kind === 'shortfall';
   const capOn = LOAN_CAP_SALARIES != null && !forced;
-  const capAmount = capOn ? s.profession.salary * LOAN_CAP_SALARIES : null;
+  // The cap is shown and enforced as a multiple of LOAN_STEP (12 salaries of 8,800 = 105,600 is the number the rule is built
+  // from, but the largest loan the player can actually take in total is 105,000): one number for the screen and for the engine.
+  const capAmount = capOn ? Math.floor((s.profession.salary * LOAN_CAP_SALARIES) / LOAN_STEP) * LOAN_STEP : null;
   const byCap = capOn ? Math.floor((capAmount - bankLoanPrincipal(s)) / LOAN_STEP) * LOAN_STEP : Infinity;
-  return { byFlow, byCap, capAmount, capSalaries: capOn ? LOAN_CAP_SALARIES : null, capBinds: capOn && byCap < byFlow };
+  const max = Math.max(0, Math.min(byFlow, byCap));
+  return { byFlow, byCap, capAmount, capSalaries: capOn ? LOAN_CAP_SALARIES : null, capBinds: capOn && byCap < byFlow, max };
 }
 
 /** Largest new loan (multiple of LOAN_STEP) allowed; 0 when limit reached. */
 export function maxLoan(s) {
-  const { byFlow, byCap } = loanLimits(s);
-  return Math.max(0, Math.min(byFlow, byCap));
+  return loanLimits(s).max;
+}
+
+/**
+ * THE loan-limit selector for the dialog: what the screen shows is exactly what takeLoan() enforces.
+ * `limit` = largest loan that can be taken now (= maxLoan), `used` = bank-loan principal already owed, `total` = the cap on all
+ * borrowing to invest (null when it does not apply), `capBinds` = the cap (not the cash-flow floor) is what stops a bigger loan.
+ */
+export function loanCap(s) {
+  const l = loanLimits(s);
+  return { limit: l.max, used: bankLoanPrincipal(s), total: l.capAmount, salaries: l.capSalaries, capBinds: l.capBinds };
 }
 
 /**

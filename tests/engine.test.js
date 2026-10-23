@@ -12,11 +12,11 @@ const profession = {
   liabilities: [],
 };
 const apt = {
-  id: 'opp-apt', deck: 'opportunity', type: 'apartment', category: 'apartment', modes: ['family', 'full'],
+  id: 'opp-apt', deck: 'opportunity', type: 'apartment', modes: ['family', 'full'],
   title: 'דירה', text: 't', price: 500000, downPayment: 20000, mortgage: 480000, monthlyCashFlow: 1000,
 };
 const stock = {
-  id: 'opp-stk', deck: 'opportunity', type: 'stock', category: 'stock', modes: ['full'], title: 'מניה', text: 't',
+  id: 'opp-stk', deck: 'opportunity', type: 'stock', modes: ['full'], title: 'מניה', text: 't',
   symbol: 'AAA', price: 10, dividend: 1, maxQty: 100,
 };
 const expense = { id: 'exp', deck: 'expense', modes: ['family', 'full'], title: 'תיקון', text: 't', amount: 1500 };
@@ -441,7 +441,7 @@ describe('interest accounting (stats.interestPaid)', () => {
 });
 
 describe('balance sheet and loan kinds', () => {
-  const biz = { ...apt, id: 'opp-biz', type: 'business', category: 'service', title: 'עסק', price: 100000, downPayment: 50000, mortgage: 50000, monthlyCashFlow: 800, profit: 1675, loanPayment: 875 };
+  const biz = { ...apt, id: 'opp-biz', type: 'business', title: 'עסק', price: 100000, downPayment: 50000, mortgage: 50000, monthlyCashFlow: 800, profit: 1675, loanPayment: 875 };
   const e = mk([apt, biz, expense, cashEvt]);
   const base = e.newGame({ mode: 'full', professionId: 'test' });
   const own = withState(base, { cash: 30000, assets: [

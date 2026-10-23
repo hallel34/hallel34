@@ -60,8 +60,9 @@ export function validateCards(list) {
     if (c.realWorld !== undefined && typeof c.realWorld !== 'boolean') errors.push(`${w}: realWorld must be true/false`);
     if (c.deck === 'opportunity') {
       if (!TYPES.includes(c.type)) errors.push(`${w}: type`);
-      // presentation-only deal category (icon + colour); required on every opportunity card, and consistent with the type
-      if (!CATEGORY_IDS.includes(c.category)) errors.push(`${w}: category must be one of ${CATEGORY_IDS.join(', ')}`);
+      // presentation-only deal category (icon + colour): when present it must be a registry id that fits the type. Every shipped
+      // card carries one (tests/categories.test.js); a card without it still loads and shows the neutral house icon.
+      if (c.category === undefined) { /* optional */ } else if (!CATEGORY_IDS.includes(c.category)) errors.push(`${w}: category must be one of ${CATEGORY_IDS.join(', ')}`);
       else if (TYPES.includes(c.type)) {
         const only = CATEGORY_TYPES[c.category]; // 'apartment' / 'stock' belong to exactly one type
         if (only && !only.includes(c.type)) errors.push(`${w}: category ${c.category} does not fit type ${c.type}`);
