@@ -105,6 +105,18 @@ light=[
  ('tutorial: story numeral white / night (bottom of the gradient)','#FFFFFF','#1B3068',4.5),('tutorial: story numeral ink / cream card','#0F1E46','#FFF6E3',4.5),
  ('family: expense amber / bg','#FFD27A','#0F1E46',4.5),('family: expense amber / surface','#FFD27A','#16295E',4.5),('family: expense amber ink / cream card','#6E4200','#FFF6E3',4.5),('tutorial: highlight ring gold-700 on cream (non-text)','#A56A0A','#FFF6E3',3),('tutorial: highlight ring gold-300 on navy (non-text)','#FFD479','#0F1E46',3),
 ]
+# v3.1 + v4 (developer): the new navy family, flat buttons, the disabled Buy on cream, verdict pills, hint strip, net worth
+dark += [
+ ('v3.1 text / bg','#F5F7FC','#0F172A',4.5),('v3.1 muted / surface-2','#A9B5D0','#212D48',4.5),('v3.1 negative / surface-2','#E57373','#212D48',4.5),
+ ('v3.1 income / surface-2','#5FE0AE','#212D48',4.5),('v4 primary text / gold','#2A1700','#F2B53A',4.5),('v4 ghost outline / bg (non-text)','#7C89AB','#0F172A',3),
+ ('v4 disabled Buy label (לא זמין) / muted fill on cream','#46527E','#E4D9C0',4.5),('v4 disabled Buy outline vs cream card (non-text)','#6B7596','#FFF6E3',3),
+ ('v3.1 verdict green pill','#0B6B43','#E1F8EC',4.5),('v3.1 verdict yellow pill','#6B4300','#FFF1D0',4.5),('v3.1 verdict red pill','#7A1810','#FFE9E5',4.5),
+ ('v3.1 family slow pill','#6E4200','#FFEBC2',4.5),('v3.1 hint strip text / surface-2','#F5F7FC','#212D48',4.5),('v3.1 negative ink / cream','#B42318','#FFF6E3',4.5),
+ ('v3.1 debt (liability ink) / cream','#55508A','#FFF6E3',4.5),('v3.1 card ghost outline / cream (non-text)','#6B7596','#FFF6E3',3),
+]
+light += [
+ ('v3.1 light hint strip text / surface-2','#0F172A','#FFF9EC',4.5),('v3.1 light text / bg','#0F172A','#FBF3E1',4.5),
+]
 bad=0; md='--md' in sys.argv
 for name,rows in (('DARK',dark),('LIGHT',light)):
     print(f'\n### {name}' if md else f'== {name} =='); 
