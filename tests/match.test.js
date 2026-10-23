@@ -179,7 +179,7 @@ describe('match: bots (multiplayer simulation)', () => {
 describe('statement: all liabilities', () => {
   const buyFirst = (mode = 'full') => {
     for (let seed = 1; seed < 200; seed++) {
-      let s = engine.newGame({ mode, professionId: 'engineer', seed });
+      let s = engine.newGame({ mode, professionId: 'lawyer', seed });
       s = { ...s, cash: 900000 };
       for (let i = 0; i < 30 && s.status === 'playing'; i++) {
         if (s.phase === 'roll') s = engine.roll(s);
