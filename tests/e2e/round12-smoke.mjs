@@ -215,10 +215,10 @@ async function almost(browser, theme) {
   const buy = page.locator('[data-action="buy"]:not([aria-disabled="true"])');
   if (await buy.count()) await buy.first().click();
   let seen = false;
-  for (let k = 0; k < 14 && !seen; k++) {
+  for (let k = 0; k < 30 && !seen; k++) {
     await sleep(700);
     seen = (await page.evaluate(() => window.__h)).includes('ועוד קצת');
-    for (let j = 0; j < 4; j++) { const l = page.locator('#modal-root .layer:last-child [data-action="summary-ok"], #modal-root .layer:last-child [data-action="pass"], #modal-root .layer:last-child [data-action="ok"], #modal-root .layer:last-child [data-action="pay"], #modal-root .layer:last-child [data-action="decline"], #modal-root .layer:last-child [data-action="hint-next"], #modal-root .layer:last-child [data-action="cancel"]').first(); if (await l.count()) { await sleep(1200); await l.click().catch(() => {}); await sleep(300); } }
+    for (let j = 0; j < 4; j++) { const l = page.locator('#modal-root .layer:last-child [data-action="summary-ok"], #modal-root .layer:last-child [data-action="pass"], #modal-root .layer:last-child [data-action="ok"], #modal-root .layer:last-child [data-action="pay"], #modal-root .layer:last-child [data-action="decline"], #modal-root .layer:last-child [data-action="hint-next"], #modal-root .layer:last-child [data-action="cancel"], #modal-root .layer:last-child [data-action="guess-skip"], #modal-root .layer:last-child [data-action="skip"]').first(); if (await l.count()) { await sleep(1200); await l.click().catch(() => {}); await sleep(300); } }
     const r = page.locator('[data-action="roll"]:not([disabled])'); if (await r.count()) await r.click().catch(() => {});
     // 'ועוד קצת' also appears under the meter at 94%: only the note counts
     seen = await page.evaluate(() => /ועוד קצת/.test(document.querySelector('.note-hint')?.textContent ?? ''));
