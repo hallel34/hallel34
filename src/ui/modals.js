@@ -280,7 +280,11 @@ export function opportunityModal(state, { guess = null, tour = null } = {}) {
     ctl.body.append(n.key, revealBlock(model, result, eye), ...n.quiet);
     ctl.setFoot(opts.warn);
     ctl.setActions(opts.normalActions);
-    ctl.body.querySelector('[data-guess-block="reveal"]')?.scrollIntoView?.({ block: 'nearest' });
+    // v4: the hero row (cash flow + the A/B/C badge, the answer) is what the player reads first, so the card shows it from its top
+    // edge (or from the intro strip above it), never cut half under the header; the reveal text follows below
+    const top = ctl.body.querySelector('.hint-strip') ?? n.key;
+    const delta = top.getBoundingClientRect().top - ctl.body.getBoundingClientRect().top;
+    ctl.body.scrollTop = Math.max(0, ctl.body.scrollTop + delta - 4);
   };
   if (guess.prior) {
     queueMicrotask(() => reveal(guess.prior.guess, guess.prior));
