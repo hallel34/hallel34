@@ -4,7 +4,7 @@ Run: python3 -I docs/v4/design/extract-tile3d.py   (needs Pillow + numpy + scipy
 Matting: the board is a flat beige B. Per pixel p, s = <p,B>/<B,B> and r = |p - sB|. r large = tile; r small = board, where
 (1 - s) is the darkening = alpha of a black contact shadow. The tile = the largest strong-chroma component near the crop centre,
 holes filled (cream banknote band, baby face), 1.5px antialias band unmixed against the local board colour.
-Canvas: 1.25 x 1.5 of the tile cell (footprint = 80% of the width, body base at 1 - 1/12 of the height), see board-spec.md 13."""
+Canvas: 1.25 x 1.5 of the tile cell (footprint = 80% of the width, body base at 1 - 1/12 of the height), see board-spec.md 13 and 14."""
 import sys, os
 import numpy as np
 from PIL import Image
@@ -27,7 +27,8 @@ BOARD_SAT = {'payday': 0.36}        # the yellow tile shares the board's hue: on
 CELL_W, CELL_H = 1.25, 1.5          # canvas in cells
 FOOT = 0.80                          # footprint width / canvas width
 BASE = 1 - 1 / 12                    # body base line / canvas height (leaves 1/12 for the contact shadow)
-SIZES = {'': 60, '@2x': 120}         # canvas width px per density (cell 48 css); height = width * 1.2
+SIZES = {'': 75, '@2x': 150}         # canvas width px per density (cell up to 60 css, board-spec 14); height = width * 1.2.
+                                     # @2x footprint 120px < the ~155px source footprint: still a downscale, never an upscale
 
 def smooth(e0, e1, x):
     t = np.clip((x - e0) / (e1 - e0), 0, 1); return t * t * (3 - 2 * t)

@@ -560,3 +560,126 @@ Tokens (add to section 2):
 - all 8 tiles at @2x 1:1 on the dark and the light board;
 - full mock boards with this section's CSS at 390 (full), 360 (family, amber expense) and 320 (with the tax-audit tile previewed), in dark and light;
 - the current-tile pad on a gold-coloured tile and on the amber tile.
+
+---
+
+## 14. Owner override 2026-10-24b: full-screen board
+The owner asked for a board that fills the screen. The loop is still 24 squares in the engine's order (`BOARD` in `src/engine/config.js` is unchanged). Only the layout changes: it is now a **6 × 8 ring**, with a perimeter of 2 × (6 + 8) − 4 = 24.
+
+**What this section supersedes from 13:**
+- the 7 × 7 grid, the 13.2 size table and its `--tile-c` formula;
+- the fox strip between the plate and the CTA, and the CTA below the board (both move **into the plaza**);
+- the HUD heights in 10 and 11 (now a slim bar);
+- the tile asset sizes in 13.1 (re-exported larger, see 14.6).
+
+The tile CSS and the current-tile pad (13.3 and 13.4) still apply, except where 14.5 changes them. The skyline rules (13.5) still apply with the new width.
+
+Mocks: `docs/v4/design/board-fullscreen-contact-sheet.png` shows 390x844 dark/full, 390x844 light/full, 360x800 dark/full, 360x800 light/family, 360x640 dark and 320x568 light, at CSS 1:1.
+
+### 14.1 Ring geometry and square order
+The order is the same walk as `ringPos` today. It starts at the **top inline-start corner** and runs along the top row toward inline-end, down the far column, back along the bottom row, and up the near column. In RTL, inline-start is the right, so square 0 is at the top-right and the pawn moves leftward along the top. In LTR it mirrors by itself, because the grid columns follow `dir`. Never compute it with `left`/`right`.
+
+```js
+/** [col, row], 1-based, on the 6x8 ring (col 1 = inline-start). */
+export function ringPos(i) {            // cols = 6, rows = 8
+  if (i <= 5)  return [i + 1, 1];       // 0..5   top row       (6 squares)
+  if (i <= 12) return [6, i - 4];       // 6..12  far column    (rows 2..8, 7 squares)
+  if (i <= 17) return [18 - i, 8];      // 13..17 bottom row    (cols 5..1, 5 squares)
+  return [1, 25 - i];                   // 18..23 near column   (rows 7..2, 6 squares)
+}
+```
+- The corners are squares **0, 5, 12 and 17**. Under 7 × 7 they were 0, 6, 12 and 18. Square 0 (payday) stays the start corner.
+- **Paint order:** set `z-index: <row>` on every tile, and add 10 for the current tile. DOM index order paints the near column bottom-up, so without this a roof would sit under the tile above it. The pawn keeps `--z-pawn`.
+- The plaza is `grid-column: 2 / 6; grid-row: 2 / 8`, i.e. 4 × 6 cells.
+
+### 14.2 Sizing algorithm (JS sets the variables, rounding down; no scroll at any size)
+```
+W = min(innerWidth, 430); H = visual viewport height (dvh)
+safeT = max(env(safe-area-inset-top), 8–10), safeB = max(env(safe-area-inset-bottom), 8–16)
+gutter 8 · plate pad 6 · column gap 4 · plate rim 6 (from --plate-shadow)
+hud   = (H − safeT − safeB ≥ 700) ? 120 : 96                       // slim bar / compact bar (14.3)
+c     = clamp(40, floor((W − 16 − 12 − 20) / 6), 60)                // width-bound tile cell
+padTop = 6 + round(0.375 c)                                         // room for the roofs of row 1
+avail = H − safeT − hud − 8 − safeB − 6
+gv    = (avail − padTop − 6 − 8c) / 7                               // ROW gap only; the column gap stays 4
+if gv < 4: c = floor((avail − padTop − 6 − 28) / 8), gv = 4          // height-bound (split screen, landscape)
+gv    = min(floor(gv), round(0.5 c))                                 // any leftover goes between the HUD and the plate
+plate = (6c + 32) × (padTop + 6 + 8c + 7gv)
+```
+Why the row gap stretches: a phone is about 0.46 wide-to-tall, and a 6 × 8 ring of square tiles is about 0.72. So the cells are width-bound and there are about 170px of spare height on tall phones. That height goes into the **vertical gaps of the side columns**. The 3D roofs rise 0.375c above each footprint, so a gap of up to 0.5c reads as a 2–6px seam between tiles, as in the mockup, not as a hole (see the 390 mock). The top and bottom rows keep the tight 4px gap.
+
+| | 390x844 | 412x915 | 360x800 | 360x640 | 320x568 |
+|---|---|---|---|---|---|
+| safe top / bottom used | 10 / 16 | 10 / 16 | 10 / 16 | 8 / 8 | 6 / 8 |
+| HUD | 120 | 120 | 120 | **96** compact | **96** compact |
+| **Tile cell `--tile-c`** | **57** | **60** | **52** | **52** | **45** |
+| Row gap `--tile-gap-v` (column gap 4) | 27 | 30 | 26 | 9 | 7 |
+| Plate pad top / sides and bottom | 27 / 6 | 29 / 6 | 26 / 6 | 26 / 6 | 23 / 6 |
+| **Plate outer** | **374 × 678** | 392 × 724 | **344 × 630** | 344 × 511 | **302 × 438** |
+| Tile image box (1.25c × 1.5c) | 71 × 86 | 75 × 90 | 65 × 78 | 65 × 78 | 56 × 68 |
+| **Plaza** (4c + 12) × (6c + 5gv) | **240 × 477** | 252 × 510 | **220 × 442** | 220 × 357 | **192 × 305** |
+| Leftover (into the HUD–plate gap) | 6 | 31 | 10 | 3 | 6 |
+| Die | 72 | 72 | 72 | 64 | 64 |
+| Fox guide | 72 | 72 | 72 | 56 | 56 (shown, no longer hidden) |
+| CTA (plaza width) | 240 × 60 | 252 × 60 | 220 × 60 | 220 × 60 | 192 × 56 |
+| CTA centre, % of the viewport height | 86% | 86% | 86% | 87% | 83% |
+
+There is no scroll at any of these sizes: in the mocks, `scrollWidth` equals the viewport width and the screen height equals the viewport height. Tiles are 19% (390) to 18% (320) larger than in section 13 (48, 44 and 38 then).
+
+### 14.3 HUD: a slim top bar above the board
+It is one smoked card, 8px gutters, radius 18, padding 8 / 10, `--surface` with a 1px `--border` hairline.
+
+| Row | Slim (120) | Compact (96, when H − safe < 700) |
+|---|---|---|
+| 1 · 48px | Avatar 44 (the profession bust, `professions.md`) · column: "**מורה** · תור 3" 12/500 muted, then a 20px coin and the cash at 26/900 · two 48px icon buttons: statement, menu | the same, cash at 22/900 |
+| 2 · goal | "המטרה: חופש כלכלי" 13/600 at the start, "0% מהדרך" 12/800 `--passive` at the end; a 10px bar with ticks at 25/50/75, filling from the inline-start; "הכנסה פסיבית ₪0" at the start and "הוצאות ₪7,310" at the end, 12/500 with the money at 13/900. In family mode "כסף שעובד בשבילכם" replaces "הכנסה פסיבית" | one line, "המטרה: ₪0 מתוך ₪7,310" (`hud.goalShort`) + "0%", and an 8px bar |
+
+- **Moved out of the HUD:**
+  - **Flow chip:** the plaza's top-start corner, "תזרים +₪1,490", a 32px ghost pill, 13/700 `--income`.
+  - **Legend "?":** the plaza's top-end corner, drawn 40px inside a 48px hit area.
+- **Home and settings merge into one menu button,** a sheet with "המשך / בית / הגדרות / צליל / רטט". Two buttons instead of three gives the cash about 60px more at 320. This is a CEO decision (14.7, item 3).
+- The 3-second test (10) still holds. Reading order: avatar and cash (heavy) → goal (labelled "המטרה") → board → gold CTA. Gold appears only on the CTA and the current-tile pad.
+
+### 14.4 Plaza (4 × 6 cells): what goes where, top to bottom
+The plaza is a flex column, `align-items: center`. It extends into the row gaps above and below it (`margin-block: calc(-1 * var(--tile-gap-v))`), with padding 8 / 4 / `gv + 4`, and gap 6 (4 when compact).
+1. **Top row, 48px:** the flow chip (start) and "?" (end).
+2. *flex spacer*
+3. **Die**, 72 (64 when compact or c < 52), and the result number in its place after a roll (6.2).
+4. **Landing caption** pill "נחתתם על: הזדמנות": 36px, 17/700 (16 when c < 48), 22px monoline icon, max width = plaza − 16.
+5. **Status** "התור שלכם: הטילו קובייה", 16/700 (15 compact), 2 lines reserved; then "אתם על: …" 13/500 muted (dropped when compact; merged into the status).
+6. *flex spacer*. The two spacers keep the die cluster in the optical centre at every height.
+7. **Fox corner guide:**
+   - The fox sits at the inline-start (right in RTL), 72px (56 compact), feet on the CTA's top edge **without overlapping its hit area**.
+   - The smoked-glass bubble fills the rest of the row toward inline-end: 13/500, 3 lines max (2 compact), with "עוד" opening the full note.
+   - The 7.3 auto-close and 7.4 "never hide essential info" rules hold: the bubble never covers the status, the die or the CTA.
+8. **CTA** "הטילו קובייה": the full plaza width, 60px (56 when c < 50), solid gold, die glyph 24. It sits 4px above the bottom row, inside the bottom 14–17% of the screen, so it is in the thumb zone at every size, and it does not move between turns.
+- **Skyline:** the 13.5 rules apply, with `block-size: calc(var(--tile-c) * 2.6 + var(--board-pad))` and `--sky-w: calc(6 * var(--tile-c) + 5 * 4px + 2 * var(--board-pad))`. It rises behind the bottom row, the CTA and the lower part of the fox. The hard rule holds: **no unfilled text on a building**. Items 1–5 sit above it, the bubble and the CTA are filled surfaces, and the fox standing on the rooftops is intended.
+
+### 14.5 CSS deltas (to 13.3)
+```css
+.screen-board { display: flex; flex-direction: column; gap: 8px; block-size: 100dvh; overflow: hidden;
+  padding: max(10px, env(safe-area-inset-top)) 8px max(16px, env(safe-area-inset-bottom)); }
+.screen-board .board {
+  grid-template-columns: repeat(6, var(--tile-c)); grid-template-rows: repeat(8, var(--tile-c));
+  column-gap: 4px; row-gap: var(--tile-gap-v);                     /* set by JS (14.2) */
+  padding: calc(var(--board-pad) + round(down, var(--tile-c) * .375, 1px)) var(--board-pad) var(--board-pad);
+  margin-block-start: auto;                                       /* the leftover goes above the plate; the CTA stays put */ }
+.board-center { grid-column: 2 / 6; grid-row: 2 / 8; margin-block: calc(-1 * var(--tile-gap-v));
+  padding: 8px 4px calc(var(--tile-gap-v) + 4px); }
+.tile { z-index: var(--row); }  .tile.is-current { z-index: calc(var(--row) + 10); }
+```
+- `.fox-strip` and `.board-actions` below the plate go away. Their content moves into `.board-center` (14.4). Keep the `data-compact` logic, keyed to `hud === 96`.
+- Tile `<img>` attributes become `width="75" height="90"` (the new @1x). The CSS still sizes the image from the cell.
+
+### 14.6 Tile assets re-exported for the bigger cell
+- `extract-tile3d.py` `SIZES` went from `{60, 120}` to **`{'': 75, '@2x': 150}`**: canvas 75 × 90 and 150 × 180. That serves cells up to 60px, so c is clamped at 60.
+- The @2x footprint is 120px and the source footprints measure 155–166px, so it is **still a downscale**. Nothing is upscaled.
+- The same 8 tiles and 16 files are in `src/assets/tile3d/`, with the same names. The set totals **55.7 KB** (was 43.4).
+- A 2x phone fetches the 6 tile types of one mode at about 28 KB; a 1x device about 14 KB.
+- Preload is unchanged (`opportunity@2x`, `payday@2x`).
+
+### 14.7 For the CEO / developer
+1. `ringPos` and its unit test change. Corner indices move from 0/6/12/18 to 0/5/12/17. Check any test that pins a corner or a `[col,row]`.
+2. The 13.2 test of "fox hidden at 320 and 360x640" flips: the fox is now **shown** at 56px.
+3. The menu button merges home and settings (14.3). If the CEO prefers three buttons, the cash at 320 drops to 20/900 and the turn label truncates first.
+4. Pinch and zoom stay off the board. Landscape or split screen uses the height-bound branch; below c = 40 the plate scales with a `transform: scale()` wrapper (as in 13.2), never with scrolling.
