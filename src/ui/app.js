@@ -1,4 +1,5 @@
 // App shell: screen routing, persistence (save/resume), engine wiring.
+import { loadBoardStyles } from './board-styles.js';
 import { h, clear } from './dom.js';
 import {
   createEngine, serialize, deserialize, newMatch, rematch, isMultiplayer, currentState, dailySeed, dailyProfessionId, DAILY_MODE,
@@ -189,9 +190,10 @@ export function createApp(host) {
     goPlay(m);
   }
 
-  function goPlay(m, { fresh = false } = {}) {
+  async function goPlay(m, { fresh = false } = {}) {
     store.save(m);
     setLearnMode(m.mode);
+    try { await loadBoardStyles(); } catch (err) { console.warn(err); } // the board is usable (if plainer) even without its v4 stylesheet
     const play = createPlay({ engine, match: m, nav, store, professionIds, fresh });
     mount({ el: play.el, destroy: () => play.destroy() }, { start: () => play.start() });
   }
