@@ -664,7 +664,11 @@
       { "key": "a11y.passiveMeter", "was": "התקדמות ההכנסה הפסיבית אל ההוצאות", "family": "התקדמות הכסף שעובד אל ההוצאות" },
       { "key": "a11y.passiveMeterValue", "was": "{pct}% (הכנסה פסיבית {passive} מתוך הוצאות {expenses})", "family": "{pct}% (כסף שעובד {passive} מתוך הוצאות {expenses})" },
       { "key": "howto.step1", "was": "(ארוך, עם 'תזרים')", "family": "ראו howtoKid.steps; הגיליון במצב משפחה לא מציג howto.step1-4 ולא howto.note" },
-      { "key": "loan.numRate", "was": "ריבית שנתית", "family": "תוספת בשנה" }
+      { "key": "loan.numRate", "was": "ריבית שנתית", "family": "תוספת בשנה" },
+      { "key": "hud.goalFirst", "was": "המטרה: שהכנסה הפסיבית תעבור את ההוצאות", "family": "המטרה: שהכסף שעובד יעבור את ההוצאות" },
+      { "key": "legend.payday", "was": "עוברים או נוחתים כאן: מקבלים את מה שנשאר מהמשכורת בשנה (התזרים החודשי כפול 12).", "family": "עוברים או נוחתים כאן: מקבלים את מה שנשאר מהמשכורת בשנה (מה שנשאר בחודש כפול 12)." },
+      { "key": "deal.badgeAria", "was": "דירוג עסקה {letter}, עסקה {label}, תשואה {yield} בשנה", "family": "דירוג עסקה {letter}, עסקה {label}" },
+      { "key": "deal.payback", "was": "החזר ההשקעה", "family": "הכסף חוזר אחרי" }
     ],
     "overridesRound11Note": "מפתחות נוספים לשכבת ה-override (family-only), מעבר ל-22 הקיימים. ה-was הוא ערך he.json ב-HEAD 00c9162. [[term:..]] נשמר. 'statement.balance*' ו'netWorthTitle' מוצגים במצב מלא בלבד (net_worth level=full) ולכן אין להם override; אם יוצגו במשפחה, יש להוסיף.",
     "howto": "במצב משפחה, לחיצה על 'איך משחקים' פותחת גיליון עם שלוש שורות: 'ראו שוב את הסיפור (דקה)', 'המילון של פסיבו', 'כללי המשחק בקצרה' (howto.step1 עד step4 הקיימים, עם תיקון בשלב 1: ללא 'תזרים' ללא הסבר). בפעם הראשונה בלבד, במקום הגיליון, מתחיל הסיפור.",
