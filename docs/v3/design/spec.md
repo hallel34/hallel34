@@ -1,5 +1,5 @@
-# Passivo v3.1 — Design spec ("Navy & Gold, quiet edition")
-Phase 1 (design only). The developer implements in Phase 2 from this file + `src/styles/tokens.css` + the SVGs. Reference screen size **390x844**; each screen also lists **360x800** and **320x568** behaviour. RTL first (logical properties only). Fox art, wordmark, tile colours, tile icons and the app icon are unchanged.
+# MaxiFox (formerly Passivo) v3.1 — Design spec ("Navy & Gold, quiet edition")
+Phase 1 (design only). The developer implements in Phase 2 from this file + `src/styles/tokens.css` + the SVGs. Reference screen size **390x844**; each screen also lists **360x800** and **320x568** behaviour. RTL first (logical properties only). Fox art, tile colours and tile icons are unchanged. Since the 2026-10-23 rename the wordmark and app icon come from the MaxiFox logo (section 5).
 
 Companion files: `docs/v3/design/category-map.md` (category registry + card mapping), `docs/v3/design/checklist.md` (screenshot self-review), `docs/v3/design/contrast-v3.py` (AA audit of every new pair, 113 pairs, all pass), `docs/v3/design/icons-contact-sheet.png` (all new icons rendered in Chromium).
 
@@ -161,11 +161,11 @@ Track `--meter-track`, fill solid `--passive-fill` (teal), 12px high, ticks at 2
 Common: page padding 16px (20px at >= 412), safe-area insets respected, thumb zone = bottom 240px holds the primary. All screens set `lang="he" dir="rtl"`.
 
 ### 4.1 Start (home)
-- Order top to bottom: 3 icon buttons (48px circles, ghost: hairline, `--text-muted` glyph) at inline-start; wordmark (gold, unchanged art) + PASSIVO + tagline `--text-muted`; fox `tired` (296px) with the cream joke bubble at inline-end/top 300 (as in `fox-usage.md`); **mode selector**; **daily-challenge row**; **primary CTA**.
+- Order top to bottom: 3 icon buttons (48px circles, ghost: hairline, `--text-muted` glyph) at inline-start; **MaxiFox logo** (`maxifox-logo-alpha` WebP, 200px wide at 360/390, centred, clear space 1X, replaces `wordmark.svg` + PASSIVO and the `tired` pose + joke bubble) + tagline `--text-muted` 15px below the clear space; **mode selector**; **daily-challenge row**; **primary CTA**.
 - Mode selector: two cards (171x72), ghost: `--surface` fill, 1px `--border`; selected = `--surface-2` fill + 2px `--sel-ring` + 24px white check disc (navy tick); no gold border, no glow, no scale(1.02). Title 17/800, description 13 `--text-muted`.
 - **Daily row (fix competing gold)**: ghost row 64px, `--surface` fill, 1px `--border`, no gold border; leading 40px chip `--surface-2` with a `--text` star outline (done state: `--income` check); title 15/700 "אתגר יומי" + date as a quiet `--text-muted` 13px line; trailing chevron (mirrored). It is a secondary action.
 - CTA: gold primary 64px full width, bottom 28px / safe-area. This is the only gold fill on the screen besides the wordmark (brand art, not an action).
-- 360x800: fox 260px, joke bubble 104px wide. 320x568: fox 168px, tagline hidden, mode cards 56px high, daily row 52px (as today), CTA 56px. Entrance: as `fox-usage.md` (400ms rise); nothing new.
+- 360x800: logo 200px wide. 320x568: logo 132px wide, tagline hidden, mode cards 56px high, daily row 52px (as today), CTA 56px. Entrance: as `fox-usage.md` (400ms rise); nothing new.
 - Copy tone: warm, one line each. Bubble jokes unchanged.
 
 ### 4.2 Mode pick + profession pick
@@ -259,8 +259,19 @@ Each amount is its own `money()` isolate; "× 24" and "=" live in the operator c
 - **C. Before → after**: two stacked rows "לפני ₪X" (muted) / "אחרי ₪Y" (text) with a single 20px mirrored arrow icon (`icon-dir`) between, caption optional.
 Copy rules for the educator: plural-neutral address, family mode never uses "הפסד/חוב" for the money line, amounts only as slots, each variant has a family and a full text. 3+ variants are required so the toast is not a repeated sentence.
 
-## 5. Mascot usage (rules; sizes/poses stay in `design/fox-usage.md`)
-Allowed: **home** (wave/tired), **guide** (tutorial/first-game tour, 'פסיבו מסביר'), **feedback / tips** (fox notes, family tips), **win** (hammock), **game over** (tired), splash. Removed as decoration: the corner crop on every card, the loan dialog `worried` crop, the profession-sheet `ponder`/`think` pop, standalone reaction pops on the board (merged into the feedback note). One fox per screen at a time; a note's 52px crop uses a 2px `--border` ring (the gold ring is retired: gold = action).
+## 5. Brand and mascot usage (sizes/poses stay in `design/fox-usage.md`)
+### 5.1 Logo vs character (rename 2026-10-23)
+- Brand = **MaxiFox**, the gold logo (`design/brand/maxifox-logo-source.jpg`, used as is, never redrawn; the wordmark is never retyped). Character = **מקסי / מקסי השועל** (Maxi), the orange fox; the in-game character stays orange.
+- **Logo appears on:** app icon and favicon (mark without wordmark, `public/icons/`), home/start screen, splash, store listing + feature graphic (`design/brand/feature-1024x500.png`), share images.
+- **Character appears on:** guide (first game, 'מקסי מסביר', 'המילון של מקסי'), feedback notes and family tips on the board, win (hammock), game over (tired, supportive). Never on home or splash next to the logo.
+- Copy: the brand name is MaxiFox in both languages (Latin, isolated with `<bdi>` / `unicode-bidi: isolate` inside Hebrew lines); the character speaks as מקסי ("מקסי אומר", "היי, אני מקסי!").
+- In-app asset: `maxifox-logo-alpha-1x/2x.webp` (navy removed) on both themes. The opaque versions show a box on `#0F172A` (source navy is `#0A1C3A`), so they are for exact-navy or print grounds only.
+### 5.2 Clear space and minimum size
+- Clear space X = 1/6 of the full logo width (≈ "M" cap height) on every side. Mark: 8% of the ring diameter; maskable/adaptive icons rely on the platform safe zone.
+- Minimum: full logo 120px CSS wide (25mm print); below that use the mark. Mark 48px with ring; 16-32px only via `favicon-32.png` (tighter face crop).
+- Don'ts: recolour, stretch, rotate, outline, extra glow, orange/gold/photo grounds, logo and character at equal weight on one screen, the character coloured gold or the logo orange.
+### 5.3 Character rules
+Allowed: **guide** (wave on first launch, tutorial/first-game tour, 'מקסי מסביר'), **feedback / tips** (fox notes, family tips), **win** (hammock), **game over** (tired), splash. Removed as decoration: the corner crop on every card, the loan dialog `worried` crop, the profession-sheet `ponder`/`think` pop, standalone reaction pops on the board (merged into the feedback note). One fox per screen at a time; a note's 52px crop uses a 2px `--border` ring (the gold ring is retired: gold = action).
 
 ## 6. Financial typography
 ### 6.1 The one component
