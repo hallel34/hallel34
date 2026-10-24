@@ -21,6 +21,7 @@ import { ringPos, avatarColor, pawnOffsets, progressPct, CROWD_FROM } from './la
 import { playerToken, playerName, nameBdi } from './players.js';
 import { closeAllLayers, destroyAllLayers, closeTopLayer } from './modal.js';
 import { debugEnabled, mountDebugTools } from './debug.js';
+import { readRaw, writeRaw } from '../services/storage.js';
 import { warmFox } from './fox.js';
 import { createFoxGuide } from './fox-guide.js';
 import { tileFamily, tileIcon, tileLabel, tileLabelChip, ensureTileSprite, boardTile } from './tiles.js';
@@ -1138,6 +1139,17 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     async start() {
       sizeBoard(); // mounted: the height check can measure now
       warmFox(REACTIONS);
+      // First launch of the device: מקסי says hello from the corner guide (moved off home, which shows the logo; the flag
+      // keeps its old key passivo.seenIntro on purpose). It queues like any note and waits while the story layer is open.
+      // The first guided family game skips it: its story layer ("המשחק הראשון עם מקסי") is the introduction there, and the
+      // guided hints of turn 1 must not wait behind an extra bubble.
+      if (!readRaw('seenIntro')) {
+        writeRaw('seenIntro', '1');
+        if (!hintsOn()) {
+          const hello = t('fox.hello');
+          flow.notes.push({ kind: 'feedback', group: 'hello', pose: 'celebrate', tone: 'good', plain: hello, body: hello });
+        }
+      }
       flow.trigger('start');
       if (unseen.length) { // a card that was queued when the player went home: show it now, then drop it from the save
         setBusy(true);

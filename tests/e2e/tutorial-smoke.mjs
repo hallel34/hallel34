@@ -1,4 +1,4 @@
-// 'המשחק הראשון עם פסיבו' end to end: story (skip, replay), the first turns with their guided hints, the summary card, the family
+// 'המשחק הראשון עם מקסי' end to end: story (skip, replay), the first turns with their guided hints, the summary card, the family
 // HUD, the hot-seat one-tap hand-over. Optional axe pass on every new state (AXE=/path/to/axe.min.js, installed outside the repo).
 // Run: npm run build && SMOKE_H=640 node tests/e2e/tutorial-smoke.mjs   (PLAYERS=1|2, SMOKE_H=640|800|568 SMOKE_W=360|320)
 import { spawn } from 'node:child_process';

@@ -1,6 +1,6 @@
 // Rich text: {param} slots (strings or DOM nodes, e.g. money() <bdi>) and glossary markup [[term:id|display]] become DOM.
 // A term turns into a dashed-underline button (class .term, data-term=id, aria-haspopup=dialog) that opens
-// 'המילון של פסיבו' (a delegated handler in ui/learn.js). Unknown ids, and terms the current mode does not have
+// 'המילון של מקסי' (a delegated handler in ui/learn.js). Unknown ids, and terms the current mode does not have
 // (e.g. net worth in family mode), render as plain text. Mark a term only once per screen with a scope.
 import { h } from './dom.js';
 import { parseMarkup } from '../i18n/markup.js';

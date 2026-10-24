@@ -1,4 +1,4 @@
-// 'המשחק הראשון עם פסיבו': the five story screens (spec section 2, art.md section 2) in one full-screen layer. Loaded lazily
+// 'המשחק הראשון עם מקסי': the five story screens (spec section 2, art.md section 2) in one full-screen layer. Loaded lazily
 // (dynamic import) together with its three SVG illustrations, so the first paint of the app never pays for it.
 import { h } from '../dom.js';
 import { t } from '../../i18n/index.js';

@@ -1,4 +1,4 @@
-# Passivo v4: 25% and 50% milestones (fox lines + badges)
+# MaxiFox v4: 25% and 50% milestones (fox lines + badges)
 
 Date: 2026-10-23. Owner: financial-education specialist. Wiring: developer (the trigger already exists: `src/ui/play.js` celebrates once per crossing of 25/50/75% and logs `game.milestone`, "{pct}% מהדרך לחופש!").
 

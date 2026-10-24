@@ -105,7 +105,7 @@ describe('share text amount is an LTR isolate', () => {
     const e = { record: { date: '2026-10-21', turns: 17, netWorth: 1234567 }, lights: '' };
     const head = buildShareText(e, '').split('\n')[0];
     expect(head.endsWith(`${LRI}₪1.2M${PDI}`)).toBe(true);
-    expect(head.startsWith('פסיבו אתגר יומי')).toBe(true);
+    expect(head.startsWith('MaxiFox אתגר יומי')).toBe(true);
   });
 });
 

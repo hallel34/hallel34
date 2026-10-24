@@ -1,4 +1,4 @@
-/* Passivo the fox (design/fox-usage.md). Cutouts keep their aspect ratio (height drives size, width:auto);
+/* Maxi the fox (מקסי) (design/fox-usage.md). Cutouts keep their aspect ratio (height drives size, width:auto);
    reaction crops are always circles with a 2px hairline ring (v3.1: gold = action only). The fox never takes pointer events (except the start tap-squash). */
 .fox { display: block; max-inline-size: none; pointer-events: none; user-select: none; -webkit-user-drag: none;
   filter: drop-shadow(0 12px 16px rgb(0 0 0 / .45)); }

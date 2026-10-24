@@ -32,14 +32,14 @@
     "tokensToWatch": "The hidden-figure guard (tests/learn.test.js, tests/e2e/smoke.mjs) treats these percent tokens as unverified: 2.5%, 3.25%, 4.75%, 8.2%, 9.5%, 4%, 5%, 2%, 50%, 70%, 75%. None of them is in a shipped text of this file. The Bank of Israel rate (3.25%, VERIFIED) sits in a gated `numbers` block, because tests/round7.test.js also forbids the string '3.25' anywhere in the build."
   },
   "ui": {
-    "title": "המדריך של פסיבו",
+    "title": "המדריך של מקסי",
     "subtitle": "כסף אמיתי, בשלוש דקות",
     "lessonProgress": "מסך {n} מתוך {total}",
     "next": "הלאה",
     "back": "חזרה",
     "finish": "סיימתי",
     "guessTitle": "נחשו קודם",
-    "guessSubtitle": "מה דעתכם, לפני שפסיבו מסביר?",
+    "guessSubtitle": "מה דעתכם, לפני שמקסי מסביר?",
     "showAnswer": "הראו לי",
     "asOfLabel": "נכון ל-{asOf}",
     "sourceLabel": "מקור",

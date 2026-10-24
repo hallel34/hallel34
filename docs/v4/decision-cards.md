@@ -1,4 +1,4 @@
-# Passivo v4: decision cards (text proposals + engine effects)
+# MaxiFox v4: decision cards (text proposals + engine effects)
 
 Date: 2026-10-23. Owner: financial-education specialist. Wiring: developer. Balance check: finance (re-run the simulation after the cards are in).
 

@@ -1,9 +1,9 @@
 {
-  "name": "passivo",
+  "name": "maxifox",
   "version": "0.3.0",
   "private": true,
   "type": "module",
-  "description": "פסיבו (Passivo) - financial board game (1-4 players on one device)",
+  "description": "MaxiFox - financial board game (1-4 players on one device)",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

@@ -28,15 +28,14 @@ function pwaPlugin() {
       handler(html, ctx) {
         const fonts = Object.keys(ctx.bundle || {}).filter((f) => /rubik-(hebrew|latin)-(700|900)-normal.*\.woff2$/.test(f));
         const tags = fonts.map((f) => `<link rel="preload" as="font" type="font/woff2" crossorigin href="${base.endsWith('/') ? base : `${base}/`}${f}">`).join('\n  ');
-        // LCP image: the start screen shows `wave` on first launch (flag passivo.seenIntro unset), otherwise `tired`.
-        // A tiny inline script preloads the right one (with @1x/@2x srcset) so the browser does not fetch both.
+        // LCP image: the start screen shows the MaxiFox logo (alpha WebP, @1x/@2x) on every launch, so one static preload
+        // with an imagesrcset replaces the old tired/wave pick (the first-launch greeting moved to the board guide).
         const prefix = base.endsWith('/') ? base : `${base}/`;
         const files = Object.keys(ctx.bundle || {});
-        const pick = (name) => ['', '@2x'].map((d) => files.find((f) => new RegExp(`(^|/)${name}${d}-[\\w-]+\\.webp$`).test(f))).map((f) => (f ? `${prefix}${f}` : null));
-        const [wave1, wave2] = pick('wave');
-        const [tired1, tired2] = pick('tired');
-        const lcp = wave1 && tired1
-          ? `<script>try{var w=!localStorage.getItem('passivo.seenIntro'),u=w?['${wave1}','${wave2}']:['${tired1}','${tired2}'],l=document.createElement('link');l.rel='preload';l.as='image';l.href=u[0];l.setAttribute('imagesrcset',u[0]+' 1x, '+u[1]+' 2x');l.setAttribute('fetchpriority','high');document.head.appendChild(l)}catch(e){}</script>`
+        const find = (d) => files.find((f) => new RegExp(`(^|/)maxifox-logo-alpha-${d}-[\\w-]+\\.webp$`).test(f));
+        const [logo1, logo2] = [find('1x'), find('2x')];
+        const lcp = logo1 && logo2
+          ? `<link rel="preload" as="image" href="${prefix}${logo1}" imagesrcset="${prefix}${logo1} 1x, ${prefix}${logo2} 2x" fetchpriority="high">`
           : '';
         return html.replace('</head>', `  ${tags}\n  ${lcp}\n</head>`);
       },

@@ -108,6 +108,6 @@ describe('strings of spec section 12', () => {
     expect(he.board.youAreHere).toBe('אתם על: {label}');
     expect(he.board.landed).toBe('נחתתם על: {label}');
     expect(he.hud.goal).toBe('המטרה: חופש כלכלי');
-    expect(he.fox.lastMessage).toBe('פסיבו: הודעה אחרונה');
+    expect(he.fox.lastMessage).toBe('מקסי: הודעה אחרונה');
   });
 });

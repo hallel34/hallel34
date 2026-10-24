@@ -61,3 +61,23 @@ Same rule. One existing test changed; every other existing test (vitest, smoke f
 | File | Test | Old | New | Why the stage forces it |
 |---|---|---|---|---|
 | tests/e2e/round12-smoke.mjs | item 4 `almost()`: "at ~94% of the expenses the h-almost hint shows within a few turns" (scripted play loop) | loop of 30 rounds | loop of 60 rounds | Spec 3.1 (landing caption: 200ms in + 450ms hold before the card opens, also under reduced motion) and 6.2 (the die result number: the pawn starts 200ms after the land) make every turn about 0.65 s longer. The loop polls every ~700 ms and only clicks what is open at that moment, so a turn now takes ~5 rounds instead of ~2.5, and turn 6 (the first quiet turn, where h-almost shows) is reached at round ~33. The hint logic and the assertion are unchanged. |
+
+## MaxiFox rename (developer, 2026-10-24: owner rename, docs/decisions.md 2026-10-23 and 2026-10-24)
+
+Same rule. The rename (brand MaxiFox, character מקסי, the logo on home) is the owner's requirement, so every assertion on the old name or the old home art changes with it. Kept on purpose and not touched by any test change: the `passivo.*` storage keys, the daily seed `passivo-daily|`, the `history.state.passivo` marker.
+
+| File | Test | Old | New | Why the rename forces it |
+|---|---|---|---|---|
+| tests/brand.test.js | character > ships the fox poses the UI relies on | `src/assets/wordmark.svg` exists | `src/assets/brand/maxifox-logo-alpha-1x.webp` and `-2x.webp` exist, `wordmark.svg` does not | The logo replaces the wordmark on home (spec 4.1, rename inventory row wordmark.svg) |
+| tests/brand.test.js | (new describe) MaxiFox rename: the old brand never reaches the built app | - | builds dist and fails on any `פסיבו` / `Passivo` / `PASSIVO`, or any `passivo` other than the kept keys, seed, history marker, sw cache prefix and debug hook; title and manifest short_name are MaxiFox | Added check requested with the rename (not a change of an old expectation) |
+| tests/board-v4.test.js | fox guide label | `he.fox.lastMessage` = `פסיבו: הודעה אחרונה` | `מקסי: הודעה אחרונה` | Character name |
+| tests/daily.test.js | share text (D2) > head line (lines 355, 357, 364, 380) | `פסיבו אתגר יומי 21.10 \| ...` | `MaxiFox אתגר יומי 21.10 \| ...` | Brand name in the share text |
+| tests/daily.test.js | share text (D2) > a real game reveals no card titles, no profession, no player names | no Latin letter outside the link | no Latin letter outside the leading `MaxiFox ` and the link | The brand is a Latin word in the Hebrew share line (decisions 2026-10-23). The check still catches any leaked Latin name |
+| tests/round11.test.js | daily share head | `startsWith('פסיבו אתגר יומי')` | `startsWith('MaxiFox אתגר יומי')` | Brand name |
+| tests/round7.test.js | the built content keeps the UI label | `toContain('המילון של פסיבו')` | `toContain('המילון של מקסי')` | Character name |
+| tests/e2e/daily-smoke.mjs | share text parse (275) and the given-up share line (349) | `^פסיבו אתגר יומי 21.10 ...` | `^MaxiFox אתגר יומי 21.10 ...` | Brand name |
+| tests/e2e/daily-smoke.mjs | start: "the fox does not cover the mode cards" | measures `.fox-slot .fox` | measures `.brand-logo` ("the logo does not cover the mode cards") | The tired fox left home; the logo takes its slot |
+| tests/e2e/smoke.mjs | L1 explainer label (637), settings toggle (675, 683) | `פסיבו מסביר`, `הסברים של פסיבו` | `מקסי מסביר`, `הסברים של מקסי` | Character name |
+| tests/e2e/smoke.mjs | start, first launch (1211-1222) | wave pose on first launch, crossfade to `tired`, `seenIntro` set on home, h1 `פסיבו` with `img[src*=wordmark]`, `foxChecks(page, 'start')`, "wave pose does not replay" | no fox pose on home, `seenIntro` still unset on home (the greeting is on the board), h1 `MaxiFox` with the 200px `maxifox-logo-alpha` image; `foxChecks` on start removed (no character there) | Decisions 2026-10-24: the logo replaces the wordmark and the tired pose; the greeting moves into the guide |
+| tests/tutorial.test.js, tests/e2e/*.mjs | header comments only | `המשחק הראשון עם פסיבו` | `המשחק הראשון עם מקסי` | Comment text (no assertion) |
+| tests/e2e/smoke.mjs | board: "roll zone shows the roll pose at the start" (full mode, 1298) | full mode: `pose === 'roll'` | full mode: `'roll'`, or `'note'` only when that bubble is the first-launch greeting "היי, אני מקסי!" | The greeting moved from home into the corner guide (decisions 2026-10-24); a fresh device's first board now opens with it. Family mode is unchanged (the story layer comes first) |

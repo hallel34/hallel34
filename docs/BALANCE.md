@@ -1,4 +1,4 @@
-# Balance (Passivo)
+# Balance (MaxiFox)
 
 ## Before (v3 baseline, HEAD 677432b — v2.5 merged), `npm run simulate -- --games=100`, professions rotated, 200-turn cap
 | mode | bot | win | lost | timeout | avg turns | median | p90 | loans/game |

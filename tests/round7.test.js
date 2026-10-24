@@ -172,7 +172,7 @@ describe('round 7: production bundle carries no unpublished figure', () => {
     const js = walk(out).filter((f) => /\.(js|json|html)$/.test(f)).map((f) => readFileSync(f, 'utf8')).join('\n');
     for (const x of ['8.23', '3.25', '4.75', '329', 'needs_review', 'pending_finance', 'numbers-proposal']) expect(js.includes(x), x).toBe(false);
     // the content the UI renders is still there
-    expect(js).toContain('המילון של פסיבו');
+    expect(js).toContain('המילון של מקסי');
   }, 180000);
 });
 

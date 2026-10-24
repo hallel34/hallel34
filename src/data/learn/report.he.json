@@ -73,7 +73,7 @@
         "other": "{n} מושגים"
       },
       "countRule": "{count} = the phrase from `count` chosen by n (1 -> one, 2 -> two, else other, with {n} filled). n counts only concepts unlocked in THIS game (state.learn.seenConcepts), not the device-wide seen set; {all} is the number of concepts of the current mode (11 family, 14 full; v3 added roi).",
-      "none": "עוד לא נפתחו מושגים. אפשר לראות את כולם במילון של פסיבו.",
+      "none": "עוד לא נפתחו מושגים. אפשר לראות את כולם במילון של מקסי.",
       "openDictionary": "לפתיחת המילון"
     },
     "stats": {

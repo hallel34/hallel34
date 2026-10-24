@@ -180,7 +180,7 @@ export function createApp(host) {
       mode, seed: nextSeed(),
       players: setup.professionIds.map((professionId, i) => ({ name: setup.names[i], professionId })),
     });
-    // 'המשחק הראשון עם פסיבו': the first family game of this device opens with the five-screen story (lazy chunk, skippable)
+    // 'המשחק הראשון עם מקסי': the first family game of this device opens with the five-screen story (lazy chunk, skippable)
     if (mode === 'family' && !loadTutorial().storyDone) {
       try {
         const { runFirstGameIntro } = await import('./tutorial/index.js');

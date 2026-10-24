@@ -1,4 +1,4 @@
-// Schema validation for src/data/learn/tutorial.<locale>.json (the 'first game with Passivo' package). Fails loudly at load.
+// Schema validation for src/data/learn/tutorial.<locale>.json (the 'first game with Maxi' package). Fails loudly at load.
 // Adding a hint, a story line or a vocabulary word is a JSON edit only.
 import { rawString } from '../i18n/index.js';
 import { POSE_NAMES } from '../ui/fox-rules.js';

@@ -200,7 +200,7 @@
 .bubble-close:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: -6px; }
 .fox-bubble[data-tone="good"] .note-bubble { border-inline-start: 3px solid var(--c-mint-500); }
 .fox-bubble[data-tone="warn"] .note-bubble { border-inline-start: 3px solid var(--border-strong); }
-/* the explainer ("פסיבו מסביר") keeps its two 48px buttons; it is the same smoked surface */
+/* the explainer ("מקסי מסביר") keeps its two 48px buttons; it is the same smoked surface */
 .fox-strip .note-explain .note-bubble { max-inline-size: 100%; align-items: center; padding-inline-end: 8px; cursor: default; }
 .fox-strip .note-explain .note-head { color: var(--bubble-text); }
 .fox-strip .note-explain .note-kicker { color: var(--text-muted); }

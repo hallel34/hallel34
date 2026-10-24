@@ -1,4 +1,4 @@
-# Passivo v4: string proposals for audit items O2 and O4
+# MaxiFox v4: string proposals for audit items O2 and O4
 
 Date: 2026-10-23. Owner: financial-education specialist (copy only). The CEO passes these to the developer.
 

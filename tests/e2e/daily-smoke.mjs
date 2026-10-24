@@ -178,8 +178,8 @@ async function main() {
     await tapTargets(page, `${tag}: start`);
     const order = await page.evaluate(() => { const g = document.querySelector('.mode-grid').getBoundingClientRect(); const c = document.querySelector('.daily-card').getBoundingClientRect(); return c.top >= g.bottom - 1; });
     check(order, `${tag}: the daily card sits under the mode cards`);
-    const clear = await page.evaluate(() => { const f = document.querySelector('.fox-slot .fox:not([aria-hidden])').getBoundingClientRect(); const g = document.querySelector('.mode-grid').getBoundingClientRect(); return { foxBottom: Math.round(f.bottom), gridTop: Math.round(g.top) }; });
-    check(clear.foxBottom <= clear.gridTop + 6, `${tag}: the fox does not cover the mode cards (${JSON.stringify(clear)})`);
+    const clear = await page.evaluate(() => { const f = document.querySelector('.brand-logo').getBoundingClientRect(); const g = document.querySelector('.mode-grid').getBoundingClientRect(); return { foxBottom: Math.round(f.bottom), gridTop: Math.round(g.top) }; });
+    check(clear.foxBottom <= clear.gridTop + 6, `${tag}: the logo does not cover the mode cards (${JSON.stringify(clear)})`);
     await page.screenshot({ path: `${OUT}/start-new-${tag}.png` });
     if (w === 360 && h === 800) await axe(page, 'start (daily new)');
 
@@ -272,7 +272,7 @@ async function main() {
     const clip = await page.evaluate(() => navigator.clipboard.readText());
     const first = clip.split('\n')[0];
     const turnsPart = stored.record.turns == null ? 'לא הצלחתי היום' : /^חופש כלכלי (ב-\d+ תורות|בתור אחד)$/;
-    const m = first.match(/^פסיבו אתגר יומי 21\.10 \| (.+) \| שווי נקי \u2066((?:מינוס )?₪[\d.,]+[KM]?)\u2069$/);
+    const m = first.match(/^MaxiFox אתגר יומי 21\.10 \| (.+) \| שווי נקי \u2066((?:מינוס )?₪[\d.,]+[KM]?)\u2069$/);
     check(!!m && (typeof turnsPart === 'string' ? m[1] === turnsPart : turnsPart.test(m[1])), `${tag}: share first line "${first}"`);
     check(/^\u200F(🟩|🟨|🟥|⬜){1,10}$/u.test(clip.split('\n')[1]) && clip.split('\n').at(-1).startsWith('http'), `${tag}: share text has the squares and the link`);
     check(!data.cards.some((c) => clip.includes(c.title)) && !clip.includes(wantProf), `${tag}: share text reveals no card or profession`);
@@ -346,7 +346,7 @@ async function main() {
     check((await page.locator('.daily-h1').innerText()) === 'לא הצלחתי היום', 'giving up ends the day as "לא הצלחתי היום"');
     check(await page.locator('section[data-screen="daily"]').getAttribute('data-outcome') === 'gaveUp', 'outcome gaveUp');
     const first = await (async () => { await page.evaluate(() => { Object.defineProperty(navigator, 'share', { value: undefined, configurable: true }); }); await page.locator('[data-action="share"]').click(); await page.waitForTimeout(300); return (await page.evaluate(() => navigator.clipboard.readText())).split('\n')[0]; })();
-    check(first.startsWith('פסיבו אתגר יומי 21.10 | לא הצלחתי היום | שווי נקי'), `share text of a given-up day: ${first}`);
+    check(first.startsWith('MaxiFox אתגר יומי 21.10 | לא הצלחתי היום | שווי נקי'), `share text of a given-up day: ${first}`);
     await page.screenshot({ path: `${OUT}/result-gaveup-360x800.png` });
     await axe(page, 'result (gave up)');
     await ctx.close();

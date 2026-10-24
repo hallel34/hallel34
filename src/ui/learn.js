@@ -1,4 +1,4 @@
-// L1 in the UI: the glossary ('המילון של פסיבו'), term buttons everywhere, and the record of what was explained.
+// L1 in the UI: the glossary ('המילון של מקסי'), term buttons everywhere, and the record of what was explained.
 // One delegated click handler opens the dictionary for any <button class="term" data-term="...">.
 import { h } from './dom.js';
 import { t } from '../i18n/index.js';
@@ -23,7 +23,7 @@ export function recordSeen(id) {
   hooks.onUnlock?.(id);
 }
 
-/** Are the automatic 'פסיבו מסביר' explainers on? (The dictionary always works.) */
+/** Are the automatic 'מקסי מסביר' explainers on? (The dictionary always works.) */
 export const explainEnabled = () => getPrefs().explain !== false;
 
 /** 'המילה המקצועית: הכנסה פסיבית' (family mode: the real term under the kid name). */

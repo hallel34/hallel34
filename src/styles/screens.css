@@ -12,9 +12,11 @@
 .topbar { display: flex; justify-content: space-between; align-items: center; }
 .topbar-actions { display: flex; gap: 8px; }
 .games-chip { display: flex; align-items: center; gap: 8px; block-size: 44px; padding-inline: 14px; border-radius: 22px; font-weight: var(--fw-bold); font-size: .9375rem; }
-.start-hero { flex: 1; min-block-size: 0; display: flex; flex-direction: column; align-items: center; text-align: center; padding-block-start: 6px; }
+.start-hero { flex: 1; min-block-size: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding-block-start: 6px; }
+/* MaxiFox logo (fox-usage.md "Logo vs character"): 200px wide at 360/390, 132 at 320x568; clear space X = 1/6 of the width.
+   Brand art: no glow, no outline, no tap reaction; aspect kept (240 x 261). */
 .wordmark { margin: 0; line-height: 0; }
-.wordmark img { inline-size: clamp(168px, 29dvh, 232px); block-size: auto; aspect-ratio: 232 / 129; filter: drop-shadow(0 8px 14px rgb(0 0 0 / .4)); }
+.brand-logo { --logo-w: 200px; inline-size: var(--logo-w); block-size: auto; aspect-ratio: 240 / 261; margin-block: calc(var(--logo-w) / 6 - 16px) calc(var(--logo-w) / 6 - 26px); }
 .title {
   margin: 14px 0 0; font-size: clamp(2.5rem, 7.2dvh, 3.5rem); line-height: 1; font-weight: var(--fw-black); letter-spacing: -1px;
   background: var(--title-grad); -webkit-background-clip: text; background-clip: text; color: transparent;
@@ -40,9 +42,8 @@
 @media (max-height: 700px) {
   .screen-start { padding-block-end: max(14px, env(safe-area-inset-bottom)); gap: 4px; }
   .start-hero { padding-block-start: 0; }
-  .wordmark img { inline-size: clamp(120px, 24dvh, 232px); }
+  .brand-logo { --logo-w: clamp(132px, 26dvh, 200px); }
   .tagline { font-size: .9375rem; margin-block-start: 2px; }
-  .fox-stage { min-block-size: 110px; margin-block-start: 0; }
   .start-bottom { gap: 8px; }
   .mode-card { min-block-size: 60px; padding-block: 6px; }
   .mode-desc { font-size: .75rem; }
@@ -413,8 +414,7 @@
 /* very short phones (320x568): the daily card needs its room, so the tagline gives way and the hero tightens */
 @media (max-height: 600px) {
   .screen-start .tagline { display: none; }
-  .screen-start .wordmark img { inline-size: clamp(96px, 20dvh, 232px); }
-  .screen-start .fox-stage { min-block-size: 96px; }
+  .screen-start .brand-logo { --logo-w: 132px; }
   .daily-streak { display: none; }
   .screen-daily { gap: 8px; padding-block-end: max(12px, env(safe-area-inset-bottom)); }
   .daily-sub { display: none; }

@@ -1,4 +1,4 @@
-// 'המשחק הראשון עם פסיבו': the pure rules (summary figures vs the engine, first-time triggers, hint scheduling, goal line,
+// 'המשחק הראשון עם מקסי': the pure rules (summary figures vs the engine, first-time triggers, hint scheduling, goal line,
 // vocabulary layer, quiz) and the hot-seat one-tap hand-over contract.
 import { describe, it, expect, beforeEach } from 'vitest';
 import { readFileSync } from 'node:fs';

@@ -1,10 +1,12 @@
-# פסיבו (Passivo)
+# MaxiFox
+
+Formerly פסיבו / Passivo, renamed 2026-10-23 (docs/decisions.md). The `passivo.*` localStorage keys, the daily seed `passivo-daily|` and the `history.state.passivo` marker keep the old name on purpose, so saves and daily boards survive the rename.
 
 A financial board game for one player, or 2-4 players taking turns on one device (hot-seat). Start in the daily grind ("השגרה") with a salary and expenses, buy assets
 that create passive income, and win when **passive income > total monthly expenses**.
 Hebrew (RTL) first, English-ready. Vite + vanilla JS, no backend, installable offline PWA.
 
-Look and feel: "Navy & Gold" dark-first with the fox character Passivo (see `design/DIRECTION-v3.md`, `design/fox-usage.md` and `design/mockups/`), plus a light theme. The board is the "night city" variation.
+Look and feel: "Navy & Gold" dark-first with the fox character מקסי (Maxi). The app icon, the home logo, the splash and the store art use the gold MaxiFox logo (`design/brand/`); the orange character appears in the game only (see `design/DIRECTION-v3.md`, `design/fox-usage.md` and `design/mockups/`), plus a light theme. The board is the "night city" variation.
 
 ## Run
 
@@ -16,7 +18,7 @@ npm run build        # production build to dist/
 npm run preview      # serve dist/ locally
 npm run simulate     # balance simulation (bots, 100 games per profession and mode)
 npm run smoke        # Playwright full-flow test at 360x800 (see below)
-npm run icons        # re-rasterize PWA icons from src/assets/app-icon-*.svg
+npm run icons        # rebuild the MaxiFox icons + alpha logo from design/brand/maxifox-logo-source.jpg (design/brand/scripts)
 ```
 
 Handy URL parameter: `?seed=123` makes the shuffle and dice deterministic (game *n* of the session uses `seed + n - 1`).
@@ -156,7 +158,7 @@ the authoritative rules are in `docs/v2/learn/spec.md`). Adding content never ne
 
 | File | What | How to extend |
 |---|---|---|
-| `glossary.he.json` | the 13 concepts of 'המילון של פסיבו' (`level`: `family` shows in both modes, `full` only in full mode) | add an object to `concepts[]`; to make a word a dashed-underline button write `[[term:id\|display]]` in any string of `src/i18n/he.json` (display is optional). Unknown ids fail `npm test` |
+| `glossary.he.json` | the 13 concepts of 'המילון של מקסי' (`level`: `family` shows in both modes, `full` only in full mode) | add an object to `concepts[]`; to make a word a dashed-underline button write `[[term:id\|display]]` in any string of `src/i18n/he.json` (display is optional). Unknown ids fail `npm test` |
 | `feedback.he.json` | the fox line after each decision: `lines["buy.good"].family / .full / .all` (three phrasings rotate, deterministic per game seed) | add a phrasing to a group's array; slots come from `GROUP_SLOTS` in `src/learn/feedback.js` |
 | `guess.he.json` | 'עסקה טובה?' (family mode, apartments and businesses only), traffic-light texts, verdicts, 'עין של משקיע' | edit texts; thresholds are never typed: `PAYBACK_OK_YEARS` / `PAYBACK_SLOW_YEARS` / `INVESTOR_EYE_STREAK` in `config.js` |
 | `report.he.json` | 'מה למדתי' report and the conversation questions (family: three questions of one theme, picked by the report tip, the other themes rotate by the game seed) | add a theme or a question |
@@ -166,10 +168,10 @@ Where it lives: pure rules in `src/engine/learn.js` (rating a deal / a loan, the
 and `src/learn/` (texts, slots, triggers, report view model); UI in `src/ui/learn.js` (dictionary), `learn-flow.js` + `notes.js`
 (fox note: feedback and first-time explainers), `report.js`, `realworld.js` and the guess flow in `modals.js`. Progress that survives games
 is in localStorage (`passivo.learn.seen`, `passivo.learn.badges`); the explainers and the guess can be switched off in settings
-('הסברים של פסיבו', 'ניחוש לפני קנייה': on by default in family mode, off in full mode). Save schema 3 added `state.learn`; older saves migrate.
+('הסברים של מקסי', 'ניחוש לפני קנייה': on by default in family mode, off in full mode). Save schema 3 added `state.learn`; older saves migrate.
 Tuning parameters: `LOAN_COSTLY_PAYMENT_SHARE`, `INVESTOR_EYE_STREAK`, `REPORT_*` in `src/engine/config.js`.
 
-## The first game with Passivo (learnability package)
+## The first game with Maxi (learnability package)
 Spec: `docs/v2/tutorial/spec.md`, art: `docs/v2/tutorial/art.md`, all wording: `src/data/learn/tutorial.he.json` (validated at load by
 `src/learn/validate-tutorial.js`, pruned for the production bundle by `scripts/prune-learn.js`).
 - **One-tap hand-over (hot-seat):** when a turn resolves the pass-the-phone sheet opens at once with a recap and one button
@@ -186,7 +188,9 @@ Spec: `docs/v2/tutorial/spec.md`, art: `docs/v2/tutorial/art.md`, all wording: `
 - Tests: `tests/tutorial.test.js` (rules), `tests/tutorial-content.test.js` (every `computed` figure recomputed from the game data),
   `npm run smoke:tutorial` (Playwright, optional axe via `AXE=/path/to/axe.min.js`).
 
-## The fox (Passivo)
+## The fox (מקסי / Maxi)
+
+The app icon and the home logo are the gold MaxiFox logo (`design/brand/`, in-app copy `src/assets/brand/maxifox-logo-alpha-1x/2x.webp`); the character below is the orange fox מקסי.
 
 Poses live in `src/assets/fox/` as transparent WebP (`tired`, `wave`, `roll`, `hammock`, `tip` with `@2x`) plus four
 512px circle crops (`think`, `celebrate`, `worried`, `ponder`). `src/ui/fox.js` is the only place that builds fox images
@@ -194,7 +198,7 @@ Poses live in `src/assets/fox/` as transparent WebP (`tired`, `wave`, `roll`, `h
 `he.json` or `alt=""` when decorative). Where each pose goes and how it moves: `design/fox-usage.md`; the rules that
 are not DOM (which crop for which square, when family tips show) are in `src/ui/fox-rules.js` and unit-tested.
 
-- Start: `tired` (idle bob), `wave` once on first launch (flag `passivo.seenIntro` in localStorage).
+- Start: the MaxiFox logo only (no character). The first-launch greeting "היי, אני מקסי!" is the first bubble of the board's corner guide (flag `passivo.seenIntro` in localStorage, key kept).
 - Board: `roll` pose above the roll button, a reaction crop in the strip under the board (never over the HUD, tiles
   or die), `tip` in family mode on turns 1-3 and every 5th turn.
 - Win: `hammock`. Game over: `tired`. Cards, loan dialog and the profession preview carry one reaction crop.

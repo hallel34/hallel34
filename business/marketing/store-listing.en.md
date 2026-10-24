@@ -2,7 +2,7 @@
 
 ## Title (<=30) — 26 characters
 ```
-Passivo – Money Board Game
+MaxiFox – Money Board Game
 ```
 
 ## Short description (<=80) — 78 characters
@@ -12,7 +12,7 @@ Buy assets, build passive income, reach financial freedom. A money board game.
 
 ## Full description (<=4000)
 ```
-Salary, bills, loans... and how do you make your money work for you? Passivo is a single-player money board game that shows how passive income works. For adults, parents and kids 9+.
+Salary, bills, loans... and how do you make your money work for you? MaxiFox is a single-player money board game that shows how passive income works. For adults, parents and kids 9+.
 
 How you play
 • Pick a profession (teacher, engineer, nurse, driver and more) and start in the daily grind: a salary and monthly expenses, just like real life.
@@ -46,7 +46,7 @@ Rewarded ads are always optional.
 
 For teachers: an ad-free version for classrooms and schools, with a lesson plan and worksheet. Contact us for details.
 
-Passivo is an educational game, not investment or financial advice. All cards and scenarios are fictional, and results in the game are not a promise of results in real life.
+MaxiFox is an educational game, not investment or financial advice. All cards and scenarios are fictional, and results in the game are not a promise of results in real life.
 
 Download, roll the die and see how many turns it takes you to reach financial freedom!
 ```
@@ -60,7 +60,7 @@ financial literacy,passive income,investing,budget,cashflow,kids,family,educatio
 ```
 
 ## App Store
-- Name (<=30): `Passivo – Money Board Game` (26)
+- Name (<=30): `MaxiFox – Money Board Game` (26)
 - Subtitle (<=30): `Learn how money works for you` (29)
 
 ## Length check
@@ -71,7 +71,7 @@ Counted by hand (no shell available in this run, no script executed): title 26, 
 - App Store: Games > Board (secondary: Education)
 
 ## Content rating notes
-Same as the Hebrew listing: no violence, no real-money gambling, no user-generated content or chat, no personal data collection, local save only. Contains ads and in-app purchases. Verify the Families policy (Google) and Kids rules (Apple) before marking the app as child-directed. Expected IARC: all ages. Verify name availability for "Passivo" before submission (see trademark item in `launch-plan.md`).
+Same as the Hebrew listing: no violence, no real-money gambling, no user-generated content or chat, no personal data collection, local save only. Contains ads and in-app purchases. Verify the Families policy (Google) and Kids rules (Apple) before marking the app as child-directed. Expected IARC: all ages. Verify name availability (and the trademark check) for "MaxiFox" before submission (see trademark item in `launch-plan.md`).
 
 ## Note
 English markets are the second phase (after the Israeli launch). Pricing in $ copied from `business/sales/pricing.md`. The English UI needs the LTR build (i18n), planned for later.

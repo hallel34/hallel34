@@ -634,7 +634,7 @@ async function testExplainers(page) {
   check(!!note, 'L1: an explainer note appears after a turn');
   await page.waitForTimeout(500);
   const ex = await page.evaluate(() => { const n = document.querySelector('.note-explain'); return { concept: n.dataset.concept, text: n.innerText, region: n.getAttribute('role'), label: n.getAttribute('aria-label'), buttons: [...n.querySelectorAll('button')].map((b) => ({ a: b.dataset.action, h: b.getBoundingClientRect().height, w: b.getBoundingClientRect().width })) }; });
-  check(ex.region === 'region' && /פסיבו מסביר/.test(ex.label) && /פסיבו מסביר/.test(ex.text) && ex.buttons.length === 2, `L1: the explainer is a labelled region with two buttons (concept ${ex.concept})`);
+  check(ex.region === 'region' && /מקסי מסביר/.test(ex.label) && /מקסי מסביר/.test(ex.text) && ex.buttons.length === 2, `L1: the explainer is a labelled region with two buttons (concept ${ex.concept})`);
   check(ex.buttons.every((b) => b.h >= 47.5 && b.w >= 47.5), `L1: explainer buttons are 48px targets (${ex.buttons.map((b) => `${Math.round(b.w)}x${Math.round(b.h)}`).join(', ')})`);
   const geo = await page.evaluate(() => window.__learnLog.find((x) => x.kind === 'explain'));
   check(geo && !geo.hitRoll && !geo.hitHud && !geo.hitDice && !geo.hitStatus && geo.inViewport, `L1: the explainer never covers the roll button, the HUD numbers, the die or the status text (${JSON.stringify({ r: geo?.hitRoll, h: geo?.hitHud, d: geo?.hitDice, s: geo?.hitStatus, v: geo?.inViewport })})`);
@@ -672,7 +672,7 @@ async function testExplainers(page) {
   check(log.every((x) => !x.hitRoll && !x.hitHud && !x.hitDice && !x.hitStatus && x.inViewport), 'L1: no explainer ever covered the roll button, HUD, die or status');
   await page.evaluate(() => localStorage.removeItem('passivo.save'));
 
-  // global off: 'הסברים של פסיבו' in settings
+  // global off: 'הסברים של מקסי' in settings
   await page.goto(`${URL_BASE}?seed=3`);
   await page.waitForSelector('[data-screen="start"]');
   await page.evaluate(() => { localStorage.removeItem('passivo.learn.seen'); });
@@ -680,7 +680,7 @@ async function testExplainers(page) {
   await page.waitForSelector('[data-screen="start"]');
   await page.locator('.topbar .icon-btn').last().click();
   await page.waitForSelector('.layer-dialog');
-  check(await page.locator('#pref-explain').isChecked(), 'L1: settings has "הסברים של פסיבו" on by default');
+  check(await page.locator('#pref-explain').isChecked(), 'L1: settings has "הסברים של מקסי" on by default');
   const guessDefault = await page.locator('#pref-guess').isChecked();
   check(guessDefault === (MODE === 'family') || true, `L2: settings has "ניחוש לפני קנייה" (shown ${guessDefault ? 'on' : 'off'} for the ${MODE} mode)`);
   await tapTargets(page, 'settings with the learning toggles');
@@ -1208,18 +1208,15 @@ async function main() {
   await noHScroll(page, 'start');
   await tapTargets(page, 'start');
   await page.screenshot({ path: `${OUT}/01-start-first-launch.png` });
-  // First launch: the fox waves once, then settles into the tired pose; the flag keeps the intro from replaying.
-  check(await page.locator('img.pose-wave').count() === 1, 'first launch shows the wave pose');
-  await page.waitForFunction(() => localStorage.getItem('passivo.seenIntro') === '1');
-  await page.waitForTimeout(2800);
-  check(await page.evaluate(() => getComputedStyle(document.querySelector('img.pose-tired')).opacity) === '1', 'fox crossfaded from wave to tired');
-  const h1 = await page.evaluate(() => ({ n: document.querySelectorAll('h1').length, text: document.querySelector('h1')?.textContent.trim(), wm: !!document.querySelector('h1 img[src*="wordmark"]') }));
-  check(h1.n === 1 && h1.text === 'פסיבו' && h1.wm, 'start has one accessible h1 "פסיבו" with the wordmark');
-  await foxChecks(page, 'start');
+  // Home shows the MaxiFox logo, never the character (rename 2026-10-23, decisions 2026-10-24); the first-launch greeting
+  // "היי, אני מקסי!" moved to the board's corner guide, so the flag is still unset on home.
+  check(await page.locator('.screen-start img.fox').count() === 0, 'home shows no fox character pose (the logo only)');
+  check(await page.evaluate(() => localStorage.getItem('passivo.seenIntro')) === null, 'the greeting flag is not used up on home');
+  const h1 = await page.evaluate(() => ({ n: document.querySelectorAll('h1').length, text: document.querySelector('h1')?.textContent.trim(), wm: !!document.querySelector('h1 img[src*="maxifox-logo-alpha"]'), w: Math.round(document.querySelector('h1 img')?.getBoundingClientRect().width ?? 0) }));
+  check(h1.n === 1 && h1.text === 'MaxiFox' && h1.wm && h1.w === 200, `start has one accessible h1 "MaxiFox" with the 200px logo (${JSON.stringify(h1)})`);
   await page.screenshot({ path: `${OUT}/01-start.png` });
   await page.reload();
   await page.waitForSelector('[data-screen="start"]');
-  check(await page.locator('img.pose-wave').count() === 0, 'wave pose does not replay after the first launch');
   await noVScroll(page, 'start (returning user)');
   await insideViewport(page, ['[data-action="start"]', '.mode-grid'], 'start CTA');
 
@@ -1298,7 +1295,9 @@ async function main() {
   await foxChecks(page, 'board');
   await reactionStripClear(page);
   const pose = await page.evaluate(() => document.querySelector('.roll-zone')?.dataset.pose);
-  check((MODE === 'family' ? ['tip', 'note'].includes(pose) : pose === 'roll') || PLAYERS > 1, `roll zone shows the ${MODE === 'family' ? 'family tip' : 'roll pose'} at the start (got ${pose})`);
+  // first launch of the device: the corner guide greets ("היי, אני מקסי!", moved off home by the rename) before going idle
+  const hello = await page.evaluate(() => /היי, אני מקסי!/.test(document.querySelector('.roll-zone .note')?.textContent ?? ''));
+  check((MODE === 'family' ? ['tip', 'note'].includes(pose) : pose === 'roll' || (pose === 'note' && hello)) || PLAYERS > 1, `roll zone shows the ${MODE === 'family' ? 'family tip' : 'roll pose (or the first-launch greeting)'} at the start (got ${pose})`);
   const theme = await page.evaluate(() => document.querySelector('meta[name="theme-color"]').content);
   check(theme.toLowerCase() === '#0f172a', 'theme-color is navy');
 

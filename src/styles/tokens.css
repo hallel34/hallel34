@@ -1,4 +1,4 @@
-/* פסיבו (Passivo) — design tokens. Direction v3.1: "Navy & Gold", quiet edition (dark-first), derived from the fox art.
+/* MaxiFox — design tokens. Direction v3.1: "Navy & Gold", quiet edition (dark-first), derived from the fox art.
    v3.1 (Phase 1 design): deep-navy #0F172A family, ONE accent (gold) = the single primary action per screen, flat buttons and cards
    (no gradients: the old gradient tokens are now solid colours, written as linear-gradient(X, X) so both `background` and
    `background-image` uses keep working), category + verdict + negative-money tokens. Old -> new table: docs/v3/design/spec.md section 2.
