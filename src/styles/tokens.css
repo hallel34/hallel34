@@ -335,8 +335,122 @@
   --warn-bg: rgb(242 181 58 / .14); --warn-border: rgb(242 181 58 / .45); }
 :root[data-learn="family"][data-theme="light"] { --expense: #6E4200; --negative: #6E4200; }
 
+/* ==== v4 board stage tokens (docs/v4/design/board-spec.md section 2, verbatim). They come after every v3 :root block so the
+   theme / family / reduced-motion layers below override the v4 defaults in the same order as the spec. The --sq-* tokens above
+   are deprecated and kept until nothing reads them. ==== */
+:root {
+  /* ---- v4 board: tile families (dark theme). gain = gold, loss = deep red, info = sky ---- */
+  --tile-gain-bg: #2A2414;  --tile-gain-edge: #C9952F;  --tile-gain-ink: #FFD479;   /* ink/bg 11.0:1, edge/ground 7.1:1 */
+  --tile-loss-bg: #36121A;  --tile-loss-edge: #D9463E;  --tile-loss-ink: #FF9E92;   /* 8.4:1, 4.4:1 */
+  --tile-info-bg: #0E2742;  --tile-info-edge: #4DA3FF;  --tile-info-ink: #9CCBFF;   /* 8.9:1, 7.2:1 */
+  /* on the cream card (both themes): the card header chip uses the light values */
+  --chip-gain-bg: #FFF0C9;  --chip-gain-edge: #A8720C;  --chip-gain-ink: #6E4200;
+  --chip-loss-bg: #FDE3DF;  --chip-loss-edge: #B3261E;  --chip-loss-ink: #8F1D16;
+  --chip-info-bg: #E1EEFB;  --chip-info-edge: #1A62B3;  --chip-info-ink: #12477F;
+  --tile-shadow: inset 0 1px 0 rgb(255 255 255 / .06), 0 2px 0 rgb(0 0 0 / .35), 0 6px 10px rgb(0 0 0 / .28);
+  --tile-lift: -2px;
+  --ring-current: #F2B53A;
+  --ring-gap: #0A1020;
+  --ring-current-shadow: 0 0 0 2px var(--ring-gap), 0 0 0 4px var(--ring-current), 0 0 14px 3px rgb(242 181 58 / .45);
+  --dur-ring-breathe: 2400ms;
+
+  /* ---- v4 board: stage + depth ---- */
+  --board-ground: rgb(10 16 32 / .62);          /* translucent plate: the skyline reads through the plaza */
+  --skyline-fill: var(--skyline);              /* #0A1020 */
+  --skyline-opacity: .55;                       /* behind the board plate; home keeps its own .25 */
+  --window-fill: var(--skyline-window);         /* #F2B53A */
+  --window-on: .85;  --window-dim: .2;
+  --dur-flicker-1: 7s; --dur-flicker-2: 9.5s; --dur-flicker-3: 12.5s;   /* 6 windows max, 2 per duration, staggered delays */
+  --pawn-shadow: radial-gradient(closest-side, rgb(0 0 0 / .5), rgb(0 0 0 / 0));
+  --pawn-shadow-apex-scale: .6;  --pawn-shadow-apex-opacity: .45;
+
+  /* ---- v4 die (the phases sum to the existing --dur-die 1100ms) ---- */
+  --dur-die-windup: 80ms;
+  --dur-die-tumble: 780ms;
+  --dur-die-settle: 240ms;
+  --ease-die-tumble: cubic-bezier(.15, .85, .35, 1);   /* fast release, long friction tail */
+  --ease-die-rise:   cubic-bezier(.33, 1, .68, 1);     /* toss up, decelerating */
+  --ease-die-fall:   cubic-bezier(.32, 0, .67, 0);     /* gravity, accelerating */
+  --ease-die-settle: cubic-bezier(.34, 1.56, .64, 1);  /* = --ease-bounce: 6% overshoot on land */
+  --die-toss: 28px;  --die-tilt: 10deg;
+  --dur-die-result: 700ms;                              /* big number: 200 pop + 380 hold + 120 fade */
+  --fs-die-result: 4.5rem;                              /* 72px; 3.5rem (56) at <=360 wide or <=640 tall */
+
+  /* ---- v4 fox guide ---- */
+  --fox-guide: 72px;                                    /* 80 at >=390, 72 at 360, 64 at 320 */
+  --bubble-bg: rgb(20 28 48 / .94);                     /* smoked glass WITHOUT backdrop-filter (perf); solid fallback #141C30 */
+  --bubble-border: rgb(255 255 255 / .14);
+  --bubble-highlight: inset 0 1px 0 rgb(255 255 255 / .08);
+  --bubble-text: var(--text);
+  --bubble-base-ms: 2500;  --bubble-per-word-ms: 300;  --bubble-min-ms: 6000;  --bubble-max-ms: 15000;   /* unitless: read in JS */
+
+  /* ---- v4 typography roles ---- */
+  --fw-money: 900;   --fw-label: 500;   --fw-explain: 400;
+  --fs-money-hero: 2.25rem;     /* 36: HUD cash, deal-card monthly cash flow */
+  --fs-money-key: 1.375rem;     /* 22: deal-card down payment, second-rank numbers */
+  --fs-money-row: 1rem;         /* 16: rows, statement lines */
+
+  /* ---- v4 deal-strength badge (A/B/C from paybackTier). On the cream card: ---- */
+  --deal-a-bg: #0B6B43; --deal-a-ink: #FFFFFF;
+  --deal-b-bg: #E8A317; --deal-b-ink: #2A1700; --deal-b-border: #6B4300;   /* fill alone is 2.0:1 on cream: border is mandatory */
+  --deal-c-bg: #B42318; --deal-c-ink: #FFFFFF;
+  /* on dark surfaces (statement asset list): */
+  --deal-a-bg-dk: #7FE3B8; --deal-a-ink-dk: #0B3D27;
+  --deal-b-bg-dk: #F5C55A; --deal-b-ink-dk: #3A2600;
+  --deal-c-bg-dk: #A8322B; --deal-c-ink-dk: #FFFFFF; --deal-c-border-dk: #FF9E92;
+}
+
+:root[data-theme="light"] {
+  --tile-gain-bg: #FFF0C9;  --tile-gain-edge: #A8720C;  --tile-gain-ink: #6E4200;
+  --tile-loss-bg: #FDE3DF;  --tile-loss-edge: #B3261E;  --tile-loss-ink: #8F1D16;
+  --tile-info-bg: #E1EEFB;  --tile-info-edge: #1A62B3;  --tile-info-ink: #12477F;
+  --tile-shadow: inset 0 1px 0 rgb(255 255 255 / .7), 0 1px 0 rgb(15 23 42 / .18), 0 4px 8px rgb(15 23 42 / .12);
+  --ring-current: #8A5A00;
+  --ring-gap: #F1E5C8;
+  --ring-current-shadow: 0 0 0 2px var(--ring-gap), 0 0 0 4px var(--ring-current), 0 0 12px 2px rgb(165 106 10 / .30);
+  --board-ground: rgb(241 229 200 / .78);
+  --skyline-fill: #E9B979;  --skyline-opacity: .4;    /* same as home light */
+  --window-on: 0; --window-dim: 0;                     /* dusk paper: no lit windows, no flicker */
+  --pawn-shadow: radial-gradient(closest-side, rgb(15 23 42 / .28), rgb(15 23 42 / 0));
+  --bubble-bg: rgb(255 253 247 / .96);                 /* fallback #FFFDF7 */
+  --bubble-border: rgb(15 23 42 / .16);
+  --bubble-highlight: inset 0 1px 0 #FFFFFF;
+}
+
+/* Family mode: no red anywhere. Loss family = deep amber; badge C = amber "איטית" */
+:root[data-learn="family"] {
+  --tile-loss-bg: #331C0B;  --tile-loss-edge: #D97F1F;  --tile-loss-ink: #FFB46A;
+  --chip-loss-bg: #FBE2C4;  --chip-loss-edge: #A3520A;  --chip-loss-ink: #6B3300;
+  --deal-c-bg: #8A4B00;     --deal-c-ink: #FFFFFF;
+  --deal-c-bg-dk: #E59A4C;  --deal-c-ink-dk: #3A1C00;  --deal-c-border-dk: #E59A4C;
+  --bubble-min-ms: 8000;    --bubble-per-word-ms: 400;
+}
+:root[data-learn="family"][data-theme="light"] {
+  --tile-loss-bg: #FBE2C4;  --tile-loss-edge: #A3520A;  --tile-loss-ink: #6B3300;
+}
+
+/* Reduced motion: no tumble, no flicker, no breathing. The die result number STAYS (it is information) but only fades */
+@media (prefers-reduced-motion: reduce) {
+  :root { --dur-die-windup: 1ms; --dur-die-tumble: 1ms; --dur-die-settle: 120ms; --die-toss: 0px; --die-tilt: 0deg;
+          --dur-ring-breathe: 0s; --dur-flicker-1: 0s; --dur-flicker-2: 0s; --dur-flicker-3: 0s; }
+}
+:root[data-motion="reduced"] { --dur-die-windup: 1ms; --dur-die-tumble: 1ms; --dur-die-settle: 120ms; --die-toss: 0px; --die-tilt: 0deg;
+  --dur-ring-breathe: 0s; --dur-flicker-1: 0s; --dur-flicker-2: 0s; --dur-flicker-3: 0s; }
+
+/* ==== v4 owner override 2026-10-24 (board-spec.md 13.3): the raised plate, the in-plate skyline, the current-tile float ==== */
+:root {
+  --plate-bg: #131C33;
+  --plate-shadow: inset 0 0 0 1px rgb(255 255 255 / .10), 0 6px 0 #26325A, 0 16px 28px rgb(0 0 0 / .40);  /* 6px rim = the mockup's raised plate */
+  --skyline-board: #1C2747;  --tile-lift-current: -4px;  --tile-scale-current: 1.04;
+}
+:root[data-theme="light"] {
+  --plate-bg: #F1E5C8;
+  --plate-shadow: inset 0 0 0 1px rgb(15 23 42 / .10), 0 6px 0 #A9AEDC, 0 16px 28px rgb(15 23 42 / .18);  /* lavender rim, as in the mockup */
+  --skyline-board: #3A4A8C;
+}
+
 /* ---- Base helpers ---- */
-.money { font-family: var(--font-display); font-weight: var(--fw-bold);
+.money { font-family: var(--font-display); font-weight: var(--fw-money); /* v4: Rubik 900 for every amount */
   font-variant-numeric: tabular-nums; font-feature-settings: var(--num-features);
   unicode-bidi: isolate; }
 .money .cur { font-size: .6em; font-weight: var(--fw-medium); margin-inline-end: .12em; }

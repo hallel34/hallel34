@@ -20,7 +20,7 @@
 
 .goal-line, .free-line { margin: 0; font-size: .75rem; line-height: 1.2; font-weight: var(--fw-medium); color: var(--text-muted); }
 .free-line { font-weight: var(--fw-bold); color: var(--income); }
-.free-line .money { font-weight: var(--fw-black); }
+.free-line .money { font-weight: var(--fw-money); }
 .goal-line[hidden], .free-line[hidden] { display: none; }
 .hud:has(.goal-line:not([hidden])) { gap: 6px; }
 @media (max-height: 700px) { .hud:has(.goal-line:not([hidden])) { gap: 3px; } }
@@ -47,10 +47,10 @@
 .fp-out .fp-total { color: var(--expense); }
 .fp-sub { margin: 0; font-size: .6875rem; line-height: 1.2; color: var(--text-muted); }
 @media (max-height: 779px) { .fp-sub { display: none; } }
-.fp-sub .money { font-weight: var(--fw-bold); }
+.fp-sub .money { font-weight: var(--fw-money); }
 .fp-op { align-self: center; display: grid; place-items: center; inline-size: 20px; block-size: 20px; border-radius: 50%; background: var(--surface-sunken); color: var(--text); font-weight: var(--fw-black); font-size: .9375rem; line-height: 1; }
 .fp-left { margin: 2px 0 0; display: flex; align-items: center; justify-content: space-between; min-block-size: 36px; padding-inline: 14px; border-radius: 18px; font-size: .9375rem; font-weight: var(--fw-bold); }
-.fp-left .money { font-size: 1.25rem; font-weight: var(--fw-black); }
+.fp-left .money { font-size: 1.25rem; font-weight: var(--fw-money); }
 .fp-left.is-positive { background: var(--income-fill); color: #032A1A; }
 /* a negative result is never red (no shaming): calm amber with an explicit minus sign */
 .fp-left.is-negative { background: var(--amber-fill); color: var(--amber-ink); }

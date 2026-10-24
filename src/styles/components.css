@@ -78,12 +78,12 @@
 
 /* ===== Money: the one component (format.js money()/setMoney()) ===== */
 .money {
-  font-family: var(--font-display); font-weight: var(--fw-bold); white-space: nowrap; unicode-bidi: isolate;
+  font-family: var(--font-display); font-weight: var(--fw-money); white-space: nowrap; unicode-bidi: isolate;
   font-variant-numeric: tabular-nums lining-nums; font-feature-settings: "tnum" 1, "lnum" 1;
 }
 .money .cur { font-size: .72em; font-weight: var(--fw-medium); margin-inline-end: .1em; opacity: .9; }
 .money--xs { font-size: .75rem; } .money--sm { font-size: .875rem; } .money--md { font-size: 1rem; } .money--lg { font-size: 1.25rem; }
-.money--xl { font-size: 1.75rem; font-weight: 800; } .money--xxl { font-size: 2.25rem; font-weight: 800; }
+.money--xl { font-size: 1.75rem; font-weight: var(--fw-money); } .money--xxl { font-size: 2.25rem; font-weight: var(--fw-money); }
 .money--xs .cur, .money--sm .cur, .money--md .cur { font-size: 1em; opacity: 1; font-weight: inherit; } /* the symbol stays legible at small sizes */
 .money.is-neg { color: var(--money-neg, var(--negative)); } /* never colour alone: the sign is always there */
 /* cream / white surfaces use the ink variant (the light red is 2.8:1 there) */
@@ -178,7 +178,7 @@
 .key-numbers .stat-tile + .stat-tile { border-inline-start: 1px solid var(--card-border); padding-inline-start: 16px; }
 .key-numbers .stat-tile:not(:last-child) { padding-inline-end: 12px; }
 .key-numbers .stat-value { font-size: 2rem; font-weight: 800; line-height: 1.15; }
-.key-numbers .stat-value .money { font-weight: 800; }
+.key-numbers .stat-value .money { font-weight: var(--fw-money); }
 .stat-caption { font-size: .75rem; color: var(--card-muted); line-height: 1.2; }
 .stat-tile { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-radius: 16px; background-color: var(--card-tile-bg); border: 1px solid var(--card-border); min-inline-size: 0; }
 .stat-label { font-size: 0.8125rem; font-weight: var(--fw-medium); color: var(--card-muted); }
@@ -197,7 +197,7 @@
 .pe-debt .pe-value { color: #55508A; }
 .pe-op { font-size: 1rem; color: var(--card-muted); padding-block-end: 1px; }
 .debt-after { margin: 0; font-size: .8125rem; line-height: 1.35; color: var(--card-muted); }
-.debt-after .money { font-weight: var(--fw-bold); color: #55508A; }
+.debt-after .money { font-weight: var(--fw-money); color: #55508A; }
 .metrics { display: flex; flex-wrap: wrap; gap: 6px 22px; align-items: flex-end; }
 .metric { display: flex; flex-direction: column; gap: 0; min-inline-size: 0; }
 .metric-label { font-size: .75rem; color: var(--card-muted); line-height: 1.2; }
@@ -268,7 +268,7 @@
 .big-amount { font-size: var(--fs-2xl); font-weight: 800; color: var(--cash-color); }
 .kv { display: flex; justify-content: space-between; gap: var(--sp-3); font-weight: var(--fw-medium); font-size: .9375rem; padding-block: 2px; }
 .kv > span:first-child { color: var(--text-muted); }
-.kv .money { font-weight: var(--fw-bold); color: var(--text); }
+.kv .money { font-weight: var(--fw-money); color: var(--text); }
 .kv.is-negative .money { color: var(--negative); }
 .kv.is-positive .money { color: var(--income); }
 .limit { display: flex; flex-direction: column; gap: 6px; }
@@ -283,7 +283,7 @@
 .loan-num + .loan-num { border-inline-start: 1px solid var(--border); }
 .loan-num-label { font-size: .75rem; font-weight: var(--fw-medium); color: var(--text-muted); line-height: 1.2; }
 .loan-num-value { font-size: 1.25rem; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.loan-num-value .money { font-weight: 800; }
+.loan-num-value .money { font-weight: var(--fw-money); }
 .loan-num[data-num="cost"] .loan-num-value { color: var(--negative); }
 .loan-details-toggle { align-self: flex-start; }
 .loan-details { display: flex; flex-direction: column; gap: var(--sp-3); }
@@ -363,7 +363,7 @@
 .nw-bar .nw-liab { background-color: var(--liability-fill); }
 .nw-cols { display: flex; justify-content: space-between; gap: 12px; font-size: .8125rem; color: var(--text-muted); }
 .nw-col { display: flex; flex-direction: column; gap: 0; min-inline-size: 0; }
-.nw-col .money { font-size: .9375rem; font-weight: var(--fw-bold); }
+.nw-col .money { font-size: .9375rem; font-weight: var(--fw-money); }
 .nw-assets-v { color: var(--income); } .nw-liab-v { color: var(--liability); }
 
 /* ===== Meter ===== */
@@ -422,7 +422,7 @@
 
 /* Payday float: amount plus a small label (two lines max) */
 .float-stack { display: flex; flex-direction: column; align-items: center; line-height: 1.1; }
-.float-stack .money { font-weight: 800; }
+.float-stack .money { font-weight: var(--fw-money); }
 .float-sub { font-family: var(--font-body, inherit); font-size: .75rem; font-weight: var(--fw-medium); color: var(--text-muted); }
 .st-payday { font-weight: var(--fw-bold); }
 
