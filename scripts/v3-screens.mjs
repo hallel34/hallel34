@@ -1,6 +1,9 @@
-// v3/v4 screenshot + layout check: every changed screen at 390x844, 360x800 and 320x568 (dark), saved as WebP into
-// qa/screens/v3-after/. Also asserts no horizontal scroll, touch targets >= 48px on the top layer and no console errors.
+// v3/v4 screenshot + layout check: every changed screen at 390x844, 360x800 and 320x568, in the dark AND the light theme, saved as
+// WebP into qa/screens/v4-after/ (<scene>-<theme>-<w>x<h>.webp). Also asserts no horizontal scroll, touch targets >= 48px on the
+// top layer and no console errors.
 // Run: npm run build && node scripts/v3-screens.mjs   (starts `vite preview` on port 4190)
+// Env: SCREENS_OUT (folder), SIZES (390x844,...), THEMES (dark,light), ONLY (scene keys), ALL=1 (every scene, not only the v4 set),
+//      PREVIEW_OUTDIR (serve another build folder).
 import { spawn, execFileSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { existsSync, mkdirSync, readFileSync, unlinkSync } from 'node:fs';
@@ -13,9 +16,12 @@ let chromium;
 try { ({ chromium } = require('playwright')); } catch { ({ chromium } = require('/opt/node-tools/node_modules/playwright')); }
 const PORT = 4190;
 const URL_BASE = `http://localhost:${PORT}/`;
-const OUT = process.env.SCREENS_OUT || new URL('../qa/screens/v3-after/', import.meta.url).pathname;
+const OUT = process.env.SCREENS_OUT || new URL('../qa/screens/v4-after/', import.meta.url).pathname;
+const THEMES = (process.env.THEMES || 'dark,light').split(',');
+// the v4 board stage set: the board in both modes, the legend, the fox bubble, the die result, the deal cards with their badge, the win screen
+const V4_SCENES = ['board', 'boardFull', 'legend', 'bubble', 'dieResult', 'fullCard', 'green', 'red', 'stockCard', 'win'];
 const SIZES = (process.env.SIZES || '390x844,360x800,320x568').split(',').map((s) => s.split('x').map(Number));
-const ONLY = process.env.ONLY ? process.env.ONLY.split(',') : null;
+const ONLY = process.env.ONLY ? process.env.ONLY.split(',') : (process.env.ALL ? null : V4_SCENES);
 const exe = process.env.CHROMIUM_PATH || ['/opt/pw-browsers/chromium-1194/chrome-linux/chrome', '/opt/pw-browsers/chromium/chrome-linux/chrome'].find(existsSync);
 mkdirSync(OUT, { recursive: true });
 const read = (p) => JSON.parse(readFileSync(new URL(`../src/data/${p}`, import.meta.url), 'utf8'));
@@ -50,7 +56,8 @@ function beforePayday(mode) {
   return { ...m, players: m.players.map((p) => ({ ...p, state: { ...p.state, position: idx - 1 } })) };
 }
 
-async function prep(page, { guess = true, tutorial = null, theme = 'dark' } = {}) {
+let THEME = 'dark';
+async function prep(page, { guess = true, tutorial = null, theme = THEME } = {}) {
   await page.goto(`${URL_BASE}?seed=3`);
   await page.evaluate(([g, tut, th]) => {
     localStorage.clear();
@@ -85,7 +92,7 @@ async function check(page, name) {
 async function shot(page, name, w, hgt) {
   // INJECT_CSS reproduces an old layout for an audit 'before' shot (e.g. the D1 tour strip without its reserved room)
   if (process.env.INJECT_CSS) { await page.addStyleTag({ content: process.env.INJECT_CSS }); await page.waitForTimeout(200); }
-  const png = `${OUT}${name}-${w}x${hgt}.png`;
+  const png = `${OUT}${name}-${THEME}-${w}x${hgt}.png`;
   await page.screenshot({ path: png });
   execFileSync('python3', ['-c', `from PIL import Image; Image.open('${png}').save('${png.replace(/\.png$/, '.webp')}', 'WEBP', quality=80)`]);
   unlinkSync(png);
@@ -127,15 +134,50 @@ const SCENES = {
     note(!sc.panelScrolls, `settings: only one scroll container (${JSON.stringify(sc)})`);
     return '16-settings-dialog'; },
   async statement(page) { await SCENES.board(page); await page.locator('[data-action="statement"]').click(); await page.waitForSelector('.statement-body'); await page.waitForTimeout(800); return '09-statement'; },
+  async legend(page) {
+    await SCENES.boardFull(page);
+    await page.locator('[data-action="legend"]').click();
+    await page.waitForSelector('.legend-sheet'); await page.waitForTimeout(500);
+    const r = await page.evaluate(() => ({ rows: document.querySelectorAll('.legend-row').length, focus: document.activeElement?.id, groups: [...document.querySelectorAll('.legend-head')].map((x) => x.textContent) }));
+    note(r.rows === 6 && r.focus === 'legend-title' && r.groups.length === 3, `legend: 6 rows in 3 named groups, focus on the title (${JSON.stringify(r)})`);
+    return '20-legend-sheet';
+  },
+  async bubble(page) {
+    // family turn 1: the tip bubble beside the corner fox
+    await SCENES.board(page);
+    await page.waitForSelector('.fox-strip .note', { timeout: 6000 });
+    await page.waitForTimeout(400);
+    const r = await page.evaluate(() => {
+      const box = (s) => { const e = document.querySelector(s); if (!e) return null; const b = e.getBoundingClientRect(); return { l: b.left, t: b.top, r: b.right, b: b.bottom }; };
+      const hit = (a, b) => a && b && a.l < b.r - 0.5 && a.r > b.l + 0.5 && a.t < b.b - 0.5 && a.b > b.t + 0.5;
+      const bub = box('.fox-strip .note-bubble'); const fox = box('.fox-guide');
+      return { bub: !!bub, fox: !!fox, overFox: hit(bub, fox), hud: hit(bub, box('.hud')), board: hit(bub, box('.board')), roll: hit(bub, box('.btn-roll')), foxBoard: hit(fox, box('.board')), foxRoll: hit(fox, box('.btn-roll')) };
+    });
+    note(r.bub && r.fox && !r.overFox && !r.hud && !r.board && !r.roll && !r.foxBoard && !r.foxRoll, `bubble + fox stay in the fox strip (${JSON.stringify(r)})`);
+    return '21-fox-bubble';
+  },
+  async dieResult(page) {
+    await loadMatch(page, newMatch(engine, { mode: 'full', players: [{ name: 'דנה', professionId: 'engineer' }], seed: 7 }));
+    await page.waitForTimeout(400);
+    await page.locator('[data-action="roll"]').click();
+    await page.waitForSelector('.die-result:not([hidden])', { timeout: 8000 });
+    await page.waitForTimeout(150);
+    await page.evaluate(() => document.getAnimations().forEach((a) => a.pause()));
+    const r = await page.evaluate(() => ({ num: document.querySelector('.die-result-num')?.textContent, label: document.querySelector('.dice')?.getAttribute('aria-label') }));
+    note(/^\d+$/.test(r.num ?? '') && r.label?.includes(r.num), `die result: a big number that matches the die's aria-label (${JSON.stringify(r)})`);
+    return '22-die-result';
+  },
+  async stockCard(page) { await loadMatch(page, matchWithCard('full', 'opp-stk-002', { cash: 50000 }), { guess: false }); await page.waitForSelector('.card'); await page.waitForTimeout(500); return '14b-FULL-stock-card'; },
   async win(page) { await loadMatch(page, newMatch(engine, { mode: 'family', players: [{ name: 'דנה', professionId: 'teacher' }], seed: 7 }), { debug: true }); await page.locator('[data-action="debug-win"]').click(); await page.waitForSelector('[data-screen="win"]', { timeout: 8000 }); await page.waitForTimeout(1500); return '13-win'; },
   async over(page) { await loadMatch(page, newMatch(engine, { mode: 'full', players: [{ name: 'דנה', professionId: 'teacher' }], seed: 7 }), { debug: true }); await page.locator('[data-action="debug-lose"]').click(); await page.waitForSelector('[data-screen="over"]', { timeout: 8000 }); await page.waitForTimeout(1200); return '13c-game-over'; },
 };
 
-const server = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], { stdio: 'ignore' });
+const server = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort', ...(process.env.PREVIEW_OUTDIR ? ['--outDir', process.env.PREVIEW_OUTDIR] : [])], { stdio: 'ignore' });
 for (let i = 0; i < 60; i++) { try { if ((await fetch(URL_BASE)).ok) break; } catch { /* wait */ } await new Promise((r) => setTimeout(r, 250)); }
 const browser = await chromium.launch({ executablePath: exe });
 try {
-  for (const [w, hgt] of SIZES) {
+  for (const theme of THEMES) for (const [w, hgt] of SIZES) {
+    THEME = theme;
     for (const [key, scene] of Object.entries(SCENES)) {
       if (ONLY && !ONLY.includes(key)) continue;
       const ctx = await browser.newContext({ viewport: { width: w, height: hgt }, deviceScaleFactor: 1, locale: 'he-IL', reducedMotion: 'reduce' });
@@ -146,9 +188,9 @@ try {
       try {
         const name = await scene(page);
         await shot(page, name, w, hgt);
-        console.log(`ok ${name} ${w}x${hgt}`);
-      } catch (e) { note(false, `${key} ${w}x${hgt}: ${String(e.message).split('\n')[0]}`); }
-      note(!errors.length, `${key} ${w}x${hgt}: console errors ${errors.join(' | ')}`);
+        console.log(`ok ${name} ${theme} ${w}x${hgt}`);
+      } catch (e) { note(false, `${key} ${theme} ${w}x${hgt}: ${String(e.message).split('\n')[0]}`); }
+      note(!errors.length, `${key} ${theme} ${w}x${hgt}: console errors ${errors.join(' | ')}`);
       await ctx.close();
     }
   }
