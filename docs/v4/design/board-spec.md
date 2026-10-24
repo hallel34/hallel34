@@ -6,6 +6,11 @@ Companion files:
 - `docs/v4/design/tile-icons-contact-sheet.png`: every icon at 96px on the grid, plus 42px tiles with label chips in dark and light, full and family mode, with the current-tile ring and the deal badges. Rendered in Chromium with the real Rubik.
 - `docs/v4/design/contrast-v4-board.py`: AA audit of every new pair. 44 pairs, all pass, exit 0. Section 9 is its `--md` output.
 
+> **Owner override 2026-10-24 (section 13 wins on conflict).** The board tiles are now the owner's 3D raster tiles (`src/assets/tile3d/`) on a bigger board.
+> - **Superseded:** 1.3 (tile anatomy), 1.4 (current-tile ring CSS), the 45/41/32 tile sizes and board widths in 11, and the skyline placement in 5.
+> - **Re-scoped:** 1.1–1.2 and 4. The family colours and monoline icons now drive only the text chips (landing caption, "you are here", card header chip, legend). They no longer drive the tiles.
+> - **Unchanged:** the skyline art and flicker rules, die, fox corner guide, A/B/C badge, legend, labels-without-colour and the 3-second HUD.
+
 Supersedes for the board only: v3 spec 4.3 and the "Board, roll zone", "Board, reactions" and "Family-mode tips" rows of `design/fox-usage.md`. The `--sq-*` tokens and `square-*.svg` are deprecated. Keep them until nothing reads them.
 
 ---
@@ -444,3 +449,114 @@ There is no horizontal scroll at any width. The landing caption never exceeds pl
 4. `.money` weight goes from 700 to 900 everywhere. Recheck fit-text at 320 in the statement.
 5. **New i18n keys** (proposals): `square.taxAudit` "ביקורת רשות המסים", `legend.*` (section 3.4), `board.youAreHere` "אתם על: {label}", `board.landed` "נחתתם על: {label}", `hud.goal` "המטרה: חופש כלכלי", `hud.goalFirst` "המטרה: שהכנסה הפסיבית תעבור את ההוצאות", `hud.goalShort` "המטרה: {passive} מתוך {expenses}", `deal.badge.a/b/c` (+ `c.family` "החזר איטי"), `deal.speculative` "ספקולטיבי", `fox.lastMessage` "פסיבו: הודעה אחרונה".
 6. **Tax-audit:** the icon, label, family (info) and legend row are ready. The card UI (quiz) is for its own stage.
+
+
+---
+
+## 13. Owner override 2026-10-24: 3D raster tiles + bigger board
+Source: `design/board-ref/owner-board-3d-tiles.jpg` (owner mockup, 1440x2912). The owner asked for two things: a **bigger board**, and **these squares**.
+
+### 13.1 Assets (`src/assets/tile3d/`, extracted by `docs/v4/design/extract-tile3d.py`, deterministic)
+| File (@1x 60x72 · @2x 120x144) | Type | From the mockup | Bytes @1x / @2x |
+|---|---|---|---|
+| `payday.webp` / `payday@2x.webp` | payday | yellow banknote tile (top row) | 1,876 / 3,822 |
+| `opportunity.webp` / `@2x` | opportunity (**every** opportunity, whatever the card) | green house (top row) | 1,936 / 4,012 |
+| `expense.webp` / `@2x` | unexpected expense, full mode | red lightning (top row) | 1,830 / 3,736 |
+| `expense-family.webp` / `@2x` | unexpected expense, **family mode** (no red) | red lightning hue-shifted: body to deep amber (H 26°, V×0.93), bolt to cream so it stays readable on amber | 1,844 / 3,864 |
+| `market.webp` / `@2x` | market | blue chart (top row) | 1,968 / 4,000 |
+| `baby.webp` / `@2x` | baby | pink baby face (left column) | 1,816 / 3,926 |
+| `charity.webp` / `@2x` | charity | purple heart (top row) | 1,424 / 3,018 |
+| `tax-audit.webp` / `@2x` | tax audit (later stage) | the baby tile body with the medallion inpainted, pink hue-shifted to **teal** (H 176°), plus the `tile/tax-audit.svg` magnifier and "?" (exact path geometry) as a raised cream emboss: offset shadow, cream body, lower bevel and top highlight | 1,704 / 3,656 |
+
+- **Budget:** all 16 files total **43.4 KB**. A device fetches one density, so a 2x phone fetches the 7 board tiles at about 27 KB and a 1x device about 13 KB. That is well under the 80 KB cap.
+  - Use `<img src="x.webp" srcset="x.webp 1x, x@2x.webp 2x" width="60" height="72" decoding="async" alt="">` with **no `loading="lazy"`**, because the board is the main screen.
+  - Preload only `opportunity@2x.webp` and `payday@2x.webp`, which make up 14 of the 24 tiles.
+- **Sharpness:** the source tiles are about 150px wide, and the @2x footprint is 96px, so every asset is a **downscale** (Lanczos). Nothing is upscaled. On DPR 3 phones the browser upscales @2x by 1.5, which looks slightly soft but acceptable. A @3x set would add about 40 KB, so it is not recommended under this perf margin.
+- **Matting:**
+  - The board beige becomes alpha, using a per-pixel projection onto the board colour plus a beige-hue exclusion.
+  - The contact shadow is kept as **black at the measured darkening**, lower half only (light comes from the top), so it reads on both the dark and the light board.
+  - Neighbour tiles and their shadows are cut by component isolation.
+  - Composite tests are in the contact sheet, on `#0F172A` and `#F1E5C8`.
+- **Ignored, as decided:** the red house (ambiguous next to the green house, and unreadable without colour) and the coins tile.
+- **Without colour:** the seven figures are distinct silhouettes (banknote, house, bolt, bars, face, heart, magnifier). The full text label still appears in the caption, "you are here" line, card chip and legend, using the monoline icons and family chips from sections 1–4.
+- **Note for the CEO:** the green house is now the single opportunity glyph. It is neutral in that it is the same for every opportunity, but it leans "real estate" (section 0 rule 3). It is the owner's decision; if the owner wants it, a neutral fallback is the sparkle (`tile/opportunity.svg`).
+
+### 13.2 Bigger board: exact sizes
+The board fills the width with **8px side gutters**, as in the mockup. The HUD keeps its 12px gutters above it, and the fox strip and roll button sit below.
+
+| | 390x844 | 360x800 | 320x568 |
+|---|---|---|---|
+| Board slot (viewport − 2×8) | 374 | 344 | 304 |
+| **Tile cell `--tile-c`** | **48px** | **44px** | **38px** |
+| **Gap `--tile-gap`** | **4px** | **4px** | **4px** |
+| Plate padding inline / bottom `--board-pad` | 6 | 6 | 6 |
+| Plate padding top = pad + 0.375 × cell (room for roofs and bars) | 24 | 23 | 20 |
+| Plate outer width = 7c + 6g + 2·pad | **372** | **344** | **302** |
+| Plate outer height = 7c + 6g + top + bottom | **390** | **361** | **316** |
+| Tile image box (`1.25c × 1.5c`) | 60x72 | 55x66 | 47.5x57 |
+| Plaza (5c + 4g) | 256 | 236 | 206 |
+| Die / result number | 72 / 72 | 64 / 56 | 52 / 56 |
+| HUD (section 10) | 184 | 176 | 128 |
+| Vertical stack: safe-top + HUD + 8 + plate + 8 + **strip** + CTA + 8 + safe-bottom | 10+184+8+390+8+**156**+64+8+16 = 844 | 10+176+8+361+8+**149**+64+8+16 = 800 | 6+128+6+316+6+**36**+56+6+8 = 568 |
+| Fox guide (needs strip ≥ fox + 16) | 80, shown | 72, shown | **hidden** (strip 36). Bubble text goes to the status line |
+
+- There is no scroll at 360x800. On 360x640 the strip is 45px, so the fox hides there too.
+- Below a 304px slot (for example a 300px split screen) the cell is `floor((slot − 12 − 24) / 7)`, with a floor of 34px. Under 34 the plate scales down as a whole (`zoom` is not allowed; use a `transform: scale()` wrapper).
+- Formula for the developer: `--tile-c: clamp(34px, calc((min(100vw, 430px) - 16px - 12px - 24px) / 7), 52px)`, rounded down in JS when it sets the variable. Then height-check `--board-w` against `100dvh` and fall back to the smaller cell, never to scrolling.
+
+### 13.3 Tile CSS (replaces 1.3–1.4)
+```css
+.board { --tile-gap: 4px; --board-pad: 6px;
+  display: grid; grid-template-columns: repeat(7, var(--tile-c)); grid-template-rows: repeat(7, var(--tile-c)); gap: var(--tile-gap);
+  padding: calc(var(--board-pad) + var(--tile-c) * .375) var(--board-pad) var(--board-pad);
+  inline-size: max-content; margin-inline: auto; border-radius: 22px; overflow: hidden; isolation: isolate;
+  background: var(--plate-bg); box-shadow: var(--plate-shadow); }
+.tile { position: relative; z-index: 1; }                     /* the cell = the tile footprint */
+.tile > img { position: absolute; inline-size: 125%; block-size: 150%; max-inline-size: none;
+  inset-inline-start: -12.5%; inset-block-end: -12.5%;          /* footprint = 80% of the image width, base 1/12 above its bottom */
+  transition: transform var(--dur-fast) var(--ease-out); }
+/* DOM order paints later rows over earlier ones: a roof overlapping the tile above is intended (as in the mockup) */
+```
+Tokens (add to section 2):
+```css
+:root {
+  --plate-bg: #131C33;
+  --plate-shadow: inset 0 0 0 1px rgb(255 255 255 / .10), 0 6px 0 #26325A, 0 16px 28px rgb(0 0 0 / .40);  /* 6px rim = the mockup's raised plate */
+  --skyline-board: #1C2747;  --tile-lift-current: -4px;  --tile-scale-current: 1.04;
+}
+:root[data-theme="light"] {
+  --plate-bg: #F1E5C8;
+  --plate-shadow: inset 0 0 0 1px rgb(15 23 42 / .10), 0 6px 0 #A9AEDC, 0 16px 28px rgb(15 23 42 / .18);  /* lavender rim, as in the mockup */
+  --skyline-board: #3A4A8C;
+}
+```
+
+### 13.4 Current tile on raster tiles (CSS only)
+```css
+.tile.is-current { z-index: 3; }
+.tile.is-current::before { content: ""; position: absolute; inset: -3px; z-index: -1; pointer-events: none;   /* a gold pad UNDER the tile */
+  border-radius: calc(var(--tile-c) * .28);
+  box-shadow: 0 0 0 2px var(--ring-gap), 0 0 0 4px var(--ring-current), 0 0 16px 4px rgb(242 181 58 / .5); }
+:root[data-theme="light"] .tile.is-current::before { box-shadow: 0 0 0 2px var(--ring-gap), 0 0 0 4px var(--ring-current), 0 0 12px 3px rgb(165 106 10 / .35); }
+.tile.is-current > img { transform: translateY(var(--tile-lift-current)) scale(var(--tile-scale-current));
+  filter: drop-shadow(0 6px 4px rgb(0 0 0 / .35)); }          /* static: the filter is not animated; only transform transitions (180ms) */
+@media (prefers-reduced-motion: no-preference) { :root:not([data-motion="reduced"]) .tile.is-current::before {
+  animation: ring-breathe var(--dur-ring-breathe) ease-in-out infinite; } }
+@keyframes ring-breathe { 0%, 100% { opacity: .7; } 50% { opacity: 1; } }
+```
+- The ring sits **under** the tile as a glowing pad, so the 3D body is never framed or covered. The lift and the larger shadow make it "float".
+- Ring tokens and contrast are unchanged from section 9 (gold `#F2B53A` on `#0A1020` is 10.3:1; light `#8A5A00` is 4.7:1).
+- Reduced motion: the lift and scale stay (they are a state, not motion) but are applied instantly, and the ring does not breathe.
+- The pawn sits above it at `--z-pawn`.
+
+### 13.5 Skyline behind the bottom edge (replaces the placement in 5)
+- As in the mockup, the home skyline (the same 10 buildings and 8 windows, `viewBox="0 640 360 160"`, `preserveAspectRatio="xMidYMax slice"`) sits **inside the plate**: `position:absolute; inset-inline:0; inset-block-end:0; block-size: calc(var(--tile-c) * 2.6 + var(--board-pad)); z-index:-1`. The plate's `overflow:hidden` and radius clip it.
+- It rises behind the bottom row and about 1.6 cells into the plaza, so the plaza status text (rows 3–4) **never sits on a building**. That is a hard rule, because dark text on the light-theme navy buildings would fail AA.
+- Fill `--skyline-board`; windows `--skyline-window` at `.85` in both themes (the light theme now has lit windows, as in the mockup).
+- Flicker, perf and reduced-motion rules from section 5 apply unchanged (6 windows, or 4 at 320).
+
+### 13.6 Contact sheet
+`docs/v4/design/tile3d-contact-sheet.png` shows:
+- all 8 tiles at @2x 1:1 on the dark and the light board;
+- full mock boards with this section's CSS at 390 (full), 360 (family, amber expense) and 320 (with the tax-audit tile previewed), in dark and light;
+- the current-tile pad on a gold-coloured tile and on the amber tile.
