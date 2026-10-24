@@ -6,6 +6,15 @@ import { animate, cssMs } from './fx.js';
 import { motionOK } from './prefs.js';
 
 const stack = [];
+const watchers = new Set();
+/** v4: `data-modal-open` on <html> while any layer is up (the board's loops and the fox bubble timer pause on it). */
+function syncOpen() {
+  const open = stack.length > 0;
+  if (typeof document !== 'undefined') document.documentElement.toggleAttribute('data-modal-open', open);
+  watchers.forEach((fn) => { try { fn(open); } catch { /* a watcher never breaks a layer */ } });
+}
+/** Calls fn(open) whenever the first layer opens or the last one closes. Returns an unsubscribe function. */
+export const onLayers = (fn) => { watchers.add(fn); return () => watchers.delete(fn); };
 
 function root() { return document.getElementById('modal-root'); }
 
@@ -37,6 +46,7 @@ export function openLayer(content, { kind = 'modal', label = '', dismissable = t
       api.done = true;
       const i = stack.indexOf(api);
       if (i >= 0) stack.splice(i, 1);
+      syncOpen();
       el.remove();
       const nextBelow = stack[stack.length - 1];
       if (nextBelow) nextBelow.el.removeAttribute('inert');
@@ -48,6 +58,7 @@ export function openLayer(content, { kind = 'modal', label = '', dismissable = t
       api.done = true;
       const i = stack.indexOf(api);
       if (i >= 0) stack.splice(i, 1);
+      syncOpen();
       const nextBelow = stack[stack.length - 1];
       if (nextBelow) nextBelow.el.removeAttribute('inert');
       else document.getElementById('app')?.removeAttribute('inert');
@@ -68,6 +79,7 @@ export function openLayer(content, { kind = 'modal', label = '', dismissable = t
     },
   };
   stack.push(api);
+  syncOpen();
 
   el.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && dismissable) { e.stopPropagation(); api.close(undefined); }
@@ -126,4 +138,5 @@ export function destroyAllLayers() {
   [...stack].reverse().forEach((l) => l.destroy(undefined));
   root()?.replaceChildren(); // also layers that are mid exit animation
   document.getElementById('app')?.removeAttribute('inert');
+  syncOpen();
 }

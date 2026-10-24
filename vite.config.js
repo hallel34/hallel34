@@ -73,7 +73,8 @@ export default defineConfig({
   base,
   define: { __APP_VERSION__: JSON.stringify(pkg.version) },
   plugins: [pruneLearnPlugin(), pwaPlugin()],
-  build: { target: 'es2020', assetsInlineLimit: 4096 },
+  // the 3D board tiles stay real files (cacheable, preloadable, srcset), never base64 inside the JS bundle
+  build: { target: 'es2020', assetsInlineLimit: (file) => (/[\\/]tile3d[\\/]/.test(file) ? false : undefined) },
   test: {
     environment: 'node',
     include: ['tests/**/*.test.js'],

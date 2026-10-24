@@ -21,7 +21,10 @@ import { ringPos, avatarColor, pawnOffsets, progressPct, CROWD_FROM } from './la
 import { playerToken, playerName, nameBdi } from './players.js';
 import { closeAllLayers, destroyAllLayers, closeTopLayer } from './modal.js';
 import { debugEnabled, mountDebugTools } from './debug.js';
-import { foxImg, createReactor, warmFox, dirSign } from './fox.js';
+import { warmFox } from './fox.js';
+import { createFoxGuide } from './fox-guide.js';
+import { tileFamily, tileIcon, tileLabel, tileLabelChip, ensureTileSprite, boardTile } from './tiles.js';
+import { openLegend } from './legend.js';
 import { createLearnFlow } from './learn-flow.js';
 import { loanTerms, loanRateNow } from '../engine/index.js';
 import { setLearnHooks, clearLearnHooks } from './learn.js';
@@ -51,14 +54,20 @@ import coinUrl from '../assets/coin.svg?url';
 import pawnUrl from '../assets/pawn.svg?url';
 import dieUrl from '../assets/die-3.svg?url';
 
-const SQUARES = import.meta.glob('../assets/square-*.svg', { eager: true, query: '?url', import: 'default' });
-const squareUrl = (sq) => SQUARES[`../assets/square-${sq}.svg`];
-
-// Variation A "night city": static skyline with lit windows behind the bottom row (design/mockups/Board.dc.html).
-const SKYLINE = `<svg class="board-skyline" aria-hidden="true" focusable="false" viewBox="0 0 336 110" preserveAspectRatio="xMidYMax slice">
-<g class="sk-b" opacity=".9"><rect x="4" y="60" width="28" height="50"/><rect x="36" y="42" width="22" height="68"/><rect x="62" y="70" width="34" height="40"/><rect x="100" y="36" width="24" height="74"/><rect x="128" y="64" width="30" height="46"/><rect x="162" y="50" width="20" height="60"/><rect x="186" y="72" width="36" height="38"/><rect x="226" y="40" width="24" height="70"/><rect x="254" y="66" width="32" height="44"/><rect x="290" y="48" width="42" height="62"/></g>
-<g class="sk-w" opacity=".85"><rect x="42" y="52" width="3" height="4"/><rect x="46" y="64" width="3" height="4"/><rect x="106" y="48" width="3" height="4"/><rect x="112" y="62" width="3" height="4"/><rect x="232" y="52" width="3" height="4"/><rect x="298" y="60" width="3" height="4"/><rect x="316" y="74" width="3" height="4"/></g>
+// v4 stage (docs/v4/design/board-spec.md section 5): the HOME skyline (start.js SKY: 10 buildings, 8 windows, no stars) as one
+// inline SVG behind the board plate's lower half and the fox strip (viewBox 0 640 360 160, meet, so % maps exactly). Two windows
+// are static in the SVG; six are HTML <i class="win"> that flicker (opacity only, 3 durations, 2 windows each).
+const SKYLINE = `<svg class="sky-svg" aria-hidden="true" focusable="false" viewBox="0 640 360 160" preserveAspectRatio="xMidYMax slice">
+<g class="sky-b"><rect x="0" y="690" width="32" height="110"/><rect x="36" y="660" width="24" height="140"/><rect x="64" y="704" width="38" height="96"/><rect x="106" y="642" width="28" height="158"/><rect x="138" y="696" width="34" height="104"/><rect x="176" y="676" width="22" height="124"/><rect x="202" y="708" width="40" height="92"/><rect x="246" y="650" width="26" height="150"/><rect x="276" y="700" width="36" height="100"/><rect x="316" y="668" width="44" height="132"/></g>
+<g class="sky-w"><rect x="48" y="686" width="4" height="5"/><rect x="258" y="682" width="4" height="5"/></g>
 </svg>`;
+// the six flickering windows of the home skyline (x, y in its 360x800 frame), as % of the 360x160 skyline box
+const FLICKER = [[42, 672, 1, 0], [112, 656, 1, 1], [252, 664, 2, 0], [120, 674, 2, 1], [326, 682, 3, 0], [340, 700, 3, 1]];
+function boardSky() {
+  // owner override (spec 13.5): the skyline sits inside the plate with 'slice', so a window is placed from the bottom edge in units of the plate width
+  const wins = FLICKER.map(([x, y, d, k]) => h('i', { class: `win win-d${d} win-k${k}`, vars: { '--x': `${(x / 360) * 100}%`, '--y': `${((y - 640) / 160) * 100}%`, '--yb': String((800 - y - 5) / 360) } }));
+  return h('div', { class: 'board-sky', 'aria-hidden': 'true' }, html(SKYLINE), ...wins);
+}
 
 
 /**
@@ -127,13 +136,17 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   const cashWrap = h('span', { class: 'cash-wrap', 'aria-label': cashUi ? `${t('game.cash')}, ${cashUi.cashLabel}` : t('game.cash'), title: cashUi?.cashTooltip }, cash.el);
   // tall screens: the full caption under the number; short ones (<= 640): the compact word 'מזומן' ABOVE the number inside the cash row (no extra height)
   const cashCap = cashUi ? h('p', { class: 'cash-cap', 'data-cash-caption': '' }, h('span', { class: 'cap-long' }, cashUi.cashCaption)) : null;
-  const cashLabel = cashUi ? h('span', { class: 'cash-label cap-short', 'aria-hidden': 'true' }, t('game.cash')) : null;
+  // v4 (3-second HUD): the word 'מזומן' sits above the number in both modes (12/500 muted)
+  const cashLabel = h('span', { class: 'cash-label cap-short', 'aria-hidden': 'true' }, t('game.cash'));
   if (cashUi) cashWrap.addEventListener('click', () => { if (getComputedStyle(cashCap).display === 'none') toast(cashUi.cashTooltip, 3500); });
   fitText(cash.el, { minScale: 0.5, box: cashWrap }); // very narrow screens (320px): a long amount shrinks to fit instead of overflowing
   const passiveVal = h('b', { class: 'tone-income' });
   const expenseVal = h('b', { class: 'tone-expense' });
   const m = meter();
   const meterPct = h('span', { class: 'meter-pct', 'data-meter-pct': '' });
+  // rank 2 of the 3-second test: "המטרה: ..." above the bar (the long sentence on turns 1-3), a flag at the bar's inline-end
+  const goalCapText = h('span', { class: 'goal-cap-text' });
+  const goalCap = h('p', { class: 'goal-cap', 'data-goal-cap': '' }, goalCapText, icon('flag', { size: 16, width: 2.2, cls: 'goal-flag' }));
   const settingsBtn = iconButton('gear', t('game.settings'), () => openSettings({ onQuit: () => goHome(), version: __APP_VERSION__, mode: state.mode, professionId: state.profession.id }), 'icon-btn-glass');
   const stmtBtn = iconButton('statement', t('game.statement'), () => openStmt(), 'icon-btn-glass');
   stmtBtn.dataset.action = 'statement';
@@ -151,24 +164,30 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
       flowChip),
     cashCap,
     goalLine,
+    goalCap,
+    m.el,
     h('div', { class: 'meter-labels' },
-      // full mode: the adult term plus passive income as a % of expenses; family keeps its kid wording (no percentage)
-      h('span', null, t('game.passive'), ' ', passiveVal, isFamily ? null : [' · ', meterPct]),
-      h('span', null, t('game.expenses'), ' ', expenseVal)),
-    m.el, freeLine);
+      // under the bar: start = passive income (+ how far along, "0% מהדרך"), end = expenses. Family: its kid word for passive income
+      h('span', { class: 'ml-start' }, h('span', { class: 'ml-label' }, t('game.passive')), ' ', passiveVal, ' · ', meterPct),
+      h('span', { class: 'ml-end' }, h('span', { class: 'ml-label' }, t('game.expenses')), ' ', expenseVal)),
+    freeLine);
   const famHud = isFamily ? createFamilyHud({ hud, chip: flowChip, goalLine, freeLine }) : null;
   const tutorialDevice = () => ({ mode: state.mode, helpOn: loadTutorial().helpOn, gamesFinished: gamesFinished(), daily: !!match.daily });
   // the hints belong to the first game since they were (re-)armed: 'הפעילו שוב את הרמזים' in the settings re-arms them
   const hintsDevice = () => { const d = tutorialDevice(); return { ...d, gamesFinished: d.gamesFinished - loadTutorial().hintsFrom }; };
 
-  // ---------- Board (variation A: night city) ----------
+  // ---------- Board (v4: night-city stage, tile families, one gold ring on the current tile) ----------
+  ensureTileSprite();
   const tiles = BOARD.map((sq, i) => {
     const [col, row] = ringPos(i);
-    return h('div', { class: `tile tile-${sq}`, 'aria-hidden': 'true', 'data-i': i, vars: { '--c': col, '--r': row } },
-      h('img', { src: squareUrl(sq), alt: '', width: 42, height: 42, draggable: 'false' }));
+    // owner override 2026-10-24: the glossy 3D tile art on the board (monoline fallback while a file is missing)
+    const tile = boardTile(sq, { mode: state.mode, cls: `tile-${sq}`, attrs: { 'aria-hidden': 'true', 'data-i': i } });
+    tile.style.setProperty('--c', col); tile.style.setProperty('--r', row);
+    return tile;
   });
-  // One pawn per player. Pawns sharing a tile are offset (see pawnOffsets) so each stays visible.
+  // One pawn per player, each with its OWN ground shadow (no filter on the moving pawn). Shared tiles offset the pawns (pawnOffsets).
   const pawns = match.players.map((p, i) => h('div', { class: `pawn-slot pc-${p.color}`, 'data-player': String(i), 'aria-hidden': 'true' },
+    h('i', { class: 'pawn-shadow' }),
     h('img', { class: 'pawn', src: pawnUrl, alt: '', width: 36, height: 40, draggable: 'false' }),
     multi ? h('i', { class: 'pawn-badge' }, String(p.color)) : null));
   const pawnAt = match.players.map((p) => p.state.position);
@@ -176,6 +195,14 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   const dice = createDice();
   dice.setValues(state.lastRoll?.dice || [1]);
   const status = h('p', { class: 'board-status', 'aria-live': 'polite' }, t('game.statusStart'));
+  // "you are here" (idle): icon + "אתם על: הזדמנות" under the status line (merged into it as a prefix chip on the smallest screens)
+  const hereIcon = h('span', { class: 'here-icon' });
+  const hereText = h('span', { class: 'here-text' });
+  const hereLine = h('p', { class: 'here-line', 'data-here': '' }, hereIcon, hereText);
+  // the landing caption: icon + full label, shown at every landing before the card opens
+  const landCap = h('div', { class: 'land-cap', 'aria-hidden': 'true', hidden: true });
+  const legendBtn = h('button', { type: 'button', class: 'icon-btn legend-btn', 'aria-label': t('legend.open'), 'aria-haspopup': 'dialog', 'data-action': 'legend', onClick: () => { haptic('tap'); openLegend(); } },
+    h('span', { class: 'legend-q', 'aria-hidden': 'true' }, '?'));
   // Hot-seat: compact strip with the other players (tap to expand into a panel over the board, never over the roll button).
   const othersCells = h('span', { class: 'os-cells' }); // each cell starts with a visually hidden player name, so the button's name contains its visible text
   const othersBtn = multi ? h('button', { type: 'button', class: 'others-strip', 'aria-expanded': 'false', 'aria-controls': 'others-panel', 'data-action': 'others', onClick: () => toggleOthers() }, h('span', { class: 'vh' }, `${t('game.othersOpen')}: `), othersCells) : null;
@@ -183,8 +210,8 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   const othersClose = h('button', { type: 'button', class: 'icon-btn others-close', 'aria-label': t('game.othersClose'), onClick: () => toggleOthers(false) }, icon('close', { size: 22 }));
   const othersPanel = multi ? h('div', { class: 'others-panel glass glass-strong', id: 'others-panel', role: 'region', 'aria-label': t('game.others'), hidden: true },
     h('div', { class: 'others-head' }, h('strong', null, t('game.others')), othersClose), othersList) : null;
-  const center = h('div', { class: 'board-center' }, dice.el, status, charityChip, othersBtn);
-  const board = h('div', { class: `board${multi ? ' board-multi' : ''}`, role: 'group' }, html(SKYLINE), ...tiles, center, othersPanel);
+  const center = h('div', { class: 'board-center' }, legendBtn, landCap, dice.el, h('div', { class: 'status-wrap' }, status, hereLine), charityChip, othersBtn);
+  const board = h('div', { class: `board${multi ? ' board-multi' : ''}`, role: 'group' }, boardSky(), ...tiles, center, othersPanel);
   let currentTile = null;
 
   const rollLabel = h('span', null, t('game.roll'));
@@ -192,35 +219,49 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   const rollBtn = button([dieIcon, rollLabel], { variant: 'primary', cls: 'btn-roll', 'data-action': 'roll', onClick: () => turn() });
   const actions = h('div', { class: 'board-actions' }, rollBtn);
 
-  // Roll zone (above the roll button): fox roll pose + latest-event chip; family tips replace them.
-  const rollFoxImg = foxImg('roll', { height: 128, cls: 'bob' });
-  const rollFox = h('div', { class: 'fox-roll' }, rollFoxImg);
+  // The fox strip (between the board plate and the roll button): the latest-event chip, the corner fox guide and its bubble.
+  // data-pose: 'roll' = idle, 'none' = a turn is playing, 'note' = a bubble is up, 'tip' = a family tip bubble is up.
   const chip = h('div', { class: 'status-chip glass' }, t('game.noEvents'));
-  const tipBubble = h('div', { class: 'tip-bubble', role: 'note' });
-  const tipFox = h('div', { class: 'fox-tip' }, foxImg('tip', { height: 150, lazy: true }), tipBubble);
-  const reactHost = h('div', { class: 'react-host', 'aria-hidden': 'true' });
-  const zone = h('div', { class: 'roll-zone', 'data-pose': 'roll' }, reactHost, rollFox, chip, tipFox);
-  const reactor = createReactor(reactHost, { size: 56 });
-  // The fox note (feedback / explainer) takes the zone while it is shown; the pose that was wanted meanwhile returns after it.
+  const zone = h('div', { class: 'roll-zone fox-strip', 'data-pose': 'roll' }, chip);
+  let flow = null;
+  const guide = createFoxGuide({
+    zone,
+    onReopen: () => { haptic('tap'); if (!flow?.notes.reopen()) guide.react('think', 900); },
+    // a strip too short for the fox: the fox hides and the bubble lines go to the status line
+    onCompact: (on) => {
+      el.dataset.foxCompact = String(on);
+      const it = on ? flow?.notes.currentItem : null;
+      const text = it && it.kind !== 'explain' ? (it.plain ?? (typeof it.body === 'string' ? it.body : '')) : '';
+      if (text) setStatus(text);
+    },
+  });
+  zone.prepend(guide.el);
+  // The bubble takes the strip while it is shown; the pose that was wanted meanwhile returns after it.
   let noteShown = false;
   let poseAfterNote = 'roll';
   const setPose = (p) => { if (noteShown) { poseAfterNote = p; return; } zone.dataset.pose = p; };
   setLearnMode(state.mode);
-  const flow = createLearnFlow({
+  flow = createLearnFlow({
     zone, mode: state.mode, seed: state.seed,
     getState: () => state,
     setState: (next) => { state = next; commit(); },
     onDismiss: () => rollBtn.focus?.({ preventScroll: true }),
+    onShown: (item) => {
+      guide.setBase(item.kind === 'tip' ? 'think' : item.pose);
+      zone.dataset.pose = item.kind === 'tip' ? 'tip' : 'note';
+      // compact strip (no room for the fox, spec 7.4 / 13.2): the line goes to the plaza status line, so it is never lost
+      if (guide.compact && item.kind !== 'explain') { const text = item.plain ?? (typeof item.body === 'string' ? item.body : ''); if (text) setStatus(text); }
+    },
     onActive: (on) => {
       if (on === noteShown) return;
       noteShown = on;
-      if (on) { if (zone.dataset.pose !== 'note') poseAfterNote = zone.dataset.pose || 'roll'; zone.dataset.pose = 'note'; reactor.hide(); }
-      else zone.dataset.pose = busy ? 'none' : (poseAfterNote === 'none' ? 'roll' : poseAfterNote);
+      if (on) { if (zone.dataset.pose !== 'note' && zone.dataset.pose !== 'tip') poseAfterNote = zone.dataset.pose || 'roll'; zone.dataset.pose = 'note'; guide.settle(); }
+      else { zone.dataset.pose = busy ? 'none' : (poseAfterNote === 'none' || poseAfterNote === 'tip' ? 'roll' : poseAfterNote); guide.setBase(null); }
     },
   });
   setLearnHooks({ onUnlock: (id) => { if (!destroyed) { state = unlockConcept(state, id); commit(); } } });
-  /** Brief fox reaction in the strip under the board (never over the HUD, tiles, die or numbers; not while a fox note is up). */
-  const react = (pose) => { if (!flow.notes.active) reactor.show(pose); };
+  /** Brief fox reaction: the corner guide takes the pose for a moment (not while a bubble is up: it carries its own pose). */
+  const react = (pose) => { if (!flow.notes.visible) guide.react(pose); };
 
   // ---------- guided hints (first family game; spec section 5) ----------
   const hintsOn = () => hintsActive(hintsDevice());
@@ -357,27 +398,43 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
 
   const el = h('section', { class: 'screen screen-board', 'data-screen': 'board' },
     h('h1', { class: 'vh' }, `${t('app.title')} · ${t('game.boardTitle')}`), hud, board, zone, actions);
-
-  // ---- family tips ----
-  let tipTimer = 0;
-  function hideTip() {
-    clearTimeout(tipTimer);
-    if (zone.dataset.pose !== 'tip') return;
-    setPose(busy ? 'none' : 'roll');
+  // spec 13.2: the tile cell. --tile-c = floor((min(vw, 430) - 16 - 12 - 24) / 7), clamped 34-52, then height-checked: a smaller cell,
+  // never a page scroll (the fox strip may shrink to ~36px; the fox then hides by itself)
+  const STRIP_MIN = 36;
+  function sizeBoard() {
+    if (destroyed) return;
+    const vw = Math.min(innerWidth, 430);
+    let c = Math.max(34, Math.min(52, Math.floor((vw - 16 - 12 - 24) / 7)));
+    el.style.setProperty('--tile-c', `${c}px`);
+    if (!el.isConnected) return;
+    const de = document.documentElement;
+    while (c > 34 && (de.scrollHeight > innerHeight + 0.5 || zone.clientHeight < STRIP_MIN)) {
+      c -= 1;
+      el.style.setProperty('--tile-c', `${c}px`);
+    }
   }
+  sizeBoard();
+  requestAnimationFrame(sizeBoard);
+  addEventListener('resize', sizeBoard);
+  // The loops (window flicker, ring breathing) start once the board is interactive (idle callback, or 1.5 s), never before.
+  let liveTimer = 0;
+  const goLive = () => { if (!destroyed) el.classList.add('is-live'); };
+  if ('requestIdleCallback' in globalThis) requestIdleCallback(goLive, { timeout: 1500 }); else liveTimer = setTimeout(goLive, 1500);
+  const onHidden = () => el.classList.toggle('is-hidden', document.hidden);
+  document.addEventListener('visibilitychange', onHidden);
+
+  // ---- family tips (v4: a bubble beside the corner fox; the 150px tip pose left the board) ----
+  function hideTip() { flow.notes.dismissKind('tip'); }
   function maybeTip() {
     if (destroyed || busy || state.mode !== 'family' || state.status !== 'playing' || state.phase !== 'roll') return;
     if (tipReplaced({ active: hintsOn(), turn: state.turn + 1 })) return; // the first game's turns 1-3 have the guided hints instead
     const idx = tipIndexForTurn(state.turn + 1);
-    if (idx < 0) return;
-    tipBubble.textContent = t(`fox.tip${idx + 1}`);
-    setPose('tip');
-    if (motionOK()) animate(tipFox, [{ opacity: 0, transform: `translateX(${dirSign() * -24}px)` }, { opacity: 1, transform: 'translateX(0)' }], { duration: 300, easing: 'cubic-bezier(.16,1,.3,1)' });
-    clearTimeout(tipTimer);
-    tipTimer = setTimeout(hideTip, 6000);
+    if (idx < 0 || flow.notes.active) return;
+    const text = t(`fox.tip${idx + 1}`);
+    flow.notes.push({ kind: 'tip', body: text, plain: text, pose: 'think' });
   }
-  // Tap anywhere dismisses the tip (the roll button still works on the same tap).
-  el.addEventListener('pointerdown', (e) => { hideTip(); if (!e.target.closest?.('.note')) flow.notes.dismiss(); });
+  // Tap anywhere else closes the bubble (the roll button still works on the same tap); the fox itself re-opens the last one.
+  el.addEventListener('pointerdown', (e) => { if (!e.target.closest?.('.note, .fox-guide')) flow.notes.dismiss(); });
 
   /** Lays out every pawn on one tile: a lone pawn is centred, shared tiles spread them out. */
   function layoutTile(tile) {
@@ -402,6 +459,27 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     currentTile.classList.add('is-current');
     const idx = pawnAt[match.currentIndex];
     board.setAttribute('aria-label', t('game.boardLabel', { n: idx + 1, total: BOARD.length, square: t(`square.${BOARD[idx]}`) }));
+    paintHere(BOARD[idx]);
+  }
+  /** "אתם על: הזדמנות": the full label of the active pawn's square, with its glyph in the family ink. */
+  function paintHere(type) {
+    hereLine.dataset.family = tileFamily(type);
+    hereLine.dataset.type = type;
+    hereIcon.replaceChildren(tileIcon(type, { size: 16 }));
+    hereText.textContent = t('board.youAreHere', { label: tileLabel(type) });
+  }
+  /** The landing caption: 200ms in (scale .9 -> 1 + fade; a 120ms fade under reduced motion), a 450ms hold, then the card opens. */
+  async function landingCaption(type) {
+    landCap.replaceChildren(tileLabelChip(type, { size: 32, cls: 'land-chip' }));
+    landCap.dataset.family = tileFamily(type);
+    landCap.hidden = false;
+    const kf = motionOK() ? [{ opacity: 0, transform: 'scale(.9)' }, { opacity: 1, transform: 'scale(1)' }] : [{ opacity: 0 }, { opacity: 1 }];
+    await animate(landCap, kf, { duration: motionOK() ? 200 : 120, easing: 'cubic-bezier(.16,1,.3,1)' }).finished?.catch(() => {});
+    await new Promise((r) => { setTimeout(r, 450); });
+  }
+  function hideLandingCaption() {
+    if (landCap.hidden) return;
+    animate(landCap, [{ opacity: 1 }, { opacity: 0 }], { duration: 120, fill: 'none' }).finished?.then(() => { landCap.hidden = true; }, () => { landCap.hidden = true; });
   }
   function place(idx) {
     placePawn(match.currentIndex, idx);
@@ -476,7 +554,15 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     passiveVal.replaceChildren(money(st.passiveIncome));
     expenseVal.replaceChildren(money(st.totalExpenses));
     m.set(st.passiveIncome, st.totalExpenses);
-    if (!isFamily) meterPct.textContent = t('game.passivePct', { pct: st.totalExpenses > 0 ? Math.round((st.passiveIncome / st.totalExpenses) * 100) : 0 });
+    const pct = st.totalExpenses > 0 ? Math.round((st.passiveIncome / st.totalExpenses) * 100) : 0;
+    meterPct.replaceChildren(tn('hud.progress', { pct: h('b', { class: 'meter-pct-num', dir: 'ltr' }, `${pct}%`) }));
+    // the goal caption: hidden while the first-game family goal line says it; the smallest screens get the one-line figures
+    const tutorialGoal = famHud ? !goalLine.hidden : false;
+    const tiny = mqMin?.matches ?? false;
+    goalCap.hidden = tutorialGoal;
+    hud.dataset.goalCap = tutorialGoal ? 'tutorial' : tiny ? 'short' : 'long';
+    if (tiny) goalCapText.replaceChildren(tn('hud.goalShort', { passive: money(st.passiveIncome), expenses: money(st.totalExpenses) }));
+    else goalCapText.textContent = state.turn <= 3 ? t('hud.goalFirst') : t('hud.goal');
     // one baby icon plus the count (up to three icons would not fit next to the buttons on a 320px screen)
     babies.replaceChildren(...(state.kids ? [icon('baby', { size: 18, width: 2.2 }), h('b', null, String(state.kids))] : []));
     babies.setAttribute('aria-label', t('game.kids', { n: state.kids }));
@@ -496,10 +582,10 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     el.dataset.mortgages = String(state.assets.filter((a) => a.mortgage > 0).length);
     refreshOthers();
   }
-  refreshHud();
   const mqShort = typeof matchMedia === 'function' ? matchMedia(`(max-height: ${tut().goalLine.shortFromHeightPx}px)`) : null;
-  mqShort?.addEventListener?.('change', refreshHud); // the goal line has a short form on short screens
   const mqMin = typeof matchMedia === 'function' ? matchMedia(`(max-height: ${GOAL_MIN_HEIGHT}px)`) : null;
+  refreshHud();
+  mqShort?.addEventListener?.('change', refreshHud); // the goal line has a short form on short screens
   mqMin?.addEventListener?.('change', refreshHud); // ...and a minimal one-liner on the smallest
   lastPct = (() => { const st = statement(state); return st.totalExpenses > 0 ? st.passiveIncome / st.totalExpenses : 0; })();
 
@@ -526,11 +612,10 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     paintButton(b ? mode : 'roll');
     el.classList.toggle('is-busy', b);
     if (b) {
-      clearTimeout(tipTimer);
-      if (!was) rollLeaves();
+      if (!was) hideTip();
       setPose('none');
     } else {
-      // The fox returns 250ms after the button re-enables (or the tip shows instead).
+      // The strip goes idle 250ms after the button re-enables (or the tip bubble shows instead).
       setTimeout(() => { if (!destroyed && !busy) { setPose('roll'); maybeTip(); } }, motionOK() ? 250 : 0);
     }
   }
@@ -555,11 +640,6 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
       if (next >= 0 && next !== match.currentIndex) return t('game.statusNext', { name: nameOf(next) });
     }
     return t('game.statusBack');
-  }
-  /** On tap: tilt -6deg to 4deg over 200ms and nudge 8px toward the board centre, then fade out (CSS). */
-  function rollLeaves() {
-    if (!motionOK()) return;
-    animate(rollFox, [{ transform: 'translateX(0) rotate(0deg)' }, { transform: 'translateX(0) rotate(-6deg)', offset: 0.4 }, { transform: `translateX(${dirSign() * 8}px) rotate(4deg)` }], { duration: 200, easing: 'ease-out', fill: 'none' });
   }
 
   const cardTitle = (id) => cardTitleOf(engine.data.cards.find((c) => c.id === id), state.mode);
@@ -615,6 +695,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   }
 
   // ---------- hop ----------
+  const cssNum = (name, fb) => { const v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue(name)); return Number.isFinite(v) ? v : fb; };
   async function hopTo(idx) {
     const pawn = activePawn();
     const a = pawn.getBoundingClientRect();
@@ -625,12 +706,23 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     const dy = a.top - b.top;
     const hop = cssPx('--hop-height', 14);
     const dur = cssMs('--dur-fast', 180);
+    // the pawn's own shadow stays on the ground: it counters the lift and shrinks / fades at the apex, back on land
+    const shadow = pawn.querySelector('.pawn-shadow');
+    if (shadow) {
+      animate(shadow, [
+        { transform: 'translateY(0) scale(1)', opacity: 1 },
+        { transform: `translateY(${hop}px) scale(${cssNum('--pawn-shadow-apex-scale', 0.6)})`, opacity: cssNum('--pawn-shadow-apex-opacity', 0.45), offset: 0.5 },
+        { transform: 'translateY(0) scale(1)', opacity: 1 },
+      ], { duration: dur, easing: 'ease-out', fill: 'none' });
+    }
     await animate(pawn, [
-      { transform: `translate(${dx}px, ${dy}px) scale(1, 1)` },
-      { transform: `translate(${dx / 2}px, ${dy / 2 - hop}px) scale(.95, 1.08)`, offset: 0.5 },
-      { transform: 'translate(0, 0) scale(1.1, .9)', offset: 0.88 },
-      { transform: 'translate(0, 0) scale(1, 1)' },
+      { transform: `translate(${dx}px, ${dy}px)` },
+      { transform: `translate(${dx / 2}px, ${dy / 2 - hop}px)`, offset: 0.5 },
+      { transform: 'translate(0, 0)' },
     ], { duration: dur, easing: 'ease-out', fill: 'none' }).finished.catch(() => {});
+    // squash on land: scale(1.08, .92) for 80ms, then back (not awaited: the next hop starts at once)
+    const body = pawn.querySelector('.pawn');
+    if (body) animate(body, [{ transform: 'scale(1, 1)' }, { transform: 'scale(1.08, .92)', offset: 0.5 }, { transform: 'scale(1, 1)' }], { duration: 80, easing: 'ease-out', fill: 'none' });
   }
 
   /**
@@ -692,18 +784,19 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     if (destroyed) return;
     paintButton('working'); // the dice have stopped; the label now says we are moving on (cards, payday) instead of rolling
     haptic('land'); sound('land');
-    setStatus(t('game.statusRolled', { steps: move.steps, square: t(`square.${BOARD[move.to]}`) }));
+    // "נחתתם על: הוצאה לא צפויה" (status, aria-live) + the landing caption in the plaza, then the card opens
+    setStatus(t('board.landed', { label: tileLabel(BOARD[move.to]) }));
     pushLog(t('game.logMove', { steps: move.steps, square: t(`square.${BOARD[move.to]}`) }));
     state = next;
     commit();
     refreshHud();
-    // The fox reacts to the square first, then the card (which carries its own reaction) opens.
+    // The fox reacts to the square while the caption names it; the card (which carries its own reaction) opens after the hold.
     const landed = LAND_REACTION[BOARD[move.to]];
-    if (landed && (next.pending || next.events.some((e) => e.type === 'baby' || e.type === 'expensePaid' || e.type === 'market'))) {
-      react(landed);
-      await pause(420);
-      reactor.hide();
-    }
+    if (landed) react(landed);
+    await landingCaption(BOARD[move.to]);
+    if (destroyed) return;
+    hideLandingCaption();
+    guide.settle();
     await handleEvents(next);
     await resolvePending();
     await afterTurn();
@@ -1014,11 +1107,13 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   }
   function teardown() {
     destroyed = true;
-    clearTimeout(tipTimer);
+    clearTimeout(liveTimer);
+    document.removeEventListener('visibilitychange', onHidden);
+    removeEventListener('resize', sizeBoard);
     famHud?.destroy();
     mqShort?.removeEventListener?.('change', refreshHud);
     mqMin?.removeEventListener?.('change', refreshHud);
-    reactor.hide();
+    guide.destroy();
     flow.destroy();
     clearLearnHooks();
     debugTools?.remove();
@@ -1041,6 +1136,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     el,
     /** Called once the screen is mounted. Resumes a pending decision if the save had one. */
     async start() {
+      sizeBoard(); // mounted: the height check can measure now
       warmFox(REACTIONS);
       flow.trigger('start');
       if (unseen.length) { // a card that was queued when the player went home: show it now, then drop it from the save

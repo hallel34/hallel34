@@ -122,9 +122,9 @@ export function miniMeter(pct, valueText, cls = 'or-bar') {
     h('i', { style: `--fill:${pct}` }));
 }
 
-export function statTile(label, valueNode, { tone = '', big = false, tut = null, caption = null } = {}) {
-  return h('div', { class: `stat-tile${tone ? ` stat-${tone}` : ''}${big ? ' stat-big' : ''}`, 'data-tut': tut },
-    h('span', { class: 'stat-label' }, label), fitText(h('span', { class: 'stat-value' }, valueNode)), caption ? h('span', { class: 'stat-caption' }, caption) : null);
+export function statTile(label, valueNode, { tone = '', big = false, tut = null, caption = null, cls = '', minScale = 0.6, extra = null } = {}) {
+  return h('div', { class: `stat-tile${tone ? ` stat-${tone}` : ''}${big ? ' stat-big' : ''}${cls ? ` ${cls}` : ''}`, 'data-tut': tut },
+    h('span', { class: 'stat-label' }, label), fitText(h('span', { class: 'stat-value' }, valueNode), { minScale }), caption ? h('span', { class: 'stat-caption' }, caption) : null, extra);
 }
 
 /** A money <output> that can count up to new values. */

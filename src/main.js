@@ -6,10 +6,12 @@ import './styles/screens.css';
 import './styles/fox.css';
 import './styles/learn.css';
 import './styles/tutorial.css';
+import './styles/board.css';
 import { setLocale, t } from './i18n/index.js';
 import { applyPrefs, getPrefs, setPref } from './ui/prefs.js';
 import { createApp } from './ui/app.js';
 import { registerServiceWorker } from './services/pwa.js';
+import { preloadTiles } from './ui/tiles.js';
 
 // ?theme=light|dark|auto switches (and remembers) the theme: handy for QA and screenshots.
 const themeParam = new URLSearchParams(location.search).get('theme');
@@ -26,3 +28,5 @@ try {
   host.textContent = `${t('app.loadError')} (${err.message})`;
 }
 registerServiceWorker();
+// the board is the main screen: its 3D tile art is preloaded at idle time after the first paint (never ahead of the home screen's LCP)
+preloadTiles();

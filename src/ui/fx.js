@@ -8,6 +8,7 @@ import coinSmall from '../assets/coin-small.svg?url';
 const HAPTICS = {
   roll: 15, land: 10, purchase: [15, 40, 15], loan: [20, 30, 20], tick: 8, correct: 20, wrong: 40,
   win: [20, 40, 20, 40, 60], error: 40, tap: 10,
+  dieSettle: 12, // v4 die: one tick when the die lands (spec 6.1, settle phase)
 };
 /** Vibration is motion: off when the player turned haptics off, or under prefers-reduced-motion / the in-app reduced-motion switch. */
 export function haptic(name) {
@@ -56,6 +57,12 @@ export function cssMs(name, fallback = 200) {
   if (v.endsWith('s')) return parseFloat(v) * 1000;
   return fallback;
 }
+/** A CSS custom property as a trimmed string (an easing, an angle), or the fallback when it is unset. */
+export function cssVar(name, fallback = '') {
+  const v = typeof getComputedStyle === 'function' ? getComputedStyle(document.documentElement).getPropertyValue(name).trim() : '';
+  return v || fallback;
+}
+
 export const cssPx = (name, fallback = 0) => {
   const v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue(name));
   return Number.isFinite(v) ? v : fallback;

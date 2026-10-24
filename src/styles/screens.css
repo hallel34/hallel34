@@ -65,9 +65,9 @@
 .prof-rows { inline-size: 100%; display: flex; flex-direction: column; gap: 2px; }
 .prof-row { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; min-inline-size: 0; }
 .prof-row-label { font-size: .75rem; color: var(--text-muted); }
-.prof-row .money { font-size: .875rem; font-weight: var(--fw-medium); color: var(--text-muted); }
-.prof-row--salary .money { font-size: 1.125rem; font-weight: var(--fw-bold); color: var(--text); }
-.prof-row--flow .money { font-weight: var(--fw-bold); color: var(--income); }
+.prof-row .money { font-size: .875rem; font-weight: var(--fw-money); color: var(--text-muted); }
+.prof-row--salary .money { font-size: 1.125rem; font-weight: var(--fw-money); color: var(--text); }
+.prof-row--flow .money { font-weight: var(--fw-money); color: var(--income); }
 .prof-row--flow .money.is-neg { color: var(--negative); }
 .prof-rule { inline-size: 100%; block-size: 1px; background-color: var(--border); margin-block: 2px; }
 @keyframes pop-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
@@ -105,7 +105,7 @@
 .hud-coin { flex: none; }
 .cash-wrap { min-inline-size: 0; flex: 1 1 0; overflow: hidden; white-space: nowrap; }
 .hud .cash-wrap { padding-block: 2px; }
-.cash-num { font-size: clamp(1.625rem, 9vw, 2.25rem); line-height: 1; font-weight: 800; color: var(--cash-color); display: inline-block; }
+.cash-num { font-size: clamp(1.625rem, 9vw, var(--fs-money-hero)); line-height: 1; font-weight: var(--fw-money); color: var(--cash-color); display: inline-block; }
 .hud .cash-num[data-len="8"] { font-size: 1.875rem; }
 .hud .cash-num[data-len="9"] { font-size: 1.625rem; }
 .hud .cash-num[data-len="10"], .hud .cash-num[data-len="11"], .hud .cash-num[data-len="12"] { font-size: 1.375rem; }
@@ -119,18 +119,11 @@
   display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); grid-template-rows: repeat(7, auto);
   gap: 4px; padding: 12px 8px; border-radius: 26px; background: var(--board-bg); border: 1px solid var(--glass-border);
 }
-.board-skyline { position: absolute; inset-inline: 0; inset-block-end: 0; inline-size: 100%; block-size: 32%; overflow: hidden; border-end-start-radius: 25px; border-end-end-radius: 25px; pointer-events: none; z-index: 0; }
-.board-skyline .sk-b { fill: var(--skyline); }
-.board-skyline .sk-w { fill: var(--skyline-window); }
 .tile {
   grid-column: var(--c); grid-row: var(--r);
   --tile-ink: var(--sq-icon-dark); /* navy ink on all six tiles (white fails 3:1 on red/sky/violet) */
   position: relative; z-index: 1; aspect-ratio: 1; border-radius: 12px; color: var(--tile-ink);
 }
-.tile > img { inline-size: 100%; block-size: 100%; }
-.tile.is-current::after { content: ""; position: absolute; inset: 0; border-radius: 12px; pointer-events: none; box-shadow: 0 0 0 2px var(--outline), 0 0 0 4px var(--accent); animation: tile-glow 1.6s ease-in-out infinite; } /* the one allowed gold ring (an outline ring first, so it also reads on the gold payday tile) */
-:root[data-theme="light"] .tile.is-current::after { box-shadow: 0 0 0 3px var(--c-navy-900); }
-@keyframes tile-glow { 0%, 100% { opacity: .7; } 50% { opacity: 1; } }
 .pawn-slot { position: absolute; inset-inline: 0; margin-inline: auto; inset-block-start: -16px; inline-size: 36px; block-size: 40px; transform-origin: 50% 100%; translate: var(--ox, 0px) var(--oy, 0px); z-index: var(--z-pawn); pointer-events: none; }
 .pawn-slot .pawn { position: relative; inline-size: 36px; block-size: 40px; filter: drop-shadow(0 6px 5px rgb(0 0 0 / .55)); }
 .tile[data-pawns] { z-index: 2; } /* a pawn sticks out above its tile: keep it over the neighbour tile that comes later in the DOM */
@@ -230,10 +223,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .rays, .sky .tw { animation: none !important; }
-  .tile.is-current::after { animation: none; }
 }
 :root[data-motion="reduced"] .rays, :root[data-motion="reduced"] .sky .tw { animation: none !important; }
-:root[data-motion="reduced"] .tile.is-current::after { animation: none; }
 :root[data-motion="reduced"] .prof-card, :root[data-motion="reduced"] .screen { animation-duration: 1ms; }
 
 /* very short screens (<= 600px): win keeps all three actions inside the viewport */

@@ -21,6 +21,7 @@ const PATHS = {
   home: '<path d="M4 11l8-7 8 7v9H4z"/>',
   book: '<path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H19v15H7.5A2.5 2.5 0 0 0 5 20.5z"/><path d="M5 20.5A2.5 2.5 0 0 0 7.5 23H19v-5M9 8h6M9 12h4"/>',
   chevron: '<path d="M6 9l6 6 6-6"/>',
+  flag: '<path d="M5 21V4"/><path d="M5 4h12l-2.5 4L17 12H5"/>',
   bank: '<path d="M3 10l9-6 9 6M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20h18"/>',
 };
 
