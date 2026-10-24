@@ -24,6 +24,8 @@ import {
 import { LOAN_STEP, TIMED_EFFECT_KINDS as TIMED_EFFECTS } from '../engine/index.js';
 import { cardTitle, cardText, assetTitle } from './card-view.js';
 import hourglassSvg from '../assets/verdict/hourglass.svg?raw';
+import { tileLabelChip } from './tiles.js';
+import { dealBadge, dealBadgeModel, TIER_LETTER } from './deal-badge.js';
 
 // ---------- generic cream card ----------
 /**
@@ -58,10 +60,12 @@ function cardShell({ type, kind, headChip, headLabel = null, headVar = null, tit
     h('div', { class: 'card-titles' }, h('h2', { class: 'card-title' }, title), text ? h('p', { class: 'card-text' }, text) : null),
     body);
   const more = h('span', { class: 'card-more', 'aria-hidden': 'true' }, icon('chevron', { size: 28, width: 2 }));
+  // v4 3.3: the tile chip (glyph + full square label, chip colours) first; an opportunity adds its category chip + label next to it
   const header = h('div', { class: 'card-header' },
+    tileLabelChip(type === 'payday' ? 'payday' : type, { size: 24, cls: 'card-tile-chip' }),
     headChip,
     headLabel ? h('span', { class: 'card-cat', style: headVar ? `--cat:var(${headVar})` : null }, headLabel) : null,
-    h('span', { class: `card-kind${headLabel ? '' : ' is-first'}` }, kind));
+    kind ? h('span', { class: `card-kind${headLabel ? '' : ' is-first'}` }, kind) : null);
   const content = h('div', { class: 'card', 'data-card': type, ...Object.fromEntries(Object.entries(data).map(([k, v]) => [`data-${k}`, v])) },
     header,
     h('div', { class: 'card-scroll' }, cardBody, more),
@@ -94,39 +98,43 @@ function cardShell({ type, kind, headChip, headLabel = null, headVar = null, tit
   return layer.closed;
 }
 
-/** The header chip of the non-opportunity cards: the tile's own glyph (the same icon the board tile uses) in navy ink on a 28% tint of the tile colour. */
-const tileChip = (name) => h('span', { class: 'cat-chip cat-chip--40 tile-chip', style: `--tile:var(--sq-${name})`, 'aria-hidden': 'true' }, icon(name, { size: 24, width: 2 }));
+/** v4: the non-opportunity cards carry only the tile chip (cardShell draws it from the card type); no second glyph. */
+const tileChip = () => null;
 
 const limitBanner = () => h('div', { class: 'banner banner-warn', role: 'status' }, icon('bank', { size: 20 }), h('span', null, t('loan.limitHint')));
-/** The key numbers (spec 3.2): one white tile, a hairline between the two figures. */
-const keyNumbers = (...tiles) => h('div', { class: `key-numbers${tiles.length === 1 ? ' single' : ''}`, 'data-key-numbers': '' }, tiles);
+/** The key numbers (spec 3.2): one white tile, a hairline between the two figures. v4 8.2: the first figure is the hero (36/900, the amount that changes this turn), the others are keys (22/900). */
+const keyNumbers = (...tiles) => h('div', { class: `key-numbers is-hero${tiles.length === 1 ? ' single' : ''}`, 'data-key-numbers': '' }, tiles);
+// fit-text floors: the hero never drops under 28px (36 x .78), a key never under 18px (22 x .82), so the hero stays >= 1.3x the key
+const HERO_MIN = 0.78;
+const KEY_MIN = 0.82;
+/** The deal card's key block: the hero row (hero figure + the deal badge at its inline-end), then a 2-up row of keys. */
+const dealKeys = (hero, badge, keys) => h('div', { class: 'key-numbers deal-keys', 'data-key-numbers': '' },
+  h('div', { class: 'deal-hero', 'data-deal-hero': '' }, hero, badge ? h('div', { class: 'deal-hero-badge' }, badge) : null),
+  h('div', { class: `key-row${keys.length === 1 ? ' single' : ''}` }, keys));
 const grid = (...tiles) => h('div', { class: 'stat-grid' }, tiles);
 /**
  * Payback years as the badge shows them: exactly the figure of the reveal (one decimal at most, never crossing a threshold:
  * 8.04y reads 8.1 and amber, 4.9y reads 4.9 and never "5"). One rounding rule for the card, the reveal, the feedback and the report.
  */
 export const paybackYearsShown = yearsValue;
-function paybackBadge(years, tier, scope) {
-  const label = Number.isFinite(years)
-    ? tn('card.payback', { years: yearsPhrase(years) }, { scope })
-    : tn('card.paybackNever', {}, { scope });
-  return h('div', { class: `payback payback-${tier}`, 'data-payback-tier': tier, 'data-tut': 'payback' }, icon(tier === 'ok' ? 'check' : 'expense', { size: 20 }), h('span', null, label));
-}
 const banner = (node, tone = 'info') => h('div', { class: `banner banner-${tone}` }, icon('star', { size: 20 }), h('span', null, node));
 const ltr = (text) => h('bdi', { dir: 'ltr' }, text);
 
 // ---------- 'עסקה טובה?' (L2): prompt, verdict pill, metrics ----------
 const LIGHT_ICON = { green: 'check', yellow: 'minus', red: 'close' };
+const LIGHT_LETTER = { green: TIER_LETTER.ok, yellow: TIER_LETTER.slow, red: TIER_LETTER.bad };
 const RESULT_ICON = { correct: 'check', wrong: 'minus', yellowAny: 'help', skipped: null };
 
 /** The verdict pill: icon + text label on a tinted pill (never colour alone). Family 'slow / never' gets the hourglass instead of the cross. */
 function verdictPill(model) {
   const slowFamily = model.light === 'red' && getLearnMode() === 'family';
-  const glyph = slowFamily ? html(hourglassSvg) : icon(LIGHT_ICON[model.light], { size: 20, width: 2.6 });
+  const glyph = slowFamily ? html(hourglassSvg) : icon(LIGHT_ICON[model.light], { size: 16, width: 2.6 });
   if (slowFamily) { glyph.removeAttribute('width'); glyph.removeAttribute('height'); glyph.setAttribute('aria-hidden', 'true'); glyph.setAttribute('focusable', 'false'); }
   // (class names `light` / `lamp` / `light-label` kept from the v2 traffic light: the pill IS the light indicator now)
-  return h('div', { class: `light verdict verdict-${model.light}`, role: 'img', 'aria-label': model.a11y, 'data-light': model.light },
-    h('i', { class: `lamp lamp-${model.light} is-on`, 'aria-hidden': 'true' }, glyph), h('span', { class: 'light-label' }, model.label));
+  // v4 8.3: the A/B/C deal badge replaces the pill's leading icon (same tier, one display): letter square + the tier glyph
+  const letter = LIGHT_LETTER[model.light];
+  return h('div', { class: `light verdict verdict-${model.light}`, role: 'img', 'aria-label': model.a11y, 'data-light': model.light, 'data-deal': letter },
+    h('i', { class: `lamp lamp-${model.light} is-on deal-badge db-${letter.toLowerCase()}`, 'aria-hidden': 'true' }, h('b', { class: 'db-letter' }, letter), glyph), h('span', { class: 'light-label' }, model.label));
 }
 
 function guessPrompt(ui) {
@@ -207,9 +215,10 @@ export function opportunityModal(state, { guess = null, tour = null } = {}) {
     update();
     scope.add('dividend'); // the stock note below carries the dividend link
     const body = [
-      canBuy ? keyNumbers(
-        statTile(t('card.total'), total, { big: true }),
-        statTile(t('card.monthlyIncome'), gain, { tone: 'income', big: true, caption: t('card.perMonthCaption') })) : null,
+      canBuy ? dealKeys(
+        statTile(t('deal.dividendMonthly'), gain, { tone: 'income', big: true, caption: t('card.perMonthCaption'), cls: 'stat-hero', minScale: HERO_MIN }),
+        dealBadge(c, { mode: state.mode }),
+        [statTile(t('deal.cost'), total, { big: true, cls: 'stat-key', minScale: KEY_MIN })]) : h('div', { class: 'deal-badge-row' }, dealBadge(c, { mode: state.mode })),
       canBuy ? h('div', { class: 'stepper-wrap' }, h('span', { class: 'stat-label' }, t('card.quantity')), st.el, quick.length ? h('div', { class: 'qty-quick' }, quick) : null) : null,
       h('div', { class: 'metrics' },
         h('div', { class: 'metric' }, h('span', { class: 'metric-label' }, t('card.perShare')), h('span', { class: 'metric-value' }, money(c.price))),
@@ -217,21 +226,26 @@ export function opportunityModal(state, { guess = null, tour = null } = {}) {
       stockNote(c),
       realWorldForCard(c),
     ].filter(Boolean);
-    return finishOpportunity({ state, c, body, qtyGetter: () => st.value, plan: purchasePlan(state, c.price), tour: null });
+    return finishOpportunity({ state, c, body, qtyGetter: () => st.value, plan: purchasePlan(state, c.price), tour: null, tier: dealBadgeModel(c)?.tier ?? 'speculative' });
   }
 
   const m = dealMetrics(c);
   const years = m.years;
   const tier = paybackTier(years);
   // the card's numbers, split so the reveal can slot the verdict between the key numbers and the quiet details
-  const cardNumbers = ({ light = false } = {}) => {
+  const cardNumbers = () => {
     const flowTone = c.monthlyCashFlow <= 0 || tier === 'bad' ? 'expense' : (tier === 'slow' ? 'slow' : 'income');
-    const key = keyNumbers(
-      statTile(t('card.downPayment'), money(c.downPayment), { big: true, tut: 'downPayment' }),
-      statTile(t('card.monthlyCashFlow'), money(c.monthlyCashFlow, { sign: true }), { tone: flowTone, big: true, tut: 'monthly', caption: t('card.perMonthCaption') }));
+    // v4 8.2: the monthly cash flow is the hero (36/900, full width, the A/B/C badge at its inline-end); down payment and payback
+    // are the 22/900 second row; everything else is quiet (16px or smaller)
+    const paybackText = Number.isFinite(years) ? yearsPhrase(years) : t('deal.paybackNever');
+    const paybackTile = statTile(t('deal.payback'), h('bdi', null, paybackText), { big: true, tut: 'payback', cls: 'stat-key', minScale: KEY_MIN });
+    paybackTile.dataset.paybackTier = tier;
+    const key = dealKeys(
+      statTile(t('card.monthlyCashFlow'), money(c.monthlyCashFlow, { sign: true }), { tone: flowTone, big: true, tut: 'monthly', caption: t('card.perMonthCaption'), cls: 'stat-hero', minScale: HERO_MIN }),
+      dealBadge(c, { mode: state.mode }),
+      [statTile(t('card.downPayment'), money(c.downPayment), { big: true, tut: 'downPayment', cls: 'stat-key', minScale: KEY_MIN }), paybackTile]);
     const debt = balanceSheet(state).liabilitiesTotal + c.mortgage + (plan.status === 'loan' ? plan.need : 0);
     const quiet = [
-      light ? null : paybackBadge(years, tier, scope),
       priceEquation(c, scope),
       h('p', { class: 'debt-after', 'data-debt-after': String(debt) }, tn('card.debtAfter', { debt: money(debt) })),
       breakdown(c, scope),
@@ -247,7 +261,7 @@ export function opportunityModal(state, { guess = null, tour = null } = {}) {
   // ---- no guess: the numbers straight away (full mode default) ----
   if (!guess?.enabled) {
     const n = cardNumbers();
-    return finishOpportunity({ state, c, body: [n.key, ...n.quiet], qtyGetter: () => 1, plan, tour });
+    return finishOpportunity({ state, c, body: [n.key, ...n.quiet], qtyGetter: () => 1, plan, tour, tier });
   }
 
   // ---- the guess flow (family mode): prompt first, numbers after ----
@@ -260,6 +274,7 @@ export function opportunityModal(state, { guess = null, tour = null } = {}) {
     const model = revealModel(c, { seed: guess.seed });
     ctl.card.dataset.guess = 'done';
     ctl.card.dataset.light = m.light;
+    ctl.card.dataset.tier = tier;
     ctl.body.querySelector('[data-guess-block="ask"]')?.remove();
     const n = cardNumbers({ light: true });
     ctl.body.append(n.key, revealBlock(model, result, eye), ...n.quiet);
@@ -295,7 +310,7 @@ function breakdown(c, scope) {
     }, { scope })));
 }
 
-function finishOpportunity({ state, c, body, qtyGetter, plan, ctl = null, deferred = false, guessState = 'off', tour = null }) {
+function finishOpportunity({ state, c, body, qtyGetter, plan, ctl = null, deferred = false, guessState = 'off', tour = null, tier = null }) {
   // plan.status: 'ok' (cash covers it) | 'loan' (one loan covers the gap) | 'blocked' (short even after the maximum loan)
   const hintId = 'buy-hint';
   const cap = loanCap(state);
@@ -320,7 +335,7 @@ function finishOpportunity({ state, c, body, qtyGetter, plan, ctl = null, deferr
   const tourUi = tour ? createCardTour(tour, () => (ctl ?? tourCtl).card) : null;
   const cat = categoryOf(c);
   const promise = cardShell({
-    type: 'opportunity', kind: t('square.opportunity'), headChip: categoryChip(c, { size: 40, on: 'cream' }), headLabel: cat.label, headVar: cat.neutral ? '--card-muted' : cat.inkVar,
+    type: 'opportunity', kind: null, headChip: categoryChip(c, { size: 40, on: 'cream' }), headLabel: cat.label, headVar: cat.neutral ? '--card-muted' : cat.inkVar,
     title: cardTitle(c, state.mode), text: cardText(c, state.mode),
     body, foot: deferred ? null : [tourUi?.strip, warn], actions: deferred ? [] : actions, ctl: ctl ?? tourCtl,
     data: {
@@ -328,6 +343,8 @@ function finishOpportunity({ state, c, body, qtyGetter, plan, ctl = null, deferr
       payback: c.type === 'stock' ? '' : String(Math.round(c.downPayment / Math.max(1, c.monthlyCashFlow))),
       flow: String(c.type === 'stock' ? c.dividend : c.monthlyCashFlow),
       guess: guessState,
+      // the badge tier drives the ribbon (badge fill); empty while the guess hides the numbers
+      tier: tier ?? '',
     },
   });
   if (tourUi) { (ctl ?? tourCtl).card?.classList.add('has-tour'); tourUi.start(); promise.then(() => tourUi.stop()); }
@@ -401,7 +418,7 @@ export function expenseModal(state, { card, amount, paid }) {
       { id: 'loan', label: t('card.getLoan'), variant: 'primary', value: { action: 'loan' }, disabled: maxLoan(state) === 0, autofocus: maxLoan(state) > 0 },
     ];
   if (!paid && maxLoan(state) === 0) body.push(limitBanner());
-  return cardShell({ type: 'expense', kind: t('square.expense'), headChip: tileChip('expense'), title: cardTitle(card, state.mode), text: cardText(card, state.mode), body, actions });
+  return cardShell({ type: 'expense', kind: null, headChip: tileChip('expense'), title: cardTitle(card, state.mode), text: cardText(card, state.mode), body, actions });
 }
 
 export function shortfallModal(state) {
@@ -415,7 +432,7 @@ export function shortfallModal(state) {
     { id: 'loan', label: t('card.getLoan'), variant: 'primary', value: { action: 'loan' }, disabled: maxLoan(state) === 0, autofocus: maxLoan(state) > 0 },
   ];
   if (maxLoan(state) === 0) body.push(limitBanner());
-  return cardShell({ type: 'expense', kind: t('square.expense'), headChip: tileChip('expense'), title: t('card.shortfallTitle'), text: '', body, actions });
+  return cardShell({ type: 'expense', kind: null, headChip: tileChip('expense'), title: t('card.shortfallTitle'), text: '', body, actions });
 }
 
 // ---------- charity ----------
@@ -428,7 +445,7 @@ export function charityModal(state) {
     afford ? null : h('div', { class: 'banner banner-warn', role: 'status' }, icon('bank', { size: 20 }), h('span', null, tn('card.notEnough', { amount: money(cost - state.cash) }))),
   ];
   return cardShell({
-    type: 'charity', kind: t('square.charity'), headChip: tileChip('charity'), title: t('charity.title'),
+    type: 'charity', kind: null, headChip: tileChip('charity'), title: t('charity.title'),
     text: tn('charity.text', { amount: money(cost) }), body,
     actions: [
       { id: 'skip', label: t('charity.skip'), variant: 'secondary', value: { action: 'skip' } },
@@ -449,7 +466,7 @@ export function offerModal(state) {
     realWorldForCard(p.card),
   ].filter(Boolean);
   return cardShell({
-    type: 'market', kind: t('square.market'), headChip: tileChip('market'), title: cardTitle(p.card, state.mode), text: cardText(p.card, state.mode), body,
+    type: 'market', kind: null, headChip: tileChip('market'), title: cardTitle(p.card, state.mode), text: cardText(p.card, state.mode), body,
     actions: [
       { id: 'decline', label: t('card.decline'), variant: 'secondary', value: { action: 'decline' } },
       { id: 'accept', label: t('card.accept'), variant: 'primary', value: { action: 'accept' }, autofocus: true },
@@ -483,7 +500,7 @@ export function marketInfoModal(state, { card, noMatch }) {
   const rw = realWorldForCard(card);
   if (rw) body.push(rw);
   return cardShell({
-    type: 'market', kind: t('square.market'), headChip: tileChip('market'), title: cardTitle(card, state.mode), text: cardText(card, state.mode), body,
+    type: 'market', kind: null, headChip: tileChip('market'), title: cardTitle(card, state.mode), text: cardText(card, state.mode), body,
     actions: [{ id: 'ok', label: t('card.ok'), variant: 'primary', value: { action: 'ok' }, autofocus: true }],
   });
 }
@@ -491,7 +508,7 @@ export function marketInfoModal(state, { card, noMatch }) {
 export function babyModal(state, { max, extra }) {
   const body = max ? [] : [keyNumbers(statTile(t('baby.extra'), money(-extra, { sign: true }), { tone: 'expense', big: true }))];
   return cardShell({
-    type: 'baby', kind: t('square.baby'), headChip: tileChip('baby'), title: max ? t('baby.max') : t('baby.title'),
+    type: 'baby', kind: null, headChip: tileChip('baby'), title: max ? t('baby.max') : t('baby.title'),
     text: max ? t('baby.maxText') : tn('baby.text', { amount: money(extra) }), body,
     actions: [{ id: 'ok', label: t('card.ok'), variant: 'primary', value: { action: 'ok' }, autofocus: true }],
   });
