@@ -49,14 +49,33 @@ const LEARN_OBSERVER = () => {
         if (!(n instanceof Element) || !n.classList.contains('note')) continue;
         const turnNow = document.querySelector('.screen-board')?.dataset.turn; // read at insertion: a fast player may roll again before the box is measured
         setTimeout(() => {
-          const r = n.getBoundingClientRect();
+          // QA round 15: the WHOLE note, its buttons included (the union of every visible box inside it)
+          // a box is clipped by every ancestor (up to the note) that hides its overflow: a line-clamped text still REPORTS the
+          // boxes of its hidden lines, which paint nothing
+          const clipped = (e) => {
+            const b = e.getBoundingClientRect(); let r = { left: b.left, top: b.top, right: b.right, bottom: b.bottom };
+            for (let a = e === n ? null : e.parentElement; a && n.contains(a); a = a === n ? null : a.parentElement) {
+              if (getComputedStyle(a).overflow === 'visible') continue;
+              const c = a.getBoundingClientRect();
+              r = { left: Math.max(r.left, c.left), top: Math.max(r.top, c.top), right: Math.min(r.right, c.right), bottom: Math.min(r.bottom, c.bottom) };
+            }
+            return { width: r.right - r.left, height: r.bottom - r.top, ...r };
+          };
+          const rs = [n, ...n.querySelectorAll('*')].filter((e) => getComputedStyle(e).visibility !== 'hidden').map(clipped).filter((b) => b.width > 0 && b.height > 0);
+          const r = rs.reduce((a, b) => ({ left: Math.min(a.left, b.left), top: Math.min(a.top, b.top), right: Math.max(a.right, b.right), bottom: Math.max(a.bottom, b.bottom) }), { left: Infinity, top: Infinity, right: -Infinity, bottom: -Infinity });
           const me = { l: r.left, t: r.top, r: r.right, b: r.bottom };
-          window.__learnLog.push({
+          const tiles = [...document.querySelectorAll('.board .tile')].map((t) => { const b = t.getBoundingClientRect(); return { l: b.left, t: b.top, r: b.right, b: b.bottom }; });
+          const fox = document.querySelector('.fox-guide'); const fb = fox && fox.getClientRects().length ? fox.getBoundingClientRect() : null;
+          const entry = {
             kind: n.dataset.note, group: n.dataset.group || null, concept: n.dataset.concept || null, text: n.textContent.trim(),
             turn: turnNow, tone: n.dataset.tone || null,
             hitRoll: hit(me, box('.btn-roll')), hitHud: hit(me, box('.hud')), hitDice: hit(me, box('.dice')), hitStatus: hit(me, box('.board-status')),
+            hitHere: hit(me, box('.here-line')), hitTiles: tiles.some((t) => hit(me, t)), hitFox: !!fb && hit(me, { l: fb.left, t: fb.top, r: fb.right, b: fb.bottom }),
+            size: `${innerWidth}x${innerHeight}`,
             inViewport: me.l >= 0 && me.r <= innerWidth + 0.5 && me.b <= innerHeight + 0.5 && me.t >= 0,
-          });
+          };
+          window.__learnLog.push(entry);
+          window.__noteSeen?.(entry); // QA round 15: every note of the whole run reaches the Node side (survives page loads)
         }, 450);
       }
     }).observe(root, { childList: true, subtree: true });
@@ -1290,6 +1309,41 @@ async function testMilestoneFastRoll(browser) {
   await ctx.close();
 }
 
+/** QA round 15: every note that opens (explainer, hint, feedback, milestone, tip), measured whole with its buttons, never covers
+ * the HUD, the tiles, the die, the status line, the "you are here" line, the fox or the CTA; checked on the main page and at
+ * 390x844 and 320x568 (the main run covers 360x800, SMOKE_H=640 covers 360x640). */
+function noteGeometryCheck(log, label) {
+  const bad = log.filter((x) => x.hitRoll || x.hitHud || x.hitDice || x.hitStatus || x.hitHere || x.hitTiles || x.hitFox || !x.inViewport);
+  check(log.length > 0 && bad.length === 0, `notes never cover the HUD, tiles, die, status, "you are here", fox or CTA on ${label} (${log.length} notes: ${[...new Set(log.map((x) => x.kind))].join('/')})${bad.length ? ` ${JSON.stringify(bad.slice(0, 2))}` : ''}`);
+}
+async function testNotesAtSizes(browser) {
+  for (const [w, hgt] of [[390, 844], [320, 568]]) {
+    const ctx = await browser.newContext({ viewport: { width: w, height: hgt }, deviceScaleFactor: 2, locale: 'he-IL', reducedMotion: 'reduce' });
+    const page = await ctx.newPage();
+    await page.addInitScript(LEARN_OBSERVER);
+    await page.goto(`${URL_BASE}?seed=11`);
+    await page.evaluate(() => { localStorage.setItem('passivo.seenIntro', '1'); localStorage.setItem('passivo.tutorial', JSON.stringify({ storyDone: true, helpOn: false, hintsSeen: {}, quizDone: true })); });
+    await page.goto(`${URL_BASE}?seed=11`);
+    await page.locator(`[data-mode="${MODE}"]`).click();
+    await page.locator('[data-action="start"]').click();
+    await page.locator('[data-action="players-next"]').click();
+    await page.locator('.prof-card[data-prof="engineer"]').click();
+    await page.locator('[data-action="go"]').click();
+    await page.waitForSelector('[data-screen="board"]');
+    for (let k = 0; k < 120; k++) {
+      const kinds = await page.evaluate(() => new Set((window.__learnLog || []).map((x) => x.kind)).size);
+      const turn = Number(await page.evaluate(() => document.querySelector('.screen-board')?.dataset.turn || 0));
+      if (turn >= 6 && kinds >= 2) break;
+      const d = await page.evaluate(decide, 'sensible');
+      if (d.click) await page.locator(d.click).first().click({ timeout: 2000 }).catch(() => {});
+      await page.waitForTimeout(d.click === '[data-action="roll"]' ? 700 : 120);
+    }
+    await page.waitForTimeout(600);
+    noteGeometryCheck(await page.evaluate(() => window.__learnLog || []), `${w}x${hgt}`);
+    await ctx.close();
+  }
+}
+
 async function main() {
   await startServer();
   const browser = await chromium.launch({ executablePath: exe, args: ['--no-sandbox'] });
@@ -1298,6 +1352,8 @@ async function main() {
     locale: 'he-IL', reducedMotion: process.env.SMOKE_MOTION === 'full' ? 'no-preference' : 'reduce',
   });
   const page = await ctx.newPage();
+  const allNotes = [];
+  await page.exposeFunction('__noteSeen', (e) => { allNotes.push(e); });
   await page.addInitScript(LEARN_OBSERVER);
   const errors = [];
   const bad = [];
@@ -1483,7 +1539,7 @@ async function main() {
     await page.waitForSelector('[data-screen="start"]');
     check(await page.locator('[data-action="resume"]').count() === 0, 'no resume button after a finished game');
   }
-  if (PLAYERS === 1) { await testBuyStates(page); await testLegacySave(page); await testHudCash(browser); await testMilestoneFastRoll(browser); }
+  if (PLAYERS === 1) { await testBuyStates(page); await testLegacySave(page); await testHudCash(browser); await testMilestoneFastRoll(browser); await testNotesAtSizes(browser); }
   await testRound5(page);
   await testPhaseA(page);
   if (PLAYERS === 1) { await testGuessFlow(page); await testExplainers(page); }
@@ -1513,6 +1569,7 @@ async function main() {
   }
 
   if (PLAYERS > 1) check(oneTap.total >= 3 && oneTap.ok === oneTap.total, `one-tap hand-over: every resolved turn needed ONE tap to roll the next player (${oneTap.ok}/${oneTap.total})`);
+  noteGeometryCheck(allNotes, `360x${HEIGHT} (the whole run)`);
   check(errors.length === 0, `no console/page errors${errors.length ? `: ${errors.slice(0, 3).join(' | ')}` : ''}`);
   check(bad.length === 0, `no failed requests${bad.length ? `: ${bad.slice(0, 3).join(' | ')}` : ''}`);
   await browser.close();

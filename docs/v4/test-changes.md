@@ -129,3 +129,14 @@ Same rule; the QA fixes the CEO approved force these. New checks only add covera
 | tests/tutorial.test.js | one-tap hand-over strings | `players.rollFor` = `זרקו קובייה, {name}` | `הטילו קובייה, {name}` | same |
 | tests/kid-vocabulary.test.js | HE_GROUPS | no `statement` group | `statement` scanned too (the family overrides cover it) | QA P2-7 |
 | tests/e2e/smoke.mjs | N4: the statement has the assets / liabilities / net worth panel | `שווי נקי`, `סך התחייבויות` in every mode | family: `כמה יש לכם בסך הכול`, `סך החובות`; full unchanged | QA P2-7: the family statement uses the kid words |
+
+## QA round 15 fixes (developer, 2026-10-25)
+
+Same rule. The only existing test whose logic changed is the kid-vocabulary scan (QA asked for it). Everything else adds coverage.
+
+| File | Test | Old | New | Why |
+|---|---|---|---|---|
+| tests/e2e/smoke.mjs | LEARN_OBSERVER / reactionStripClear | the note's own box only, sampled on the observed open | the union of the note and every visible descendant (its buttons too; each box clipped by its overflow-hiding ancestors, because a line-clamped text reports the boxes of its hidden lines), recorded on EVERY note open (explainer, hint, feedback, tip, milestone) through `__noteSeen`, then checked against the roll button, HUD, die, status line, tiles, fox and the viewport (`noteGeometryCheck`, the whole run at 360x800 / 360x640) | QA round 15 test review |
+| tests/e2e/smoke.mjs | (new) testNotesAtSizes | - | the same check at 390x844 and 320x568 (seed 11, the smoke's mode, at least 2 note kinds and 6 turns) | same |
+| tests/kid-vocabulary.test.js | locale scan | every key matching FULL_ONLY was skipped (statement.netWorthTitle too) | a FULL_ONLY key is scanned when it has a family override (what tRaw() returns in family mode) | QA round 15: the FULL_ONLY gap |
+| tests/round15.test.js | (new) | - | the loan window's real-world row is filled from the live rate (normal and the cheap-loan rate, both modes); the raw texts hold slots, not figures; the netWorthTitle override exists | QA P3-2 residual |

@@ -41,7 +41,8 @@ describe('family vocabulary: no adult money words on the key screens', () => {
     leaks = [];
     const check = (where, text) => { const plain = stripMarkup(text); if (!ALLOWED.test(where) && FORBIDDEN_RE.test(plain)) leaks.push(`${where}: ${plain}`); };
     // locale file with the family layer on top (what t() returns in family mode)
-    for (const g of HE_GROUPS) for (const [p] of walk(he[g], [g])) { if (FULL_ONLY.test(p)) continue; check(`he.json ${p}`, tRaw(p)); }
+    // QA round 15: a full-only-looking key that HAS a family override (statement.netWorthTitle, ...) is a family surface: scan it
+    for (const g of HE_GROUPS) for (const [p] of walk(he[g], [g])) { if (FULL_ONLY.test(p) && !(p in map)) continue; check(`he.json ${p}`, tRaw(p)); }
     // learn files (family view): feedback (family + shared lines), guess, report, hints, summary card, HUD, goal line, how-to, story
     // feedback: the lines a family player really gets = the group's family list, else its shared (all) list (feedback.js resolve)
     const feedbackLines = {};
