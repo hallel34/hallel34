@@ -3,6 +3,7 @@
 // while numbers.publish is false (spec 8): they are not part of any view model.
 import { learnContent } from './content.js';
 import { fillSlots, rateSlots } from './slots.js';
+import { LOAN_PAYMENT_RATE } from '../engine/config.js';
 
 const visible = (f) => f.status !== 'hidden';
 
@@ -20,7 +21,9 @@ export const factForPlace = (place) => learnContent().realWorld.facts.find((f) =
 export function realWorldView(fact, { rate } = {}) {
   const ui = learnContent().realWorld.ui;
   const slots = rateSlots(rate);
-  const out = { id: fact.id, title: ui.title, gameLabel: ui.gameLabel, realLabel: ui.realLabel, game: fillSlots(fact.game, slots), real: fillSlots(fact.real, slots), disclaimer: ui.disclaimer };
+  // QA round 16 P3-b: while a cheap-loan card runs, the text does not call the rate 'high on purpose'
+  const cheap = Number.isFinite(rate) && rate < LOAN_PAYMENT_RATE;
+  const out = { id: fact.id, title: ui.title, gameLabel: ui.gameLabel, realLabel: ui.realLabel, game: fillSlots(cheap && fact.gameCheap ? fact.gameCheap : fact.game, slots), real: fillSlots(fact.real, slots), disclaimer: ui.disclaimer };
   // A figure becomes visible only after finance flips publish to true (source + date). Until then it stays out.
   if (fact.numbers && fact.numbers.publish === true) out.figure = fact.numbers.text;
   return out;

@@ -56,6 +56,7 @@ export function mergeFamilyBlocks(content) {
   }
   for (const fact of copy.realWorld?.facts ?? []) {
     if (typeof fact.gameFamily === 'string') fact.game = fact.gameFamily;
+    if (typeof fact.gameFamilyCheap === 'string') fact.gameCheap = fact.gameFamilyCheap; // QA round 16 P3-b: the cheap-loan wording
     if (typeof fact.realFamily === 'string') fact.real = fact.realFamily;
   }
   return copy;
