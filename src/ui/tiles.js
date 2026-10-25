@@ -22,7 +22,7 @@ export const TILE_META = {
   market: { icon: 'market', family: 'info', label: 'square.market', legend: 'legend.market', onBoard: true },
   baby: { icon: 'baby', family: 'info', label: 'square.baby', legend: 'legend.baby', onBoard: true },
   charity: { icon: 'charity', family: 'info', label: 'square.charity', legend: 'legend.charity', onBoard: true },
-  taxAudit: { icon: 'tax-audit', family: 'info', label: 'square.taxAudit', legend: 'legend.taxAudit', onBoard: false },
+  taxAudit: { icon: 'tax-audit', family: 'info', label: 'square.taxAudit', legend: 'legend.taxAudit', onBoard: true }, // v4 stage 4: on the board (square 12)
 };
 
 // the BOARD id of the later stage may be spelled like its file; both names reach the same row

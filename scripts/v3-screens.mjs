@@ -8,7 +8,7 @@ import { spawn, execFileSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { existsSync, mkdirSync, readFileSync, unlinkSync } from 'node:fs';
 import {
-  createEngine, newMatch, act, serialize, currentState, maxLoan, purchasePlan, BOARD,
+  createEngine, newMatch, act, serialize, currentState, maxLoan, purchasePlan, BOARD, totalExpenses,
 } from '../src/engine/index.js';
 
 const require = createRequire(import.meta.url);
@@ -19,7 +19,9 @@ const URL_BASE = `http://localhost:${PORT}/`;
 const OUT = process.env.SCREENS_OUT || new URL('../qa/screens/v4-after/', import.meta.url).pathname;
 const THEMES = (process.env.THEMES || 'dark,light').split(',');
 // the v4 board stage set: the board in both modes, the legend, the fox bubble, the die result, the deal cards with their badge, the win screen
-const V4_SCENES = ['board', 'boardFull', 'legend', 'bubble', 'dieResult', 'fullCard', 'green', 'red', 'stockCard', 'win'];
+const V4_SCENES = ['home', 'pick', 'board', 'boardFull', 'legend', 'bubble', 'dieResult', 'fullCard', 'green', 'red', 'stockCard', 'win',
+  // v4 stage 4: the decision card (2 and 3 options), the tax-audit quiz and its reveal, a milestone, the statement tax popover
+  'decision', 'decisionStacked', 'taxAudit', 'taxAuditReveal', 'milestone', 'stmtTax'];
 const SIZES = (process.env.SIZES || '390x844,360x800,320x568').split(',').map((s) => s.split('x').map(Number));
 const ONLY = process.env.ONLY ? process.env.ONLY.split(',') : (process.env.ALL ? null : V4_SCENES);
 const exe = process.env.CHROMIUM_PATH || ['/opt/pw-browsers/chromium-1194/chrome-linux/chrome', '/opt/pw-browsers/chromium/chrome-linux/chrome'].find(existsSync);
@@ -139,7 +141,7 @@ const SCENES = {
     await page.locator('[data-action="legend"]').click();
     await page.waitForSelector('.legend-sheet'); await page.waitForTimeout(500);
     const r = await page.evaluate(() => ({ rows: document.querySelectorAll('.legend-row').length, focus: document.activeElement?.id, groups: [...document.querySelectorAll('.legend-head')].map((x) => x.textContent) }));
-    note(r.rows === 6 && r.focus === 'legend-title' && r.groups.length === 3, `legend: 6 rows in 3 named groups, focus on the title (${JSON.stringify(r)})`);
+    note(r.rows === 7 && r.focus === 'legend-title' && r.groups.length === 3, `legend: 7 rows in 3 named groups (tax audit on the board), focus on the title (${JSON.stringify(r)})`);
     return '20-legend-sheet';
   },
   async bubble(page) {
@@ -151,7 +153,8 @@ const SCENES = {
       const box = (s) => { const e = document.querySelector(s); if (!e) return null; const b = e.getBoundingClientRect(); return { l: b.left, t: b.top, r: b.right, b: b.bottom }; };
       const hit = (a, b) => a && b && a.l < b.r - 0.5 && a.r > b.l + 0.5 && a.t < b.b - 0.5 && a.b > b.t + 0.5;
       const bub = box('.fox-strip .note-bubble'); const fox = box('.fox-guide');
-      return { bub: !!bub, fox: !!fox, overFox: hit(bub, fox), hud: hit(bub, box('.hud')), board: hit(bub, box('.board')), roll: hit(bub, box('.btn-roll')), foxBoard: hit(fox, box('.board')), foxRoll: hit(fox, box('.btn-roll')) };
+      const tiles = [...document.querySelectorAll('.board .tile')].map((t) => { const b = t.getBoundingClientRect(); return { l: b.left, t: b.top, r: b.right, b: b.bottom }; });
+      return { bub: !!bub, fox: !!fox, overFox: hit(bub, fox), hud: hit(bub, box('.hud')), board: tiles.some((x) => hit(bub, x)), roll: hit(bub, box('.btn-roll')), foxBoard: tiles.some((x) => hit(fox, x)), foxRoll: hit(fox, box('.btn-roll')) };
     });
     note(r.bub && r.fox && !r.overFox && !r.hud && !r.board && !r.roll && !r.foxBoard && !r.foxRoll, `bubble + fox stay in the fox strip (${JSON.stringify(r)})`);
     return '21-fox-bubble';
@@ -170,6 +173,56 @@ const SCENES = {
   async stockCard(page) { await loadMatch(page, matchWithCard('full', 'opp-stk-002', { cash: 50000 }), { guess: false }); await page.waitForSelector('.card'); await page.waitForTimeout(500); return '14b-FULL-stock-card'; },
   async win(page) { await loadMatch(page, newMatch(engine, { mode: 'family', players: [{ name: 'דנה', professionId: 'teacher' }], seed: 7 }), { debug: true }); await page.locator('[data-action="debug-win"]').click(); await page.waitForSelector('[data-screen="win"]', { timeout: 8000 }); await page.waitForTimeout(1500); return '13-win'; },
   async over(page) { await loadMatch(page, newMatch(engine, { mode: 'full', players: [{ name: 'דנה', professionId: 'teacher' }], seed: 7 }), { debug: true }); await page.locator('[data-action="debug-lose"]').click(); await page.waitForSelector('[data-screen="over"]', { timeout: 8000 }); await page.waitForTimeout(1200); return '13c-game-over'; },
+  async decision(page) {
+    await loadMatch(page, matchWithCard('family', 'dec-008', { cash: 250000 }), { guess: false });
+    await page.waitForSelector('.card[data-decision]'); await page.waitForTimeout(500);
+    const r = await page.evaluate(() => ({ btns: document.querySelectorAll('.card-actions .btn').length, stacked: document.querySelector('.card-actions').classList.contains('is-stacked'), tag: !!document.querySelector('.card-actions .btn-tag') }));
+    note(r.btns === 3 && r.stacked && r.tag, `decision: 2 options + pass, stacked, one "לא זמין" (${JSON.stringify(r)})`);
+    return '30-decision-card';
+  },
+  async decisionStacked(page) {
+    await loadMatch(page, matchWithCard('full', 'dec-001', { cash: 100000 }), { guess: false });
+    await page.waitForSelector('.card[data-decision]'); await page.waitForTimeout(500);
+    const r = await page.evaluate(() => { const b = [...document.querySelectorAll('.card-actions .btn')].map((x) => x.getBoundingClientRect()); return { n: b.length, oneColumn: b.every((x) => Math.abs(x.left - b[0].left) < 1) }; });
+    note(r.n === 3 && r.oneColumn, `decision: three options stack in one column (${JSON.stringify(r)})`);
+    return '31-decision-card-3-options';
+  },
+  async taxAudit(page) {
+    const m = newMatch(engine, { mode: 'full', players: [{ name: 'דנה', professionId: 'teacher' }], seed: 7 });
+    const at = BOARD.indexOf('taxAudit');
+    // resumed on the square with its question pending (the engine's own pending shape)
+    await loadMatch(page, { ...m, players: m.players.map((p) => ({ ...p, state: { ...p.state, position: at, turn: 3, pending: { kind: 'taxAudit', pick: 4 }, phase: 'decision' } })) }, { guess: false });
+    await page.waitForSelector('.card[data-card="taxAudit"]', { timeout: 15000 }); await page.waitForTimeout(500);
+    return '32-tax-audit-quiz';
+  },
+  async taxAuditReveal(page) {
+    await SCENES.taxAudit(page);
+    await page.locator('.audit-opt').first().click(); await page.waitForTimeout(500);
+    const r = await page.evaluate(() => ({ asOf: document.querySelector('.audit-reveal .asof-tag')?.textContent, link: document.querySelector('.audit-reveal .src-link')?.getAttribute('href'), money: /₪/.test(document.querySelector('.audit-reveal .audit-points')?.textContent ?? '') }));
+    note(r.asOf === 'נכון ל-2026' && /^https:/.test(r.link ?? '') && !r.money, `tax audit: "נכון ל-2026" + link, no money (${JSON.stringify(r)})`);
+    return '33-tax-audit-reveal';
+  },
+  async milestone(page) {
+    const base = matchWithCard('family', 'dec-001', { cash: 200000 });
+    const st = currentState(base);
+    const exp = totalExpenses(st);
+    const own = [{ id: 'asset-m', cardId: 'opp-biz-002', type: 'business', title: 'עגלת קפה ברכבת', price: 160000, downPayment: 80000, mortgage: 80000, monthlyCashFlow: Math.ceil(exp * 0.25) - 1800 + 20, profit: 3200, loanPayment: 1400 }];
+    await loadMatch(page, { ...base, players: base.players.map((p) => ({ ...p, state: { ...p.state, assets: own } })) }, { guess: false });
+    await page.waitForSelector('.card[data-decision]'); await page.waitForTimeout(300);
+    await page.locator('.card-actions [data-option="A"]').click();
+    await page.waitForSelector('.fox-strip .badge-chip', { timeout: 8000 }); await page.waitForTimeout(400);
+    return '34-milestone-25';
+  },
+  async stmtTax(page) {
+    await SCENES.boardFull(page);
+    await page.locator('[data-action="statement"]').click(); await page.waitForSelector('.statement-body'); await page.waitForTimeout(500);
+    await page.locator('[data-action="tax-row"]').click(); await page.waitForTimeout(300);
+    await page.evaluate(() => document.querySelector('#st-tax-pop')?.scrollIntoView({ block: 'start' })); await page.waitForTimeout(300);
+    const r = await page.evaluate(() => ({ open: !document.querySelector('#st-tax-pop').hidden, asOf: document.querySelector('#st-tax-pop .asof-tag')?.textContent, link: !!document.querySelector('#st-tax-pop .src-link') }));
+    note(r.open && r.asOf === 'נכון ל-2026' && r.link, `statement tax popover open with the as-of tag and link (${JSON.stringify(r)})`);
+    return '35-statement-tax-popover';
+  },
+
 };
 
 const server = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort', ...(process.env.PREVIEW_OUTDIR ? ['--outDir', process.env.PREVIEW_OUTDIR] : [])], { stdio: 'ignore' });

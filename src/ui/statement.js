@@ -11,6 +11,41 @@ import { animate } from './fx.js';
 import { motionOK } from './prefs.js';
 import { assetTitle } from './card-view.js';
 import { statement, maxLoan, PAYDAY_MONTHS, LOAN_PAYMENT_RATE } from '../engine/index.js';
+import { learnContent } from '../learn/content.js';
+import { asOfLine } from './tax-audit.js';
+import { stackedEquation } from './payday.js';
+
+const textOf = (x) => (typeof x === 'string' ? x : [x].flat().map((n) => (typeof n === 'string' ? n : n?.textContent ?? '')).join(''));
+
+/**
+ * v4 stage 4: the 'מסים וביטוח לאומי' row (full mode) is a disclosure button that opens the statement popover of guide.he.json:
+ * the 2026 income-tax brackets and national-insurance rates, the pension rule, this profession's real figure next to the game
+ * line, the "נכון ל-2026" tag and the source link. `open` survives a re-render of the sheet.
+ */
+let taxOpen = false;
+function taxRow(e, s) {
+  const pop = learnContent().guide?.statementPopover;
+  if (!pop) return null;
+  const fillT = (tpl, slots) => tpl.split(/(\{\w+\})/).filter(Boolean).map((part) => { const m = part.match(/^\{(\w+)\}$/); return m && m[1] in slots ? slots[m[1]] : part; });
+  const prof = pop.profession?.rows?.[s.profession.id];
+  const table = (rows) => h('table', null, h('tbody', null, rows.map((r) => h('tr', null, h('td', null, r.label), h('td', null, h('bdi', { dir: 'ltr' }, r.value))))));
+  const panel = h('div', { class: 'st-tax-pop', id: 'st-tax-pop', role: 'region', 'aria-label': pop.title, hidden: !taxOpen },
+    h('p', null, pop.short),
+    h('h4', null, pop.incomeTax.title), h('p', null, pop.incomeTax.short), table(pop.incomeTax.rows), pop.incomeTax.rowsNote ? h('p', null, pop.incomeTax.rowsNote) : null,
+    h('h4', null, pop.nationalInsurance.title), h('p', null, pop.nationalInsurance.short), table(pop.nationalInsurance.rows), pop.nationalInsurance.rowsNote ? h('p', null, pop.nationalInsurance.rowsNote) : null,
+    pop.pension ? [h('h4', null, pop.pension.title), h('p', null, pop.pension.short)] : null,
+    // the profession line only while the guide's figures still match the live salary (the game line is always read live)
+    prof && prof.gross === s.profession.salary ? [
+      h('p', null, fillT(pop.profession.template, { title: s.profession.title, gross: money(prof.gross), gameLine: money(e.amount), real: money(prof.realTaxPlusNi) })),
+      pop.profession.assumption ? h('p', null, pop.profession.assumption) : null] : null,
+    h('p', null, pop.gameNote),
+    asOfLine(learnContent().guide.ui, pop));
+  const btn = h('button', {
+    type: 'button', class: 'st-tax-btn', 'aria-expanded': String(taxOpen), 'aria-controls': 'st-tax-pop', 'data-action': 'tax-row',
+    onClick: () => { taxOpen = !taxOpen; panel.hidden = !taxOpen; btn.setAttribute('aria-expanded', String(taxOpen)); },
+  }, h('span', { class: 'st-label' }, e.label), h('span', { class: 'st-value' }, money(e.amount)));
+  return [h('div', { class: 'st-row st-row-tax' }, btn), panel];
+}
 
 export function openStatement({ getState, ops, title = t('statement.title') }) {
   let layer;
@@ -43,7 +78,9 @@ export function openStatement({ getState, ops, title = t('statement.title') }) {
       h('div', { class: 'meter-labels' },
         h('span', null, t('game.passive'), ' ', h('b', { class: 'tone-income' }, money(st.passiveIncome))),
         h('span', null, t('game.expenses'), ' ', h('b', { class: 'tone-expense' }, money(st.totalExpenses)))),
-      h('p', { class: 'st-goal st-payday' }, paydayCalc(st.monthlyCashFlow, PAYDAY_MONTHS, st.monthlyCashFlow * PAYDAY_MONTHS, 'statement.paydayLine')),
+      // spec 4.6 / 4.9 (owner approved 2026-10-25): the stacked equation in the hero (the one-line form stays as its spoken name)
+      h('div', { class: 'st-goal st-payday', 'aria-label': textOf(paydayCalc(st.monthlyCashFlow, PAYDAY_MONTHS, st.monthlyCashFlow * PAYDAY_MONTHS, 'statement.paydayLine')) },
+        stackedEquation({ monthly: st.monthlyCashFlow, months: PAYDAY_MONTHS, amount: st.monthlyCashFlow * PAYDAY_MONTHS }, { label: t('payday.label') })),
       h('p', { class: 'st-goal' }, t('statement.goalLine'))));
 
     // net-worth panel (spec 4.6): net worth, an assets-vs-liabilities bar and the two totals (family: 'חובות' wording, no red)
@@ -64,7 +101,7 @@ export function openStatement({ getState, ops, title = t('statement.title') }) {
       row(lab('statement.passiveIncome'), money(st.passiveIncome, { sign: st.passiveIncome > 0 }), 'income'),
       row(t('statement.totalIncome'), money(st.totalIncome), 'total')));
 
-    const expenseRows = st.expenseItems.map((e) => row(e.label, money(e.amount)));
+    const expenseRows = st.expenseItems.flatMap((e) => (e.id === 'tax' && full ? taxRow(e, s) ?? [row(e.label, money(e.amount))] : [row(e.label, money(e.amount))]));
     if (st.kids) expenseRows.push(row(t('statement.children', { n: st.kids }), money(st.childExpenses)));
     if (st.loanPayments) expenseRows.push(row(t('statement.loans'), money(st.loanPayments)));
     body.append(section(t('statement.expenses'), 'expense', ...expenseRows, row(t('statement.totalExpenses'), money(st.totalExpenses), 'total')));

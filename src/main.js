@@ -23,7 +23,9 @@ document.title = t('app.title');
 const host = document.getElementById('app');
 try {
   createApp(host).start();
+  document.getElementById('splash')?.remove();
 } catch (err) {
+  document.getElementById('splash')?.remove();
   console.error(err);
   host.textContent = `${t('app.loadError')} (${err.message})`;
 }

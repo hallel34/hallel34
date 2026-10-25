@@ -92,3 +92,24 @@ Same rule. The 6x8 ring and the plaza stack are the owner's layout; the one menu
 | tests/ui-flow.test.js | home button > is an in-page sheet ... | source has `iconButton('home', t('game.home')` | source has `iconButton('menu', t('game.menu'), () => askHome()` and `homeBtn.dataset.action = 'home'` | CEO 14.7 item 3: the home button is the HUD's one menu button (the sheet keeps the home confirm and adds settings, sound, vibration) |
 | tests/e2e/smoke.mjs | testHome: home button has aria-label "חזרה לבית" | `חזרה לבית` | `תפריט` | Same: the button now opens the menu |
 | tests/e2e/smoke.mjs | reactionStripClear: the strip never covers the HUD, board, die or roll button | the fox host must not intersect `.board` | it must not intersect any `.board .tile` | Owner 14.4: the fox row is inside the plate's plaza by design; the tiles, HUD, die and CTA are still checked |
+
+## v4 stage 4 + the owner's 2026-10-25 items (developer, 2026-10-25)
+
+Same rule. New file `tests/v4-stage4.test.js` only adds checks (decision cards, milestones, schema 5 with the v2.5 fixture, the tax-audit square, the daily challenge, the learn files, the family safety net).
+
+| File | Test | Old | New | Why the approved change forces it |
+|---|---|---|---|---|
+| tests/economy.test.js | economy constants (config) | `SCHEMA_VERSION` 4 | 5 | Stage 4.2: a state field (`milestones`, `taxAudit`) needs a schema bump |
+| tests/economy.test.js | save schema 4: a v2.5 save migrates 3 -> 4 ...; plays on ... saves / loads again as schema 4 | `schemaVersion` 4; the rest of the state equals the old one minus `lap`, `effects` | 5; also minus `milestones`, `taxAudit` | same bump (the fixture now migrates 3 -> 4 -> 5) |
+| tests/learn.test.js | save schema 3 and migration (3 tests) | `toBe(4)` | `toBe(5)` (titles renamed) | same bump |
+| tests/learn.test.js | the engine records every decision > an expense paid from cash is green | hand loop knows opportunity / charity only | also answers a decision card (expense: option A) and the tax audit | the new pending kinds of stage 4 (decision cards in the piles, the tax-audit square) |
+| tests/match.test.js | helper `playTurn` | throws on any other pending | answers a decision card (free option first) and the tax audit | same |
+| tests/tutorial.test.js | one-tap hand-over (two `while (s.pending)` loops) | opportunity / charity only (it looped forever on a decision card) | also a decision card and the tax audit | same |
+| tests/board-v4.test.js | every label ... tax-audit is registered but not on the board yet; the legend lists the six board types | `onBoard` false, BOARD without taxAudit; 6 legend rows | `onBoard` true, exactly one taxAudit; 7 legend rows | Stage 4.3: the square is on the board and its legend row is enabled |
+| tests/round7.test.js | production bundle carries no unpublished figure | the bundle never contains `3.25` | `3.25` only inside the guide figure tagged `verified: boi.policyRate` (exactly one), nowhere else | Owner 2026-10-25 item 3: show the Bank of Israel rate with "נכון ל-2026" and the source |
+| tests/learn.test.js | real world (L6): there are hidden figures to guard | hidden contains 2.5%, 8.2%, 3.25%, 4.75% | hidden contains 2.5%, 8.2%, 4.75%; 3.25% is visible only through the one figure tagged `boi.policyRate`, which real-world-verified.json marks VERIFIED at 3.25 | same (the guide's tagged figures join the visible text) |
+| tests/ui.test.js | B2: the payday float is placed under the HUD | `{ below: hud }` in play.js | `{ within: center }` (fx.js `within.getBoundingClientRect()`) | Owner item 2: the float is confined to the board plaza |
+| tests/ui.test.js | B1/N3 source check of statement.js | contains `paydayCalc(st.monthlyCashFlow, PAYDAY_MONTHS` | also contains `stackedEquation({ monthly: st.monthlyCashFlow, months: PAYDAY_MONTHS` (the one-line form stays as its spoken name) | Owner item 2: the stacked equation in the statement hero |
+| tests/e2e/smoke.mjs | B2: the payday float stays under the HUD and inside the viewport | float top >= HUD bottom | float inside `.board-center` (and still not over HUD text) | Owner item 2 |
+| tests/e2e/smoke.mjs | B1 / N3: chip amounts in <bdi>; "log shows the maths" in the roll-zone chip | the chip text holds `סיכום שנתי`, `× 12`, `=` | the chip is the payday chip (variant a/b/c, amount in <bdi>, 48px); its tap opens the stacked equation (months, ×, =); the status line holds the one-line maths | Owner item 2 |
+| tests/e2e/smoke.mjs | hiddenFigures() (L6 on screen) | every unpublished real-world percent is hidden | minus the rates real-world-verified.json marks VERIFIED (fractions only, e.g. 50%, 2.5%, 2%) and the guide figure published with its verified tag (3.25%) | Stage 4.3 (the real-world surfaces show official 2026 figures) + owner item 3 |

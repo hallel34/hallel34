@@ -138,8 +138,19 @@ def bez_pts(p0, p1, p2, p3, n=24):
         out.append(tuple(u**3 * a + 3 * u * u * t * b + 3 * u * t * t * c + t**3 * d for a, b, c, d in zip(p0, p1, p2, p3)))
     return out
 
-def emboss_glyph(tile, svg_paths, box, ink=(255, 246, 227)):
-    """Draw the tax-audit monoline glyph as a raised cream emboss: dark offset shadow, cream body, light top edge."""
+def draw_sparkle(d, px, sw):
+    """The exact paths of tile/opportunity.svg: the four-point sparkle (4 cubic segments) and the small plus."""
+    segs = [((10.5, 3), (11.1, 7), (13.1, 9.3), (17.5, 10.5)), ((17.5, 10.5), (13.1, 11.7), (11.1, 14), (10.5, 18)),
+            ((10.5, 18), (9.9, 14), (7.9, 11.7), (3.5, 10.5)), ((3.5, 10.5), (7.9, 9.3), (9.9, 7), (10.5, 3))]
+    pts = [p for sg in segs for p in bez_pts(*sg)]
+    d.line([px(x, y) for x, y in pts], fill=255, width=sw, joint='curve')
+    for a, b in (((19, 15), (19, 20)), ((16.5, 17.5), (21.5, 17.5))):
+        d.line([px(*a), px(*b)], fill=255, width=sw)
+        for q in (px(*a), px(*b)): d.ellipse([q[0] - sw / 2, q[1] - sw / 2, q[0] + sw / 2, q[1] + sw / 2], fill=255)
+
+def emboss_glyph(tile, svg_paths, box, ink=(255, 246, 227), draw=None):
+    """Draw a monoline glyph (default: the tax-audit magnifier; `draw(d, px, sw)` for another) as a raised cream emboss:
+    dark offset shadow, cream body, light top edge."""
     from PIL import ImageDraw, ImageFilter
     W = tile.width; S = 8  # supersample
     gx, gy, gs = box       # glyph top-left + size, in tile px
@@ -147,6 +158,9 @@ def emboss_glyph(tile, svg_paths, box, ink=(255, 246, 227)):
         L = Image.new('L', (W * S, tile.height * S), 0); d = ImageDraw.Draw(L)
         u = gs * S / 24; px = lambda x, y: ((gx + dx) * S + x * u, (gy + dy) * S + y * u)
         sw = max(1, round(width * u))
+        if draw:
+            draw(d, px, sw)
+            return L.resize(tile.size, Image.LANCZOS)
         cx, cy, rr = 10.5, 10.5, 7
         d.ellipse([px(cx - rr, cy - rr), px(cx + rr, cy + rr)], outline=255, width=sw)
         d.line([px(15.5, 15.5), px(20.5, 20.5)], fill=255, width=sw)
@@ -208,8 +222,17 @@ def main():
     cx, cy = (xs.min() + xs.max()) / 2, (ys.min() + ys.max()) / 2
     gs = float(xs.max() - xs.min()) * 1.08; cx, cy = float(cx), float(cy)
     master['tax-audit'] = emboss_glyph(teal, None, (cx - gs * 10.5 / 24 - gs * .06, cy - gs * 10.5 / 24 - gs * .04, gs))
+    # opportunity (owner, 2026-10-25): a NEUTRAL tile instead of the green house. The same rounded body as tax audit (medallion
+    # inpainted), the gain-family green, and the sparkle of tile/opportunity.svg as the cream emboss. Without colour it reads by its
+    # silhouette: a sparkle on a plain slab, unlike the banknote slab of payday and the magnifier of tax audit.
+    green = hue_shift(filled, lambda H, S, V: ((H > 0.80) | (H < 0.06)) & (S > 0.12),
+                      lambda H, S, V: (np.full_like(H, 0.37), np.clip(S * 1.05, 0, 1), V * 0.80))
+    gs2 = gs * 1.04
+    master['opportunity'] = emboss_glyph(green, None, (cx - gs2 * 11 / 24, cy - gs2 * 11 / 24 - gs2 * .02, gs2), draw=draw_sparkle)
+    only = set(filter(None, os.environ.get('TILE3D_ONLY', '').split(',')))  # e.g. TILE3D_ONLY=opportunity: rewrite just that tile
     total = 0
     for name, im in master.items():
+        if only and name not in only: continue
         for suf, w in SIZES.items():
             h = round(w * CELL_H / CELL_W)
             p = f'{OUT}/{name}{suf}.webp'

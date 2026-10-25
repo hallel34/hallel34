@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import {
   createEngine, loadData as _unused, serialize, deserialize, newMatch, SCHEMA_VERSION, LOAN_COSTLY_PAYMENT_SHARE, INVESTOR_EYE_STREAK,
   PAYBACK_OK_YEARS, PAYBACK_SLOW_YEARS, loanTerms, monthlyCashFlow, playGame, BOTS,
+  isFreeOption,
 } from '../src/engine/index.js';
 import {
   dealMetrics, loanRating, recordGuess, guessCorrect, investorStreak, guessForCard, buildReport, conversationOrder, unlockConcept,
@@ -170,6 +171,8 @@ describe('the engine records every decision (state.learn)', () => {
       if (s.phase === 'roll') s = engine.roll(s);
       else if (s.pending?.kind === 'opportunity') s = engine.pass(s);
       else if (s.pending?.kind === 'charity') s = engine.declineCharity(s);
+      else if (s.pending?.kind === 'decision') s = engine.decide(s, s.pending.card.square === 'expense' ? 'A' : (s.pending.card.options.find(isFreeOption)?.id ?? 'pass')); // v4 stage 4
+      else if (s.pending?.kind === 'taxAudit') s = engine.answerAudit(s, {});
       else break;
       found = s.learn.decisions.find((d) => d.kind === 'expense');
     }
@@ -200,8 +203,8 @@ describe('the engine records every decision (state.learn)', () => {
 });
 
 describe('save schema 3 and migration', () => {
-  it('the schema is 4 and a round trip keeps the learn record', () => {
-    expect(SCHEMA_VERSION).toBe(4);
+  it('the schema is 5 and a round trip keeps the learn record', () => {
+    expect(SCHEMA_VERSION).toBe(5);
     let m = newMatch(engine, { mode: 'family', seed: 3, players: [{ professionId: 'teacher' }] });
     m = { ...m, players: [{ ...m.players[0], state: unlockConcept(markShown(engine.buy(withCard('opp-apt-001')), 'x'), 'yield') }] };
     const back = deserialize(serialize(m));
@@ -215,16 +218,16 @@ describe('save schema 3 and migration', () => {
     old.schemaVersion = 2;
     for (const p of old.players) { delete p.state.learn; p.state.schemaVersion = 2; }
     const back = deserialize(JSON.stringify(old));
-    expect(back.schemaVersion).toBe(4);
+    expect(back.schemaVersion).toBe(5);
     expect(back.players.map((p) => p.state.learn)).toEqual([emptyLearn(), emptyLearn()]);
     expect(back.players[0].state.profession.id).toBe('teacher');
   });
-  it('a schema 1 save (a bare state) migrates through 2 and 3 to 4', () => {
+  it('a schema 1 save (a bare state) migrates through 2, 3 and 4 to 5', () => {
     const s = engine.newGame({ mode: 'family', professionId: 'teacher', seed: 4 });
     const v1 = { ...s, schemaVersion: 1 };
     delete v1.learn;
     const back = deserialize(JSON.stringify(v1));
-    expect(back.schemaVersion).toBe(4);
+    expect(back.schemaVersion).toBe(5);
     expect(back.players[0].state.learn).toEqual(emptyLearn());
   });
   it('an old game that has no interestPaid still reports without that section', () => {
@@ -664,12 +667,20 @@ describe('real world (L6): no unverified figure is ever shown', () => {
   const facts = content.realWorld.facts;
   const clean = (o) => JSON.stringify(o, (k, v) => (['numbers', 'sources', 'needs_review', 'notes', 'computed', 'status'].includes(k) ? undefined : v));
   const visibleText = clean({ g: content.glossary, f: content.feedback, r: content.report, q: content.guess, ui: content.realWorld.ui, facts: facts.map((f) => ({ game: f.game, real: f.real })) })
-    + JSON.stringify(he) + JSON.stringify(data.cards);
+    + JSON.stringify(he) + JSON.stringify(data.cards)
+    // owner 2026-10-25: a guide figure published WITH its verified tag (docs/v3/real-world-verified.json) is visible on purpose
+    + JSON.stringify((content.guide?.lessons ?? []).flatMap((l) => l.screens).filter((x) => x.numbers?.publish === true && x.numbers.verified).map((x) => x.numbers.text));
   const tokens = (s) => [...String(s).matchAll(/(?<![\d.,])\d+(?:\.\d+)?%/g)].map((m) => m[0]);
   const hidden = [...new Set(facts.filter((f) => f.numbers).flatMap((f) => tokens(f.numbers.text)))].filter((x) => !tokens(visibleText).includes(x));
 
   it('there are hidden figures to guard (otherwise this test guards nothing)', () => {
-    expect(hidden).toEqual(expect.arrayContaining(['2.5%', '8.2%', '3.25%', '4.75%']));
+    expect(hidden).toEqual(expect.arrayContaining(['2.5%', '8.2%', '4.75%']));
+    // 3.25% (the Bank of Israel rate) is shown only in the guide's figure that carries the verified tag, nowhere else
+    const tagged = (content.guide?.lessons ?? []).flatMap((l) => l.screens).filter((x) => x.numbers?.publish === true && x.numbers.text.includes('3.25%'));
+    expect(tagged.map((x) => x.numbers.verified)).toEqual(['boi.policyRate']);
+    const verified = JSON.parse(readFileSync(new URL('../docs/v3/real-world-verified.json', import.meta.url), 'utf8')).find((e) => e.id === 'boi.policyRate');
+    expect([verified.status, verified.value]).toEqual(['VERIFIED', 3.25]);
+    expect(hidden).not.toContain('3.25%');
   });
   it('the view model of every fact is game + real + labels + disclaimer, never numbers (publish:false)', () => {
     for (const f of facts) {

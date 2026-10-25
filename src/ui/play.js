@@ -1,7 +1,7 @@
 // Board screen + game flow controller. The engine is the source of truth; this file only
 // presents engine events (die, hops, cash) and applies the player's choices through the engine.
 import { h, html } from './dom.js';
-import { t, tp } from '../i18n/index.js';
+import { t, tp, tRaw } from '../i18n/index.js';
 import {
   BOARD, EngineError, statement, monthlyCashFlow, currentState, setCurrentState, endTurn, canEndTurn, isMultiplayer, passiveIncome,
   totalExpenses, resumePlan, lastPlayerStanding, nextActiveIndex,
@@ -40,6 +40,11 @@ import {
 import { REACTIONS, LAND_REACTION, tipIndexForTurn } from './fox-rules.js';
 import { summaryCard } from './summary-card.js';
 import { professionBust } from './professions.js';
+import { paydayChip } from './payday.js';
+import { decisionModal as rawDecisionModal, decisionFox, decisionLog, foxSlots } from './decision.js';
+import { taxAuditModal as rawTaxAuditModal, countCorrect } from './tax-audit.js';
+import { feedbackNodes } from './learn-flow.js';
+import { learnContent } from '../learn/content.js';
 import { createFamilyHud, GOAL_MIN_HEIGHT } from './hud-family.js';
 import {
   tut, hintDef, fillNodes, leftWords, showRing, hintStrip, hintMoreAllowed,
@@ -111,6 +116,8 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   const handoffSheet = gated(raw.handoffSheet);
   const summaryCardGated = gated(summaryCard);
   const playerOutModal = gated(raw.playerOutModal);
+  const decisionModal = gated(rawDecisionModal);
+  const taxAuditModal = gated(rawTaxAuditModal);
   const { homeConfirmSheet, giveUpConfirmSheet } = raw;
   const isDaily = !!match.daily;
 
@@ -673,6 +680,29 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   const syncCash = (dur) => cash.to(state.cash, dur);
 
   /** Runs an engine action. On EngineError: shake + haptic, state unchanged. Returns true on success. */
+  /** The fox-line slots of a decision as plain text (money() nodes would not survive the plain copy for the log / status). */
+  const foxSlotsText = (before, after) => Object.fromEntries(Object.entries(foxSlots(before, after)).map(([k, v]) => [k, typeof v === 'string' ? v : v.textContent]));
+  const badgeChip = (name, description = '') => h('span', { class: 'badge-chip', role: 'img', 'aria-label': description ? t('milestone.badgeA11y', { name, description }) : name }, icon('star', { size: 18, width: 2.6 }), h('span', { 'aria-hidden': 'true' }, name));
+  // v4 stage 4: the 25 / 50% milestones (engine events, once per game, kept in the save): a small celebration in the corner guide
+  // with one line of docs/v4/milestones.md and the badge
+  let milestoneCount = 0;
+  function celebrateMilestone(pct) {
+    const st = statement(state);
+    const slots = { pct: String(pct), passive: moneyText(st.passiveIncome), expenses: moneyText(st.totalExpenses), left: moneyText(Math.max(0, st.totalExpenses - st.passiveIncome)) };
+    // the lines live in he.json milestone.lines.m<pct><mode>.1..n; a seeded rotation, never the same line twice in a row
+    const base = `milestone.lines.m${pct}${state.mode === 'family' ? 'family' : 'full'}`;
+    const list = [];
+    for (let i = 1; i < 10 && t(`${base}.${i}`) !== `${base}.${i}`; i++) list.push(tRaw(`${base}.${i}`));
+    const index = list.length ? (state.seed + milestoneCount++ + pct) % list.length : -1;
+    const r = index >= 0 ? { template: list[index], text: fillSlots(list[index], slots) } : null;
+    const b = t(`milestone.badge${pct}.name`);
+    earnBadge(`milestone-${pct}`);
+    pushLog(t('game.milestone', { pct }), 'good');
+    haptic('win');
+    if (r) flow.notes.push({ kind: 'milestone', group: `milestone.${pct}`, pose: 'celebrate', tone: 'good', plain: `${r.text} ${t(`milestone.badge${pct}.earned`)}`, body: feedbackNodes(r.template, slots), extra: badgeChip(b, t(`milestone.badge${pct}.description`)) });
+    else react('celebrate');
+  }
+
   function apply(fn) {
     if (destroyed) return false; // a late tap on a card that outlived the screen
     const before = state;
@@ -708,10 +738,12 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     }
     syncCash();
     if (said.length) flow.feedback(said);
-    // Passive-income milestones (25/50/75% of expenses): celebrate once per crossing.
+    // the milestone celebration queues AFTER the note about the decision that reached it
+    for (const ev of state.events) if (ev.type === 'milestone') celebrateMilestone(ev.pct);
+    // Passive-income milestones: 25 / 50% come from the engine (once per game, above); 75% keeps the short log line per crossing.
     const st = statement(state);
     const pct = st.totalExpenses > 0 ? st.passiveIncome / st.totalExpenses : 0;
-    const crossed = [0.25, 0.5, 0.75].find((mark) => lastPct < mark && pct >= mark && pct < 1);
+    const crossed = [0.75].find((mark) => lastPct < mark && pct >= mark && pct < 1);
     lastPct = pct;
     if (passiveIncome(before) < st.passiveIncome) hints.offer('h-meter', state.turn); // the first asset that pays
     if (almostEligible(state)) hints.offer('h-almost', state.turn);
@@ -759,13 +791,12 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     haptic('land'); sound('payday');
     await summaryCardGated({ figures: f, hint: summaryHintFor(f) });
     if (destroyed) return;
-    // the log / hand-over recap keeps the one-line form; the roll-zone chip shows one of three phrasings (turn % 3), tap = the equation
-    // (the 3-variant chip of spec 4.9 lives in ui/payday.js; it is not wired here because tests/e2e/smoke.mjs 'B1'/'N3' pin the one-line
-    // log in the chip: see docs/v4/test-changes.md, 'blocked items')
-    pushLog(tn('game.logPayday', { calc: paydayCalc(f.monthly, f.months, f.amount) }), f.amount >= 0 ? 'good' : 'bad');
+    // spec 4.9 (owner approved 2026-10-25): the log / hand-over recap keeps the one-line form; the fox-row chip shows one of three
+    // phrasings (turn % 3), a tap opens the stacked equation; the float rises inside the board plaza
+    pushLog(tn('game.logPayday', { calc: paydayCalc(f.monthly, f.months, f.amount) }), f.amount >= 0 ? 'good' : 'bad', { payday: true });
+    chip.replaceChildren(paydayChip(f, state.turn, { host: zone }));
     setStatus(tn('game.statusPayday', { calc: paydayCalc(f.monthly, f.months, f.amount) }));
-    // (spec 4.9 asks for the plaza: floatText supports { within: center }, but tests/ui.test.js 'B2' pins { below: hud }; see docs/v4/test-changes.md)
-    floatText(cash.el, h('div', { class: 'float-stack' }, signedMoney(f.amount), h('span', { class: 'float-sub' }, t('game.paydayFloatLabel'))), f.amount >= 0 ? 'income' : 'expense', { below: hud });
+    floatText(cash.el, h('div', { class: 'float-stack' }, signedMoney(f.amount), h('span', { class: 'float-sub' }, t('game.paydayFloatLabel'))), f.amount >= 0 ? 'income' : 'expense', { within: center });
     pulse(el.querySelector('.hud-cash'), 1.04);
     if (f.amount > 0) react('celebrate');
     await cash.to(cash.value + f.amount, 450);
@@ -1042,6 +1073,27 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
         r = await offerModal(state, { flip });
         if (!r) break; // closed by debug force
         if (r.action === 'accept') apply((s) => engine.acceptOffer(s)); else apply((s) => engine.declineOffer(s));
+      } else if (p.kind === 'decision') {
+        // v4 stage 4: a decision card; its option's fox line follows in the corner guide (one note, no second feedback)
+        r = await decisionModal(state, engine);
+        if (!r) break; // closed by debug force
+        const before = state;
+        if (apply((s) => engine.decide(s, r.option))) {
+          pushLog(decisionLog(p.card, r.option, state.mode));
+          const text = fillSlots(decisionFox(p.card, r.option, state.mode), foxSlotsText(before, state));
+          flow.notes.push({ kind: 'feedback', group: 'decision', pose: 'think', tone: 'neutral', plain: text, body: feedbackNodes(decisionFox(p.card, r.option, state.mode), foxSlotsText(before, state)) });
+        }
+      } else if (p.kind === 'taxAudit') {
+        // v4 stage 4: the tax-audit quiz; knowledge points only (the engine never moves money here)
+        r = await taxAuditModal(state);
+        if (!r) break; // closed by debug force
+        if (apply((s) => engine.answerAudit(s, r))) {
+          pushLog(t('taxAudit.logPoints', { points: state.taxAudit?.points ?? 0 }), r.correct ? 'good' : '');
+          if (r.correct) {
+            const earned = countCorrect(learnContent().quizTax, state.mode);
+            if (earned) { haptic('win'); flow.notes.push({ kind: 'milestone', group: 'badge', pose: 'celebrate', tone: 'good', plain: earned, body: earned, extra: badgeChip(learnContent().quizTax.reward.badge.badgeName) }); }
+          }
+        }
       } else {
         break;
       }

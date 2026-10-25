@@ -44,7 +44,7 @@ describe('economy constants (config)', () => {
     expect(PRICE_INFLATION_PER_LAP).toBe(1.08);
     expect(EXPENSE_INFLATION_PER_LAP).toBe(1.0);
     expect(DAILY_INFLATION_FACTOR).toBe(1.0);
-    expect(SCHEMA_VERSION).toBe(4);
+    expect(SCHEMA_VERSION).toBe(5);
   });
   it('a payday pays monthly cash flow x 12', () => {
     const s = engine.newGame({ mode: 'family', professionId: 'teacher', seed: 3 });
@@ -285,12 +285,12 @@ describe('save schema 4: a v2.5 save (schema 3) loads and plays on', () => {
     const old = JSON.parse(fixture);
     expect(old.schemaVersion).toBe(3);
     const m = deserialize(fixture);
-    expect(m.schemaVersion).toBe(4);
+    expect(m.schemaVersion).toBe(5);
     m.players.forEach((p, i) => {
-      expect(p.state.schemaVersion).toBe(4);
+      expect(p.state.schemaVersion).toBe(5);
       expect(p.state.lap).toBe(0);
       expect(p.state.effects).toEqual([]);
-      const { lap, effects, schemaVersion, ...rest } = p.state;
+      const { lap, effects, schemaVersion, milestones, taxAudit, ...rest } = p.state;
       const { schemaVersion: oldVersion, ...oldRest } = old.players[i].state;
       expect(rest).toEqual(oldRest);
     });
@@ -309,7 +309,7 @@ describe('save schema 4: a v2.5 save (schema 3) loads and plays on', () => {
     }
     expect(m.turns > start || m.status !== 'playing').toBe(true);
     const back = deserialize(serialize(m));
-    expect(back.schemaVersion).toBe(4);
+    expect(back.schemaVersion).toBe(5);
     expect(currentState(back)).toEqual(currentState(m));
     expect(m.players.some((p) => p.state.lap > 0)).toBe(true);
   });

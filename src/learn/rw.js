@@ -22,3 +22,9 @@ export function realWorldView(fact) {
   if (fact.numbers && fact.numbers.publish === true) out.figure = fact.numbers.text;
   return out;
 }
+
+/** v4 stage 4: a guide screen's published figure ({ text, verified } or null). Only figures with publish: true ever reach a screen. */
+export function publishedFigure(screen) {
+  const n = screen?.numbers;
+  return n?.publish === true && n.text ? { text: n.text, verified: n.verified ?? null } : null;
+}

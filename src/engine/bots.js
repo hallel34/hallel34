@@ -1,5 +1,6 @@
 // Bots used by the balance simulation (and handy for QA / demo mode).
-import { maxLoan, monthlyCashFlow, totalExpenses, loanRateNow } from './selectors.js';
+import { maxLoan, monthlyCashFlow, totalExpenses, loanRateNow, bankLoanPrincipal } from './selectors.js';
+import { decisionCanPass, isFreeOption, PASS_OPTION } from './engine.js';
 import { LOAN_STEP } from './config.js';
 import { act, canEndTurn, endTurn } from './match.js';
 
@@ -24,6 +25,53 @@ function coverShortfall(engine, s, need) {
     need -= amt;
   }
   return s;
+}
+
+/**
+ * A decision card (v4 stage 4): every available option is scored by what it does to the monthly money (passive income minus
+ * new loan payments) and the cash it uses, inside the bot's own rules (reserve, payback, borrowing): the best monthly gain
+ * wins. The reckless bots (alwaysBuy, overBorrow*) take the option that commits the most money; alwaysPass takes the free
+ * option (on an expense card, the one with the least debt). Ties go to the option listed first.
+ */
+function decideBot(engine, s, cfg) {
+  const card = s.pending.card;
+  const avail = engine.decisionOptions(s).filter((o) => o.available).map((o) => o.id);
+  const canPass = decisionCanPass(card);
+  const free = card.options.find((o) => isFreeOption(o) && avail.includes(o.id))?.id ?? (canPass ? PASS_OPTION : null);
+  const reserve = cfg.reserveMonths * totalExpenses(s);
+  const scored = avail.map((id) => {
+    const n = engine.decide(s, id);
+    const gain = (monthlyCashFlow(n) - monthlyCashFlow(s));
+    const used = s.cash - n.cash;
+    const borrowed = bankLoanPrincipal(n) - bankLoanPrincipal(s);
+    return { id, gain, used, borrowed, n };
+  });
+  if (cfg.maxPayback < 0) { // alwaysPass
+    if (free) return engine.decide(s, free);
+    return engine.decide(s, scored.sort((a, b) => a.borrowed - b.borrowed)[0].id);
+  }
+  const ok = scored.filter((x) => {
+    if (x.borrowed > 0 && !cfg.borrow && card.square !== 'expense') return false;
+    if (card.square === 'expense') return true;
+    if (x.gain <= 0 && x.used > 0) return false;
+    if (x.n.cash < reserve && x.used > 0) return false;
+    const payback = x.gain > 0 ? Math.max(0, x.used) / x.gain : Infinity;
+    return payback <= cfg.maxPayback || x.used <= 0;
+  });
+  if (card.square === 'expense') {
+    // pay from cash when the reserve allows it, else the cheapest loan
+    const cashFirst = ok.filter((x) => x.borrowed === 0 && x.n.cash >= reserve);
+    const pick = cashFirst[0] ?? ok.sort((a, b) => a.borrowed - b.borrowed)[0];
+    return engine.decide(s, pick.id);
+  }
+  // the reckless bots (no payback limit) commit the most money they can (cash + new debt), like they buy every deal
+  if (cfg.maxPayback === Infinity) {
+    const big = scored.filter((x) => x.used + x.borrowed > 0).sort((a, b) => (b.used + b.borrowed) - (a.used + a.borrowed) || b.gain - a.gain)[0];
+    if (big) return engine.decide(s, big.id);
+  }
+  const best = ok.filter((x) => x.gain > 0).sort((a, b) => b.gain - a.gain)[0];
+  if (best) return engine.decide(s, best.id);
+  return engine.decide(s, free ?? scored[0].id);
 }
 
 /** Plays one decision. Returns the new state. */
@@ -79,6 +127,8 @@ export function step(engine, s, bot) {
     return cfg.charity && s.cash - p.cost >= reserve && monthlyCashFlow(s) >= 0
       ? engine.donate(s) : engine.declineCharity(s);
   }
+  if (p.kind === 'decision') return decideBot(engine, s, cfg);
+  if (p.kind === 'taxAudit') return engine.answerAudit(s, { questionId: null, correct: null }); // knowledge only: never money
   throw new Error(`bot cannot handle ${p.kind}`);
 }
 

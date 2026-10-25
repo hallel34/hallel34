@@ -79,3 +79,53 @@ Family-only runs, 300 games, same seeds (alwaysBuy / overBorrow / overBorrowLite
 
 None of the new constants brings a "skip the loan check" policy into 15-35% in family (finance found the same for the loan cap and floor). alwaysBuy is in the band at 1.05 / 1.00, but the difference (33% vs 38%) is within ~3pp of seed noise and inflation 1.08 is the approved, verified-against-Bank-of-Israel value, so it stays. The family market deck adds ~4pp of reckless-play bankruptcy (the rent card cuts flow for 3 turns) and nothing for the sensible bot. The lever finance named (a family-only safety valve, such as a first-shortfall grace or softer family expense cards) is a rule / card change outside this phase: owner decision.
 
+
+## After v4 stage 4 (decision cards, milestones, the tax-audit square), 2026-10-25
+`npm run simulate -- --games=300 --perProfession --perProfessionBots=sensible,alwaysBuy,alwaysPass` (300 games per bot and mode, same seeds `1000 + g*7919`, professions rotated, 200-turn cap). Raw output: `docs/v4/sim/after-stage4.txt` / `.json`.
+
+What changed in the rules: the family safety net (owner, 2026-10-25: in family mode a purchase loan may not leave the monthly cash flow below `FAMILY_NET_FLOOR` = ₪0 once the deal pays; full mode, expense and shortfall loans unchanged; the floor was not tuned, 0 met the target first time); 9 decision cards (10 entries, card 9 has a family variant) join the opportunity pile (family 6 of 29, full 8 of 43) and 1 joins the unexpected-expense pile (both modes); decision cards are not inflated and the daily challenge deals none. Square 12 (was an unexpected expense) is 'ביקורת רשות המסים': a quiz that never moves money. Bots: on a decision card the sensible / cautious bots take the option with the best monthly gain inside their reserve and payback rules, the reckless bots the one that commits the most money, alwaysPass the free one.
+
+### Which square becomes the tax audit (sweep over all 24 candidates, 300 games, sensible / alwaysBuy / overBorrow, median / lost)
+Raw: `docs/v4/sim/tax-square-sweep.txt`. With the decision cards and no tax square: family 22 / 26 (sensible median family / full). Every candidate kept the sensible medians inside the targets (family 21-26, full 24-30) with 0-1% sensible bankruptcy, so the pick came from the other checks:
+| candidate | sensible family / full | alwaysBuy lost family / full | overBorrow lost family / full | tests/data.test.js "always-buy clearly loses" (80 games) |
+|---|---|---|---|---|
+| 3 (market) | 22 / 26 | 24% / 14% | 46% / 31% | passes |
+| 12 (expense) **chosen** | 21 / 26 | 23% / 12% | 40% / 28% | passes (full: 10% lost, 36.1 vs 26.4 turns) |
+| 19 (expense) | 22 / 25 | 22% / 12% | 39% / 31% | passes |
+| 20 (market) | 22 / 26 | 24% / 12% | 42% / 31% | **fails** in full (9% lost, 32.3 vs 26.3) |
+| paydays 0/4/7/10/17 | 24-26 / 29-30 | | | slower, fewer summaries |
+Square 12 keeps both medians in the band, keeps always-buy clearly behind the sensible bot, and lowers reckless-play bankruptcy in family mode (the band that was missed). It is a corner of the 6x8 ring.
+
+### Bots, after stage 4 (before = "After (v3 phase 3 economy)" above)
+| mode | bot | win | lost | median | p90 | loans/game | cash @ t10 | before: lost / median / p90 |
+|---|---|---|---|---|---|---|---|---|
+| family | sensible | 100% | 0% | 21 | 30 | 1.0 | ₪140k | 0% / 23 / 35 |
+| family | cautious | 99% | 1% | 27 | 41 | 0.2 | ₪147k | 1% / 29 / 44 |
+| family | alwaysBuy | 77% | 23% | 21 | 35 | 1.4 | ₪118k | 38% / 24 / 41 |
+| family | overBorrow | 71% | 29% | 22 | 38 | 1.3 | ₪134k | 60% / 25 / 52 |
+| family | overBorrowLite | 75% | 25% | 21 | 36 | 1.5 | ₪114k | 57% / 24 / 40 |
+| family | alwaysPass | 0% | 6% (94% timeout) | - | - | 1.4 | ₪158k | 6% |
+| full | sensible | 100% | 0% | 26 | 40 | 0.9 | ₪156k | 0% / 26 / 41 |
+| full | cautious | 100% | 0% | 34 | 53 | 0.1 | ₪160k | 2% / 35 / 57 |
+| full | alwaysBuy | 88% | 12% | 30 | 60 | 2.7 | ₪116k | 14% / 32 / 73 |
+| full | overBorrow | 72% | 28% | 31 | 77 | 4.1 | ₪116k | 38% / 34 / 66 |
+| full | overBorrowLite | 78% | 22% | 31 | 67 | 4.1 | ₪97k | 28% / 34 / 95 |
+| full | alwaysPass | 0% | 4% (96% timeout) | - | - | 1.1 | ₪163k | 6% |
+
+Per profession, sensible (median / p90 / lost): family teacher 22/31/0, engineer 23/31/0, driver 25/37/0, nurse 20/28/0, programmer 24/34/0, police 20/28/0, cook 17/26/0, lawyer 23/32/0 (spread 17-25); full teacher 26/41/0, engineer 27/40/0, driver 31/47/1, nurse 24/35/0, programmer 29/42/0, police 23/36/0, cook 20/32/0, lawyer 28/39/0 (spread 20-31). Multiplayer (4 sensible bots, 50 matches): family winner's median 17, full 18; all decided.
+
+### Against the targets
+| Metric | Target | Family | Full | Met? |
+|---|---|---|---|---|
+| Median turns to win, sensible | 20-30 / 25-40 | 21 | 26 | yes / yes |
+| Bankruptcy, sensible | < 5% / < 10% | 0% | 0% | yes / yes |
+| Bankruptcy, over-borrowing bot | 15-35% / 25-50% | alwaysBuy 23%, overBorrow 29%, overBorrowLite 25% | overBorrow 28%, overBorrowLite 22%, alwaysBuy 12% | **yes** (all three in the band; was 38-60%) / yes (overBorrow) |
+| alwaysBuy / alwaysPass worse than sensible | both | 77% / 0% win vs 100% | 88% / 0% vs 100%; median 30 vs 26 | yes / yes |
+
+Family is at the low edge of its band (21; cook 17). Without the safety net (same build otherwise) family overBorrow / overBorrowLite lost 40% / 41%; the net brings them to 29% / 25% and leaves the sensible bot at 21 turns, 0% lost (it never takes such a loan). Full-mode rows are identical with and without the net. The daily challenge (family mode) gets the net too; it is a pure rule, so the day stays the same for everyone.
+
+### Decision cards in play (300 games, sensible bot; option counts)
+Decision cards per game: family 1.7, full 1.8; tax-audit questions per game: family 0.9, full 1.0; every sensible game reaches both milestones (25% and 50%).
+- Card 5 (repay 40,000 or buy the cart): the bots always take B (the cart, +900 a month) over A (-400 a month in expenses). As the doc's open point 2 expected, B is always correct inside the game (assets never fail). For finance / the educator: if A should be a real choice, the game needs a risk on small businesses.
+- Card 2: two small apartments (B) is never picked by a bot (A pays 300 more and costs the same), as open point 1 says; its value is flexibility only.
+- Card 8: the big down payment (B) is picked when the cash is there; the plain pass is common because many players cannot pay 200,000 when it comes.

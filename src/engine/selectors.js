@@ -1,7 +1,7 @@
 // Derived values. Never stored in state.
 import {
   LOAN_STEP, LOAN_PAYMENT_RATE, LOAN_LIMIT_SALARY_PCT, MORTGAGE_PAYMENT_RATE, BUSINESS_LOAN_PAYMENT_RATE, SELL_FACTOR,
-  PAYDAY_MONTHS, PAYBACK_OK_YEARS, PAYBACK_SLOW_YEARS, MONTHS_PER_YEAR, LOAN_CAP_SALARIES,
+  PAYDAY_MONTHS, PAYBACK_OK_YEARS, PAYBACK_SLOW_YEARS, MONTHS_PER_YEAR, LOAN_CAP_SALARIES, FAMILY_NET_FLOOR,
   PRICE_INFLATION_PER_LAP, EXPENSE_INFLATION_PER_LAP, DAILY_INFLATION_FACTOR, PROPERTY_VALUE_ROUND, RENT_CHANGE_ROUND,
 } from './config.js';
 
@@ -40,6 +40,8 @@ export const loanPayments = (s) => sum(s.liabilities, (l) => l.monthlyPayment);
 export const totalExpenses = (s) => fixedExpenses(s) + loanPayments(s) + childExpenses(s);
 export const monthlyCashFlow = (s) => totalIncome(s) - totalExpenses(s);
 export const hasWon = (s) => passiveIncome(s) > totalExpenses(s);
+/** Passive income / total monthly expenses (the HUD meter and the v4 milestones); 0 when there are no expenses. */
+export const passiveRatio = (s) => { const e = totalExpenses(s); return e > 0 ? passiveIncome(s) / e : 0; };
 
 export function statement(s) {
   return {
@@ -149,19 +151,37 @@ export function loanTerms(amount, rate = LOAN_PAYMENT_RATE) {
  * borrowing to buy; Infinity when it does not apply: no cap configured, or the loan covers an expense / shortfall).
  * `capBinds` is true when the cap is what stops a bigger loan.
  */
-export function loanLimits(s) {
+/**
+ * Family safety net (owner, 2026-10-25): in family mode a loan taken to BUY may not leave the monthly cash flow below
+ * FAMILY_NET_FLOOR once the deal pays. `gain` = what the deal adds a month (the pending opportunity's cash flow by default).
+ * Returns the largest such loan, or Infinity when the net does not apply (full mode, expenses, shortfalls, no purchase).
+ */
+export function familyNetLimit(s, { forced = false, gain = null } = {}) {
+  if (s.mode !== 'family' || forced) return Infinity;
+  const p = s.pending;
+  const purchase = p?.kind === 'opportunity' || (p?.kind === 'decision' && p.card?.square === 'opportunity');
+  if (!purchase) return Infinity;
+  const g = gain ?? (p.kind === 'opportunity' && Number.isFinite(p.card?.monthlyCashFlow) ? p.card.monthlyCashFlow : 0);
+  const room = monthlyCashFlow(s) + g - FAMILY_NET_FLOOR;
+  return Math.max(0, Math.floor(room / (LOAN_STEP * loanRateNow(s)) + 1e-9) * LOAN_STEP);
+}
+
+export function loanLimits(s, { forced: forcedLoan = false, gain = null } = {}) {
   const floor = -s.profession.salary * LOAN_LIMIT_SALARY_PCT;
   const room = monthlyCashFlow(s) - floor; // payment budget
-  const byFlow = Math.floor(room / (LOAN_STEP * loanRateNow(s)) + 1e-9) * LOAN_STEP;
-  // The cap limits borrowing to invest. A loan to cover an expense or a shortfall is never capped, so the player cannot get stuck.
-  const forced = s.pending?.kind === 'expense' || s.pending?.kind === 'shortfall';
+  const byFlowRaw = Math.floor(room / (LOAN_STEP * loanRateNow(s)) + 1e-9) * LOAN_STEP;
+  const byNet = familyNetLimit(s, { forced: forcedLoan, gain });
+  const byFlow = Math.min(byFlowRaw, byNet);
+  // The cap limits borrowing to invest. A loan to cover an expense or a shortfall is never capped, so the player cannot get stuck
+  // (`forced`: an expense-type decision card asks for it, v4 stage 4).
+  const forced = forcedLoan || s.pending?.kind === 'expense' || s.pending?.kind === 'shortfall';
   const capOn = LOAN_CAP_SALARIES != null && !forced;
   // The cap is shown and enforced as a multiple of LOAN_STEP (12 salaries of 8,800 = 105,600 is the number the rule is built
   // from, but the largest loan the player can actually take in total is 105,000): one number for the screen and for the engine.
   const capAmount = capOn ? Math.floor((s.profession.salary * LOAN_CAP_SALARIES) / LOAN_STEP) * LOAN_STEP : null;
   const byCap = capOn ? Math.floor((capAmount - bankLoanPrincipal(s)) / LOAN_STEP) * LOAN_STEP : Infinity;
   const max = Math.max(0, Math.min(byFlow, byCap));
-  return { byFlow, byCap, capAmount, capSalaries: capOn ? LOAN_CAP_SALARIES : null, capBinds: capOn && byCap < byFlow, max };
+  return { byFlow, byCap, capAmount, capSalaries: capOn ? LOAN_CAP_SALARIES : null, capBinds: capOn && byCap < byFlow, max, netBinds: byNet < byFlowRaw && byNet <= byCap };
 }
 
 /** Largest new loan (multiple of LOAN_STEP) allowed; 0 when limit reached. */

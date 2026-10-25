@@ -315,7 +315,7 @@ describe('one-tap hand-over (hot-seat)', () => {
     // 2 players: the turn is over -> endTurn gives the other player, who rolls with the single sheet tap
     let m = mk(2);
     let s = engine.roll(currentState(m));
-    while (s.pending) s = s.pending.kind === 'opportunity' ? engine.pass(s) : s.pending.kind === 'charity' ? engine.declineCharity(s) : engine.pay ? engine.pay(s) : s;
+    while (s.pending) s = s.pending.kind === 'opportunity' ? engine.pass(s) : s.pending.kind === 'charity' ? engine.declineCharity(s) : s.pending.kind === 'decision' ? engine.decide(s, engine.decisionOptions(s).find((o) => o.available)?.id ?? 'pass') : s.pending.kind === 'taxAudit' ? engine.answerAudit(s, {}) : engine.pay ? engine.pay(s) : s; // v4 stage 4: decision / tax-audit pendings
     m = setCurrentState(m, s);
     expect(isMultiplayer(m) && !lastPlayerStanding(m)).toBe(true);
     expect(canEndTurn(m)).toBe(true);
@@ -325,7 +325,7 @@ describe('one-tap hand-over (hot-seat)', () => {
     // single player: the turn closes silently (no hand-over, no sheet)
     let one = mk(1);
     let s1 = engine.roll(currentState(one));
-    while (s1.pending) s1 = s1.pending.kind === 'opportunity' ? engine.pass(s1) : s1.pending.kind === 'charity' ? engine.declineCharity(s1) : s1;
+    while (s1.pending) s1 = s1.pending.kind === 'opportunity' ? engine.pass(s1) : s1.pending.kind === 'charity' ? engine.declineCharity(s1) : s1.pending.kind === 'decision' ? engine.decide(s1, engine.decisionOptions(s1).find((o) => o.available)?.id ?? 'pass') : s1.pending.kind === 'taxAudit' ? engine.answerAudit(s1, {}) : s1; // v4 stage 4
     one = setCurrentState(one, s1);
     expect(isMultiplayer(one)).toBe(false);
     expect(endTurn(one).currentIndex).toBe(0);

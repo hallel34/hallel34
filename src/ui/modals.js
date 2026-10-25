@@ -18,7 +18,7 @@ import { button, stepper, statTile, arm } from './widgets.js';
 import { haptic, countUp } from './fx.js';
 import { categoryOf, categoryChip, categoryIcon } from './categories.js';
 import {
-  monthlyCashFlow, passiveIncome, maxLoan, loanCap, saleValue, canSell, loanPaydayImpact,
+  monthlyCashFlow, passiveIncome, maxLoan, loanCap, loanLimits, saleValue, canSell, loanPaydayImpact,
   paybackTier, PAYDAY_MONTHS, MONTHS_PER_YEAR, purchasePlan, loanTerms, dealMetrics, balanceSheet, assetLoanPayment, loanRateNow,
 } from '../engine/index.js';
 import { LOAN_STEP, TIMED_EFFECT_KINDS as TIMED_EFFECTS } from '../engine/index.js';
@@ -37,14 +37,14 @@ import { toggleRow } from './settings.js';
  * An action with `run` does something and keeps the card open (the guess buttons); the others close it with their value.
  * A `blocked` / `disabled` action is a real `disabled` button (the reason is the banner above it).
  */
-function cardShell({ type, kind, headChip, headLabel = null, headVar = null, title, text, body = [], actions, label, data = {}, foot = null, ctl = null }) {
+export function cardShell({ type, kind, headChip, headLabel = null, headVar = null, title, text, body = [], actions, label, data = {}, foot = null, ctl = null }) {
   let layer;
   const done = (v) => layer.close(v);
   const bar = h('div', { class: 'card-actions' });
   const makeButton = (a) => button(a.label, {
     variant: a.variant, disabled: !!(a.disabled || a.blocked), cls: a.cls || '',
     'data-action': a.id, 'data-autofocus': a.autofocus ? '' : null,
-    'aria-describedby': a.describedBy || null,
+    'aria-describedby': a.describedBy || null, 'data-option': a.option ?? null,
     onClick: () => {
       haptic(a.haptic || 'tap');
       if (a.run) { a.run(); return; }
@@ -52,7 +52,8 @@ function cardShell({ type, kind, headChip, headLabel = null, headVar = null, tit
     },
   });
   const paintBar = (list) => {
-    bar.className = `card-actions${list.length === 1 ? ' single' : ''}`;
+    // card button rule: at most two buttons in a row; three or more (decision cards) stack, full width
+    bar.className = `card-actions${list.length === 1 ? ' single' : ''}${list.length > 2 ? ' is-stacked' : ''}`;
     bar.replaceChildren(...list.map(makeButton));
   };
   paintBar(actions);
@@ -319,7 +320,11 @@ function finishOpportunity({ state, c, body, qtyGetter, plan, ctl = null, deferr
   // plan.status: 'ok' (cash covers it) | 'loan' (one loan covers the gap) | 'blocked' (short even after the maximum loan)
   const hintId = 'buy-hint';
   const cap = loanCap(state);
-  const warn = plan.status === 'blocked'
+  // family safety net: the loan this deal needs would make the month end in minus, so Buy is "לא זמין" and מקסי says why
+  const net = plan.status === 'blocked' && loanLimits(state).netBinds;
+  const warn = net
+    ? h('div', { class: 'banner banner-warn banner-fox', role: 'status', id: hintId, 'data-hint': 'family-net' }, foxImg('worried', { size: 32 }), h('span', null, t('card.familyNet')))
+    : plan.status === 'blocked'
     ? h('div', { class: 'banner banner-warn', role: 'status', id: hintId, 'data-hint': 'blocked' }, icon('bank', { size: 20 }),
       h('span', null, t('card.noFundsMax'), cap.capBinds ? [' ', tn('loan.capBlocked', { salaries: ltr(numberText(cap.salaries)) })] : ''))
     : plan.status === 'loan'

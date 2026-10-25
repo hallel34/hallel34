@@ -151,6 +151,19 @@ Money formatting, card layout and the statement all adapt to the data.
   (the board lap stands for a stretch of years), so deal sizes and pace can be tuned without touching the cards' payback.
   `BOARD` in the same file sets how often each square type appears.
 
+### Decision cards (v4 stage 4)
+A card with `"deck": "decision"` offers 2-3 options and is dealt on the square named by `"square"` (`opportunity` or `expense`).
+Each option has `id`, `label` (+ `labelFamily`), `fox` (+ `foxFamily`, slots `{proceeds} {monthly} {repaid} {saved} {months}`) and
+`effects` built from the engine's moves: `buy` (a list of assets, same fields and checks as a deal card), `loan` (a multiple of
+1,000, or `"down"`), `pay` (an expense amount), `sell` (`{ targetType, offerPct }`, full mode only), `repay` (a multiple of 1,000
+or `"all"`), `stocks` (full mode only). `{}` = the free option. Optional `requires` (`{ asset }` / `{ bankLoan }`), `teaches`,
+`teachesFamily`. An expense decision card sets `"expenseLoan": true` and every option pays the expense. Availability ("לא זמין"
+with its reason) comes from the engine; decision cards are not inflated and never dealt in the daily challenge.
+
+The tax-audit square asks one question of `src/data/learn/quiz-tax.he.json` (add a question = JSON; keep `asOf` and `ref` = the
+shown link, because the build drops `source`). It gives knowledge points only. In family mode a purchase loan may not leave the
+monthly cash flow below `FAMILY_NET_FLOOR` (src/engine/config.js).
+
 ## The learning layer (v2 phase B)
 
 Content is JSON in `src/data/learn/` (validated when the game loads and in `npm test`, schema in `src/learn/validate.js`;

@@ -153,15 +153,17 @@ describe('v2 phase A: amounts, payday copy, no typed numbers', () => {
     const fmt = src('ui/format.js');
     expect(fmt).toContain("h('bdi', { class: `money");
     expect(fmt).toContain("dir: 'ltr'");
+    // owner 2026-10-25: the statement hero shows the stacked equation (its spoken name is still the one-line paydayCalc)
+    expect(src('ui/statement.js')).toContain('stackedEquation({ monthly: st.monthlyCashFlow, months: PAYDAY_MONTHS');
     expect(src('ui/statement.js')).toContain("paydayCalc(st.monthlyCashFlow, PAYDAY_MONTHS");
     // the log/status containers accept nodes
     expect(play).toContain('chip.replaceChildren(text)');
     expect(play).toContain('status.replaceChildren(text)');
   });
-  it('B2: the payday float is placed under the HUD, never over its text', () => {
-    expect(src('ui/play.js')).toContain("{ below: hud }");
+  it('B2: the payday float is confined to the board plaza, never over the HUD (owner approved spec 4.9, 2026-10-25)', () => {
+    expect(src('ui/play.js')).toContain("{ within: center }");
     const fx = src('ui/fx.js');
-    expect(fx).toContain('below.getBoundingClientRect().bottom');
+    expect(fx).toContain('within.getBoundingClientRect()');
   });
   it('N3: the payday event is called "סיכום שנתי" everywhere, with the maths from the config', () => {
     expect(lookup('square.payday')).toBe('סיכום שנתי');

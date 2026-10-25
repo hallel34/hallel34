@@ -22,17 +22,17 @@ describe('tile families (spec 1.1)', () => {
     });
     expect(FAMILIES.map((f) => f.id)).toEqual(['gain', 'loss', 'info']);
   });
-  it('every label and legend line exists in he.json; tax-audit is registered but not on the board yet', () => {
+  it('every label and legend line exists in he.json; tax-audit is on the board (v4 stage 4: one square, square 12)', () => {
     for (const m of Object.values(TILE_META)) { expect(get(m.label), m.label).toBeTruthy(); expect(get(m.legend), m.legend).toBeTruthy(); }
     expect(he.square.taxAudit).toBe('ביקורת רשות המסים');
-    expect(TILE_META.taxAudit.onBoard).toBe(false);
-    expect(BOARD).not.toContain('taxAudit');
+    expect(TILE_META.taxAudit.onBoard).toBe(true);
+    expect(BOARD.filter((x) => x === 'taxAudit')).toHaveLength(1);
     expect(BOARD).not.toContain('tax-audit');
   });
-  it('the legend lists the six board types in three named groups', () => {
+  it('the legend lists the seven board types in three named groups', () => {
     const g = legendGroups();
     expect(g.map((x) => x.id)).toEqual(['gain', 'loss', 'info']);
-    expect(g.flatMap((x) => x.types)).toEqual(['payday', 'opportunity', 'expense', 'market', 'baby', 'charity']);
+    expect(g.flatMap((x) => x.types)).toEqual(['payday', 'opportunity', 'expense', 'market', 'baby', 'charity', 'taxAudit']);
     expect(legendGroups({ all: true }).flatMap((x) => x.types)).toContain('taxAudit');
   });
   it('family mode never shows red: the expense tile art is the amber "expense-family" there', () => {

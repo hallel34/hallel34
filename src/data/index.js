@@ -3,6 +3,7 @@
 import { validateData } from '../engine/index.js';
 import { FALLBACK } from '../i18n/index.js';
 import { validateLearnOrThrow } from '../learn/validate.js';
+import { validateV4Learn } from '../learn/validate-v4.js';
 
 const files = import.meta.glob('./*.json', { eager: true, import: 'default' });
 const learnFiles = import.meta.glob('./learn/*.json', { eager: true, import: 'default' });
@@ -17,6 +18,8 @@ export function loadData(locale = FALLBACK) {
 }
 
 const LEARN_KINDS = { glossary: 'glossary', feedback: 'feedback', report: 'report', guess: 'guess', realWorld: 'real-world', tutorial: 'tutorial' };
+// v4 stage 4: the real-world files (the tax-audit quiz, the guide with the statement popover, the Israeli money rules)
+const V4_KINDS = { quizTax: 'quiz-tax', guide: 'guide', israel: 'israel' };
 
 /**
  * Validated learning content for a locale: { glossary, feedback, report, guess, realWorld, tutorial } from src/data/learn/<kind>.<locale>.json
@@ -26,5 +29,8 @@ export function loadLearn(locale = FALLBACK, { cards } = {}) {
   const pickLearn = (kind) => learnFiles[`./learn/${kind}.${locale}.json`] ?? learnFiles[`./learn/${kind}.${FALLBACK}.json`];
   const learn = Object.fromEntries(Object.entries(LEARN_KINDS).map(([key, kind]) => [key, pickLearn(kind)]));
   validateLearnOrThrow(learn, { cards: cards ?? pick('cards', locale) });
-  return learn;
+  const v4 = Object.fromEntries(Object.entries(V4_KINDS).map(([key, kind]) => [key, pickLearn(kind)]));
+  const errors = validateV4Learn(v4, { glossaryIds: new Set((learn.glossary?.concepts ?? []).map((c) => c.id)) });
+  if (errors.length) throw new Error(`Invalid learning content:\n- ${errors.join('\n- ')}`);
+  return { ...learn, ...v4 };
 }

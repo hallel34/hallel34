@@ -13,7 +13,8 @@
     },
     "buildWarning": "scripts/prune-learn.js drops every key named 'source', 'notes', 'computed' and 'needs_review' from the production bundle. If the UI must show the source link, the developer either keeps 'source' for this file in the prune step or copies source.url into a shipped field. Checked: no source URL contains the substrings the round-7 bundle test forbids ('329', '3.25', '4.75', '8.23').",
     "verifiedAgainst": "docs/v3/real-world-verified.md + .json (finance, 22-23.10.2026). Only VERIFIED / CHANGED-to-2026 values are used. Not used on purpose (NOT VERIFIED): credit points for children, the 2026 recuperation daily rate, teacher / public-sector pension rates, the 35% pension credit (section 45א), anything about VAT on a second-hand apartment.",
-    "computedBy": "educator, by hand, 2026-10-23 (no shell). Rounding to 0.1 shekel."
+    "computedBy": "educator, by hand, 2026-10-23 (no shell). Rounding to 0.1 shekel.",
+    "ref": "{ name, url }: the source link SHOWN next to the 'נכון ל-2026' tag (developer, v4 stage 4). A copy of source.name/url, because scripts/prune-learn.js drops `source` from the build; `ref` survives the prune."
   },
   "ui": {
     "title": "חוקי הכסף בישראל",
@@ -36,20 +37,38 @@
       "example": {
         "cardId": "exp-001",
         "text": "מכונת הכביסה במשחק עולה ₪4,500. אילו זה היה מחיר כולל מע״מ, המוצר עצמו היה ₪4,500 ÷ 1.18 = כ-₪3,813.56, והמע״מ כ-₪686.44 (₪4,500 × 18 ÷ 118).",
-        "computed": { "price": 4500, "rate": 0.18, "beforeVat": 3813.56, "vatPart": 686.44, "check": "3813.56 + 686.44 = 4500" }
+        "computed": {
+          "price": 4500,
+          "rate": 0.18,
+          "beforeVat": 3813.56,
+          "vatPart": 686.44,
+          "check": "3813.56 + 686.44 = 4500"
+        }
       },
       "table": [
-        { "label": "עד 31.12.2024", "value": "17%" },
-        { "label": "מ-1.1.2025", "value": "18%" }
+        {
+          "label": "עד 31.12.2024",
+          "value": "17%"
+        },
+        {
+          "label": "מ-1.1.2025",
+          "value": "18%"
+        }
       ],
       "gameSimplification": "במשחק המחיר בכל קלף הוא הסכום הסופי, ואין חישוב מע״מ נפרד.",
-      "related": ["osek"],
+      "related": [
+        "osek"
+      ],
       "source": {
         "name": "רשות המסים, הוראת פרשנות 01/2025 (5.12.2024): שינוי שיעור המע״מ מ-17% ל-18% מ-1.1.2025",
         "url": "https://www.gov.il/BlobFolder/dynamiccollectorresultitem/represent-info-051224-2/he/vat_represent-info-051224-2.pdf",
         "kind": "official-primary"
       },
-      "needs_review": null
+      "needs_review": null,
+      "ref": {
+        "name": "רשות המסים, הוראת פרשנות 01/2025 (5.12.2024): שינוי שיעור המע״מ מ-17% ל-18% מ-1.1.2025",
+        "url": "https://www.gov.il/BlobFolder/dynamiccollectorresultitem/represent-info-051224-2/he/vat_represent-info-051224-2.pdf"
+      }
     },
     {
       "id": "marginal_tax",
@@ -63,26 +82,68 @@
       "example": {
         "professionId": "teacher",
         "text": "משכורת של ₪8,800 בחודש (כמו של המורה במשחק): ₪7,010 הראשונים במדרגת 10% (₪701), ו-₪1,790 הנותרים במדרגת 14% (₪250.6). יחד ₪951.6 לפני נקודות זיכוי. המס השולי הוא 14%, כי השקל הבא נכנס למדרגת 14%.",
-        "computed": { "salary": 8800, "b1": { "upTo": 7010, "rate": 0.1, "tax": 701 }, "b2": { "part": 1790, "rate": 0.14, "tax": 250.6 }, "taxBeforeCredits": 951.6, "marginalPct": 14 }
+        "computed": {
+          "salary": 8800,
+          "b1": {
+            "upTo": 7010,
+            "rate": 0.1,
+            "tax": 701
+          },
+          "b2": {
+            "part": 1790,
+            "rate": 0.14,
+            "tax": 250.6
+          },
+          "taxBeforeCredits": 951.6,
+          "marginalPct": 14
+        }
       },
       "table": [
-        { "label": "עד ₪7,010 בחודש", "value": "10%" },
-        { "label": "₪7,011 עד ₪10,060", "value": "14%" },
-        { "label": "₪10,061 עד ₪19,000", "value": "20%" },
-        { "label": "₪19,001 עד ₪25,100", "value": "31%" },
-        { "label": "₪25,101 עד ₪46,690", "value": "35%" },
-        { "label": "מעל ₪46,690", "value": "47%" },
-        { "label": "מעל ₪60,130 (מס יסף של 3%)", "value": "50%" }
+        {
+          "label": "עד ₪7,010 בחודש",
+          "value": "10%"
+        },
+        {
+          "label": "₪7,011 עד ₪10,060",
+          "value": "14%"
+        },
+        {
+          "label": "₪10,061 עד ₪19,000",
+          "value": "20%"
+        },
+        {
+          "label": "₪19,001 עד ₪25,100",
+          "value": "31%"
+        },
+        {
+          "label": "₪25,101 עד ₪46,690",
+          "value": "35%"
+        },
+        {
+          "label": "מעל ₪46,690",
+          "value": "47%"
+        },
+        {
+          "label": "מעל ₪60,130 (מס יסף של 3%)",
+          "value": "50%"
+        }
       ],
       "tableNote": "מדרגות חודשיות של 2026, אחרי תיקון 288 שהרחיב את מדרגות ה-20% וה-31%. רוב הסכומים האחרים לא עודכנו בשנים 2025 עד 2027.",
       "gameSimplification": "במשחק לכל מקצוע יש שורה קבועה אחת, ״מסים וביטוח לאומי״, והיא לא משתנה כשההכנסה עולה. גם הכסף שהנכסים מכניסים במשחק לא ממוסה.",
-      "related": ["credit_points", "ni_ceiling"],
+      "related": [
+        "credit_points",
+        "ni_ceiling"
+      ],
       "source": {
         "name": "רשות המסים, חוברת לוח עזר לחישוב ניכויים 2026 (מעודכנת אפריל 2026), פרק ב, טור חודשי; מס יסף: סעיף 121ב",
         "url": "https://www.gov.il/BlobFolder/generalpage/income-tax-monthly-deductions-booklet/he/generalInformation_income-tax-monthly-deductions-booklet_monthly-deductions-booklet-2026.pdf",
         "kind": "official-primary"
       },
-      "needs_review": "UI/QA: the table row '50%' is a verified figure, but the token '50%' is also in the hidden-figures guard (it appears in the unpublished numbers of rw-down-payment). If this table is rendered during tests/e2e/smoke.mjs the L6 check will flag it. CEO decision: recompute the guard to exclude verified figures, or do not render this row in the smoke flow."
+      "needs_review": "UI/QA: the table row '50%' is a verified figure, but the token '50%' is also in the hidden-figures guard (it appears in the unpublished numbers of rw-down-payment). If this table is rendered during tests/e2e/smoke.mjs the L6 check will flag it. CEO decision: recompute the guard to exclude verified figures, or do not render this row in the smoke flow.",
+      "ref": {
+        "name": "רשות המסים, חוברת לוח עזר לחישוב ניכויים 2026 (מעודכנת אפריל 2026), פרק ב, טור חודשי; מס יסף: סעיף 121ב",
+        "url": "https://www.gov.il/BlobFolder/generalpage/income-tax-monthly-deductions-booklet/he/generalInformation_income-tax-monthly-deductions-booklet_monthly-deductions-booklet-2026.pdf"
+      }
     },
     {
       "id": "credit_points",
@@ -96,17 +157,32 @@
       "example": {
         "professionId": "teacher",
         "text": "לכל תושב יש 2.25 נקודות בסיס: 2.25 × ₪242 = ₪544.5 בחודש. על משכורת של ₪8,800 המס לפני הנקודות הוא ₪951.6, ואחרי הנקודות ₪407.1. לתושבת יש חצי נקודה נוספת (2.75), כלומר ₪665.5, ולכן המס שלה על אותה משכורת הוא ₪286.1.",
-        "computed": { "pointValue": 242, "manPoints": 2.25, "manCredit": 544.5, "womanPoints": 2.75, "womanCredit": 665.5, "taxBeforeCredits": 951.6, "manTax": 407.1, "womanTax": 286.1 }
+        "computed": {
+          "pointValue": 242,
+          "manPoints": 2.25,
+          "manCredit": 544.5,
+          "womanPoints": 2.75,
+          "womanCredit": 665.5,
+          "taxBeforeCredits": 951.6,
+          "manTax": 407.1,
+          "womanTax": 286.1
+        }
       },
       "gameSimplification": "במשחק אין נקודות זיכוי, ושורת המסים זהה לכל מי שבוחר אותו מקצוע.",
-      "related": ["marginal_tax"],
+      "related": [
+        "marginal_tax"
+      ],
       "source": {
         "name": "שווי נקודה: רשות המסים, חוברת לוח עזר 2026, פרק ג (״נקודת זיכוי 33א – 242 לחודש״). 2.25 נקודות לתושב ו-2.75 לתושבת: כל זכות",
         "url": "https://www.gov.il/BlobFolder/generalpage/income-tax-monthly-deductions-booklet/he/generalInformation_income-tax-monthly-deductions-booklet_monthly-deductions-booklet-2026.pdf",
         "secondaryUrl": "https://www.kolzchut.org.il/he/%D7%A0%D7%A7%D7%95%D7%93%D7%95%D7%AA_%D7%96%D7%99%D7%9B%D7%95%D7%99_%D7%9E%D7%9E%D7%A1_%D7%94%D7%9B%D7%A0%D7%A1%D7%94_%D7%9C%D7%AA%D7%95%D7%A9%D7%91_%D7%99%D7%A9%D7%A8%D7%90%D7%9C",
         "kind": "official-primary"
       },
-      "needs_review": "finance: 2.25 / 2.75 were seen through a kolzchut search excerpt (direct fetch 403); one manual check before publishing. Credit points for children are deliberately NOT mentioned (NOT VERIFIED)."
+      "needs_review": "finance: 2.25 / 2.75 were seen through a kolzchut search excerpt (direct fetch 403); one manual check before publishing. Credit points for children are deliberately NOT mentioned (NOT VERIFIED).",
+      "ref": {
+        "name": "שווי נקודה: רשות המסים, חוברת לוח עזר 2026, פרק ג (״נקודת זיכוי 33א – 242 לחודש״). 2.25 נקודות לתושב ו-2.75 לתושבת: כל זכות",
+        "url": "https://www.gov.il/BlobFolder/generalpage/income-tax-monthly-deductions-booklet/he/generalInformation_income-tax-monthly-deductions-booklet_monthly-deductions-booklet-2026.pdf"
+      }
     },
     {
       "id": "ni_ceiling",
@@ -120,22 +196,47 @@
       "example": {
         "professionId": "teacher",
         "text": "על משכורת של ₪8,800: ₪7,703 הראשונים בשיעור מופחת של 4.27% (₪328.9), ו-₪1,097 הנותרים בשיעור מלא של 12.17% (₪133.5). יחד ₪462.4 בחודש.",
-        "computed": { "salary": 8800, "reducedBand": 7703, "reducedRate": 0.0427, "reducedPart": 328.9, "fullPart": 1097, "fullRate": 0.1217, "fullPartAmount": 133.5, "total": 462.4, "ceiling": 51910 }
+        "computed": {
+          "salary": 8800,
+          "reducedBand": 7703,
+          "reducedRate": 0.0427,
+          "reducedPart": 328.9,
+          "fullPart": 1097,
+          "fullRate": 0.1217,
+          "fullPartAmount": 133.5,
+          "total": 462.4,
+          "ceiling": 51910
+        }
       },
       "table": [
-        { "label": "עד ₪7,703 בחודש", "value": "4.27% (ביטוח לאומי 1.04% + בריאות 3.23%)" },
-        { "label": "₪7,704 עד ₪51,910", "value": "12.17% (ביטוח לאומי 7% + בריאות 5.17%)" },
-        { "label": "מעל ₪51,910", "value": "לא משלמים על החלק הזה" }
+        {
+          "label": "עד ₪7,703 בחודש",
+          "value": "4.27% (ביטוח לאומי 1.04% + בריאות 3.23%)"
+        },
+        {
+          "label": "₪7,704 עד ₪51,910",
+          "value": "12.17% (ביטוח לאומי 7% + בריאות 5.17%)"
+        },
+        {
+          "label": "מעל ₪51,910",
+          "value": "לא משלמים על החלק הזה"
+        }
       ],
       "tableNote": "השיעורים של העובד ב-2026. הם נקבעו בהוראת שעה שתקפה עד סוף 2026, ולכן ייתכן שישתנו ב-2027.",
       "gameSimplification": "במשחק ביטוח לאומי ומס הכנסה נמצאים יחד בשורה אחת מעוגלת, ״מסים וביטוח לאומי״.",
-      "related": ["marginal_tax"],
+      "related": [
+        "marginal_tax"
+      ],
       "source": {
         "name": "המוסד לביטוח לאומי, חוזר מעסיקים 1522 (1.4.2026): שיעורים, סף מדרגה מופחתת ₪7,703, הכנסה מרבית ₪51,910",
         "url": "https://www.btl.gov.il/Insurance/HozrimBituah/Hozrim/%D7%A9%D7%99%D7%A0%D7%95%D7%99%20%D7%91%D7%AA%D7%A9%D7%9C%D7%95%D7%9D%20%D7%93%D7%9E%D7%99%20%D7%91%D7%99%D7%98%D7%95%D7%97%20%D7%9C%D7%90%D7%95%D7%9E%D7%99%20%D7%95%D7%93%D7%9E%D7%99%20%D7%91%D7%99%D7%98%D7%95%D7%97%20%D7%91%D7%A8%D7%99%D7%90%D7%95%D7%AA%20%D7%9C%D7%A9%D7%A0%D7%AA%202026.pdf",
         "kind": "official-primary"
       },
-      "needs_review": "finance: the circular says 'הכנסה מרבית לתשלום דמי ביטוח' (₪51,910). The text applies it to both national insurance and health insurance, which is how the circular's combined table reads; please confirm in one line."
+      "needs_review": "finance: the circular says 'הכנסה מרבית לתשלום דמי ביטוח' (₪51,910). The text applies it to both national insurance and health insurance, which is how the circular's combined table reads; please confirm in one line.",
+      "ref": {
+        "name": "המוסד לביטוח לאומי, חוזר מעסיקים 1522 (1.4.2026): שיעורים, סף מדרגה מופחתת ₪7,703, הכנסה מרבית ₪51,910",
+        "url": "https://www.btl.gov.il/Insurance/HozrimBituah/Hozrim/%D7%A9%D7%99%D7%A0%D7%95%D7%99%20%D7%91%D7%AA%D7%A9%D7%9C%D7%95%D7%9D%20%D7%93%D7%9E%D7%99%20%D7%91%D7%99%D7%98%D7%95%D7%97%20%D7%9C%D7%90%D7%95%D7%9E%D7%99%20%D7%95%D7%93%D7%9E%D7%99%20%D7%91%D7%99%D7%98%D7%95%D7%97%20%D7%91%D7%A8%D7%99%D7%90%D7%95%D7%AA%20%D7%9C%D7%A9%D7%A0%D7%AA%202026.pdf"
+      }
     },
     {
       "id": "osek",
@@ -149,17 +250,27 @@
       "example": {
         "cardId": "opp-biz-006",
         "text": "עגלת הפופקורן במשחק מרוויחה ₪1,600 בחודש, כלומר ₪19,200 בשנה. אבל התקרה נמדדת לפי המחזור: כל מה שהלקוחות משלמים, לפני ההוצאות. המחזור תמיד גדול מהרווח, ולכן הרווח לבדו לא מספיק כדי לדעת אם העסק מתחת לתקרה.",
-        "computed": { "profitMonthly": 1600, "profitYearly": 19200, "ceiling": 122833 }
+        "computed": {
+          "profitMonthly": 1600,
+          "profitYearly": 19200,
+          "ceiling": 122833
+        }
       },
       "extra": "יש מקצועות, כמו עריכת דין, ראיית חשבון והנדסה, שבהם חייבים להיות עוסק מורשה, גם כשהמחזור קטן.",
       "gameSimplification": "במשחק קלף עסק מראה רק את הרווח בחודש. אין בו מחזור, מע״מ או דיווח לרשות המסים.",
-      "related": ["vat"],
+      "related": [
+        "vat"
+      ],
       "source": {
         "name": "כל זכות, עוסק פטור: מחזור שאינו עולה על ₪122,833 (נכון לשנת 2026)",
         "url": "https://www.kolzchut.org.il/he/%D7%A2%D7%95%D7%A1%D7%A7_%D7%A4%D7%98%D7%95%D7%A8",
         "kind": "official-excerpt"
       },
-      "needs_review": "finance: (1) the ceiling was seen through a kolzchut search excerpt; no gov.il page was found; one manual check before publishing. (2) 'עוסק פטור לא גובה מע״מ' is the meaning of the status and is on the same kolzchut page, but it was not part of the quoted excerpt in real-world-verified.md: confirm. (3) Do not confuse with the other 122,833 in the income-tax booklet (renewable energy)."
+      "needs_review": "finance: (1) the ceiling was seen through a kolzchut search excerpt; no gov.il page was found; one manual check before publishing. (2) 'עוסק פטור לא גובה מע״מ' is the meaning of the status and is on the same kolzchut page, but it was not part of the quoted excerpt in real-world-verified.md: confirm. (3) Do not confuse with the other 122,833 in the income-tax booklet (renewable energy).",
+      "ref": {
+        "name": "כל זכות, עוסק פטור: מחזור שאינו עולה על ₪122,833 (נכון לשנת 2026)",
+        "url": "https://www.kolzchut.org.il/he/%D7%A2%D7%95%D7%A1%D7%A7_%D7%A4%D7%98%D7%95%D7%A8"
+      }
     },
     {
       "id": "mandatory_pension",
@@ -172,17 +283,31 @@
       "why": "הפנסיה היא חיסכון של העובד לגיל מבוגר. היא יוצאת מהמשכורת, אבל היא לא הפסד: הכסף נשאר שלו.",
       "example": {
         "text": "על משכורת של ₪8,800 בחודש, לפי המינימום של הכלל הכללי: העובד מפקיד ₪528 (6%), המעסיק ₪572 (6.5%) ועוד ₪528 לפיצויים (6%). יחד ₪1,628 בחודש.",
-        "computed": { "salary": 8800, "employee": 528, "employer": 572, "severance": 528, "total": 1628, "totalPct": 18.5 }
+        "computed": {
+          "salary": 8800,
+          "employee": 528,
+          "employer": 572,
+          "severance": 528,
+          "total": 1628,
+          "totalPct": 18.5
+        }
       },
       "extra": "אלה שיעורי המינימום מאז 2017. בהסכמים קיבוציים ובמגזר הציבורי יש הסדרים משלהם, ולכן הדוגמה היא למשכורת ולא למקצוע מסוים.",
       "gameSimplification": "במשחק אין חיסכון פנסיוני. רק אצל המתכנת/ת יש שורת הוצאה ״פנסיה והשתלמות״, וגם היא מעוגלת.",
-      "related": ["study_fund", "severance"],
+      "related": [
+        "study_fund",
+        "severance"
+      ],
       "source": {
         "name": "כל זכות, חובת ביטוח פנסיוני לעובדים (צו ההרחבה, מ-1.1.2017)",
         "url": "https://www.kolzchut.org.il/he/%D7%97%D7%95%D7%91%D7%AA_%D7%91%D7%99%D7%98%D7%95%D7%97_%D7%A4%D7%A0%D7%A1%D7%99%D7%95%D7%A0%D7%99_%D7%9C%D7%A2%D7%95%D7%91%D7%93%D7%99%D7%9D",
         "kind": "official-excerpt"
       },
-      "needs_review": "finance: kolzchut search excerpt (403 on direct fetch), also echoed by בר\"מ 4413/23; one manual check. The example deliberately does not say 'teacher' (teacher pension rates are NOT VERIFIED)."
+      "needs_review": "finance: kolzchut search excerpt (403 on direct fetch), also echoed by בר\"מ 4413/23; one manual check. The example deliberately does not say 'teacher' (teacher pension rates are NOT VERIFIED).",
+      "ref": {
+        "name": "כל זכות, חובת ביטוח פנסיוני לעובדים (צו ההרחבה, מ-1.1.2017)",
+        "url": "https://www.kolzchut.org.il/he/%D7%97%D7%95%D7%91%D7%AA_%D7%91%D7%99%D7%98%D7%95%D7%97_%D7%A4%D7%A0%D7%A1%D7%99%D7%95%D7%A0%D7%99_%D7%9C%D7%A2%D7%95%D7%91%D7%93%D7%99%D7%9D"
+      }
     },
     {
       "id": "study_fund",
@@ -196,17 +321,31 @@
       "example": {
         "professionId": "programmer",
         "text": "השיעורים המרביים שנהנים מהטבת המס הם 7.5% מהמעסיק ו-2.5% מהעובד, על שכר של עד ₪15,712 בחודש. על משכורת של ₪13,500 (כמו של המתכנת/ת במשחק) זה עד ₪1,012.5 מהמעסיק ועד ₪337.5 מהעובד.",
-        "computed": { "salary": 13500, "employerMax": 0.075, "employeeMax": 0.025, "employer": 1012.5, "employee": 337.5, "ceilingMonthly": 15712, "ceilingAnnual": 188544 }
+        "computed": {
+          "salary": 13500,
+          "employerMax": 0.075,
+          "employeeMax": 0.025,
+          "employer": 1012.5,
+          "employee": 337.5,
+          "ceilingMonthly": 15712,
+          "ceilingAnnual": 188544
+        }
       },
       "gameSimplification": "במשחק אין קרן השתלמות. אצל המתכנת/ת היא חלק משורה אחת מעוגלת, ״פנסיה והשתלמות״.",
-      "related": ["mandatory_pension"],
+      "related": [
+        "mandatory_pension"
+      ],
       "source": {
         "name": "תקרת השכר: רשות המסים, חוברת לוח עזר 2026, פרק ג (״משכורת קובעת להפרשות לקרן השתלמות 188,544״). השיעורים: כל זכות, קרן השתלמות",
         "url": "https://www.gov.il/BlobFolder/generalpage/income-tax-monthly-deductions-booklet/he/generalInformation_income-tax-monthly-deductions-booklet_monthly-deductions-booklet-2026.pdf",
         "secondaryUrl": "https://www.kolzchut.org.il/he/%D7%A7%D7%A8%D7%9F_%D7%94%D7%A9%D7%AA%D7%9C%D7%9E%D7%95%D7%AA",
         "kind": "official-primary"
       },
-      "needs_review": "UI/QA: '2.5%' is a verified figure here, but the same token is in the hidden-figures guard (unpublished rental-yield estimate in real-world.he.json). If this entry is rendered in tests/e2e/smoke.mjs the L6 check will flag it. finance: the 7.5% / 2.5% rates come from a kolzchut excerpt."
+      "needs_review": "UI/QA: '2.5%' is a verified figure here, but the same token is in the hidden-figures guard (unpublished rental-yield estimate in real-world.he.json). If this entry is rendered in tests/e2e/smoke.mjs the L6 check will flag it. finance: the 7.5% / 2.5% rates come from a kolzchut excerpt.",
+      "ref": {
+        "name": "תקרת השכר: רשות המסים, חוברת לוח עזר 2026, פרק ג (״משכורת קובעת להפרשות לקרן השתלמות 188,544״). השיעורים: כל זכות, קרן השתלמות",
+        "url": "https://www.gov.il/BlobFolder/generalpage/income-tax-monthly-deductions-booklet/he/generalInformation_income-tax-monthly-deductions-booklet_monthly-deductions-booklet-2026.pdf"
+      }
     },
     {
       "id": "severance",
@@ -220,18 +359,29 @@
       "example": {
         "professionId": "nurse",
         "text": "מי שמשכורתו האחרונה ₪9,800 (כמו של האח/ות במשחק) ופוטר אחרי 3 שנות עבודה זכאי ל-3 × ₪9,800 = ₪29,400. הפטור ממס הוא עד ₪13,750 לכל שנת עבודה.",
-        "computed": { "lastSalary": 9800, "years": 3, "severance": 29400, "exemptPerYear": 13750 }
+        "computed": {
+          "lastSalary": 9800,
+          "years": 3,
+          "severance": 29400,
+          "exemptPerYear": 13750
+        }
       },
       "extra": "בפועל המעסיק מפקיד כל חודש 6% מהשכר לרכיב הפיצויים בקרן הפנסיה, ולכן איך ומתי מקבלים את הכסף תלוי בהסדר.",
       "gameSimplification": "במשחק אין פיטורים ואין פיצויים. המשכורת קבועה לאורך כל המשחק.",
-      "related": ["mandatory_pension"],
+      "related": [
+        "mandatory_pension"
+      ],
       "source": {
         "name": "הזכאות: כל זכות, פיצויי פיטורים. תקרת הפטור ₪13,750: רשות המסים, חוברת לוח עזר 2026, פרק ג",
         "url": "https://www.kolzchut.org.il/he/%D7%A4%D7%99%D7%A6%D7%95%D7%99%D7%99_%D7%A4%D7%99%D7%98%D7%95%D7%A8%D7%99%D7%9D_%D7%9C%D7%A2%D7%95%D7%91%D7%93_%D7%A9%D7%A4%D7%95%D7%98%D7%A8",
         "secondaryUrl": "https://www.gov.il/BlobFolder/generalpage/income-tax-monthly-deductions-booklet/he/generalInformation_income-tax-monthly-deductions-booklet_monthly-deductions-booklet-2026.pdf",
         "kind": "official-excerpt"
       },
-      "needs_review": "finance: (1) entitlement from a kolzchut excerpt. (2) Section 14 applies automatically to the 6% deposit, and the 6% is less than a full monthly salary per year (8.33%); the 'extra' line says only that the way of receiving the money depends on the arrangement. Please confirm this wording is not misleading. (3) The text does not claim the example sum is fully tax-exempt."
+      "needs_review": "finance: (1) entitlement from a kolzchut excerpt. (2) Section 14 applies automatically to the 6% deposit, and the 6% is less than a full monthly salary per year (8.33%); the 'extra' line says only that the way of receiving the money depends on the arrangement. Please confirm this wording is not misleading. (3) The text does not claim the example sum is fully tax-exempt.",
+      "ref": {
+        "name": "הזכאות: כל זכות, פיצויי פיטורים. תקרת הפטור ₪13,750: רשות המסים, חוברת לוח עזר 2026, פרק ג",
+        "url": "https://www.kolzchut.org.il/he/%D7%A4%D7%99%D7%A6%D7%95%D7%99%D7%99_%D7%A4%D7%99%D7%98%D7%95%D7%A8%D7%99%D7%9D_%D7%9C%D7%A2%D7%95%D7%91%D7%93_%D7%A9%D7%A4%D7%95%D7%98%D7%A8"
+      }
     },
     {
       "id": "recuperation",
@@ -244,25 +394,53 @@
       "why": "זה חלק מהשכר שמגיע לעובד, ולכן כדאי לבדוק בתלוש שהוא שולם ובכמה ימים.",
       "example": {
         "text": "עובד/ת במשרה מלאה, לפי צו ההרחבה הכללי: אחרי השנה הראשונה 5 ימים בשנה, בשנה השנייה והשלישית 6 ימים, ובשנים 4 עד 10 שבעה ימים.",
-        "computed": { "year1": 5, "year2to3": 6, "year4to10": 7 }
+        "computed": {
+          "year1": 5,
+          "year2to3": 6,
+          "year4to10": 7
+        }
       },
       "table": [
-        { "label": "שנה 1", "value": "5 ימים" },
-        { "label": "שנים 2 עד 3", "value": "6 ימים" },
-        { "label": "שנים 4 עד 10", "value": "7 ימים" },
-        { "label": "שנים 11 עד 15", "value": "8 ימים" },
-        { "label": "שנים 16 עד 19", "value": "9 ימים" },
-        { "label": "20 שנה ומעלה", "value": "10 ימים" }
+        {
+          "label": "שנה 1",
+          "value": "5 ימים"
+        },
+        {
+          "label": "שנים 2 עד 3",
+          "value": "6 ימים"
+        },
+        {
+          "label": "שנים 4 עד 10",
+          "value": "7 ימים"
+        },
+        {
+          "label": "שנים 11 עד 15",
+          "value": "8 ימים"
+        },
+        {
+          "label": "שנים 16 עד 19",
+          "value": "9 ימים"
+        },
+        {
+          "label": "20 שנה ומעלה",
+          "value": "10 ימים"
+        }
       ],
       "tableNote": "במשרה מלאה, אחרי שנת ותק. בחלק מהענפים ההסדר שונה.",
       "gameSimplification": "במשחק אין דמי הבראה.",
-      "related": ["annual_leave"],
+      "related": [
+        "annual_leave"
+      ],
       "source": {
         "name": "כל זכות, דמי הבראה",
         "url": "https://www.kolzchut.org.il/he/%D7%93%D7%9E%D7%99_%D7%94%D7%91%D7%A8%D7%90%D7%94",
         "kind": "official-excerpt"
       },
-      "needs_review": "finance: the days table comes from a kolzchut excerpt; one manual check. The amount per day for 2026 is NOT VERIFIED (451.5 vs 418 conflict) and is deliberately left out: no sentence here says how much a day is worth."
+      "needs_review": "finance: the days table comes from a kolzchut excerpt; one manual check. The amount per day for 2026 is NOT VERIFIED (451.5 vs 418 conflict) and is deliberately left out: no sentence here says how much a day is worth.",
+      "ref": {
+        "name": "כל זכות, דמי הבראה",
+        "url": "https://www.kolzchut.org.il/he/%D7%93%D7%9E%D7%99_%D7%94%D7%91%D7%A8%D7%90%D7%94"
+      }
     },
     {
       "id": "annual_leave",
@@ -275,23 +453,44 @@
       "why": "חופשה בתשלום היא זכות לפי חוק, ולכן גם עובד חדש צובר ימי חופשה.",
       "example": {
         "text": "בשנה השלישית בעבודה: 16 יום. הימים האלה כוללים את ימי המנוחה השבועית, ולכן בשבוע עבודה של 5 ימים הם 12 ימי עבודה.",
-        "computed": { "year3": 16, "workDaysOn5DayWeek": 12 }
+        "computed": {
+          "year3": 16,
+          "workDaysOn5DayWeek": 12
+        }
       },
       "table": [
-        { "label": "שנים 1 עד 5", "value": "16 יום" },
-        { "label": "שנה 6", "value": "18 יום" },
-        { "label": "שנה 7", "value": "21 יום" },
-        { "label": "שנה 8 ואילך", "value": "עוד יום בכל שנה, עד 28" }
+        {
+          "label": "שנים 1 עד 5",
+          "value": "16 יום"
+        },
+        {
+          "label": "שנה 6",
+          "value": "18 יום"
+        },
+        {
+          "label": "שנה 7",
+          "value": "21 יום"
+        },
+        {
+          "label": "שנה 8 ואילך",
+          "value": "עוד יום בכל שנה, עד 28"
+        }
       ],
       "tableNote": "ימים קלנדריים, כולל ימי המנוחה השבועית. זה המינימום שבחוק; הסכם או חוזה יכולים לתת יותר.",
       "gameSimplification": "במשחק אין ימי חופשה. תור במשחק הוא תקופה ארוכה של חיים, ולא שבוע עבודה.",
-      "related": ["recuperation"],
+      "related": [
+        "recuperation"
+      ],
       "source": {
         "name": "חוק חופשה שנתית, התשי״א-1951, סעיף 3(א) (בנוסח תיקון 2016), באתר המוסד לביטוח לאומי",
         "url": "https://www.btl.gov.il/Laws1/00_0082_000000.pdf",
         "kind": "official-primary"
       },
-      "needs_review": "finance: the conversion 16 days = 12 working days on a 5-day week is from a kolzchut excerpt (the law gives calendar days). 'הסכם או חוזה יכולים לתת יותר' is general labour-law knowledge (the law is a minimum), not quoted from the source."
+      "needs_review": "finance: the conversion 16 days = 12 working days on a 5-day week is from a kolzchut excerpt (the law gives calendar days). 'הסכם או חוזה יכולים לתת יותר' is general labour-law knowledge (the law is a minimum), not quoted from the source.",
+      "ref": {
+        "name": "חוק חופשה שנתית, התשי״א-1951, סעיף 3(א) (בנוסח תיקון 2016), באתר המוסד לביטוח לאומי",
+        "url": "https://www.btl.gov.il/Laws1/00_0082_000000.pdf"
+      }
     }
   ]
 }

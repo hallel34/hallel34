@@ -170,7 +170,14 @@ describe('round 7: production bundle carries no unpublished figure', () => {
     execSync(`npx vite build --outDir ${out} --emptyOutDir`, { cwd: new URL('..', import.meta.url).pathname, stdio: 'pipe', env: { ...process.env, BASE_PATH: './' } });
     const walk = (d) => readdirSync(d).flatMap((f) => { const p = join(d, f); return statSync(p).isDirectory() ? walk(p) : [p]; });
     const js = walk(out).filter((f) => /\.(js|json|html)$/.test(f)).map((f) => readFileSync(f, 'utf8')).join('\n');
-    for (const x of ['8.23', '3.25', '4.75', '329', 'needs_review', 'pending_finance', 'numbers-proposal']) expect(js.includes(x), x).toBe(false);
+    // 3.25 (the Bank of Israel rate) is allowed ONLY inside the guide's published figure that carries its verified tag
+    // (owner, 2026-10-25: publish with "נכון ל-2026" and the source link); anywhere else it is still a leak
+    const guide = JSON.parse(readFileSync(new URL('../src/data/learn/guide.he.json', import.meta.url), 'utf8'));
+    const allowed = guide.lessons.flatMap((l) => l.screens).filter((x) => x.numbers?.publish === true && x.numbers.verified === 'boi.policyRate').map((x) => x.numbers.text);
+    expect(allowed.length).toBe(1);
+    expect(js.includes('"boi.policyRate"') || js.includes('verified:"boi.policyRate"')).toBe(true);
+    const rest = allowed.reduce((x, txt) => x.split(txt).join(''), js);
+    for (const x of ['8.23', '3.25', '4.75', '329', 'needs_review', 'pending_finance', 'numbers-proposal']) expect(rest.includes(x), x).toBe(false);
     // the content the UI renders is still there
     expect(js).toContain('המילון של מקסי');
   }, 180000);

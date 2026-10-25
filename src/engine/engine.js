@@ -4,17 +4,26 @@
 import {
   BOARD, SCHEMA_VERSION, MAX_KIDS, CHARITY_PCT, CHARITY_TURNS, LOAN_STEP,
   MAX_STOCK_QTY, PAYDAY_MONTHS, INFLATION_PRICE_ROUND, TIMED_EFFECT_KINDS, INFLATION_FLOW_ROUND, INFLATION_EXPENSE_ROUND,
+  MILESTONES, TAX_AUDIT_PICKS, TAX_AUDIT_POINTS,
 } from './config.js';
 import { validateData } from './validate.js';
 import { cardView } from './card-view.js';
 import {
   monthlyCashFlow, hasWon, maxLoan, saleValue, stockPrice, totalIncome,
-  passiveIncome, canSell, loanMonthlyPayment, loanRateNow, priceFactor, expenseFactor,
+  passiveIncome, canSell, loanMonthlyPayment, loanRateNow, priceFactor, expenseFactor, loanLimits, loanPayments, bankLoanPrincipal,
+  passiveRatio,
 } from './selectors.js';
 import { emptyLearn, recordDecision, buyRecord, passRecord, loanRating, isDeal } from './learn.js';
 import { dailyDie, dailyPick, DAILY_TURN_CAP } from './daily.js';
 
 export class EngineError extends Error {}
+
+/** The tax-audit record of one game (schema 5): the questions asked and the knowledge points earned. Never read by a money rule. */
+/** An opportunity decision card whose options all cost something also offers the plain pass ('לא עכשיו'). */
+export const PASS_OPTION = 'pass';
+export const isFreeOption = (o) => !o.effects || Object.keys(o.effects).length === 0;
+export const decisionCanPass = (card) => card.square === 'opportunity' && !card.options.some(isFreeOption);
+export const emptyTaxAudit = () => ({ points: 0, asked: [] });
 
 const TIMED_KINDS = new Set(TIMED_EFFECT_KINDS);
 const roundTo = (x, q) => Math.round(x / q) * q;
@@ -68,20 +77,29 @@ export function createEngine(data, { validate = true } = {}) {
   const cardById = new Map(data.cards.map((c) => [c.id, c]));
   const professionById = new Map(data.professions.map((p) => [p.id, p]));
 
+  // A square's draw pile: its own deck plus the decision cards dealt on it (`square`, v4 stage 4).
   const eligible = (deck, mode) =>
-    data.cards.filter((c) => c.deck === deck && c.modes.includes(mode)).map((c) => c.id);
+    data.cards.filter((c) => (c.deck === deck || (c.deck === 'decision' && c.square === deck)) && c.modes.includes(mode)).map((c) => c.id);
 
   // A card may carry the children's wording (titleFamily / textFamily): a family game draws the card with that wording in
   // title/text, so every screen, log line and asset name downstream is already in the right register. Numbers never differ.
   const view = cardView;
 
+  // A decision card with `requires` (own an apartment, owe a bank loan of at least X) is skipped when the player does not meet
+  // it: the next card of the deck is drawn and the skipped one goes to the bottom. The daily challenge deals no decision cards
+  // at all (its piles are the classic decks), so its card stream is unchanged and the same for everyone.
+  const dailyEligible = (deck, mode) => data.cards.filter((c) => c.deck === deck && c.modes.includes(mode)).map((c) => c.id);
   function draw(d, deck) {
     if (d.daily) { // daily challenge: the card of this turn depends on (seed, deck, turn) only, never on earlier choices
-      const ids = eligible(deck, d.mode);
+      const ids = dailyEligible(deck, d.mode);
       return view(cardById.get(ids[dailyPick(d.seed, deck, d.turn, ids.length)]), d.mode);
     }
-    if (!d.decks[deck].length) d.decks[deck] = shuffle(d, eligible(deck, d.mode));
-    return view(cardById.get(d.decks[deck].shift()), d.mode);
+    for (let tries = 0; ; tries++) {
+      if (!d.decks[deck].length) d.decks[deck] = shuffle(d, eligible(deck, d.mode));
+      const card = cardById.get(d.decks[deck].shift());
+      if (!card.requires || meetsRequires(d, card.requires) || tries > 64) return view(card, d.mode);
+      d.decks[deck].push(card.id);
+    }
   }
 
   // ---------- setup ----------
@@ -106,6 +124,8 @@ export function createEngine(data, { validate = true } = {}) {
       turn: 0,
       lap: 0, // passes of square 0 (price inflation reads it)
       effects: [], // timed market effects: { kind, pct | rate, turnsLeft, cardId }
+      milestones: [], // schema 5: passive-income milestones (MILESTONES, % of expenses) already celebrated in this game
+      taxAudit: emptyTaxAudit(), // schema 5: tax-audit quiz answers and knowledge points (no money)
       charityTurns: 0,
       stockPrices: {},
       decks: { opportunity: [], expense: [], market: [] },
@@ -145,6 +165,12 @@ export function createEngine(data, { validate = true } = {}) {
 
   function settle(d) {
     d.stats.peakPassive = Math.max(d.stats.peakPassive, passiveIncome(d));
+    // v4 milestones: the first time passive income covers 25% / 50% of the expenses in this game (once each, kept in the save)
+    if (!Array.isArray(d.milestones)) d.milestones = [];
+    const ratio = passiveRatio(d);
+    for (const pct of MILESTONES) {
+      if (ratio * 100 >= pct && !d.milestones.includes(pct)) { d.milestones.push(pct); d.events.push({ type: 'milestone', pct }); }
+    }
     if (d.status !== 'playing') { d.phase = 'ended'; return; }
     if (hasWon(d)) {
       d.status = 'won'; d.phase = 'ended'; d.pending = null; d.winTurn = d.turn;
@@ -239,6 +265,7 @@ export function createEngine(data, { validate = true } = {}) {
       case 'payday': break; // already paid while moving
       case 'opportunity': {
         const card = clone(draw(d, 'opportunity'));
+        if (card.deck === 'decision') { startDecision(d, card); break; }
         if (card.type === 'stock') card.price = stockPrice(d, card.symbol, card.price);
         else inflateDeal(card, priceFactor(d));
         d.pending = { kind: 'opportunity', card };
@@ -246,6 +273,7 @@ export function createEngine(data, { validate = true } = {}) {
       }
       case 'expense': {
         const card = clone(draw(d, 'expense'));
+        if (card.deck === 'decision') { startDecision(d, card); break; }
         const fx = expenseFactor(d);
         if (fx !== 1) { card.amount = Math.round((card.amount * fx) / INFLATION_EXPENSE_ROUND) * INFLATION_EXPENSE_ROUND; card.inflation = fx; }
         d.pending = { kind: 'expense', card, amount: card.amount };
@@ -261,6 +289,13 @@ export function createEngine(data, { validate = true } = {}) {
       case 'charity': {
         const cost = Math.round((totalIncome(d) * CHARITY_PCT) / 10) * 10;
         d.pending = { kind: 'charity', cost };
+        break;
+      }
+      case 'taxAudit': {
+        // v4 'ביקורת רשות המסים': a quiz question from the learn bank. `pick` chooses it (the UI maps it onto the questions of
+        // the mode); the answer gives knowledge points only. Daily challenge: the pick depends on (seed, turn) only.
+        const pick = d.daily ? dailyPick(d.seed, 'taxAudit', d.turn, TAX_AUDIT_PICKS) : randInt(d, TAX_AUDIT_PICKS);
+        d.pending = { kind: 'taxAudit', pick };
         break;
       }
       default: fail(`unknown square ${square}`);
@@ -303,6 +338,156 @@ export function createEngine(data, { validate = true } = {}) {
       const proceeds = asset.type === 'stock' ? 0 : offerPrice - asset.mortgage;
       d.pending = { kind: 'offer', card, assetId: asset.id, offerPrice, proceeds };
     }
+  }
+
+  // ---------- decision cards (v4 stage 4, docs/v4/decision-cards.md) ----------
+  // A card of type 'decision' (opportunity or expense deck) offers 2-3 options. Each option's `effects` are built from the
+  // existing moves, applied in this order: sell (a market-style offer on the player's most expensive asset of a type) ->
+  // loan (a bank loan, engine rules: LOAN_STEP, the cash-flow floor and, unless the card is an expense, the purchase cap) ->
+  // buy (assets, paid by their down payments) / stocks / pay (an expense) -> repay (bank loans). An option that would fail
+  // on the current state is "not available"; the card's numbers are never inflated (its text names them).
+  function meetsRequires(s, req) {
+    if (!req) return true;
+    if (req.asset && !s.assets.some((a) => a.type === req.asset)) return false;
+    if (Number.isFinite(req.bankLoan) && bankLoanPrincipal(s) < req.bankLoan) return false;
+    return true;
+  }
+
+  /** Applies an option's effects to `d` (a working copy). Returns null, or the reason code it cannot be applied. */
+  function applyOption(d, card, opt, record) {
+    const fx = opt.effects ?? {};
+    let saleProceeds = 0;
+    if (fx.sell) {
+      const matches = d.assets.filter((a) => a.type === fx.sell.targetType);
+      if (!matches.length) return 'asset';
+      const asset = matches.reduce((a, b) => (b.price > a.price ? b : a));
+      saleProceeds = Math.round(asset.price * fx.sell.offerPct) - asset.mortgage;
+      d.assets = d.assets.filter((a) => a.id !== asset.id);
+      d.cash += saleProceeds;
+      d.stats.dealsSold += 1;
+      if (record) d.events.push({ type: 'sold', assetId: asset.id, proceeds: saleProceeds, monthly: asset.monthlyCashFlow });
+    }
+    const buys = Array.isArray(fx.buy) ? fx.buy : [];
+    const down = buys.reduce((a, x) => a + x.downPayment, 0);
+    const loan = fx.loan === 'down' ? Math.ceil(down / LOAN_STEP) * LOAN_STEP : (fx.loan ?? 0);
+    if (loan > 0) {
+      const lim = loanLimits(d, { forced: !!card.expenseLoan, gain: buys.reduce((a, x) => a + x.monthlyCashFlow, 0) });
+      if (loan > lim.max) return lim.netBinds ? 'net' : 'loan';
+      d.seq += 1;
+      const rate = loanRateNow(d);
+      d.liabilities.push({ id: `loan-${d.seq}`, kind: 'loan', label: 'loan', principal: loan, monthlyPayment: loanMonthlyPayment(loan, rate), rate });
+      d.cash += loan;
+      d.stats.loansTaken += 1;
+      if (record) d.events.push({ type: 'loan', amount: loan });
+    }
+    const stocks = Array.isArray(fx.stocks) ? fx.stocks : [];
+    const cost = down + stocks.reduce((a, x) => a + x.qty * x.price, 0) + (fx.pay ?? 0);
+    if (cost > 0 && d.cash < cost) return 'cash';
+    d.cash -= cost;
+    if (fx.pay) { d.stats.totalPaid += fx.pay; d.stats.expensesPaid += 1; }
+    for (const a of buys) {
+      d.seq += 1;
+      const { title, ...nums } = a;
+      d.assets.push({ id: `asset-${d.seq}`, cardId: card.id, title: title ?? card.title, ...nums });
+      d.stats.dealsBought += 1;
+      if (record) recordDecision(d, buyRecord({ ...a, id: card.id, title: title ?? card.title }, 1));
+    }
+    for (const x of stocks) {
+      const existing = d.assets.find((a) => a.type === 'stock' && a.symbol === x.symbol);
+      if (existing) {
+        existing.avgCost = Math.round((existing.avgCost * existing.qty + x.qty * x.price) / (existing.qty + x.qty));
+        existing.qty += x.qty;
+        existing.dividend = x.dividend;
+        existing.monthlyCashFlow = existing.qty * existing.dividend;
+      } else {
+        d.seq += 1;
+        d.assets.push({ id: `asset-${d.seq}`, cardId: card.id, type: 'stock', symbol: x.symbol, title: x.title ?? x.symbol, qty: x.qty, avgCost: x.price, dividend: x.dividend, monthlyCashFlow: x.qty * x.dividend });
+      }
+      d.stats.dealsBought += 1;
+    }
+    if (fx.repay) {
+      const loans = d.liabilities.filter((l) => l.kind === 'loan').sort((a, b) => b.monthlyPayment / b.principal - a.monthlyPayment / a.principal);
+      const owed = loans.reduce((a, l) => a + l.principal, 0);
+      if (!owed) return 'bankLoan';
+      let left = fx.repay === 'all' ? Math.min(owed, d.cash) : fx.repay;
+      if (left <= 0) return 'cash';
+      if (fx.repay !== 'all' && (owed < left)) return 'bankLoan';
+      if (d.cash < left) return 'cash';
+      let repaid = 0; let saved = 0;
+      for (const l of loans) {
+        if (left <= 0) break;
+        const amt = Math.min(l.principal, left);
+        const before = l.monthlyPayment;
+        const remaining = l.principal - amt;
+        l.monthlyPayment = remaining === 0 ? 0 : Math.round(((l.monthlyPayment * remaining) / l.principal) * 100) / 100;
+        l.principal = remaining;
+        saved += before - l.monthlyPayment; repaid += amt; left -= amt;
+      }
+      d.liabilities = d.liabilities.filter((l) => !(l.kind === 'loan' && l.principal === 0));
+      d.cash -= repaid;
+      if (record) d.events.push({ type: 'repaid', amount: repaid, saved: Math.round(saved * 100) / 100 });
+    }
+    return null;
+  }
+
+  /** [{ id, available, reason }] for the pending decision card (reason: 'cash' | 'loan' | 'asset' | 'bankLoan'). */
+  function decisionOptions(state) {
+    const p = state.pending;
+    if (p?.kind !== 'decision') return [];
+    return p.card.options.map((opt) => {
+      const reason = applyOption(clone(state), p.card, opt, false);
+      return { id: opt.id, available: reason === null, reason };
+    });
+  }
+
+  function startDecision(d, card) {
+    d.pending = { kind: 'decision', card };
+    // an expense decision with nothing the player can do (no cash, no loan room) is an ordinary expense: the shortfall rules apply
+    if (card.expenseLoan && !decisionOptions(d).some((o) => o.available)) {
+      const amount = Math.max(...card.options.map((o) => o.effects?.pay ?? 0));
+      d.pending = { kind: 'expense', card: { ...card, amount }, amount };
+    }
+  }
+
+  /** Plays option `optionId` of the pending decision card. */
+  function decide(state, optionId) {
+    const d = begin(state);
+    requirePending(d, 'decision');
+    const card = d.pending.card;
+    const opt = optionId === PASS_OPTION && decisionCanPass(card) ? { id: PASS_OPTION, effects: {} } : card.options.find((o) => o.id === optionId);
+    if (!opt) fail(`unknown option ${optionId}`);
+    const cashBefore = d.cash;
+    const passiveBefore = passiveIncome(d);
+    const loansBefore = loanPayments(d);
+    const reason = applyOption(d, card, opt, true);
+    if (reason) fail(`option not available: ${reason}`);
+    logAction(d, 'decide', optionId);
+    const delta = { cash: d.cash - cashBefore, passive: passiveIncome(d) - passiveBefore, loanPayment: Math.round((loanPayments(d) - loansBefore) * 100) / 100 };
+    if (card.square === 'expense') {
+      // an expense decision is also an expense record (the cushion lesson): green when it was paid from cash alone
+      const fx = opt.effects ?? {};
+      const loanAmount = Number.isFinite(fx.loan) ? fx.loan : 0;
+      recordDecision(d, { kind: 'expense', cardId: card.id, amount: fx.pay ?? 0, viaLoan: loanAmount > 0, viaSale: false, loanAmount, green: loanAmount === 0 });
+    }
+    recordDecision(d, { kind: 'decision', cardId: card.id, option: optionId, ...delta, green: null });
+    d.events.push({ type: 'decided', cardId: card.id, option: optionId, ...delta });
+    d.pending = null;
+    settle(d);
+    return d;
+  }
+
+  /** Answers the pending tax-audit question. Knowledge points only: money, assets and debts never change. */
+  function answerAudit(state, { questionId = null, correct = null } = {}) {
+    const d = begin(state);
+    requirePending(d, 'taxAudit');
+    logAction(d, 'answerAudit', { questionId, correct });
+    if (!d.taxAudit) d.taxAudit = emptyTaxAudit();
+    d.taxAudit.asked.push({ turn: d.turn, questionId, correct });
+    if (correct === true) d.taxAudit.points += TAX_AUDIT_POINTS;
+    d.events.push({ type: 'audited', questionId, correct, points: d.taxAudit.points });
+    d.pending = null;
+    settle(d);
+    return d;
   }
 
   // ---------- opportunities ----------
@@ -517,6 +702,6 @@ export function createEngine(data, { validate = true } = {}) {
 
   return {
     data, newGame, debugForce, forfeit, roll, buy, pass, acceptOffer, declineOffer, donate,
-    declineCharity, takeLoan, repayLoan, sellAsset,
+    declineCharity, takeLoan, repayLoan, sellAsset, decide, decisionOptions, answerAudit,
   };
 }

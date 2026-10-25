@@ -112,6 +112,8 @@ function fromDecision(x, after) {
 export function feedbackForChange(before, after) {
   const out = [];
   const fresh = learnOf(after).decisions.slice(learnOf(before).decisions.length);
+  // v4 stage 4: a decision card speaks with its own option line (the UI shows it); its buys / repayments add no second note
+  if (fresh.some((x) => x.kind === 'decision')) return out;
   for (const x of fresh) out.push(...fromDecision(x, after));
   for (const ev of after.events ?? []) {
     if (ev.type === 'repaid') out.push(req('loan.repaid', { amount: moneyText(ev.amount), saved: moneyText(ev.saved ?? 0) }));

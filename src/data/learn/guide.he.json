@@ -29,7 +29,8 @@
       "gameCompare": "teacher tax line in professions.he.json = 900; real income tax + NI = 407.1 + 462.4 = 869.5 (game +30.5, +3.5%). The game has no pension line, so the game's 'left after tax' 7,900 is ~497.5 above the real net 7,402.5"
     },
     "verifiedAgainst": "docs/v3/real-world-verified.md + .json. Not used (NOT VERIFIED): credit-card / non-bank interest, an 'official' 3-6 month emergency fund, child credit points, anything about VAT on a second-hand apartment.",
-    "tokensToWatch": "The hidden-figure guard (tests/learn.test.js, tests/e2e/smoke.mjs) treats these percent tokens as unverified: 2.5%, 3.25%, 4.75%, 8.2%, 9.5%, 4%, 5%, 2%, 50%, 70%, 75%. None of them is in a shipped text of this file. The Bank of Israel rate (3.25%, VERIFIED) sits in a gated `numbers` block, because tests/round7.test.js also forbids the string '3.25' anywhere in the build."
+    "tokensToWatch": "The hidden-figure guard (tests/learn.test.js, tests/e2e/smoke.mjs) treats these percent tokens as unverified: 2.5%, 3.25%, 4.75%, 8.2%, 9.5%, 4%, 5%, 2%, 50%, 70%, 75%. None of them is in a shipped text of this file. The Bank of Israel rate (3.25%, VERIFIED) sits in a gated `numbers` block, because tests/round7.test.js also forbids the string '3.25' anywhere in the build.",
+    "ref": "{ name, url }: the source link SHOWN next to the 'נכון ל-2026' tag (developer, v4 stage 4). A copy of source.name/url, because scripts/prune-learn.js drops `source` from the build; `ref` survives the prune."
   },
   "ui": {
     "title": "המדריך של מקסי",
@@ -53,7 +54,12 @@
       "order": 1,
       "title": "כמה נכנס לחשבון?",
       "level": "full",
-      "concepts": ["marginal_tax", "credit_points", "ni_ceiling", "mandatory_pension"],
+      "concepts": [
+        "marginal_tax",
+        "credit_points",
+        "ni_ceiling",
+        "mandatory_pension"
+      ],
       "asOf": "2026",
       "screens": [
         {
@@ -68,10 +74,22 @@
           "realWorld": true,
           "text": "על ₪8,800 בחודש: ₪7,010 הראשונים במדרגת 10% (₪701), ו-₪1,790 הנותרים במדרגת 14% (₪250.6). יחד ₪951.6. נקודות הזיכוי מורידות 2.25 × ₪242 = ₪544.5, ולכן מס ההכנסה הוא ₪407.1.",
           "table": [
-            { "label": "₪7,010 × 10%", "value": "₪701" },
-            { "label": "₪1,790 × 14%", "value": "₪250.6" },
-            { "label": "פחות 2.25 נקודות זיכוי", "value": "−₪544.5" },
-            { "label": "מס הכנסה", "value": "₪407.1" }
+            {
+              "label": "₪7,010 × 10%",
+              "value": "₪701"
+            },
+            {
+              "label": "₪1,790 × 14%",
+              "value": "₪250.6"
+            },
+            {
+              "label": "פחות 2.25 נקודות זיכוי",
+              "value": "−₪544.5"
+            },
+            {
+              "label": "מס הכנסה",
+              "value": "₪407.1"
+            }
           ]
         },
         {
@@ -80,9 +98,18 @@
           "realWorld": true,
           "text": "על ₪7,703 הראשונים משלמים 4.27% (₪328.9), ועל ₪1,097 הנותרים 12.17% (₪133.5). יחד ₪462.4 בחודש.",
           "table": [
-            { "label": "₪7,703 × 4.27%", "value": "₪328.9" },
-            { "label": "₪1,097 × 12.17%", "value": "₪133.5" },
-            { "label": "ביטוח לאומי ובריאות", "value": "₪462.4" }
+            {
+              "label": "₪7,703 × 4.27%",
+              "value": "₪328.9"
+            },
+            {
+              "label": "₪1,097 × 12.17%",
+              "value": "₪133.5"
+            },
+            {
+              "label": "ביטוח לאומי ובריאות",
+              "value": "₪462.4"
+            }
           ]
         },
         {
@@ -91,11 +118,26 @@
           "realWorld": true,
           "text": "לפי הכלל הכללי העובד מפקיד 6% לפנסיה: ₪528. זה לא הפסד, זה חיסכון לעתיד. מה שנכנס לחשבון: ₪8,800 − ₪407.1 − ₪462.4 − ₪528 = ₪7,402.5.",
           "table": [
-            { "label": "ברוטו", "value": "₪8,800" },
-            { "label": "מס הכנסה", "value": "−₪407.1" },
-            { "label": "ביטוח לאומי ובריאות", "value": "−₪462.4" },
-            { "label": "פנסיה (6%)", "value": "−₪528" },
-            { "label": "נטו לחשבון", "value": "₪7,402.5" }
+            {
+              "label": "ברוטו",
+              "value": "₪8,800"
+            },
+            {
+              "label": "מס הכנסה",
+              "value": "−₪407.1"
+            },
+            {
+              "label": "ביטוח לאומי ובריאות",
+              "value": "−₪462.4"
+            },
+            {
+              "label": "פנסיה (6%)",
+              "value": "−₪528"
+            },
+            {
+              "label": "נטו לחשבון",
+              "value": "₪7,402.5"
+            }
           ],
           "footnote": "החישוב לגבר עם 2.25 נקודות זיכוי, בלי ילדים ובלי הטבות נוספות. לאישה יש חצי נקודה נוספת, ולכן מס ההכנסה שלה נמוך ב-₪121."
         },
@@ -110,31 +152,76 @@
         "afterScreen": 0,
         "prompt": "משכורת של ₪8,800 ברוטו בחודש. בערך כמה נכנס לחשבון?",
         "options": [
-          { "id": "a", "text": "₪8,800, כל המשכורת", "correct": false, "feedback": "מהברוטו יורדים מס, ביטוח לאומי ופנסיה, ולכן לחשבון נכנס פחות." },
-          { "id": "b", "text": "בערך ₪7,400", "correct": true, "feedback": "בדיוק: בערך ₪7,400 מתוך ₪8,800." },
-          { "id": "c", "text": "בערך ₪4,400, חצי", "correct": false, "feedback": "פחות נורא מזה. על משכורת כזו יורדים בסך הכול כ-16%." }
+          {
+            "id": "a",
+            "text": "₪8,800, כל המשכורת",
+            "correct": false,
+            "feedback": "מהברוטו יורדים מס, ביטוח לאומי ופנסיה, ולכן לחשבון נכנס פחות."
+          },
+          {
+            "id": "b",
+            "text": "בערך ₪7,400",
+            "correct": true,
+            "feedback": "בדיוק: בערך ₪7,400 מתוך ₪8,800."
+          },
+          {
+            "id": "c",
+            "text": "בערך ₪4,400, חצי",
+            "correct": false,
+            "feedback": "פחות נורא מזה. על משכורת כזו יורדים בסך הכול כ-16%."
+          }
         ],
         "explain": "מ-₪8,800 יורדים ₪407.1 מס הכנסה, ₪462.4 ביטוח לאומי ובריאות ו-₪528 פנסיה. נשארים ₪7,402.5."
       },
-      "computed": { "gross": 8800, "taxBeforeCredits": 951.6, "credits": 544.5, "incomeTax": 407.1, "niReduced": 328.9, "niFull": 133.5, "niTotal": 462.4, "pension": 528, "net": 7402.5, "deductionsPct": 15.9, "womanExtraCredit": 121, "gameTaxLine": 900, "realTaxPlusNi": 869.5 },
+      "computed": {
+        "gross": 8800,
+        "taxBeforeCredits": 951.6,
+        "credits": 544.5,
+        "incomeTax": 407.1,
+        "niReduced": 328.9,
+        "niFull": 133.5,
+        "niTotal": 462.4,
+        "pension": 528,
+        "net": 7402.5,
+        "deductionsPct": 15.9,
+        "womanExtraCredit": 121,
+        "gameTaxLine": 900,
+        "realTaxPlusNi": 869.5
+      },
       "source": {
         "name": "מס הכנסה: רשות המסים, חוברת לוח עזר 2026. ביטוח לאומי: חוזר מעסיקים 1522 (1.4.2026). פנסיה: כל זכות, חובת ביטוח פנסיוני",
         "url": "https://www.gov.il/BlobFolder/generalpage/income-tax-monthly-deductions-booklet/he/generalInformation_income-tax-monthly-deductions-booklet_monthly-deductions-booklet-2026.pdf",
         "kind": "official-primary"
       },
       "sources": [
-        { "name": "רשות המסים, חוברת לוח עזר 2026", "url": "https://www.gov.il/BlobFolder/generalpage/income-tax-monthly-deductions-booklet/he/generalInformation_income-tax-monthly-deductions-booklet_monthly-deductions-booklet-2026.pdf" },
-        { "name": "המוסד לביטוח לאומי, חוזר מעסיקים 1522", "url": "https://www.btl.gov.il/Insurance/HozrimBituah/Hozrim/%D7%A9%D7%99%D7%A0%D7%95%D7%99%20%D7%91%D7%AA%D7%A9%D7%9C%D7%95%D7%9D%20%D7%93%D7%9E%D7%99%20%D7%91%D7%99%D7%98%D7%95%D7%97%20%D7%9C%D7%90%D7%95%D7%9E%D7%99%20%D7%95%D7%93%D7%9E%D7%99%20%D7%91%D7%99%D7%98%D7%95%D7%97%20%D7%91%D7%A8%D7%99%D7%90%D7%95%D7%AA%20%D7%9C%D7%A9%D7%A0%D7%AA%202026.pdf" },
-        { "name": "כל זכות, חובת ביטוח פנסיוני לעובדים", "url": "https://www.kolzchut.org.il/he/%D7%97%D7%95%D7%91%D7%AA_%D7%91%D7%99%D7%98%D7%95%D7%97_%D7%A4%D7%A0%D7%A1%D7%99%D7%95%D7%A0%D7%99_%D7%9C%D7%A2%D7%95%D7%91%D7%93%D7%99%D7%9D" }
+        {
+          "name": "רשות המסים, חוברת לוח עזר 2026",
+          "url": "https://www.gov.il/BlobFolder/generalpage/income-tax-monthly-deductions-booklet/he/generalInformation_income-tax-monthly-deductions-booklet_monthly-deductions-booklet-2026.pdf"
+        },
+        {
+          "name": "המוסד לביטוח לאומי, חוזר מעסיקים 1522",
+          "url": "https://www.btl.gov.il/Insurance/HozrimBituah/Hozrim/%D7%A9%D7%99%D7%A0%D7%95%D7%99%20%D7%91%D7%AA%D7%A9%D7%9C%D7%95%D7%9D%20%D7%93%D7%9E%D7%99%20%D7%91%D7%99%D7%98%D7%95%D7%97%20%D7%9C%D7%90%D7%95%D7%9E%D7%99%20%D7%95%D7%93%D7%9E%D7%99%20%D7%91%D7%99%D7%98%D7%95%D7%97%20%D7%91%D7%A8%D7%99%D7%90%D7%95%D7%AA%20%D7%9C%D7%A9%D7%A0%D7%AA%202026.pdf"
+        },
+        {
+          "name": "כל זכות, חובת ביטוח פנסיוני לעובדים",
+          "url": "https://www.kolzchut.org.il/he/%D7%97%D7%95%D7%91%D7%AA_%D7%91%D7%99%D7%98%D7%95%D7%97_%D7%A4%D7%A0%D7%A1%D7%99%D7%95%D7%A0%D7%99_%D7%9C%D7%A2%D7%95%D7%91%D7%93%D7%99%D7%9D"
+        }
       ],
-      "needs_review": "finance: (1) '6% לפי הכלל הכללי' is not claimed for teachers (public-sector pension is NOT VERIFIED); the game comparison names the teacher's game line only. (2) The 35% pension credit is left out (estimate). (3) Guess option c says total deductions are about 16%: (407.1 + 462.4 + 528) / 8,800 = 15.9%."
+      "needs_review": "finance: (1) '6% לפי הכלל הכללי' is not claimed for teachers (public-sector pension is NOT VERIFIED); the game comparison names the teacher's game line only. (2) The 35% pension credit is left out (estimate). (3) Guess option c says total deductions are about 16%: (407.1 + 462.4 + 528) / 8,800 = 15.9%.",
+      "ref": {
+        "name": "מס הכנסה: רשות המסים, חוברת לוח עזר 2026. ביטוח לאומי: חוזר מעסיקים 1522 (1.4.2026). פנסיה: כל זכות, חובת ביטוח פנסיוני",
+        "url": "https://www.gov.il/BlobFolder/generalpage/income-tax-monthly-deductions-booklet/he/generalInformation_income-tax-monthly-deductions-booklet_monthly-deductions-booklet-2026.pdf"
+      }
     },
     {
       "id": "lesson-vat",
       "order": 2,
       "title": "מע״מ: 18% שמסתתרים במחיר",
       "level": "full",
-      "concepts": ["vat", "osek"],
+      "concepts": [
+        "vat",
+        "osek"
+      ],
       "asOf": "2026",
       "screens": [
         {
@@ -149,9 +236,18 @@
           "realWorld": true,
           "text": "מחיר לפני מע״מ כפול 1.18 נותן את המחיר עם מע״מ. ₪1,000 × 1.18 = ₪1,180, ומתוכם ₪180 הם מס.",
           "table": [
-            { "label": "לפני מע״מ", "value": "₪1,000" },
-            { "label": "מע״מ (18%)", "value": "₪180" },
-            { "label": "עם מע״מ", "value": "₪1,180" }
+            {
+              "label": "לפני מע״מ",
+              "value": "₪1,000"
+            },
+            {
+              "label": "מע״מ (18%)",
+              "value": "₪180"
+            },
+            {
+              "label": "עם מע״מ",
+              "value": "₪1,180"
+            }
           ]
         },
         {
@@ -177,30 +273,70 @@
         "afterScreen": 0,
         "prompt": "מחיר של מוצר לפני מע״מ הוא ₪1,000. כמה משלמים עם מע״מ של 18%?",
         "options": [
-          { "id": "a", "text": "₪1,018", "correct": false, "feedback": "18% מ-₪1,000 הם ₪180, לא ₪18." },
-          { "id": "b", "text": "₪1,180", "correct": true, "feedback": "₪1,000 ועוד 18% שלהם, ₪180." },
-          { "id": "c", "text": "₪1,800", "correct": false, "feedback": "זו תוספת של 80%. המע״מ הוא 18%: ₪180." }
+          {
+            "id": "a",
+            "text": "₪1,018",
+            "correct": false,
+            "feedback": "18% מ-₪1,000 הם ₪180, לא ₪18."
+          },
+          {
+            "id": "b",
+            "text": "₪1,180",
+            "correct": true,
+            "feedback": "₪1,000 ועוד 18% שלהם, ₪180."
+          },
+          {
+            "id": "c",
+            "text": "₪1,800",
+            "correct": false,
+            "feedback": "זו תוספת של 80%. המע״מ הוא 18%: ₪180."
+          }
         ],
         "explain": "מוסיפים 18% למחיר שלפני המס: ₪1,000 × 1.18 = ₪1,180."
       },
-      "computed": { "rate": 0.18, "before": 1000, "vat": 180, "after": 1180, "machine": { "incl": 4500, "before": 3813.56, "vat": 686.44, "wrongVat": 810 }, "osekCeiling": 122833 },
+      "computed": {
+        "rate": 0.18,
+        "before": 1000,
+        "vat": 180,
+        "after": 1180,
+        "machine": {
+          "incl": 4500,
+          "before": 3813.56,
+          "vat": 686.44,
+          "wrongVat": 810
+        },
+        "osekCeiling": 122833
+      },
       "source": {
         "name": "רשות המסים, הוראת פרשנות 01/2025 (5.12.2024). תקרת עוסק פטור: כל זכות",
         "url": "https://www.gov.il/BlobFolder/dynamiccollectorresultitem/represent-info-051224-2/he/vat_represent-info-051224-2.pdf",
         "kind": "official-primary"
       },
       "sources": [
-        { "name": "רשות המסים, הוראת פרשנות 01/2025", "url": "https://www.gov.il/BlobFolder/dynamiccollectorresultitem/represent-info-051224-2/he/vat_represent-info-051224-2.pdf" },
-        { "name": "כל זכות, עוסק פטור", "url": "https://www.kolzchut.org.il/he/%D7%A2%D7%95%D7%A1%D7%A7_%D7%A4%D7%98%D7%95%D7%A8" }
+        {
+          "name": "רשות המסים, הוראת פרשנות 01/2025",
+          "url": "https://www.gov.il/BlobFolder/dynamiccollectorresultitem/represent-info-051224-2/he/vat_represent-info-051224-2.pdf"
+        },
+        {
+          "name": "כל זכות, עוסק פטור",
+          "url": "https://www.kolzchut.org.il/he/%D7%A2%D7%95%D7%A1%D7%A7_%D7%A4%D7%98%D7%95%D7%A8"
+        }
       ],
-      "needs_review": "finance: screen vat-4 states only the verified contractor half; nothing is said about a second-hand apartment (NOT VERIFIED). The osek ceiling is a kolzchut excerpt."
+      "needs_review": "finance: screen vat-4 states only the verified contractor half; nothing is said about a second-hand apartment (NOT VERIFIED). The osek ceiling is a kolzchut excerpt.",
+      "ref": {
+        "name": "רשות המסים, הוראת פרשנות 01/2025 (5.12.2024). תקרת עוסק פטור: כל זכות",
+        "url": "https://www.gov.il/BlobFolder/dynamiccollectorresultitem/represent-info-051224-2/he/vat_represent-info-051224-2.pdf"
+      }
     },
     {
       "id": "lesson-interest",
       "order": 3,
       "title": "ריבית: המחיר של כסף",
       "level": "full",
-      "concepts": ["interest", "cushion"],
+      "concepts": [
+        "interest",
+        "cushion"
+      ],
       "asOf": "2026",
       "screens": [
         {
@@ -214,7 +350,11 @@
           "title": "הריבית של בנק ישראל",
           "realWorld": true,
           "text": "בנק ישראל קובע ריבית אחת, וממנה מושפעות הריביות שהבנקים גובים מאיתנו. הוועדה המוניטרית מחליטה עליה כמה פעמים בשנה, ובאוקטובר 2026 היא השאירה אותה ללא שינוי.",
-          "numbers": { "publish": false, "text": "ריבית בנק ישראל: 3.25% (החלטה מ-21.10.2026)." }
+          "numbers": {
+            "publish": true,
+            "verified": "boi.policyRate",
+            "text": "ריבית בנק ישראל: 3.25% (החלטה מ-21.10.2026)."
+          }
         },
         {
           "id": "int-3",
@@ -222,10 +362,22 @@
           "realWorld": true,
           "text": "הלוואה חדשה בבנק, לא לדיור, עלתה בספטמבר 2026 בממוצע 6.96% בשנה, ולפי התקופה בין 5.17% ל-9.39%. במשכנתא לא צמודה הממוצע באוגוסט 2026 היה 4.50%. הלוואה מהבנק עולה לנו יותר מהריבית של בנק ישראל.",
           "table": [
-            { "label": "הלוואה בנקאית לא לדיור (ממוצע, ספטמבר 2026)", "value": "6.96%" },
-            { "label": "לפי תקופת ההלוואה", "value": "5.17% עד 9.39%" },
-            { "label": "משכנתא לא צמודה (ממוצע, אוגוסט 2026)", "value": "4.50%" },
-            { "label": "משכנתא צמודה למדד (ממוצע, אוגוסט 2026)", "value": "3.26% ועוד המדד" }
+            {
+              "label": "הלוואה בנקאית לא לדיור (ממוצע, ספטמבר 2026)",
+              "value": "6.96%"
+            },
+            {
+              "label": "לפי תקופת ההלוואה",
+              "value": "5.17% עד 9.39%"
+            },
+            {
+              "label": "משכנתא לא צמודה (ממוצע, אוגוסט 2026)",
+              "value": "4.50%"
+            },
+            {
+              "label": "משכנתא צמודה למדד (ממוצע, אוגוסט 2026)",
+              "value": "3.26% ועוד המדד"
+            }
           ]
         },
         {
@@ -245,24 +397,63 @@
         "afterScreen": 1,
         "prompt": "מה גבוה יותר: הריבית של בנק ישראל, או הריבית הממוצעת על הלוואה רגילה בבנק?",
         "options": [
-          { "id": "a", "text": "הריבית של בנק ישראל", "correct": false, "feedback": "הבנקים גובים מאיתנו יותר מהריבית של בנק ישראל." },
-          { "id": "b", "text": "הריבית על הלוואה רגילה בבנק", "correct": true, "feedback": "הבנקים גובים מאיתנו יותר מהריבית של בנק ישראל." },
-          { "id": "c", "text": "הן תמיד שוות", "correct": false, "feedback": "לא. בממוצע, הלוואה בבנק יקרה יותר." }
+          {
+            "id": "a",
+            "text": "הריבית של בנק ישראל",
+            "correct": false,
+            "feedback": "הבנקים גובים מאיתנו יותר מהריבית של בנק ישראל."
+          },
+          {
+            "id": "b",
+            "text": "הריבית על הלוואה רגילה בבנק",
+            "correct": true,
+            "feedback": "הבנקים גובים מאיתנו יותר מהריבית של בנק ישראל."
+          },
+          {
+            "id": "c",
+            "text": "הן תמיד שוות",
+            "correct": false,
+            "feedback": "לא. בממוצע, הלוואה בבנק יקרה יותר."
+          }
         ],
         "explain": "בספטמבר 2026 הלוואה חדשה בבנק, לא לדיור, עלתה בממוצע 6.96% בשנה: יותר מהריבית של בנק ישראל."
       },
-      "computed": { "nonHousingAvg": 6.96, "byTermMin": 5.17, "byTermMax": 9.39, "mortgageUnindexed": 4.5, "mortgageCpi": 3.26, "inflation12m": 1.6, "basket": { "before": 100, "after": 101.6 } },
+      "computed": {
+        "nonHousingAvg": 6.96,
+        "byTermMin": 5.17,
+        "byTermMax": 9.39,
+        "mortgageUnindexed": 4.5,
+        "mortgageCpi": 3.26,
+        "inflation12m": 1.6,
+        "basket": {
+          "before": 100,
+          "after": 101.6
+        }
+      },
       "source": {
         "name": "בנק ישראל: הודעות לעיתונות (החלטת ריבית 21.10.2026, אינפלציה ב-12 חודשים); ריבית ממוצעת אשראי לא לדיור (ספטמבר 2026); הפיקוח על הבנקים, דוח 877 (משכנתאות, אוגוסט 2026)",
         "url": "https://kamakama.gov.il/publications/pressreleases/",
         "kind": "official-primary"
       },
       "sources": [
-        { "name": "בנק ישראל, הודעות לעיתונות", "url": "https://kamakama.gov.il/publications/pressreleases/" },
-        { "name": "בנק ישראל, nonhousingloans.xls", "url": "https://kamakama.gov.il/boi_files/Pikuah/nonhousingloans.xls" },
-        { "name": "בנק ישראל, דוח 877, אוגוסט 2026", "url": "https://kamakama.gov.il/boi_files/Pikuah/dy260831.xlsx" }
+        {
+          "name": "בנק ישראל, הודעות לעיתונות",
+          "url": "https://kamakama.gov.il/publications/pressreleases/"
+        },
+        {
+          "name": "בנק ישראל, nonhousingloans.xls",
+          "url": "https://kamakama.gov.il/boi_files/Pikuah/nonhousingloans.xls"
+        },
+        {
+          "name": "בנק ישראל, דוח 877, אוגוסט 2026",
+          "url": "https://kamakama.gov.il/boi_files/Pikuah/dy260831.xlsx"
+        }
       ],
-      "needs_review": "CEO: the Bank of Israel rate (3.25%) is VERIFIED but sits in a gated numbers block (publish:false). Reason: tests/round7.test.js forbids the string '3.25' anywhere in the production bundle and tests/learn.test.js expects '3.25%' to stay a hidden figure (both written when the number was a secondary source). To show it: change those two tests under the test-change rule (docs/v4/test-changes.md), then set publish:true. The rates go stale fast: next BoI decision 23.11.2026; the loan averages are monthly. No credit-card or non-bank rate is given (NOT VERIFIED). The emergency-fund sentence gives no number of months and no 'official' claim."
+      "needs_review": "CEO: the Bank of Israel rate (3.25%) is VERIFIED but sits in a gated numbers block (publish:false). Reason: tests/round7.test.js forbids the string '3.25' anywhere in the production bundle and tests/learn.test.js expects '3.25%' to stay a hidden figure (both written when the number was a secondary source). To show it: change those two tests under the test-change rule (docs/v4/test-changes.md), then set publish:true. The rates go stale fast: next BoI decision 23.11.2026; the loan averages are monthly. No credit-card or non-bank rate is given (NOT VERIFIED). The emergency-fund sentence gives no number of months and no 'official' claim. | 2026-10-25: owner approved showing the rate (publish: true, verified: boi.policyRate in docs/v3/real-world-verified.json).",
+      "ref": {
+        "name": "בנק ישראל: הודעות לעיתונות (החלטת ריבית 21.10.2026, אינפלציה ב-12 חודשים); ריבית ממוצעת אשראי לא לדיור (ספטמבר 2026); הפיקוח על הבנקים, דוח 877 (משכנתאות, אוגוסט 2026)",
+        "url": "https://kamakama.gov.il/publications/pressreleases/"
+      }
     }
   ],
   "statementPopover": {
@@ -272,12 +463,30 @@
       "title": "מס הכנסה, בחודש",
       "short": "כל שיעור חל רק על החלק של המשכורת שבתוך המדרגה שלו. נקודות זיכוי מקטינות את המס: ₪242 לכל נקודה.",
       "rows": [
-        { "label": "עד ₪7,010", "value": "10%" },
-        { "label": "עד ₪10,060", "value": "14%" },
-        { "label": "עד ₪19,000", "value": "20%" },
-        { "label": "עד ₪25,100", "value": "31%" },
-        { "label": "עד ₪46,690", "value": "35%" },
-        { "label": "מעל ₪46,690", "value": "47%" }
+        {
+          "label": "עד ₪7,010",
+          "value": "10%"
+        },
+        {
+          "label": "עד ₪10,060",
+          "value": "14%"
+        },
+        {
+          "label": "עד ₪19,000",
+          "value": "20%"
+        },
+        {
+          "label": "עד ₪25,100",
+          "value": "31%"
+        },
+        {
+          "label": "עד ₪46,690",
+          "value": "35%"
+        },
+        {
+          "label": "מעל ₪46,690",
+          "value": "47%"
+        }
       ],
       "rowsNote": "מעל ₪60,130 בחודש נוסף מס יסף של 3%."
     },
@@ -285,9 +494,18 @@
       "title": "ביטוח לאומי ובריאות, בחודש",
       "short": "על החלק הראשון של המשכורת משלמים שיעור מופחת, על השאר שיעור מלא, ומעל התקרה לא משלמים.",
       "rows": [
-        { "label": "עד ₪7,703", "value": "4.27%" },
-        { "label": "עד ₪51,910", "value": "12.17%" },
-        { "label": "מעל ₪51,910", "value": "0%" }
+        {
+          "label": "עד ₪7,703",
+          "value": "4.27%"
+        },
+        {
+          "label": "עד ₪51,910",
+          "value": "12.17%"
+        },
+        {
+          "label": "מעל ₪51,910",
+          "value": "0%"
+        }
       ],
       "rowsNote": "השיעורים של 2026 תקפים עד סוף השנה, וייתכן שישתנו."
     },
@@ -299,14 +517,54 @@
       "template": "{title}: ברוטו {gross}. במשחק השורה היא {gameLine}. בחישוב אמיתי, מס הכנסה וביטוח לאומי הם כ-{real}.",
       "assumption": "החישוב לגבר עם 2.25 נקודות זיכוי, בלי ילדים ובלי פנסיה.",
       "rows": {
-        "cook": { "gross": 7800, "realTaxPlusNi": 608, "incomeTax": 267.1, "niHealth": 340.7 },
-        "driver": { "gross": 8200, "realTaxPlusNi": 713, "incomeTax": 323.1, "niHealth": 389.4 },
-        "teacher": { "gross": 8800, "realTaxPlusNi": 870, "incomeTax": 407.1, "niHealth": 462.4 },
-        "police": { "gross": 9300, "realTaxPlusNi": 1000, "incomeTax": 477.1, "niHealth": 523.3 },
-        "nurse": { "gross": 9800, "realTaxPlusNi": 1131, "incomeTax": 547.1, "niHealth": 584.1 },
-        "engineer": { "gross": 12500, "realTaxPlusNi": 1984, "incomeTax": 1071.5, "niHealth": 912.7 },
-        "programmer": { "gross": 13500, "realTaxPlusNi": 2306, "incomeTax": 1271.5, "niHealth": 1034.4 },
-        "lawyer": { "gross": 14500, "realTaxPlusNi": 2628, "incomeTax": 1471.5, "niHealth": 1156.1 }
+        "cook": {
+          "gross": 7800,
+          "realTaxPlusNi": 608,
+          "incomeTax": 267.1,
+          "niHealth": 340.7
+        },
+        "driver": {
+          "gross": 8200,
+          "realTaxPlusNi": 713,
+          "incomeTax": 323.1,
+          "niHealth": 389.4
+        },
+        "teacher": {
+          "gross": 8800,
+          "realTaxPlusNi": 870,
+          "incomeTax": 407.1,
+          "niHealth": 462.4
+        },
+        "police": {
+          "gross": 9300,
+          "realTaxPlusNi": 1000,
+          "incomeTax": 477.1,
+          "niHealth": 523.3
+        },
+        "nurse": {
+          "gross": 9800,
+          "realTaxPlusNi": 1131,
+          "incomeTax": 547.1,
+          "niHealth": 584.1
+        },
+        "engineer": {
+          "gross": 12500,
+          "realTaxPlusNi": 1984,
+          "incomeTax": 1071.5,
+          "niHealth": 912.7
+        },
+        "programmer": {
+          "gross": 13500,
+          "realTaxPlusNi": 2306,
+          "incomeTax": 1271.5,
+          "niHealth": 1034.4
+        },
+        "lawyer": {
+          "gross": 14500,
+          "realTaxPlusNi": 2628,
+          "incomeTax": 1471.5,
+          "niHealth": 1156.1
+        }
       },
       "rowsNote": "Hand-computed 2026-10-23, matches finance's table in real-world-verified.md. `gross` must equal professions.he.json salary (a test should assert it); the game line is always read from professions.he.json, never from here."
     },
@@ -319,6 +577,10 @@
       "url": "https://www.gov.il/BlobFolder/generalpage/income-tax-monthly-deductions-booklet/he/generalInformation_income-tax-monthly-deductions-booklet_monthly-deductions-booklet-2026.pdf",
       "kind": "official-primary"
     },
-    "needs_review": "developer: the profession rows assume the CURRENT salaries; if the economy phase changes a salary, recompute realTaxPlusNi (same formula as notes.worked8800). The programmer's game line is 'tax' only (the separate 'pension' line is not part of this row)."
+    "needs_review": "developer: the profession rows assume the CURRENT salaries; if the economy phase changes a salary, recompute realTaxPlusNi (same formula as notes.worked8800). The programmer's game line is 'tax' only (the separate 'pension' line is not part of this row).",
+    "ref": {
+      "name": "רשות המסים, חוברת לוח עזר 2026; המוסד לביטוח לאומי, חוזר מעסיקים 1522",
+      "url": "https://www.gov.il/BlobFolder/generalpage/income-tax-monthly-deductions-booklet/he/generalInformation_income-tax-monthly-deductions-booklet_monthly-deductions-booklet-2026.pdf"
+    }
   }
 }

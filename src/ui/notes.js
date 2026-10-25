@@ -100,9 +100,12 @@ export function createNotes({ zone, onActive, onDismiss, onShown }) {
       return h('div', { class: 'note note-tip fox-bubble', role: 'status', 'data-note': 'tip', onClick: () => hideCurrent() },
         h('div', { class: 'note-bubble' }, h('div', { class: 'note-main' }, body), closeX()));
     }
-    return h('div', { class: 'note note-feedback fox-bubble', role: 'status', 'data-note': 'feedback', 'data-group': item.group, 'data-tone': item.tone,
+    // v4 'milestone' (and badge) notes: a celebration with the same bubble, not a feedback note about a decision
+    const k = item.kind === 'milestone' ? 'milestone' : 'feedback';
+    return h('div', { class: `note note-${k} fox-bubble`, role: 'status', 'data-note': k, 'data-group': item.group, 'data-tone': item.tone,
       onClick: () => hideCurrent() },
-    h('div', { class: 'note-bubble' }, h('div', { class: 'note-main' }, body), closeX()));
+    // `extra` (v4 milestones: the badge chip) sits under the text, outside its line clamp, so it is never cut
+    h('div', { class: 'note-bubble' }, h('div', { class: 'note-main' }, body, item.extra ?? null), closeX()));
   }
 
   /** The auto-close time: explainers wait for their button (as in v3); bubbles follow the reading-time formula. */

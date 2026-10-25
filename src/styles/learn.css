@@ -156,3 +156,26 @@
   .note-explain { inset-block-end: -68px; min-block-size: 0; }
   .screen-board:has(.note-explain) .board-actions { visibility: hidden; }
 }
+/* v4 stage 4: the Israeli money rules group in the dictionary (full mode) */
+.dict-rw { margin-block-start: 18px; display: flex; flex-direction: column; gap: 6px; }
+.dict-rw-title { margin: 0; font-size: 1rem; font-weight: var(--fw-black); }
+.dict-rw-item {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 10px; row-gap: 2px; align-items: center; inline-size: 100%;
+  min-block-size: 56px; padding: 10px 14px; border-radius: 16px; text-align: start;
+  background: var(--glass-bg); border: 1px solid var(--glass-border); color: var(--text);
+}
+.dict-rw-item .dict-item-short { grid-column: 1; }
+.dict-rw-item .icon { grid-column: 2; grid-row: 1 / span 2; color: var(--text-muted); }
+.dict-rw-entry .rw-badge { display: inline-block; margin: 0 0 6px; padding: 2px 10px; border-radius: 12px; border: 1px solid var(--border); font-size: .75rem; font-weight: var(--fw-bold); }
+.rw-table { inline-size: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; margin-block: 6px; }
+.rw-table td { padding: 4px 0; border-block-end: 1px solid var(--border); }
+.rw-table td:last-child { text-align: end; font-weight: var(--fw-bold); }
+.dict-rw-entry .asof-tag, .dict-rw-entry .src-link { color: var(--text); border-color: var(--border); }
+.dict-rw-entry .audit-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: .8125rem; color: var(--text-muted); }
+.dict-rw-entry .asof-tag { display: inline-flex; align-items: center; min-block-size: 24px; padding: 0 8px; border-radius: 12px; border: 1px solid var(--border); font-weight: var(--fw-bold); }
+.dict-rw-entry .src-link { display: inline-flex; align-items: center; min-block-size: 48px; font-weight: var(--fw-bold); text-decoration: underline; text-underline-offset: 3px; }
+.dict-lesson .guide-screen { padding-block: 8px; border-block-end: 1px solid var(--border); }
+.dict-lesson h4 { margin: 4px 0; font-size: 1rem; font-weight: var(--fw-black); }
+.guide-guess { margin-block: 10px; padding: 10px 12px; border-radius: 14px; border: 1px solid var(--border); }
+.guide-opt { min-block-size: 48px; }
+.guide-figure { margin-block-start: 6px; }

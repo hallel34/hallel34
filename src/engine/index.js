@@ -1,4 +1,4 @@
-export { createEngine, EngineError } from './engine.js';
+export { createEngine, EngineError, emptyTaxAudit, PASS_OPTION, isFreeOption, decisionCanPass } from './engine.js';
 export * from './selectors.js';
 export * from './config.js';
 export { serialize, deserialize } from './save.js';

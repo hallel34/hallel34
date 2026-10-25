@@ -71,7 +71,16 @@ function hiddenFigures() {
     + JSON.stringify(rw.facts.map((f) => [f.game, f.real])) + readFileSync(new URL('../../src/i18n/he.json', import.meta.url), 'utf8') + readFileSync(new URL('../../src/data/cards.he.json', import.meta.url), 'utf8');
   const tokens = (str) => [...String(str).matchAll(/(?<![\d.,])\d+(?:\.\d+)?%/g)].map((m) => m[0]);
   const shown = new Set(tokens(visible));
-  return [...new Set(rw.facts.filter((f) => f.numbers).flatMap((f) => tokens(f.numbers.text)))].filter((x) => !shown.has(x));
+  // v4 stage 4: the real-world surfaces (tax quiz, statement popover, the Israeli money rules) show official 2026 figures. A token
+  // is exempt ONLY when docs/v3/real-world-verified.json marks a rate with that value VERIFIED (e.g. 50% = the top marginal rate,
+  // 2.5% = the study-fund employee share, 2% = the capital surtax). Percent-valued entries (the Bank of Israel rate) never exempt.
+  const verified = new Set();
+  const walk = (v) => { if (typeof v === 'number' && v > 0 && v < 1) verified.add(`${Math.round(v * 10000) / 100}%`); else if (v && typeof v === 'object') Object.values(v).forEach(walk); };
+  for (const e of JSON.parse(readFileSync(new URL('../../docs/v3/real-world-verified.json', import.meta.url), 'utf8'))) if (e.status === 'VERIFIED') walk(e.value);
+  // owner 2026-10-25: the Bank of Israel rate is shown (guide lesson, with its verified tag): its percent value is exempt too
+  const guide = JSON.parse(readFileSync(new URL('../../src/data/learn/guide.he.json', import.meta.url), 'utf8'));
+  for (const sc of guide.lessons.flatMap((l) => l.screens)) if (sc.numbers?.publish === true && sc.numbers.verified) tokens(sc.numbers.text).forEach((x) => verified.add(x));
+  return [...new Set(rw.facts.filter((f) => f.numbers).flatMap((f) => tokens(f.numbers.text)))].filter((x) => !shown.has(x) && !verified.has(x));
 }
 async function noHiddenFigures(page, label) {
   const hidden = hiddenFigures();
@@ -1105,6 +1114,13 @@ async function testPhaseA(page) {
     const rec = (sel, key) => new MutationObserver(() => {
       const e = document.querySelector(sel);
       if (e) window.__seen.push({ key, text: e.textContent, bdi: e.querySelectorAll('bdi').length });
+      // owner-approved spec 4.9: the payday chip is caught the moment it appears (later events replace it); its tap opens the equation
+      const pc = key === 'chip' && e?.querySelector('.payday-chip');
+      if (pc && !window.__pc) {
+        pc.click();
+        window.__pc = { variant: pc.dataset.variant, bdi: pc.querySelectorAll('bdi').length, h: pc.getBoundingClientRect().height, eq: document.querySelector('.payday-pop .eq')?.textContent ?? '' };
+        pc.click();
+      }
     }).observe(document.querySelector(sel), { childList: true, subtree: true, characterData: true });
     rec('.status-chip', 'chip');
     rec('.board-status', 'status');
@@ -1129,10 +1145,11 @@ async function testPhaseA(page) {
   const f = await page.evaluate(() => {
     const r = (e) => { const b = e.getBoundingClientRect(); return { top: b.top, bottom: b.bottom, left: b.left, right: b.right }; };
     const hud = r(document.querySelector('.hud'));
+    const plaza = r(document.querySelector('.board-center'));
     const fl = r(document.querySelector('.float-text'));
     const texts = [...document.querySelectorAll('.hud-prof, .hud-sub, .hud-id, .hud-btns, .hud-cash, .meter-labels')].map(r);
     return {
-      hud, fl, overlapsHud: texts.some((t) => fl.top < t.bottom && fl.bottom > t.top && fl.left < t.right && fl.right > t.left),
+      hud, fl, plaza, overlapsHud: texts.some((t) => fl.top < t.bottom && fl.bottom > t.top && fl.left < t.right && fl.right > t.left),
       floatBdi: document.querySelectorAll('.float-text bdi').length,
     };
   });
@@ -1142,9 +1159,14 @@ async function testPhaseA(page) {
   f.chip = chipMsg?.text ?? ''; f.chipBdi = chipMsg?.bdi ?? 0;
   f.statusText = statusMsg?.text ?? ''; f.statusBdi = statusMsg?.bdi ?? 0;
   check(!f.overlapsHud, `B2: the payday float does not overlap any HUD text (float top ${Math.round(f.fl.top)}, hud bottom ${Math.round(f.hud.bottom)})`);
-  check(f.fl.top >= f.hud.bottom - 1 && f.fl.left >= 0 && f.fl.right <= 360, 'B2: the payday float stays under the HUD and inside the viewport');
-  check(f.chipBdi >= 2 && f.statusBdi >= 2 && f.floatBdi >= 1, `B1: payday amounts are wrapped in <bdi> (chip ${f.chipBdi}, status ${f.statusBdi}, float ${f.floatBdi})`);
-  check(f.chip.includes('סיכום שנתי') && f.chip.includes(`× ${PAYDAY_MONTHS}`) && /×.*=/.test(f.chip), `N3: log shows the maths ("${f.chip}")`);
+  // owner approved spec 4.9 (2026-10-25): the float rises inside the board plaza; the fox-row chip is the 3-variant payday chip
+  // whose tap opens the stacked equation; the status line keeps the one-line maths
+  check(f.fl.top >= f.plaza.top - 1 && f.fl.bottom <= f.plaza.bottom + 1 && f.fl.left >= f.plaza.left - 1 && f.fl.right <= f.plaza.right + 1, `B2: the payday float stays inside the board plaza (${JSON.stringify(f.fl)} in ${JSON.stringify(f.plaza)})`);
+  const pc = await page.evaluate(() => window.__pc ?? null);
+  check(!!pc && ['a', 'b', 'c'].includes(pc.variant) && pc.bdi >= 1 && pc.h >= 47.5, `B1: the payday chip (variant ${pc?.variant}) has its amount in <bdi> and is a 48px target (${JSON.stringify(pc)})`);
+  check(!!pc && pc.eq.includes(`${PAYDAY_MONTHS} חודשים`) && pc.eq.includes('=') && pc.eq.includes('×'), `N3: the chip opens the stacked equation ("${pc?.eq}")`);
+  check(f.statusBdi >= 2 && f.floatBdi >= 1, `B1: payday amounts are wrapped in <bdi> (status ${f.statusBdi}, float ${f.floatBdi})`);
+  check(f.statusText.includes('סיכום שנתי') && f.statusText.includes(`× ${PAYDAY_MONTHS}`) && /×.*=/.test(f.statusText), `N3: the status line shows the maths ("${f.statusText}")`);
   check(!/יום משכורת/.test(f.chip + f.statusText), 'N3: no "יום משכורת" left in the payday messages');
   await page.waitForTimeout(1500);
 

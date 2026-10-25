@@ -1,8 +1,9 @@
 // Tunable rule constants. Pure data, no DOM.
+// 5 (v4 stage 4): every player's state carries `milestones` (25 / 50% celebrated once per game) and `taxAudit` (quiz points).
 // 4: every player's state carries `lap` (board laps completed, drives price inflation) and `effects` (timed market effects).
 // 3: every player's state carries a `learn` record (decisions, guesses, concepts). 2: saves hold a whole match (1-4 players).
 // Version 1 saves were a single game state; 1 -> 2 -> 3 -> 4 migrate step by step on load.
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 5;
 export const MIN_PLAYERS = 1;
 export const MAX_PLAYERS = 4;
 export const NAME_MAX = 12;
@@ -12,14 +13,18 @@ export const NAME_MAX = 12;
 export const MORTGAGE_PAYMENT_RATE = 0.0055;
 export const BUSINESS_LOAN_PAYMENT_RATE = 0.0175;
 
-// 24-square loop. 5 paydays, 9 opportunities, 3 expenses, 3 market,
-// 2 baby, 2 charity.
+// 24-square loop. 5 paydays, 9 opportunities, 2 expenses, 3 market, 2 baby, 2 charity, 1 tax audit.
+// v4 stage 4: square 12 (was the second of three unexpected-expense squares) is 'ביקורת רשות המסים' ('taxAudit'): a quiz,
+// knowledge points only, never money. Picked by simulation among all 24 candidates (docs/BALANCE.md "After v4 stage 4"):
+// every candidate kept the sensible medians in the targets; 12 keeps them there (family 21, full 26), lowers reckless-play
+// bankruptcy in family mode, and keeps always-buy clearly behind the sensible bot.
 export const BOARD = [
   'payday', 'opportunity', 'expense', 'market', 'payday', 'opportunity',
   'charity', 'payday', 'opportunity', 'baby', 'payday', 'opportunity',
-  'expense', 'opportunity', 'opportunity', 'market', 'charity', 'payday',
+  'taxAudit', 'opportunity', 'opportunity', 'market', 'charity', 'payday',
   'opportunity', 'expense', 'market', 'baby', 'opportunity', 'opportunity',
 ];
+export const TAX_AUDIT_SQUARE = 12;
 
 export const MAX_KIDS = 3;
 export const CHARITY_PCT = 0.1; // of total monthly income
@@ -94,3 +99,15 @@ export const REPORT_MANY_RED = 2;
 export const REPORT_NO_DIVERSIFY_ASSETS = 3;
 // Report tip 'allGood': green share (0-1) of the rated decisions.
 export const REPORT_ALL_GOOD_SHARE = 0.8;
+
+// ---- v4 stage 4 ----
+// Passive income as a % of total monthly expenses, celebrated once per game (docs/v4/milestones.md).
+export const MILESTONES = [25, 50];
+// 'ביקורת רשות המסים': the engine draws a number 0..TAX_AUDIT_PICKS-1; the UI maps it onto the questions of the mode.
+// The answer earns knowledge points only (never money).
+export const TAX_AUDIT_PICKS = 1000000;
+export const TAX_AUDIT_POINTS = 1;
+
+// Family safety net (owner, 2026-10-25): in family mode a purchase loan may not leave the monthly cash flow (after the deal's own
+// monthly money and the new loan payment) below this many shekels a month. Full mode, expense and shortfall loans: no net.
+export const FAMILY_NET_FLOOR = 0;
