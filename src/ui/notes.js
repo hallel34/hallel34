@@ -81,7 +81,7 @@ export function createNotes({ zone, onActive, onDismiss, onShown }) {
     if (item.kind === 'explain') {
       const c = item.concept;
       const why = h('p', { class: 'note-why' }, h('b', null, `${item.whyLabel}: `), c.why);
-      return h('div', { class: 'note note-explain fox-bubble', role: 'region', 'aria-label': item.label, 'data-note': 'explain', 'data-concept': c.id },
+      return h('div', { class: 'note note-explain note-panel fox-bubble', role: 'region', 'aria-label': item.label, 'data-note': 'explain', 'data-concept': c.id },
         h('div', { class: 'note-bubble' },
           h('div', { class: 'note-main' },
             h('p', { class: 'note-head' }, h('strong', { class: 'note-term' }, item.name ?? c.term), h('span', { class: 'note-kicker' }, item.label)),
@@ -106,6 +106,58 @@ export function createNotes({ zone, onActive, onDismiss, onShown }) {
       onClick: () => hideCurrent() },
     // `extra` (v4 milestones: the badge chip) sits under the text, outside its line clamp, so it is never cut
     h('div', { class: 'note-bubble' }, h('div', { class: 'note-main' }, body, item.extra ?? null), closeX()));
+  }
+
+  // ---- QA round 16 P1: a note is never cut without a way to read all of it ----
+  // A content note (hint, tip, feedback, milestone; not the short greeting) becomes the full-width plaza panel of the explainer
+  // when its bubble beside the fox would be too narrow (360 and below) or its text does not fit there. In the panel the text is
+  // clamped to 3 lines (2 compact); when it is still clamped (or a hint has its extra line) a 48px "עוד" shows all of it.
+  const PANEL_MIN_W = 200; // px: a narrower bubble reads 1-2 words a line
+  const clamped = (el) => { const tx = el.querySelector('.note-text'); return !!tx && tx.scrollHeight > tx.clientHeight + 1; };
+  // the plaza's top row (flow chip, "?") stays unless the panel does not fit without its room
+  const roomCheck = (el) => {
+    const bb = el.querySelector('.note-bubble');
+    if (!bb) return;
+    // what its rows need (the panel is bottom-aligned, so an overflow at the top is not in scrollHeight)
+    const cs = getComputedStyle(bb);
+    const kids = [...bb.children].filter((k) => k.getClientRects().length);
+    const need = kids.reduce((a, k) => a + k.getBoundingClientRect().height, 0) + (parseFloat(cs.rowGap) || 0) * Math.max(0, kids.length - 1)
+      + (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
+    if (need > bb.clientHeight + 1 || bb.scrollHeight > bb.clientHeight + 1) el.dataset.room = 'top';
+  };
+  function fitNote(el, item) {
+    if (item.kind === 'explain') return;
+    if (item.group !== 'hello') {
+      const w = el.getBoundingClientRect().width;
+      if (w < PANEL_MIN_W || clamped(el) || el.querySelector('.badge-chip')) el.classList.add('note-panel');
+    }
+    const panel = el.classList.contains('note-panel');
+    // the panel's foot row: the badge (never inside the clamp), then "עוד" and the "×" at the inline-end, so the text gets the
+    // panel's whole width
+    let foot = null;
+    if (panel) {
+      foot = h('div', { class: 'note-foot' });
+      const badge = el.querySelector('.badge-chip');
+      if (badge) foot.append(badge);
+      const x = el.querySelector('.bubble-close');
+      el.querySelector('.note-bubble')?.append(foot);
+      if (x) foot.append(x);
+    }
+    if (panel) roomCheck(el);
+    if (!clamped(el) && !(panel && el.querySelector('.note-why'))) return;
+    if (!panel && !clamped(el)) return; // a roomy bubble shows its extra line as it is
+    const more = button(t('fox.bubbleMore'), {
+      variant: 'text', size: 'sm', cls: 'note-btn note-more', 'data-action': 'note-more', 'aria-label': t('fox.bubbleMoreLabel'),
+      onClick: (e) => {
+        e.stopPropagation();
+        el.classList.add('note-expanded');
+        more.remove();
+        if (current?.el === el) pauseFor('expanded', true); // the player is reading: it stays until it is closed
+        el.querySelector('.bubble-close')?.focus?.();
+      },
+    });
+    if (foot) { foot.insertBefore(more, foot.querySelector('.bubble-close')); roomCheck(el); }
+    else el.querySelector('.note-main')?.append(h('div', { class: 'note-more-row' }, more));
   }
 
   /** The auto-close time: explainers wait for their button (as in v3); bubbles follow the reading-time formula. */
@@ -138,6 +190,7 @@ export function createNotes({ zone, onActive, onDismiss, onShown }) {
   function display(item) {
     const el = build(item);
     zone.append(el);
+    fitNote(el, item);
     onActive?.(true, item);
     if (!item.replay) item.onShow?.();
     onShown?.(item);

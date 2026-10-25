@@ -28,6 +28,8 @@
   "fox": {
     "lastMessage": "מקסי: הודעה אחרונה",
     "bubbleClose": "סגירת ההודעה",
+    "bubbleMore": "עוד",
+    "bubbleMoreLabel": "עוד: כל ההודעה",
     "alt": {
       "tired": "מקסי השועל, עייף עם כוס קפה",
       "wave": "מקסי השועל מנופף לשלום",

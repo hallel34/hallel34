@@ -610,13 +610,13 @@
    While it is open the plaza makes room for it: the top row (flow chip, "?") steps out, the spacers close, and the corner fox
    steps aside (the panel names מקסי in its kicker), so the panel gets the plaza's full width and every pixel between the status
    line and the CTA. It never covers the status line, the die or the CTA (board-spec 7.4); the roll button stays visible. */
-.board-full .board-center:has(.note-explain) .plaza-top { display: none; }
-.board-full .board-center:has(.note-explain) .plaza-spacer { flex: 0 0 0; }
-.board-full .board-center:has(.note-explain) .roll-zone { flex: 1 1 auto; min-block-size: 0; }
-.board-full .board-center:has(.note-explain) .fox-guide-host { display: none; }
-.board-full .board-center:has(.note-explain) .status-chip { display: none; }
-.screen-board.board-full:has(.note-explain) .board-actions { visibility: visible; }
-.board-full .fox-strip .note-explain, .board-full .fox-strip[data-compact="true"] .note-explain {
+.board-full .board-center:has(.note-explain) .plaza-top, .board-full .board-center:has(.note-panel[data-room="top"]) .plaza-top { display: none; } /* round 16: a content panel takes the top row only when it needs the room (notes.js roomCheck) */
+.board-full .board-center:has(.note-panel) .plaza-spacer { flex: 0 0 0; }
+.board-full .board-center:has(.note-panel) .roll-zone { flex: 1 1 auto; min-block-size: 0; }
+.board-full .board-center:has(.note-panel) .fox-guide-host { display: none; }
+.board-full .board-center:has(.note-panel) .status-chip { display: none; }
+.screen-board.board-full:has(.note-panel) .board-actions { visibility: visible; }
+.board-full .fox-strip .note-panel, .board-full .fox-strip[data-compact="true"] .note-panel {
   position: absolute; inset: 0; min-block-size: 0; display: flex; align-items: stretch; justify-content: flex-end; flex-direction: column;
 }
 .board-full .fox-strip .note-explain .note-bubble {
@@ -642,5 +642,40 @@
   .board-full .fox-strip .note-explain .note-head { font-size: .875rem; }
   .board-full .fox-strip .note-explain .note-text { font-size: .75rem; line-height: 1.3; }
   /* the die steps down to 56px while the panel is open (it stays visible and uncovered) */
-  .board-full .board-center:has(.note-explain) .dice { --die: 56px; --die-half: 28px; }
+  .board-full .board-center:has(.note-panel) .dice { --die: 56px; --die-half: 28px; }
 }
+
+/* ==== QA round 16 P1: every content note (hint, tip, feedback, milestone) uses the same full-width panel when its bubble would
+   be too narrow or its text does not fit (notes.js fitNote). The text takes the panel's whole width, 3 lines (2 compact); the foot
+   row holds the milestone badge (outside the clamp) and, at the inline-end, "עוד" and the "×". "עוד" shows all of it in place. */
+.board-full .fox-strip .note-panel:not(.note-explain) .note-bubble {
+  display: flex; flex-direction: column; justify-content: flex-end; gap: 2px;
+  inline-size: 100%; max-inline-size: 100%; max-block-size: 100%; box-sizing: border-box; padding: 6px 6px 2px 10px; overflow: hidden;
+}
+.board-full .fox-strip .note-panel:not(.note-explain) .note-bubble::after { display: none; }
+.board-full .fox-strip .note-panel:not(.note-explain) .note-main { flex: none; display: flex; flex-direction: column; gap: 2px; min-block-size: 0; }
+.board-full .fox-strip .fox-bubble.note-panel:not(.note-explain) .note-text { -webkit-line-clamp: 3; line-clamp: 3; }
+.board-full[data-hud="compact"] .fox-strip .fox-bubble.note-panel:not(.note-explain) .note-text,
+.board-full .fox-strip .fox-bubble.note-panel:has(.badge-chip):not(.note-explain) .note-text { -webkit-line-clamp: 2; line-clamp: 2; }
+.board-full .fox-strip .note-panel:not(.note-explain):not(.note-expanded) .note-why { display: none; }
+.note-foot { flex: none; display: flex; align-items: center; justify-content: flex-end; gap: 4px; min-block-size: 48px; }
+.note-foot .badge-chip { margin: 0; margin-inline-end: auto; flex: 0 1 auto; min-inline-size: 0; }
+.note-foot .bubble-close { margin: 0; }
+.note-more-row { display: flex; justify-content: flex-end; }
+.board-full .fox-strip .note-more { min-block-size: 48px; min-inline-size: 56px; padding-inline: 12px; border: 1px solid var(--glass-border); border-radius: 12px; color: var(--text); background: transparent; }
+/* "עוד" opened: the whole text; the die and the top row step out for the room (the status line and the CTA stay); it scrolls if needed */
+.board-full .fox-strip .fox-bubble.note-panel.note-expanded:not(.note-explain) .note-text { display: block; -webkit-line-clamp: unset; line-clamp: none; overflow: visible; }
+.board-full .fox-strip .note-panel.note-expanded .note-bubble { overflow: auto; justify-content: flex-start; }
+.board-full .fox-strip .note-panel.note-expanded .note-main { flex: none; }
+.board-full .board-center:has(.note-expanded) .plaza-die { display: none; }
+@media (max-height: 700px) { .board-full .board-center:has(.note-panel:not(.note-explain)) .dice { --die: 40px; --die-half: 20px; } .board-full .board-center:has(.note-panel:not(.note-explain)) .roll-zone { margin-block-start: -4px; } }
+@media (max-height: 600px) {
+  /* short screens: the die steps down to 40px while a content panel is open; a milestone (text + badge + buttons) gets the
+     die's row too (the die is back as soon as the note closes, and every roll clears the note first) */
+  .board-full .board-center:has(.note-panel:not(.note-explain)) .dice { --die: 40px; --die-half: 20px; }
+  .board-full .board-center:has(.note-panel:not(.note-explain)) .roll-zone { margin-block-start: -4px; }
+  .board-full .board-center:has(.note-panel.note-milestone) .plaza-die { display: none; }
+}
+/* QA round 16 P3-a: the kicker "מקסי מסביר" wraps under the term instead of being cut ("מקסי מ...") */
+.board-full .fox-strip .note-explain .note-head { flex-wrap: wrap; row-gap: 0; }
+.board-full .fox-strip .note-explain .note-kicker { white-space: nowrap; overflow: visible; text-overflow: clip; }
