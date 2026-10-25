@@ -39,7 +39,7 @@ const section = (label, ...kids) => h('section', { class: 'dict-sec' }, h('h4', 
 export function conceptDetail(c) {
   const ui = glossaryUi();
   const slots = glossarySlots(c);
-  const facts = factsForConcept(c.id).map(realWorldView);
+  const facts = factsForConcept(c.id).map((f) => realWorldView(f));
   return h('article', { class: 'dict-detail', 'data-concept': c.id },
     h('div', { class: 'dict-hero' },
       h('div', { class: 'dict-hero-text' }, h('p', { class: 'dict-kicker' }, ui.explainTitle), h('h3', { class: 'dict-term' }, termName(c.id)),

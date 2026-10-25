@@ -43,6 +43,15 @@ export function glossarySlots(concept) {
   return { ...base, amount: moneyText(amount), monthlyPayment: moneyText(lt.monthly), interest: moneyText(lt.perPayday), total: moneyText(lt.totalAtPayday) };
 }
 
+/**
+ * QA round 15 (P3-2): the bank-loan rate slots of the real-world texts, from the rate the bank charges NOW
+ * (loanRateNow(state); the cheap-loan card lowers it). {monthlyRate} {rate} {perThousand} {perThousandYear}.
+ */
+export function rateSlots(rate = LOAN_PAYMENT_RATE) {
+  const lt = loanTerms(1000, rate);
+  return { monthlyRate: pctText(rate * 100), rate: pctText(lt.aprNominal), perThousand: moneyText(lt.monthly), perThousandYear: moneyText(lt.perYear) };
+}
+
 /** Slots of the traffic-light legend: the thresholds as phrases, from the config. */
 export const lightSlots = () => ({ okYears: yearsPhrase(PAYBACK_OK_YEARS), slowYears: yearsPhrase(PAYBACK_SLOW_YEARS) });
 

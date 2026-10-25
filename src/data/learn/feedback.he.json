@@ -4,8 +4,8 @@
     "endGroups": "lose is ONLY for a player who is actually out (negative cash flow, no cash, loan limit reached; its lines say the cash ran out). A multiplayer player who did not win but is still in the game gets end.neutral (its lines never mention cash). win lines are true for any win; the optional win.fastPayback / win.diversified / win.noBankLoan lines may be appended as a second line only when their condition holds (spec section 2.4).",
     "loanTotalLabel": {
       "label": "סך הכול להחזיר",
-      "qualifier": "אם תפרעו בסיכום הקרוב",
-      "combined": "סך הכול להחזיר {total}, אם תפרעו בסיכום הקרוב",
+      "qualifier": "אם תחזירו את ההלוואה בסיכום הקרוב",
+      "combined": "סך הכול להחזיר {total}, אם תחזירו את ההלוואה בסיכום הקרוב",
       "usage": "For the loan window row next to {total}: show the qualifier as a small caption under or beside the number. It is not a total until the loan ends (no end date; interest continues)."
     },
     "round11": "Every group that can appear in family mode now has a 'family' list that uses kid vocabulary only (see 'forbiddenInFamily' in docs/v2/tutorial/spec.md). Groups that had only 'all' now carry 'all' (adult/both) plus 'family'. In family mode the slots {interest}/{monthlyPayment} read as 'תוספת'. Full-only groups (buy.stock, expense.forcedSale, market.sold/kept/priceUp/priceDown) are unchanged.",
@@ -22,7 +22,7 @@
       "rate": "LOAN_APR_NOMINAL with percent sign, e.g. '12%': the NOMINAL yearly rate (monthly rate x 12), not the effective rate. Derived from config, never typed. Not used in family lists",
       "monthlyPayment": "loanTerms(loanAmount).monthly: what this loan adds to the monthly payments (interest only, loanAmount x LOAN_PAYMENT_RATE), formatted",
       "interest": "loanTerms(loanAmount).perPayday = monthlyPayment x PAYDAY_MONTHS: the interest charged at each summary (PAYDAY_MONTHS = 12 months) while the loan stays open, formatted. Same number as the loan window row 'ריבית עד הסיכום הבא'",
-      "total": "loanTerms(loanAmount).totalAtPayday = loanAmount + interest, formatted. It is the sum to hand back ONLY if the loan is repaid at the next summary (principal stays owed until repaid, interest continues every month). Texts must always say 'אם תפרעו/מחזירים בסיכום הקרוב' next to it. It is NOT a total until the loan ends (there is no end date). Same number as the loan window row 'סך הכול להחזיר'",
+      "total": "loanTerms(loanAmount).totalAtPayday = loanAmount + interest, formatted. It is the sum to hand back ONLY if the loan is repaid at the next summary (principal stays owed until repaid, interest continues every month). Texts must always say 'אם תחזירו/מחזירים בסיכום הקרוב' next to it. It is NOT a total until the loan ends (there is no end date). Same number as the loan window row 'סך הכול להחזיר'",
       "saved": "monthly payment that disappears after a repayment (loanMonthlyPayment of the repaid amount), formatted",
       "qty": "number of shares",
       "shares": "number of shares with the symbol, already plural-aware (e.g. one share of MAV / 10 shares of MAV)",
@@ -168,7 +168,7 @@
         "הלוואה קטנה שמשאירה לכם כסף בכל חודש היא כלי עבודה. שימו לב: {interest} תוספת בכל סיכום שנתי."
       ],
       "full": [
-        "ריבית של {rate} בשנה: {monthlyPayment} בחודש, ו-{interest} עד הסיכום הבא. אם תפרעו אז, תחזירו {total}. התשלום קטן ביחס לתזרים, החלטה סבירה.",
+        "ריבית של {rate} בשנה: {monthlyPayment} בחודש, ו-{interest} עד הסיכום הבא. אם תחזירו את ההלוואה אז, תשלמו {total}. התשלום קטן ביחס לתזרים, החלטה סבירה.",
         "הלוואה של {amount} עולה {monthlyPayment} בחודש, והחוב נשאר עד שתחזירו אותו. התזרים מחזיק, וכשיהיה מזומן כדאי לפרוע.",
         "הלוואה צריכה להיות קטנה ולשרת החלטה טובה. כאן הריבית היא {interest} בכל סיכום שנתי, והתזרים נשאר חיובי."
       ]
@@ -181,7 +181,7 @@
       ],
       "full": [
         "ריבית של {rate} בשנה: {monthlyPayment} בחודש, ו-{interest} עד הסיכום הבא. התשלום כבד ביחס לתזרים.",
-        "הלוואה יקרה ביחס לתזרים: אם תפרעו {amount} בסיכום הקרוב תחזירו {total}, ועד אז התזרים קטן ב-{monthlyPayment} בכל חודש.",
+        "הלוואה יקרה ביחס לתזרים: אם תחזירו את {amount} בסיכום הקרוב תשלמו {total}, ועד אז התזרים קטן ב-{monthlyPayment} בכל חודש.",
         "התשלום של {monthlyPayment} בחודש מקטין מאוד את התזרים. כל עוד ההלוואה פתוחה הריבית ממשיכה, ולכן כדאי לפרוע אותה כשיש מזומן."
       ]
     },
@@ -218,7 +218,7 @@
       "full": [
         "ההוצאה של {amount} מומנה בהלוואה של {loanAmount} בריבית של {rate} בשנה: {monthlyPayment} בחודש.",
         "אין מזומן, אז הלוואה: {interest} ריבית בכל סיכום שנתי עד שמחזירים. מזומן בצד היה חוסך את זה.",
-        "הלוואה לכיסוי הוצאה עולה יותר מההוצאה עצמה: אם תפרעו בסיכום הקרוב תחזירו {total} על הלוואה של {loanAmount}."
+        "הלוואה לכיסוי הוצאה עולה יותר מההוצאה עצמה: אם תחזירו אותה בסיכום הקרוב תשלמו {total} על הלוואה של {loanAmount}."
       ]
     },
     "expense.forcedSale": {

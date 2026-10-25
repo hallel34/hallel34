@@ -661,7 +661,7 @@ export function loanDialog(state, { required = 0, gain = null, hint = null } = {
     h('div', { class: 'kv', 'data-loan': 'total' }, h('span', null, t('loan.totalDue')), totalOut),
     h('p', { class: 'limit-cap', 'data-loan': 'cost-note' }, t('loan.costNote')),
     capNote(state),
-    realWorldForPlace('loan-window'));
+    realWorldForPlace('loan-window', { rate }));
   }
   const toggle = max === 0 ? null : button([h('span', { class: 'toggle-label' }, t('loan.detailsShow')), icon('chevron', { size: 20, width: 2.4 })], {
     variant: 'text', cls: 'loan-details-toggle', 'aria-expanded': 'false', 'aria-controls': 'loan-details', 'data-action': 'loan-details',

@@ -2,6 +2,7 @@
 // `game` (the game's own figures) and `real` (qualitative claims). `numbers` (real-world figures) are never exposed
 // while numbers.publish is false (spec 8): they are not part of any view model.
 import { learnContent } from './content.js';
+import { fillSlots, rateSlots } from './slots.js';
 
 const visible = (f) => f.status !== 'hidden';
 
@@ -15,9 +16,11 @@ export const factsForConcept = (conceptId) => learnContent().realWorld.facts
 export const factForPlace = (place) => learnContent().realWorld.facts.find((f) => visible(f) && f.appliesTo === place) ?? null;
 
 /** What the UI may print for a fact. Numbers with publish:false are left out on purpose. */
-export function realWorldView(fact) {
+/** `rate` = the monthly bank rate in force (loanRateNow(state)); the game's own figures are filled from it, never typed. */
+export function realWorldView(fact, { rate } = {}) {
   const ui = learnContent().realWorld.ui;
-  const out = { id: fact.id, title: ui.title, gameLabel: ui.gameLabel, realLabel: ui.realLabel, game: fact.game, real: fact.real, disclaimer: ui.disclaimer };
+  const slots = rateSlots(rate);
+  const out = { id: fact.id, title: ui.title, gameLabel: ui.gameLabel, realLabel: ui.realLabel, game: fillSlots(fact.game, slots), real: fillSlots(fact.real, slots), disclaimer: ui.disclaimer };
   // A figure becomes visible only after finance flips publish to true (source + date). Until then it stays out.
   if (fact.numbers && fact.numbers.publish === true) out.figure = fact.numbers.text;
   return out;

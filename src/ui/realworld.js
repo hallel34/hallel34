@@ -7,9 +7,9 @@ import { factForCard, factForPlace, realWorldView } from '../learn/rw.js';
 let uid = 0;
 
 /** The row for a fact, or null when there is none. */
-export function realWorldRow(fact) {
+export function realWorldRow(fact, opts = {}) {
   if (!fact) return null;
-  const v = realWorldView(fact);
+  const v = realWorldView(fact, opts);
   const id = `rw-${(uid += 1)}`;
   const body = h('div', { class: 'rw-body', id, hidden: true },
     h('p', { class: 'rw-block', 'data-block': 'game' }, h('b', null, `${v.gameLabel}: `), v.game),
@@ -31,4 +31,4 @@ export function realWorldRow(fact) {
 }
 
 export const realWorldForCard = (card) => (card?.realWorld ? realWorldRow(factForCard(card.id)) : null);
-export const realWorldForPlace = (place) => realWorldRow(factForPlace(place));
+export const realWorldForPlace = (place, opts = {}) => realWorldRow(factForPlace(place), opts); // opts.rate: the live bank rate
