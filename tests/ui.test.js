@@ -18,13 +18,15 @@ const jsFiles = walk(root).filter((f) => f.endsWith('.js'));
 const lookup = (key) => key.split('.').reduce((o, k) => o?.[k], he);
 
 describe('board layout', () => {
-  it('places 24 unique squares on the perimeter of a 7x7 grid', () => {
+  it('places 24 unique squares on the perimeter of a 6x8 ring (board-spec 14.1)', () => {
     const cells = BOARD.map((_, i) => ringPos(i));
     expect(new Set(cells.map((c) => c.join(','))).size).toBe(24);
     for (const [c, r] of cells) {
-      expect(c >= 1 && c <= 7 && r >= 1 && r <= 7).toBe(true);
-      expect(c === 1 || c === 7 || r === 1 || r === 7).toBe(true);
+      expect(c >= 1 && c <= 6 && r >= 1 && r <= 8).toBe(true);
+      expect(c === 1 || c === 6 || r === 1 || r === 8).toBe(true);
     }
+    // the corners are squares 0, 5, 12 and 17; square 0 (payday) is the top inline-start corner
+    expect([0, 5, 12, 17].map((i) => ringPos(i))).toEqual([[1, 1], [6, 1], [6, 8], [1, 8]]);
   });
   it('consecutive squares are adjacent (the pawn can hop one tile at a time), including the wrap', () => {
     for (let i = 0; i < 24; i++) {

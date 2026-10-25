@@ -62,7 +62,9 @@
     "selected": "נבחר",
     "previewTitle": "{profession}",
     "cardExpenses": "הוצאות",
-    "cardLeft": "נשאר"
+    "cardLeft": "נשאר",
+    "cardLeftPocket": "נשאר בכיס {amount}",
+    "subtitleFox": "השועל שלכם מתלבש בהתאם"
   },
   "game": {
     "roll": "הטילו קובייה",
@@ -70,6 +72,8 @@
     "advancing": "מתקדמים...",
     "continue": "המשיכו",
     "home": "חזרה לבית",
+    "menu": "תפריט",
+    "menuQuick": "הגדרות מהירות",
     "homeTitle": "לחזור לתפריט?",
     "homeText": "המשחק נשמר ואפשר להמשיך אותו אחר כך",
     "homeConfirm": "חזרה לבית",

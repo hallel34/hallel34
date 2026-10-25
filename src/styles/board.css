@@ -388,3 +388,126 @@
 .fox-strip[data-compact="true"] .fox-bubble .note-why { display: none; }
 .fox-strip[data-compact="true"] .fox-bubble .note-bubble { padding-block: 4px; align-items: center; }
 .fox-strip[data-compact="true"] .bubble-close { margin-block: -8px; }
+
+/* ==== 14. Owner override 2026-10-24b (board-spec.md section 14): the full-screen board ====
+   A 6 x 8 ring (perimeter 24, the engine order unchanged), the slim HUD above it, and the plaza stack with the fox row and the CTA
+   INSIDE the board. play.js sets --tile-c (40-60, width-bound), --tile-gap-v (the side-column row gap) and --pad-top (14.2). */
+.screen-board.board-full {
+  display: flex; flex-direction: column; gap: 8px; block-size: 100dvh; min-block-size: 0; overflow: hidden;
+  padding: max(10px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
+  --fox-guide: 72px; --board-pad: 6px;
+}
+.screen-board.board-full[data-hud="compact"] { padding-block: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-bottom)); --fox-guide: 56px; }
+
+/* 14.3 the slim HUD: one smoked card, radius 18, padding 8 / 10 */
+.board-full .hud { flex: none; gap: 4px; padding: 8px 10px; border-radius: 18px; background: var(--surface); border: 1px solid var(--border); }
+.board-full .hud-top { gap: 8px; min-block-size: 48px; align-items: center; }
+.board-full .hud-id { gap: 0; justify-content: center; }
+.board-full .hud-idline { display: flex; align-items: baseline; gap: 6px; min-inline-size: 0; font-size: .75rem; line-height: 1.25; color: var(--text-muted); }
+.board-full .hud-idline .hud-prof { font-size: .75rem; font-weight: var(--fw-bold); color: var(--text); line-height: 1.25; flex: 0 1 auto; }
+.board-full .hud-idline .hud-sub { font-size: .75rem; font-weight: var(--fw-medium); line-height: 1.25; flex: 0 1 auto; }
+.board-full .hud-cash { gap: 6px; }
+.board-full .hud-coin { inline-size: 20px; block-size: 20px; }
+.board-full .hud .cash-col { flex-direction: row; align-items: center; }
+.board-full .hud .cash-col { gap: 6px; align-items: baseline; }
+.board-full .hud .cash-label { display: block; flex: none; margin: 0; font-size: .75rem; line-height: 1; } /* 'מזומן' stays, inline before the number (the bar has no row for it) */
+.board-full .hud .cash-wrap { padding-block: 0; }
+.board-full .hud .cash-num { font-size: 1.625rem; line-height: 1.1; }
+.board-full .hud .cash-num[data-len="9"], .board-full .hud .cash-num[data-len="10"], .board-full .hud .cash-num[data-len="11"], .board-full .hud .cash-num[data-len="12"] { font-size: 1.375rem; }
+.board-full[data-hud="compact"] .hud .cash-num { font-size: 1.375rem; }
+.board-full .hud-btns { gap: 6px; }
+.board-full .hud .cash-cap { display: none; } /* the family caption under the number has no row in the slim bar (the tooltip on tap stays) */
+.board-full .hud .goal-cap { font-size: .8125rem; font-weight: 600; margin: 0; }
+.board-full .hud .meter-track { block-size: 10px; border-radius: 5px; }
+.board-full .hud .meter-labels { font-size: .75rem; }
+.board-full .hud .meter-labels .money { font-size: .8125rem; }
+.board-full[data-hud="compact"] .hud { padding-block: 6px; gap: 3px; }
+.board-full[data-hud="compact"] .hud .meter-track { block-size: 8px; border-radius: 4px; }
+.board-full[data-hud="compact"] .hud[data-goal-cap="long"] .meter-labels { display: none; }
+.board-full[data-hud="compact"] .hud[data-goal-cap="long"] .goal-cap::after { content: none; }
+/* the avatar: the profession fox bust in a 44px circle, 2px fox ring (hot-seat: the player colour) */
+.avatar.avatar-fox { inline-size: 44px; block-size: 44px; padding: 0; overflow: hidden; background: var(--surface-2); box-shadow: 0 0 0 2px var(--fox); }
+.avatar.avatar-fox[class*="pc-"] { background: var(--surface-2); box-shadow: 0 0 0 2px var(--pc); }
+.avatar.avatar-fox > img { inline-size: 100%; block-size: 100%; object-fit: cover; display: block; }
+.avatar.avatar-fox.is-glyph { background: var(--fox); color: var(--c-navy-950, #0A1020); }
+
+/* 14.1 / 14.5 the plate: 6 columns x 8 rows, a 4px column gap, the stretched side-column row gap */
+.board-full .board {
+  --tile-gap: 4px;
+  flex: none; grid-template-columns: repeat(6, var(--tile-c, 52px)); grid-template-rows: repeat(8, var(--tile-c, 52px));
+  column-gap: 4px; row-gap: var(--tile-gap-v, 4px); gap: var(--tile-gap-v, 4px) 4px;
+  padding: var(--pad-top, 26px) var(--board-pad) var(--board-pad);
+  margin-block: auto 6px; inline-size: max-content; transform: scale(var(--board-scale, 1)); transform-origin: 50% 0;
+}
+.board-full .tile.has-3d { z-index: var(--r, 1); }
+.board-full .tile.has-3d[data-pawns] { z-index: calc(var(--r, 1) + 9); }
+.board-full .tile.has-3d.is-current { z-index: calc(var(--r, 1) + 10); }
+.board-full .board > .board-sky { --sky-w: calc(var(--tile-c, 52px) * 6 + 5 * 4px + 2 * var(--board-pad)); }
+
+/* 14.4 the plaza: a flex column over 4 x 6 cells, reaching into the row gaps above and below it */
+.board-full .board-center {
+  grid-column: 2 / 6; grid-row: 2 / 8; z-index: 30; min-block-size: 0; min-inline-size: 0;
+  margin-block: calc(-1 * var(--tile-gap-v, 4px)); padding: 8px 4px calc(var(--tile-gap-v, 4px) + 4px);
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 6px;
+  border-radius: 16px; background: transparent;
+}
+.board-full[data-hud="compact"] .board-center { gap: 4px; }
+.board-full .plaza-top { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 6px; inline-size: 100%; min-block-size: 48px; }
+.board-full .plaza-spacer { flex: 1 1 0; min-block-size: 0; }
+.board-full .plaza-spacer:last-of-type { flex-grow: 0; }
+.board-full .legend-btn { position: relative; inset: auto; flex: none; }
+.board-full .legend-q { inline-size: 40px; block-size: 40px; }
+.board-full .flow-chip { margin: 0; flex: 0 1 auto; min-inline-size: 0; overflow: hidden; text-overflow: ellipsis; min-block-size: 32px; display: inline-flex; align-items: center;
+  padding: 0 10px; border-radius: 16px; background: var(--surface); border: 1px solid var(--border); font-size: .8125rem; font-weight: var(--fw-bold); }
+.board-full .flow-chip-btn { min-block-size: 48px; border-radius: 24px; } /* family: a real button, so a 48px target */
+.board-full .plaza-die { position: relative; flex: none; inline-size: 100%; display: flex; justify-content: center; }
+.board-full .plaza-die .dice { min-block-size: calc(var(--die) + 8px); }
+.board-full .plaza-die .land-cap { inset-inline: 4px; }
+.board-full .land-chip { min-block-size: 36px; padding: 0 12px; font-size: 1.0625rem; border-radius: 18px; max-inline-size: 100%; box-sizing: border-box; }
+.board-full .land-chip .tile-icon { inline-size: 22px; block-size: 22px; }
+.board-full .status-wrap { flex: none; inline-size: 100%; }
+.board-full .board-status { font-size: 1rem; min-block-size: 2.5em; }
+.board-full[data-hud="compact"] .board-status { font-size: .9375rem; }
+.board-full .board-center .chip-charity { position: absolute; inset-block-start: 56px; inset-inline: 0; margin-inline: auto; inline-size: max-content; max-inline-size: calc(100% - 8px); z-index: 2; }
+.board-full .board-center .others-strip { flex: none; max-inline-size: 100%; }
+@media (max-width: 389px) { .board-full .dice { --die: 72px; --die-half: 36px; } }
+.board-full[data-hud="compact"] .dice, .board-full .board[data-small] .dice { --die: 64px; --die-half: 32px; }
+@media (max-width: 359px) { .board-full .dice { --die: 64px; --die-half: 32px; } .board-full .land-chip { font-size: 1rem; } }
+.board-full[data-hud="compact"] .here-line { display: none; } /* compact: "אתם על" merges into the status (14.4 item 5) */
+.board-full[data-hud="compact"] .status-wrap { flex-direction: column; }
+
+/* 14.4 item 7: the fox row. The fox stands at the inline-start, its feet on the CTA's top edge; the bubble fills the row */
+.board-full .roll-zone.fox-strip {
+  --strip-gap: 8px;
+  flex: 1 1 0; inline-size: 100%; min-block-size: calc(var(--fox-guide) + 4px); position: relative;
+}
+.board-full .fox-guide-host { inset-inline: 0 auto; inset-block: auto 2px; translate: none; }
+.board-full .fox-strip[data-compact="true"] .fox-guide-host { display: block; }
+.board-full .fox-strip .status-chip, .board-full .fox-strip[data-compact="true"] .status-chip {
+  inset-inline: calc(var(--fox-guide) + var(--strip-gap)) 0; inset-block: auto 2px; translate: none; max-block-size: calc(100% - 4px);
+  padding: 8px 12px; font-size: .8125rem; -webkit-line-clamp: 3; line-clamp: 3;
+}
+.board-full[data-hud="compact"] .fox-strip .status-chip { -webkit-line-clamp: 2; line-clamp: 2; }
+.board-full .fox-strip .note, .board-full .fox-strip[data-compact="true"] .note {
+  inset-inline: calc(var(--fox-guide) + var(--strip-gap)) 0; inset-block: auto 0; max-block-size: 100%; align-items: flex-end; justify-content: flex-start;
+}
+.board-full .fox-bubble .note-bubble, .board-full .fox-strip[data-compact="true"] .fox-bubble .note-bubble { max-inline-size: 100%; padding: 8px 4px 8px 10px; padding-inline-end: 4px; }
+.board-full .fox-bubble .note-text { font-size: .8125rem; font-weight: var(--fw-medium); line-height: 1.35; }
+.board-full .fox-bubble .note-bubble::after, .board-full .fox-strip[data-compact="true"] .fox-bubble .note-bubble::after { display: block; inset-inline: -7px auto; inset-block: auto 18px; }
+[dir="rtl"] .board-full .fox-bubble .note-bubble::after { rotate: 45deg; }
+[dir="ltr"] .board-full .fox-bubble .note-bubble::after { rotate: -45deg; }
+.board-full .bubble-close { margin: -10px -2px -10px 0; }
+/* the explainer needs its two 48px buttons: it grows upward over the plaza spacer, never over the die, the status or the CTA */
+.board-full .fox-strip .note-explain { inset-inline: 0; inset-block: auto 0; min-block-size: 0; }
+@media (max-height: 600px) { .board-full .fox-strip .note-explain { inset-block: auto 0; min-block-size: 0; inset-inline-end: 0; } }
+
+/* 14.4 item 8: the CTA, the full plaza width, 60px (56 when c < 50); it never moves between turns */
+.board-full .board-actions { flex: none; inline-size: 100%; margin: 0; }
+.board-full .btn-roll { inline-size: 100%; min-block-size: 60px; font-size: 1.125rem; }
+.board-full[data-small] .btn-roll { min-block-size: 56px; }
+.board-full .btn-die { inline-size: 24px; block-size: 24px; }
+/* 14.4 item 7: the bubble shows 3 lines (2 when compact); the fox re-opens the whole message, and every line is also in the log */
+.board-full .fox-strip .fox-bubble:not(.note-explain) .note-text { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; overflow: hidden; }
+.board-full[data-hud="compact"] .fox-strip .fox-bubble:not(.note-explain) .note-text { -webkit-line-clamp: 2; line-clamp: 2; }
+.board-full .fox-strip .status-chip { line-height: 1.35; max-block-size: calc(3 * 1.35em + 16px); }
+.board-full[data-hud="compact"] .fox-strip .status-chip { max-block-size: calc(2 * 1.35em + 16px); }

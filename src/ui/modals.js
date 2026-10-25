@@ -26,6 +26,7 @@ import { cardTitle, cardText, assetTitle } from './card-view.js';
 import hourglassSvg from '../assets/verdict/hourglass.svg?raw';
 import { tileLabelChip } from './tiles.js';
 import { dealBadge, dealBadgeModel, TIER_LETTER } from './deal-badge.js';
+import { toggleRow } from './settings.js';
 
 // ---------- generic cream card ----------
 /**
@@ -831,12 +832,19 @@ export function handoffSheet({ name, color, recap = null, extra = null, onHome =
 }
 
 /** In-page confirm for "back to the start screen" (no native dialogs). Resolves 'home' or null. */
-export function homeConfirmSheet({ daily = false } = {}) {
+export function homeConfirmSheet({ daily = false, menu = null } = {}) {
   let layer;
-  const content = h('div', { class: 'sheet home-sheet' },
+  // board-spec 14.3 (CEO decision): the HUD's one menu button opens this sheet; it also carries the settings link and the
+  // sound / vibration switches (the same prefs as the settings dialog). `menu.onSettings` opens the full settings after it closes.
+  const quick = menu ? h('div', { class: 'menu-quick', role: 'group', 'aria-label': t('game.menuQuick') },
+    toggleRow(t('settings.sound'), 'sound'),
+    toggleRow(t('settings.haptics'), 'haptics'),
+    button([icon('gear', { size: 22, width: 2.2 }), t('game.settings')], { variant: 'secondary', cls: 'menu-settings', 'data-action': 'settings', onClick: () => layer.close('settings') })) : null;
+  const content = h('div', { class: `sheet home-sheet${menu ? ' menu-sheet' : ''}` },
     h('div', { class: 'home-body' },
       h('h2', { class: 'dialog-title' }, t('game.homeTitle')),
       h('p', { class: 'dialog-text' }, t('game.homeText'))),
+    quick,
     h('div', { class: 'sheet-cta home-actions' },
       button(t('game.homeConfirm'), { variant: 'primary', size: 'lg', 'data-action': 'home-confirm', onClick: () => { haptic('tap'); layer.close('home'); } }),
       button(t('game.homeStay'), { variant: 'secondary', 'data-action': 'home-stay', 'data-autofocus': '', onClick: () => layer.close(null) }),

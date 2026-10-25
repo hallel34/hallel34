@@ -39,7 +39,7 @@ import {
 } from '../engine/learn.js';
 import { REACTIONS, LAND_REACTION, tipIndexForTurn } from './fox-rules.js';
 import { summaryCard } from './summary-card.js';
-import { professionGlyph } from './professions.js';
+import { professionBust } from './professions.js';
 import { createFamilyHud, GOAL_MIN_HEIGHT } from './hud-family.js';
 import {
   tut, hintDef, fillNodes, leftWords, showRing, hintStrip, hintMoreAllowed,
@@ -148,21 +148,26 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   // rank 2 of the 3-second test: "המטרה: ..." above the bar (the long sentence on turns 1-3), a flag at the bar's inline-end
   const goalCapText = h('span', { class: 'goal-cap-text' });
   const goalCap = h('p', { class: 'goal-cap', 'data-goal-cap': '' }, goalCapText, icon('flag', { size: 16, width: 2.2, cls: 'goal-flag' }));
-  const settingsBtn = iconButton('gear', t('game.settings'), () => openSettings({ onQuit: () => goHome(), version: __APP_VERSION__, mode: state.mode, professionId: state.profession.id }), 'icon-btn-glass');
+  const openGameSettings = () => openSettings({ onQuit: () => goHome(), version: __APP_VERSION__, mode: state.mode, professionId: state.profession.id });
   const stmtBtn = iconButton('statement', t('game.statement'), () => openStmt(), 'icon-btn-glass');
   stmtBtn.dataset.action = 'statement';
-  const homeBtn = iconButton('home', t('game.home'), () => askHome(), 'icon-btn-glass');
+  // board-spec 14.3 (CEO decision): home and settings merge into ONE menu button (the menu sheet = the home confirm + settings,
+  // sound and vibration). It keeps the data-action="home" hook of the old home button.
+  const homeBtn = iconButton('menu', t('game.menu'), () => askHome(), 'icon-btn-glass');
   homeBtn.dataset.action = 'home';
+  homeBtn.setAttribute('aria-haspopup', 'dialog');
 
-  const hud = h('header', { class: 'hud glass' },
+  // owner override 2026-10-24b (board-spec 14.3): one slim bar. Row 1: avatar · "מורה · תור 3" over the coin + cash · statement, menu.
+  // Row 2: the goal caption, the bar with its 25/50/75 ticks, passive income at the start and expenses at the end.
+  const hud = h('header', { class: 'hud glass hud-slim' },
     h('div', { class: 'hud-top' },
       h('div', { class: 'hud-avatar' }, avatar, babies), // kids: a small badge on the avatar, so the text column keeps all its width
-      h('div', { class: 'hud-id' }, hudProf, h('span', { class: 'hud-sub' }, profEl, turnEl)),
-      h('div', { class: 'hud-btns' }, stmtBtn, homeBtn, settingsBtn)),
-    h('div', { class: 'hud-cash' },
-      h('img', { class: 'hud-coin', src: coinUrl, alt: '', width: 30, height: 30 }),
-      h('div', { class: 'cash-col' }, cashLabel, cashWrap),
-      flowChip),
+      h('div', { class: 'hud-id' },
+        h('div', { class: 'hud-idline' }, hudProf, h('span', { class: 'hud-sub' }, profEl, turnEl)),
+        h('div', { class: 'hud-cash' },
+          h('img', { class: 'hud-coin', src: coinUrl, alt: '', width: 20, height: 20 }),
+          h('div', { class: 'cash-col' }, cashLabel, cashWrap))),
+      h('div', { class: 'hud-btns' }, stmtBtn, homeBtn)),
     cashCap,
     goalLine,
     goalCap,
@@ -211,7 +216,12 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   const othersClose = h('button', { type: 'button', class: 'icon-btn others-close', 'aria-label': t('game.othersClose'), onClick: () => toggleOthers(false) }, icon('close', { size: 22 }));
   const othersPanel = multi ? h('div', { class: 'others-panel glass glass-strong', id: 'others-panel', role: 'region', 'aria-label': t('game.others'), hidden: true },
     h('div', { class: 'others-head' }, h('strong', null, t('game.others')), othersClose), othersList) : null;
-  const center = h('div', { class: 'board-center' }, legendBtn, landCap, dice.el, h('div', { class: 'status-wrap' }, status, hereLine), charityChip, othersBtn);
+  // owner override 2026-10-24b (board-spec 14.4): the plaza is a flex column. Top row: the flow chip (start) and "?" (end);
+  // spacer; die (the landing caption takes its place on a landing); status + "you are here"; spacer; the fox row; the CTA.
+  const plazaTop = h('div', { class: 'plaza-top' }, flowChip, legendBtn);
+  const center = h('div', { class: 'board-center' }, plazaTop, h('i', { class: 'plaza-spacer', 'aria-hidden': 'true' }),
+    h('div', { class: 'plaza-die' }, landCap, dice.el), h('div', { class: 'status-wrap' }, status, hereLine), charityChip, othersBtn,
+    h('i', { class: 'plaza-spacer', 'aria-hidden': 'true' }));
   const board = h('div', { class: `board${multi ? ' board-multi' : ''}`, role: 'group' }, boardSky(), ...tiles, center, othersPanel);
   let currentTile = null;
 
@@ -397,22 +407,36 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     if (motionOK()) animate(chip, [{ transform: 'scale(.94)', opacity: 0.4 }, { transform: 'scale(1)', opacity: 1 }], { duration: 220, easing: 'cubic-bezier(.34,1.56,.64,1)' });
   }
 
-  const el = h('section', { class: 'screen screen-board', 'data-screen': 'board' },
-    h('h1', { class: 'vh' }, `${t('app.title')} · ${t('game.boardTitle')}`), hud, board, zone, actions);
-  // spec 13.2: the tile cell. --tile-c = floor((min(vw, 430) - 16 - 12 - 24) / 7), clamped 34-52, then height-checked: a smaller cell,
-  // never a page scroll (the fox strip may shrink to ~36px; the fox then hides by itself)
-  const STRIP_MIN = 36;
+  // the fox row and the CTA live INSIDE the plaza now (14.4 items 7-8); the plate sits under the slim HUD
+  center.append(zone, actions);
+  const el = h('section', { class: 'screen screen-board board-full', 'data-screen': 'board' },
+    h('h1', { class: 'vh' }, `${t('app.title')} · ${t('game.boardTitle')}`), hud, board);
+  // board-spec 14.2: the 6x8 ring fills the screen. JS sets --tile-c (width-bound, clamped 40-60) and the side-column row gap
+  // --tile-gap-v (the spare height of a tall phone goes there, capped at c/2; leftover goes above the plate). Height-bound
+  // (split screen / landscape): a smaller cell with the 4px gap. Below c = 40 the plate scales down as a whole, never scrolls.
+  const fitBoard = (W, H, safeT, safeB) => {
+    const hudH = H - safeT - safeB >= 700 ? 120 : 96;
+    let c = Math.max(40, Math.min(60, Math.floor((Math.min(W, 430) - 16 - 12 - 20) / 6)));
+    const padTop = (x) => 6 + Math.round(0.375 * x);
+    const avail = H - safeT - hudH - 8 - safeB - 6;
+    let gv = (avail - padTop(c) - 6 - 8 * c) / 7;
+    if (gv < 4) { c = Math.floor((avail - padTop(c) - 6 - 28) / 8); gv = 4; }
+    gv = Math.max(4, Math.min(Math.floor(gv), Math.round(0.5 * c)));
+    return { c, gv, hud: hudH, scale: c < 40 ? Math.max(0.5, c / 40) : 1, cell: Math.max(40, c) };
+  };
   function sizeBoard() {
     if (destroyed) return;
-    const vw = Math.min(innerWidth, 430);
-    let c = Math.max(34, Math.min(52, Math.floor((vw - 16 - 12 - 24) / 7)));
-    el.style.setProperty('--tile-c', `${c}px`);
-    if (!el.isConnected) return;
-    const de = document.documentElement;
-    while (c > 34 && (de.scrollHeight > innerHeight + 0.5 || zone.clientHeight < STRIP_MIN)) {
-      c -= 1;
-      el.style.setProperty('--tile-c', `${c}px`);
-    }
+    const cs = getComputedStyle(el);
+    const safeT = Math.max(parseFloat(cs.paddingBlockStart) || 10, 6);
+    const safeB = Math.max(parseFloat(cs.paddingBlockEnd) || 16, 8);
+    const H = globalThis.visualViewport?.height || innerHeight;
+    const f = fitBoard(innerWidth, H, safeT, safeB);
+    el.style.setProperty('--tile-c', `${f.cell}px`);
+    el.style.setProperty('--tile-gap-v', `${f.gv}px`);
+    el.style.setProperty('--board-scale', String(f.scale));
+    el.style.setProperty('--pad-top', `${6 + Math.round(0.375 * f.cell)}px`);
+    el.dataset.hud = f.hud === 96 ? 'compact' : 'slim';
+    if (f.cell < 50) el.dataset.small = ''; else delete el.dataset.small;
   }
   sizeBoard();
   requestAnimationFrame(sizeBoard);
@@ -492,15 +516,15 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   let lastPct = 0;
   function paintPlayer() {
     // Active player's identity: colour ring + name in the HUD (a single player keeps the profession look).
+    // owner override 2026-10-24b: the profession fox bust in a 44px circle (professions.md 3); the glyph is the fallback.
+    // Hot-seat: the player's colour ring replaces the fox ring (the bust tells the profession, the name is the text).
+    const profId = state.profession.id;
+    if (avatar.dataset.prof !== profId) { avatar.replaceChildren(professionBust(profId, { fallbackHost: avatar })); avatar.dataset.prof = profId; }
+    avatar.className = `avatar avatar-fox${multi ? ` pc-${colorOf()}` : ''}${avatar.querySelector('img') ? '' : ' is-glyph'}`;
     if (multi) {
-      avatar.textContent = String(colorOf());
-      avatar.className = `avatar pc-${colorOf()}`;
-      avatar.style.background = '';
       hudProf.textContent = nameOf();
       hud.dataset.pc = String(colorOf());
     } else {
-      // one avatar treatment for all eight professions: the line glyph in a neutral circle (no letter, no per-profession hue)
-      if (avatar.dataset.prof !== state.profession.id) { avatar.replaceChildren(professionGlyph(state.profession.id)); avatar.dataset.prof = state.profession.id; }
       hudProf.textContent = state.profession.title;
     }
     el.dataset.player = String(match.currentIndex + 1);
@@ -1081,10 +1105,11 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     if (homeOpen || destroyed || match.status !== 'playing') return;
     homeOpen = true;
     homeGate = new Promise((resolve) => { releaseGate = resolve; });
-    const r = await homeConfirmSheet({ daily: isDaily });
+    const r = await homeConfirmSheet({ daily: isDaily, menu: true });
     homeOpen = false;
     releaseGate?.(); homeGate = null; releaseGate = null; // queued cards may open now
     if (r === 'home') goHome();
+    else if (r === 'settings') openGameSettings();
     else if (r === 'giveup' && await giveUpConfirmSheet()) giveUp();
   }
   /** Daily challenge: the attempt is used up. The day ends as 'not today' and the result screen follows. */

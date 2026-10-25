@@ -115,7 +115,9 @@ async function reactionStripClear(page) {
     const box = (s) => { const e = document.querySelector(s); if (!e) return null; const b = e.getBoundingClientRect(); return { l: b.left, t: b.top, r: b.right, b: b.bottom }; };
     const hit = (a, b) => a && b && a.l < b.r && a.r > b.l && a.t < b.b && a.b > b.t;
     const host = box('.react-host');
-    return { host: !!host, hud: hit(host, box('.hud')), board: hit(host, box('.board')), roll: hit(host, box('.btn-roll')), dice: hit(host, box('.dice')) };
+    // board-spec 14.4 (owner override 2026-10-24b): the fox row lives INSIDE the plate's plaza, so "the board" means its tiles
+    const tileHit = [...document.querySelectorAll('.board .tile')].some((t) => { const b = t.getBoundingClientRect(); return hit(host, { l: b.left, t: b.top, r: b.right, b: b.bottom }); });
+    return { host: !!host, hud: hit(host, box('.hud')), board: tileHit, roll: hit(host, box('.btn-roll')), dice: hit(host, box('.dice')) };
   });
   check(r.host && !r.hud && !r.board && !r.roll && !r.dice, `reaction pop-up strip never covers the HUD, board, die or roll button (${JSON.stringify(r)})`);
 }
@@ -393,7 +395,7 @@ async function checkStatementLiabilities(page, info) {
 async function testHome(page, label) {
   await page.waitForSelector('[data-action="home"]');
   const aria = await page.locator('[data-action="home"]').getAttribute('aria-label');
-  check(aria === 'חזרה לבית', `home button has aria-label "חזרה לבית" (${label})`);
+  check(aria === 'תפריט', `home (menu) button has aria-label "תפריט" (${label})`);
   const box = await page.locator('[data-action="home"]').boundingBox();
   check(box.width >= 47.5 && box.height >= 47.5, `home button is a 48px target (${label})`);
   const before = await page.evaluate(() => ({ turn: document.querySelector('.screen-board')?.dataset.turn, players: document.querySelector('.screen-board')?.dataset.players }));

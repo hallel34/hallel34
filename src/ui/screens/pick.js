@@ -6,7 +6,7 @@ import { money, tn } from '../format.js';
 import { createTermScope } from '../rich.js';
 import { button, iconButton } from '../widgets.js';
 import { openLayer } from '../modal.js';
-import { professionGlyph } from '../professions.js';
+import { professionFox } from '../professions.js';
 import { statement } from '../../engine/index.js';
 import { haptic } from '../fx.js';
 import { playerToken } from '../players.js';
@@ -15,7 +15,6 @@ export function createPick({ engine, mode, onBack, onGo, player = null }) {
   const professions = engine.data.professions;
   // the grid and the preview sheet show the SAME numbers: one statement() per profession (loans included), computed once
   const figures = Object.fromEntries(professions.map((p) => [p.id, statement(engine.newGame({ mode, professionId: p.id, seed: 1 }))]));
-  const avatar = (id, cls = 'avatar-lg') => h('span', { class: `avatar ${cls}`, 'aria-hidden': 'true' }, professionGlyph(id));
 
   function preview(p) {
     const scope = createTermScope();
@@ -38,7 +37,7 @@ export function createPick({ engine, mode, onBack, onGo, player = null }) {
       h('button', { type: 'button', class: 'sheet-handle', 'aria-label': t('a11y.sheetHandle'), onClick: () => layer.close() }, h('i')),
       h('div', { class: 'sheet-scroll', tabindex: '0', role: 'region', 'aria-label': t('pick.previewTitle', { profession: p.title }) },
         h('div', { class: 'pick-head' },
-          avatar(p.id, 'avatar-xl is-active'),
+          h('span', { class: 'pick-fox', 'aria-hidden': 'true' }, professionFox(p.id, { width: 104, eager: true })),
           h('div', null, h('h2', { class: 'dialog-title' }, p.title), h('p', { class: 'muted' }, tn('pick.perMonth', { amount: money(p.salary) })))),
         h('section', { class: 'st-section st-sec-income' },
           row(t('pick.salary'), money(p.salary), 'income'),
@@ -56,18 +55,22 @@ export function createPick({ engine, mode, onBack, onGo, player = null }) {
     layer = openLayer(content, { kind: 'sheet', label: p.title });
   }
 
+  // owner override 2026-10-24b (docs/v4/design/professions.md 2): art well with the profession fox on a hairline floor, the name,
+  // salary and expenses on two lines, and the "נשאר בכיס" pill (the same statement() as the preview sheet)
   const cards = professions.map((p, i) => {
+    const well = h('span', { class: 'prof-well', 'aria-hidden': 'true' });
+    well.append(professionFox(p.id, { width: 104, fallbackHost: well, eager: i < 4 }));
+    const flow = figures[p.id].monthlyCashFlow;
     const b = h('button', {
       type: 'button', class: 'prof-card', 'data-prof': p.id, vars: { '--i': i },
       onClick: () => { haptic('tap'); preview(p); },
     },
-    avatar(p.id),
+    well,
     h('span', { class: 'prof-name' }, p.title),
     h('span', { class: 'prof-rows' },
       h('span', { class: 'prof-row prof-row--salary prof-salary' }, h('span', { class: 'prof-row-label' }, t('pick.salary')), money(p.salary)),
-      h('span', { class: 'prof-rule', 'aria-hidden': 'true' }),
-      h('span', { class: 'prof-row prof-row--expenses' }, h('span', { class: 'prof-row-label' }, t('pick.cardExpenses')), money(figures[p.id].totalExpenses)),
-      h('span', { class: 'prof-row prof-row--flow' }, h('span', { class: 'prof-row-label' }, t('pick.cardLeft')), money(figures[p.id].monthlyCashFlow, { sign: true }))));
+      h('span', { class: 'prof-row prof-row--expenses' }, h('span', { class: 'prof-row-label' }, t('pick.cardExpenses')), money(figures[p.id].totalExpenses))),
+    h('span', { class: `prof-pocket${flow < 0 ? ' is-neg' : ''}` }, tn('pick.cardLeftPocket', { amount: money(flow) })));
     return b;
   });
 
@@ -77,6 +80,6 @@ export function createPick({ engine, mode, onBack, onGo, player = null }) {
       player ? playerToken(player.color, { cls: 'ptoken-lg' }) : null,
       h('div', { class: 'pick-heading' },
         h('h1', { class: 'screen-title' }, player ? t('players.pickTitle', { name: player.name }) : t('pick.title')),
-        h('p', { class: 'muted' }, player ? t('players.pickStep', { n: player.n, total: player.total }) : t('pick.subtitle')))),
+        h('p', { class: 'muted' }, player ? t('players.pickStep', { n: player.n, total: player.total }) : t('pick.subtitleFox')))),
     h('div', { class: 'prof-grid' }, cards));
 }

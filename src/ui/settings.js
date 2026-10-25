@@ -15,7 +15,7 @@ import { getEngine } from './session.js';
 import { PAYDAY_MONTHS } from '../engine/index.js';
 
 /** `read` / `write` override how the value is stored (the guess toggle is stored per mode). */
-function toggleRow(label, key, { read = () => !!getPrefs()[key], write = (v) => setPref(key, v), help = '' } = {}) {
+export function toggleRow(label, key, { read = () => !!getPrefs()[key], write = (v) => setPref(key, v), help = '' } = {}) {
   const input = h('input', { type: 'checkbox', role: 'switch', class: 'switch-input', id: `pref-${key}`, 'aria-describedby': help ? `pref-${key}-help` : null });
   input.checked = !!read();
   input.addEventListener('change', () => {

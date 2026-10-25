@@ -1,11 +1,17 @@
 // Pure layout helpers (no DOM) so they can be unit tested.
 
-/** Ring position [col,row] (1-based) for square i on the 7x7 grid: top row, down the far side, bottom row, back up. */
+/**
+ * Ring position [col,row] (1-based) for square i on the 6x8 ring (board-spec 14.1, owner override 2026-10-24b): the top row
+ * from the inline-start corner, down the far column, back along the bottom row, up the near column. Corners: 0, 5, 12, 17.
+ * col 1 = inline-start, so RTL / LTR mirror through the grid itself.
+ */
+export const RING_COLS = 6;
+export const RING_ROWS = 8;
 export function ringPos(i) {
-  if (i <= 6) return [i + 1, 1];
-  if (i <= 12) return [7, i - 5];
-  if (i <= 18) return [6 - (i - 13), 7];
-  return [1, 7 - (i - 18)];
+  if (i <= 5) return [i + 1, 1];      // 0..5   top row
+  if (i <= 12) return [6, i - 4];     // 6..12  far column (rows 2..8)
+  if (i <= 17) return [18 - i, 8];    // 13..17 bottom row (cols 5..1)
+  return [1, 25 - i];                 // 18..23 near column (rows 7..2)
 }
 
 /** Profession avatar chip: always the fox orange (the initial tells professions apart; orange carries no money meaning). */

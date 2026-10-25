@@ -81,3 +81,14 @@ Same rule. The rename (brand MaxiFox, character מקסי, the logo on home) is t
 | tests/e2e/smoke.mjs | start, first launch (1211-1222) | wave pose on first launch, crossfade to `tired`, `seenIntro` set on home, h1 `פסיבו` with `img[src*=wordmark]`, `foxChecks(page, 'start')`, "wave pose does not replay" | no fox pose on home, `seenIntro` still unset on home (the greeting is on the board), h1 `MaxiFox` with the 200px `maxifox-logo-alpha` image; `foxChecks` on start removed (no character there) | Decisions 2026-10-24: the logo replaces the wordmark and the tired pose; the greeting moves into the guide |
 | tests/tutorial.test.js, tests/e2e/*.mjs | header comments only | `המשחק הראשון עם פסיבו` | `המשחק הראשון עם מקסי` | Comment text (no assertion) |
 | tests/e2e/smoke.mjs | board: "roll zone shows the roll pose at the start" (full mode, 1298) | full mode: `pose === 'roll'` | full mode: `'roll'`, or `'note'` only when that bubble is the first-launch greeting "היי, אני מקסי!" | The greeting moved from home into the corner guide (decisions 2026-10-24); a fresh device's first board now opens with it. Family mode is unchanged (the story layer comes first) |
+
+## Full-screen board + profession foxes (developer, 2026-10-24: board-spec.md section 14, professions.md; owner override 2026-10-24b)
+
+Same rule. The 6x8 ring and the plaza stack are the owner's layout; the one menu button (home + settings) is the CEO decision 14.7 item 3 that comes with it.
+
+| File | Test | Old | New | Why |
+|---|---|---|---|---|
+| tests/ui.test.js | board layout > places 24 unique squares on the perimeter of a 7x7 grid (renamed "... 6x8 ring") | cells inside 1..7 x 1..7, on its edge | cells inside 1..6 x 1..8, on its edge; corners 0 / 5 / 12 / 17 at [1,1] [6,1] [6,8] [1,8] | Owner: the 6x8 ring (14.1, 14.7 item 1) |
+| tests/ui-flow.test.js | home button > is an in-page sheet ... | source has `iconButton('home', t('game.home')` | source has `iconButton('menu', t('game.menu'), () => askHome()` and `homeBtn.dataset.action = 'home'` | CEO 14.7 item 3: the home button is the HUD's one menu button (the sheet keeps the home confirm and adds settings, sound, vibration) |
+| tests/e2e/smoke.mjs | testHome: home button has aria-label "חזרה לבית" | `חזרה לבית` | `תפריט` | Same: the button now opens the menu |
+| tests/e2e/smoke.mjs | reactionStripClear: the strip never covers the HUD, board, die or roll button | the fox host must not intersect `.board` | it must not intersect any `.board .tile` | Owner 14.4: the fox row is inside the plate's plaza by design; the tiles, HUD, die and CTA are still checked |
