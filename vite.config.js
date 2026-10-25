@@ -35,7 +35,7 @@ function pwaPlugin() {
         const find = (d) => files.find((f) => new RegExp(`(^|/)maxifox-logo-alpha-${d}-[\\w-]+\\.webp$`).test(f));
         const [logo1, logo2] = [find('1x'), find('2x')];
         const lcp = logo1 && logo2
-          ? `<link rel="preload" as="image" href="${prefix}${logo1}" imagesrcset="${prefix}${logo1} 1x, ${prefix}${logo2} 2x" fetchpriority="high">`
+          ? `<link rel="preload" as="image" href="${prefix}${logo1}" imagesrcset="${prefix}${logo1} 1x, ${prefix}${logo2} 2x">`
           : '';
         return html.replace('</head>', `  ${tags}\n  ${lcp}\n</head>`);
       },
