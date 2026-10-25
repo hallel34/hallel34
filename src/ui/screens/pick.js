@@ -58,8 +58,10 @@ export function createPick({ engine, mode, onBack, onGo, player = null }) {
   // owner override 2026-10-24b (docs/v4/design/professions.md 2): art well with the profession fox on a hairline floor, the name,
   // salary and expenses on two lines, and the "נשאר בכיס" pill (the same statement() as the preview sheet)
   const cards = professions.map((p, i) => {
+    // owner reference (design/character/professions-ref/owner-pick-screen-ref.jpg): the big fox at the top, the name, "שכר ₪X •",
+    // "הוצאות ₪Y", and the full-width "נשאר בכיס ₪Z" pill. Every number comes from the live data (the same statement() as the sheet).
     const well = h('span', { class: 'prof-well', 'aria-hidden': 'true' });
-    well.append(professionFox(p.id, { width: 104, fallbackHost: well, eager: i < 4 }));
+    well.append(professionFox(p.id, { width: 108, fallbackHost: well, eager: i < 4 }));
     const flow = figures[p.id].monthlyCashFlow;
     const b = h('button', {
       type: 'button', class: 'prof-card', 'data-prof': p.id, vars: { '--i': i },
@@ -68,7 +70,7 @@ export function createPick({ engine, mode, onBack, onGo, player = null }) {
     well,
     h('span', { class: 'prof-name' }, p.title),
     h('span', { class: 'prof-rows' },
-      h('span', { class: 'prof-row prof-row--salary prof-salary' }, h('span', { class: 'prof-row-label' }, t('pick.salary')), money(p.salary)),
+      h('span', { class: 'prof-row prof-row--salary prof-salary' }, h('span', { class: 'prof-row-label' }, t('pick.cardSalary')), money(p.salary), h('span', { class: 'prof-sep', 'aria-hidden': 'true' }, '•')),
       h('span', { class: 'prof-row prof-row--expenses' }, h('span', { class: 'prof-row-label' }, t('pick.cardExpenses')), money(figures[p.id].totalExpenses))),
     h('span', { class: `prof-pocket${flow < 0 ? ' is-neg' : ''}` }, tn('pick.cardLeftPocket', { amount: money(flow) })));
     return b;
@@ -76,10 +78,11 @@ export function createPick({ engine, mode, onBack, onGo, player = null }) {
 
   return h('section', { class: 'screen screen-pick', 'data-screen': 'pick' },
     h('div', { class: 'pick-top' },
-      iconButton('arrow', t('pick.back'), onBack, 'icon-btn-glass'),
       player ? playerToken(player.color, { cls: 'ptoken-lg' }) : null,
       h('div', { class: 'pick-heading' },
         h('h1', { class: 'screen-title' }, player ? t('players.pickTitle', { name: player.name }) : t('pick.title')),
-        h('p', { class: 'muted' }, player ? t('players.pickStep', { n: player.n, total: player.total }) : t('pick.subtitleFox')))),
+        h('p', { class: 'muted' }, player ? t('players.pickStep', { n: player.n, total: player.total }) : t('pick.subtitleFox'))),
+      // the back button at the inline-end (left in RTL), a 48px round ghost centred with the title
+      iconButton('arrow', t('pick.back'), onBack, 'icon-btn-glass pick-back')),
     h('div', { class: 'prof-grid' }, cards));
 }

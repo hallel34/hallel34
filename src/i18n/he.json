@@ -64,6 +64,7 @@
     "cardExpenses": "הוצאות",
     "cardLeft": "נשאר",
     "cardLeftPocket": "נשאר בכיס {amount}",
+    "cardSalary": "שכר",
     "subtitleFox": "השועל שלכם מתלבש בהתאם"
   },
   "game": {
