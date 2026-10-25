@@ -789,7 +789,7 @@ export function sellSheet(getState, onSell, { shouldClose = () => false } = {}) 
 // ---------- hot-seat sheets ----------
 /**
  * Pass-the-phone sheet, ONE tap: "תור של <name>", a short recap of what just happened, and a single primary button
- * 'זרקו קובייה, <name>' that closes the sheet and rolls at once (the caller starts the roll when the promise resolves,
+ * 'הטילו קובייה, <name>' that closes the sheet and rolls at once (the caller starts the roll when the promise resolves,
  * which happens on the tap itself, not after the closing animation). Not dismissable. Safe against double taps.
  * recap: { who, lines: [text|Node], fox: text|null } of the turn that just ended, or null (first turn, resume).
  * extra: { body: Node|string, more?: Node|string, pose? } one learning line (a hint, an explainer or a tip) or null.

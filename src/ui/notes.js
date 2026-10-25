@@ -195,8 +195,11 @@ export function createNotes({ zone, onActive, onDismiss, onShown }) {
     clear() {
       clearTimeout(retry);
       const dropped = queue.filter((i) => i.kind === 'explain'); // never shown: the flow keeps them for a later turn
+      // a milestone celebration that has not been on screen yet survives a fast roll: it shows after the roll (QA round 14 P2-3)
+      const keep = queue.filter((i) => i.kind === 'milestone');
       queue.length = 0;
-      if (current) hideCurrent({ next: false, reason: 'cleared' }); else onActive?.(false, null);
+      queue.push(...keep);
+      if (current) hideCurrent({ next: keep.length > 0, reason: 'cleared' }); else if (keep.length) { onActive?.(true, keep[0]); retry = setTimeout(pump, 400); } else onActive?.(false, null);
       return dropped;
     },
     /** Dismiss only the visible note (tap elsewhere), then show the next one. */

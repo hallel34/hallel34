@@ -40,7 +40,7 @@ export function decisionModal(state, engine) {
   const card = state.pending.card;
   const mode = state.mode;
   const status = Object.fromEntries(engine.decisionOptions(state).map((o) => [o.id, o]));
-  const reasonText = (r) => t(`${mode === 'family' ? 'decision.reasonFamily' : 'decision.reason'}.${r}`);
+  const reasonText = (r) => t(`decision.reason.${r}`); // one wording in both modes (kid-safe; QA round 14 P3-13)
   const opts = [...card.options.map((o) => ({ id: o.id, label: label(o, mode), free: isFreeOption(o), ...status[o.id] })),
     ...(decisionCanPass(card) ? [{ id: PASS_OPTION, label: t('decision.pass'), free: true, available: true }] : [])];
 

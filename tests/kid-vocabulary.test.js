@@ -29,7 +29,7 @@ function* walk(v, path = []) {
 }
 
 /** Locale-file groups shown in family mode (full-only, stock-only and daily-share strings are not family surfaces). */
-const HE_GROUPS = ['game', 'card', 'loan', 'win', 'gameOver', 'fox', 'pick', 'stats', 'standings', 'a11y'];
+const HE_GROUPS = ['game', 'card', 'loan', 'win', 'gameOver', 'fox', 'pick', 'stats', 'standings', 'a11y', 'statement']; // statement: QA round 14 P2-7
 const FULL_ONLY = /Stock|dividend|netWorth|repay|sell|Sell|share|daily/;
 
 describe('family vocabulary: no adult money words on the key screens', () => {

@@ -71,22 +71,36 @@ function hiddenFigures() {
     + JSON.stringify(rw.facts.map((f) => [f.game, f.real])) + readFileSync(new URL('../../src/i18n/he.json', import.meta.url), 'utf8') + readFileSync(new URL('../../src/data/cards.he.json', import.meta.url), 'utf8');
   const tokens = (str) => [...String(str).matchAll(/(?<![\d.,])\d+(?:\.\d+)?%/g)].map((m) => m[0]);
   const shown = new Set(tokens(visible));
-  // v4 stage 4: the real-world surfaces (tax quiz, statement popover, the Israeli money rules) show official 2026 figures. A token
-  // is exempt ONLY when docs/v3/real-world-verified.json marks a rate with that value VERIFIED (e.g. 50% = the top marginal rate,
-  // 2.5% = the study-fund employee share, 2% = the capital surtax). Percent-valued entries (the Bank of Israel rate) never exempt.
+  // every hidden figure (QA round 14: no exemption by value alone); the verified ones are allowed ONLY inside their tagged surfaces
+  return [...new Set(rw.facts.filter((f) => f.numbers).flatMap((f) => tokens(f.numbers.text)))].filter((x) => !shown.has(x));
+}
+/** v4 stage 4: the figures a tagged real-world surface may show: rates that docs/v3/real-world-verified.json marks VERIFIED, and the
+ * guide figure published with its verified tag (owner 2026-10-25: the Bank of Israel rate). */
+function verifiedFigures() {
+  const tokens = (str) => [...String(str).matchAll(/(?<![\d.,])\d+(?:\.\d+)?%/g)].map((m) => m[0]);
   const verified = new Set();
   const walk = (v) => { if (typeof v === 'number' && v > 0 && v < 1) verified.add(`${Math.round(v * 10000) / 100}%`); else if (v && typeof v === 'object') Object.values(v).forEach(walk); };
   for (const e of JSON.parse(readFileSync(new URL('../../docs/v3/real-world-verified.json', import.meta.url), 'utf8'))) if (e.status === 'VERIFIED') walk(e.value);
-  // owner 2026-10-25: the Bank of Israel rate is shown (guide lesson, with its verified tag): its percent value is exempt too
   const guide = JSON.parse(readFileSync(new URL('../../src/data/learn/guide.he.json', import.meta.url), 'utf8'));
   for (const sc of guide.lessons.flatMap((l) => l.screens)) if (sc.numbers?.publish === true && sc.numbers.verified) tokens(sc.numbers.text).forEach((x) => verified.add(x));
-  return [...new Set(rw.facts.filter((f) => f.numbers).flatMap((f) => tokens(f.numbers.text)))].filter((x) => !shown.has(x) && !verified.has(x));
+  return verified;
 }
+// the surfaces that carry the "נכון ל-2026" tag and the source link (tax-audit reveal, statement popover, guide / Israeli rules entry)
+const TAGGED = '.audit-reveal, #st-tax-pop, .dict-rw-entry';
 async function noHiddenFigures(page, label) {
   const hidden = hiddenFigures();
-  const text = await page.evaluate(() => document.body.innerText);
-  const tokens = [...text.matchAll(/(?<![\d.,])\d+(?:\.\d+)?%/g)].map((m) => m[0]);
-  const leaked = hidden.filter((x) => tokens.includes(x));
+  const verified = verifiedFigures();
+  const { outside, inside } = await page.evaluate((sel) => {
+    const out = []; const ins = [];
+    const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    for (let n = w.nextNode(); n; n = w.nextNode()) {
+      const p = n.parentElement; if (!p || !p.getClientRects().length || getComputedStyle(p).visibility === 'hidden') continue;
+      (p.closest(sel) ? ins : out).push(n.textContent);
+    }
+    return { outside: out.join(' '), inside: ins.join(' ') };
+  }, TAGGED);
+  const tok = (text) => [...text.matchAll(/(?<![\d.,])\d+(?:\.\d+)?%/g)].map((m) => m[0]);
+  const leaked = [...hidden.filter((x) => tok(outside).includes(x)), ...hidden.filter((x) => !verified.has(x) && tok(inside).includes(x))];
   check(hidden.length > 0 && leaked.length === 0, `L6: no unverified real-world figure on screen (${label})${leaked.length ? ` LEAKED ${leaked}` : ''}`);
 }
 
@@ -126,9 +140,12 @@ async function reactionStripClear(page) {
     const host = box('.react-host');
     // board-spec 14.4 (owner override 2026-10-24b): the fox row lives INSIDE the plate's plaza, so "the board" means its tiles
     const tileHit = [...document.querySelectorAll('.board .tile')].some((t) => { const b = t.getBoundingClientRect(); return hit(host, { l: b.left, t: b.top, r: b.right, b: b.bottom }); });
-    return { host: !!host, hud: hit(host, box('.hud')), board: tileHit, roll: hit(host, box('.btn-roll')), dice: hit(host, box('.dice')) };
+    // QA round 14: the plaza status line (and the bubble beside the fox) are checked again, since "the board" now means its tiles
+    const bubble = box('.fox-strip .note-bubble');
+    const status = box('.board-status');
+    return { host: !!host, hud: hit(host, box('.hud')), board: tileHit, roll: hit(host, box('.btn-roll')), dice: hit(host, box('.dice')), status: hit(host, status), bubbleStatus: hit(bubble, status), bubbleRoll: hit(bubble, box('.btn-roll')) };
   });
-  check(r.host && !r.hud && !r.board && !r.roll && !r.dice, `reaction pop-up strip never covers the HUD, board, die or roll button (${JSON.stringify(r)})`);
+  check(r.host && !r.hud && !r.board && !r.roll && !r.dice && !r.status && !r.bubbleStatus && !r.bubbleRoll, `reaction pop-up strip and its bubble never cover the HUD, tiles, die, status line or roll button (${JSON.stringify(r)})`);
 }
 
 /** Every given selector's box must lie fully inside the viewport (nothing below the fold, nothing cut off). */
@@ -927,7 +944,7 @@ async function testRound5(page) {
     await page.waitForTimeout(40);
   }
   const sheet = await page.locator('.handoff-sheet').innerText();
-  check(sheet.includes('תור של Bob') && sheet.replace(/\s+/g, ' ').includes('זרקו קובייה, Bob'), `after a hot-seat turn the sheet names the next roller and offers one rolling button ("${sheet.replace(/\n/g, ' | ').slice(0, 400)}")`);
+  check(sheet.includes('תור של Bob') && sheet.replace(/\s+/g, ' ').includes('הטילו קובייה, Bob'), `after a hot-seat turn the sheet names the next roller and offers one rolling button ("${sheet.replace(/\n/g, ' | ').slice(0, 400)}")`);
   check(await page.locator('.handoff-sheet [data-recap]').count() === 1, 'the hand-over sheet carries a recap of the turn');
   check(await page.locator('[data-action="continue"]').count() === 0, "no 'המשיכו' board button in hot-seat");
   await page.locator('[data-action="roll-next"]').click();
@@ -1187,7 +1204,9 @@ async function testPhaseA(page) {
   await page.locator('[data-action="statement"]').click();
   await page.waitForSelector('.statement-body');
   const panel = await page.locator('.st-sec-networth').innerText();
-  check(/שווי נקי/.test(panel) && /סך נכסים/.test(panel) && /סך התחייבויות/.test(panel), 'N4: the statement has the assets / liabilities / net worth panel');
+  // QA round 14 P2-7: the family statement speaks the kid words (the family override layer); full mode keeps the adult terms
+  const words = MODE === 'family' ? [/כמה יש לכם בסך הכול/, /סך נכסים/, /סך החובות/] : [/שווי נקי/, /סך נכסים/, /סך התחייבויות/];
+  check(words.every((re) => re.test(panel)), `N4: the statement has the assets / liabilities / net worth panel (${MODE} wording)`);
   check(await page.locator('[data-action="repay"]').count() >= 1, `loans can be repaid in ${MODE} mode (repay buttons)`);
   check((await page.locator('[data-kind="loan"] .st-sub').innerText()).match(/ריבית|תוספת/), 'the bank loan row says interest only');
   await noHScroll(page, 'statement');
@@ -1208,6 +1227,67 @@ async function testPhaseA(page) {
   await page.evaluate(() => localStorage.removeItem('passivo.save'));
   await page.reload();
   await page.waitForSelector('[data-screen="start"]');
+}
+
+/** QA round 14 P1: the HUD cash is never clipped (₪ sign, every digit, the minus) for 6- and 7-digit and negative amounts. */
+async function testHudCash(browser) {
+  const engine = learnEngine();
+  for (const [w, hgt] of [[320, 568], [360, 800], [390, 844]]) {
+    const ctx = await browser.newContext({ viewport: { width: w, height: hgt }, deviceScaleFactor: 2, locale: 'he-IL', reducedMotion: 'reduce' });
+    const page = await ctx.newPage();
+    await page.goto(`${URL_BASE}?seed=3`);
+    await page.evaluate(() => { localStorage.setItem('passivo.seenIntro', '1'); localStorage.setItem('passivo.tutorial', JSON.stringify({ storyDone: true, helpOn: false, hintsSeen: {}, quizDone: true })); });
+    for (const cash of [158420, 1234560, 9999999, -99999]) {
+      let m = newMatch(engine, { mode: MODE, seed: 5, players: [{ name: 'דנה', professionId: 'lawyer' }] });
+      m = act(m, (st) => ({ ...st, cash }));
+      await page.evaluate((json) => localStorage.setItem('passivo.save', json), serialize(m));
+      await page.goto(`${URL_BASE}?seed=3`);
+      await page.locator('[data-action="resume"]').click();
+      await page.waitForSelector('[data-screen="board"]');
+      await page.waitForTimeout(400);
+      const r = await page.evaluate(() => {
+        const wrap = document.querySelector('.hud .cash-wrap'); const num = wrap.querySelector('.cash-num') ?? wrap.firstElementChild;
+        const a = wrap.getBoundingClientRect(); const b = num.getBoundingClientRect();
+        const clip = [...document.querySelectorAll('.hud .cash-wrap, .hud .cash-col, .hud-cash')].some((e) => e.scrollWidth > e.clientWidth + 1);
+        return { text: num.textContent.replace(/\s/g, ''), inside: b.left >= a.left - 0.5 && b.right <= a.right + 0.5, clip, font: getComputedStyle(num).fontSize };
+      });
+      const want = `${cash < 0 ? '-' : ''}₪${Math.abs(cash).toLocaleString('en-US')}`;
+      check(r.inside && !r.clip && r.text.replace(/[\u2066-\u2069\u200e\u200f]/g, '') === want, `HUD cash ${want} shows in full at ${w}x${hgt} (${JSON.stringify(r)})`);
+    }
+    await ctx.close();
+  }
+}
+
+/** QA round 14 P2-3: a milestone reached by a choice still celebrates when the player rolls at once. */
+async function testMilestoneFastRoll(browser) {
+  const engine = learnEngine();
+  const ctx = await browser.newContext({ viewport: { width: 360, height: HEIGHT }, deviceScaleFactor: 2, locale: 'he-IL', reducedMotion: 'reduce' });
+  const page = await ctx.newPage();
+  await page.goto(`${URL_BASE}?seed=3`);
+  await page.evaluate(() => { localStorage.setItem('passivo.seenIntro', '1'); localStorage.setItem('passivo.tutorial', JSON.stringify({ storyDone: true, helpOn: false, hintsSeen: {}, quizDone: true })); localStorage.setItem('passivo.prefs', JSON.stringify({ guessFamily: false, guessFull: false, explain: false })); });
+  const base = matchWithCard(engine, 'family', 'dec-001', { cash: 200000 });
+  const exp = currentState(base).profession.expenses.reduce((a, e) => a + e.amount, 0) + currentState(base).liabilities.reduce((a, l) => a + l.monthlyPayment, 0);
+  const own = [{ id: 'asset-m', cardId: 'opp-biz-002', type: 'business', title: 'x', price: 160000, downPayment: 80000, mortgage: 80000, monthlyCashFlow: Math.ceil(exp * 0.25) - 1800 + 20, profit: 3200, loanPayment: 1400 }];
+  const m = { ...base, players: base.players.map((p) => ({ ...p, state: { ...p.state, assets: own } })) };
+  await page.evaluate((json) => localStorage.setItem('passivo.save', json), serialize(m));
+  await page.goto(`${URL_BASE}?seed=3`);
+  await page.locator('[data-action="resume"]').click();
+  await page.waitForSelector('.card[data-decision]');
+  await page.waitForTimeout(400);
+  await page.locator('.card-actions [data-option="A"]').click();
+  await page.waitForSelector('#modal-root .layer', { state: 'detached' });
+  await page.locator('[data-action="roll"]').click({ timeout: 5000 }).catch(() => {}); // the fast roll, at once
+  // whatever the roll opens is answered quickly; the bubble may only wait while a card is open
+  let seen = false;
+  for (let k = 0; k < 60 && !seen; k++) {
+    seen = await page.evaluate(() => !!document.querySelector('.note-milestone .badge-chip'));
+    if (seen) break;
+    const btn = page.locator('#modal-root .layer:last-child').locator('[data-action="pass"], [data-action="summary-ok"], [data-action="ok"], [data-action="skip"], [data-action="decline"], [data-action="pay"]').first();
+    if (await btn.count()) await btn.click({ timeout: 2000 }).catch(() => {});
+    await page.waitForTimeout(250);
+  }
+  check(seen, 'P2-3: the 25% milestone bubble (with its badge) still shows after a fast roll');
+  await ctx.close();
 }
 
 async function main() {
@@ -1237,7 +1317,10 @@ async function main() {
   check(await page.locator('.screen-start img.fox').count() === 0, 'home shows no fox character pose (the logo only)');
   check(await page.evaluate(() => localStorage.getItem('passivo.seenIntro')) === null, 'the greeting flag is not used up on home');
   const h1 = await page.evaluate(() => ({ n: document.querySelectorAll('h1').length, text: document.querySelector('h1')?.textContent.trim(), wm: !!document.querySelector('h1 img[src*="maxifox-logo-alpha"]'), w: Math.round(document.querySelector('h1 img')?.getBoundingClientRect().width ?? 0) }));
-  check(h1.n === 1 && h1.text === 'MaxiFox' && h1.wm && h1.w === 200, `start has one accessible h1 "MaxiFox" with the 200px logo (${JSON.stringify(h1)})`);
+  // the logo is sized to the screen height by design (200 at 800, smaller on short screens): visible and >= 120px (its minimum size)
+  check(h1.n === 1 && h1.text === 'MaxiFox' && h1.wm && h1.w >= 120 && h1.w <= 200, `start has one accessible h1 "MaxiFox" with the logo, visible and >= 120px (${JSON.stringify(h1)})`);
+  const mouseHome = await page.evaluate(() => /mouse|עכבר/i.test(document.documentElement.outerHTML));
+  check(!mouseHome, 'no mouse mascot anywhere in the DOM on start'); // restored from foxChecks(page, 'start') (QA round 14)
   await page.screenshot({ path: `${OUT}/01-start.png` });
   await page.reload();
   await page.waitForSelector('[data-screen="start"]');
@@ -1400,7 +1483,7 @@ async function main() {
     await page.waitForSelector('[data-screen="start"]');
     check(await page.locator('[data-action="resume"]').count() === 0, 'no resume button after a finished game');
   }
-  if (PLAYERS === 1) { await testBuyStates(page); await testLegacySave(page); }
+  if (PLAYERS === 1) { await testBuyStates(page); await testLegacySave(page); await testHudCash(browser); await testMilestoneFastRoll(browser); }
   await testRound5(page);
   await testPhaseA(page);
   if (PLAYERS === 1) { await testGuessFlow(page); await testExplainers(page); }

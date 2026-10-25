@@ -508,7 +508,7 @@
 .board-full .btn-die { inline-size: 24px; block-size: 24px; }
 /* 14.4 item 7: the bubble shows 3 lines (2 when compact); the fox re-opens the whole message, and every line is also in the log */
 .board-full .fox-strip .fox-bubble:not(.note-explain) .note-text { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; overflow: hidden; }
-.board-full[data-hud="compact"] .fox-strip .fox-bubble:not(.note-explain) .note-text { -webkit-line-clamp: 2; line-clamp: 2; }
+.board-full[data-hud="compact"] .fox-strip .fox-bubble:not(.note-explain) .note-text { -webkit-line-clamp: 3; line-clamp: 3; } /* QA round 14: a hint keeps its amount in view */
 .board-full .fox-strip .status-chip { line-height: 1.35; max-block-size: calc(3 * 1.35em + 16px); }
 .board-full[data-hud="compact"] .fox-strip .status-chip { max-block-size: calc(2 * 1.35em + 16px); }
 
@@ -575,3 +575,33 @@
 .payday-pop .pp-caption { margin: 6px 0 0; text-align: center; font-size: .75rem; color: var(--text-muted); }
 .st-payday .eq { margin-block: 6px 0; }
 @media (max-height: 640px) { .payday-pop .eq-months { display: none; } }
+/* QA round 14 P1: the HUD top as a grid. Row 1: avatar · name / turn · buttons; row 2 (beside the avatar, full width): coin,
+   "מזומן" and the cash. The wrap grows into the row and never clips the number (fitText shrinks it only as a last resort). */
+.board-full .hud-top { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "av id btns" "av cash cash"; column-gap: 8px; row-gap: 0; align-items: center; }
+.board-full .hud-top > .hud-avatar { grid-area: av; align-self: center; }
+.board-full .hud-top > .hud-id { grid-area: id; overflow: hidden; }
+.board-full .hud-top > .hud-btns { grid-area: btns; }
+.board-full .hud-top > .hud-cash { grid-area: cash; min-inline-size: 0; margin-block-start: -4px; }
+.board-full .hud .cash-col { flex: 1 1 auto; min-inline-size: 0; }
+.board-full .hud .cash-col .cash-wrap { flex: 1 1 auto; min-inline-size: 0; overflow: hidden; }
+.board-full[data-hud="compact"] .hud[data-goal-cap="short"] .meter-labels { display: none; }
+/* QA round 14 P2-4: the legend fits its 7 rows at 360x800 (tighter rows, taller sheet); the 3D tile art as on the board */
+.legend-sheet { max-block-size: 88dvh; }
+.legend-scroll { gap: 8px; }
+.legend-group { gap: 2px; }
+.legend-list { gap: 2px; }
+.legend-row { gap: 10px; min-block-size: 50px; }
+.legend-tile3d { flex: none; display: grid; place-items: center; inline-size: 40px; block-size: 48px; }
+.legend-tile3d img { inline-size: 40px; block-size: 48px; object-fit: contain; }
+.legend-line { font-size: .8125rem; line-height: 1.3; }
+.legend-scroll:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: -3px; }
+/* QA round 14 P3-9: the goal caption is never gold (gold = action); the flag takes the income ink */
+.board-full .hud .goal-cap, .board-full .hud .goal-cap-text { color: var(--text-soft); }
+.board-full .hud .goal-flag { color: var(--income); }
+.legend-scroll[data-more="true"] { -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent); }
+
+/* QA round 14: a board hint ring (fx layer) never draws over the family "בכל חודש" popover */
+:root[data-flow-pop] .hint-ring { visibility: hidden; }
+/* QA round 14 (restored bubble vs status check): a bubble is capped to its fox row and scrolls inside, never over the status */
+.board-full .fox-strip .note:not(.note-explain) { inset-block: 0; align-items: flex-end; }
+.board-full .fox-strip .note:not(.note-explain) .note-bubble { max-block-size: 100%; overflow: auto; }

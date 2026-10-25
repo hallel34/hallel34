@@ -147,7 +147,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   // v4 (3-second HUD): the word 'מזומן' sits above the number in both modes (12/500 muted)
   const cashLabel = h('span', { class: 'cash-label cap-short', 'aria-hidden': 'true' }, t('game.cash'));
   if (cashUi) cashWrap.addEventListener('click', () => { if (getComputedStyle(cashCap).display === 'none') toast(cashUi.cashTooltip, 3500); });
-  fitText(cash.el, { minScale: 0.5, box: cashWrap }); // very narrow screens (320px): a long amount shrinks to fit instead of overflowing
+  fitText(cash.el, { minScale: 0.4, box: cashWrap }); // very narrow screens (320px): a long amount shrinks to fit instead of overflowing
   const passiveVal = h('b', { class: 'tone-income' });
   const expenseVal = h('b', { class: 'tone-expense' });
   const m = meter();
@@ -170,11 +170,13 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     h('div', { class: 'hud-top' },
       h('div', { class: 'hud-avatar' }, avatar, babies), // kids: a small badge on the avatar, so the text column keeps all its width
       h('div', { class: 'hud-id' },
-        h('div', { class: 'hud-idline' }, hudProf, h('span', { class: 'hud-sub' }, profEl, turnEl)),
-        h('div', { class: 'hud-cash' },
-          h('img', { class: 'hud-coin', src: coinUrl, alt: '', width: 20, height: 20 }),
-          h('div', { class: 'cash-col' }, cashLabel, cashWrap))),
-      h('div', { class: 'hud-btns' }, stmtBtn, homeBtn)),
+        h('div', { class: 'hud-idline' }, hudProf, h('span', { class: 'hud-sub' }, profEl, turnEl))),
+      h('div', { class: 'hud-btns' }, stmtBtn, homeBtn),
+      // QA round 14 P1: the cash has its own row under the name and the buttons (the full width beside the avatar), so the ₪ sign,
+      // every digit and a minus sign always show (up to -₪99,999 / ₪9,999,999 at 320); fitText shrinks it as the last resort
+      h('div', { class: 'hud-cash' },
+        h('img', { class: 'hud-coin', src: coinUrl, alt: '', width: 20, height: 20 }),
+        h('div', { class: 'cash-col' }, cashLabel, cashWrap))),
     cashCap,
     goalLine,
     goalCap,
@@ -214,7 +216,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   const hereLine = h('p', { class: 'here-line', 'data-here': '' }, hereIcon, hereText);
   // the landing caption: icon + full label, shown at every landing before the card opens
   const landCap = h('div', { class: 'land-cap', 'aria-hidden': 'true', hidden: true });
-  const legendBtn = h('button', { type: 'button', class: 'icon-btn legend-btn', 'aria-label': t('legend.open'), 'aria-haspopup': 'dialog', 'data-action': 'legend', onClick: () => { haptic('tap'); openLegend(); } },
+  const legendBtn = h('button', { type: 'button', class: 'icon-btn legend-btn', 'aria-label': t('legend.open'), 'aria-haspopup': 'dialog', 'data-action': 'legend', onClick: () => { haptic('tap'); openLegend({ mode: state.mode }); } },
     h('span', { class: 'legend-q', 'aria-hidden': 'true' }, '?'));
   // Hot-seat: compact strip with the other players (tap to expand into a panel over the board, never over the roll button).
   const othersCells = h('span', { class: 'os-cells' }); // each cell starts with a visually hidden player name, so the button's name contains its visible text
@@ -246,12 +248,9 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     zone,
     onReopen: () => { haptic('tap'); if (!flow?.notes.reopen()) guide.react('think', 900); },
     // a strip too short for the fox: the fox hides and the bubble lines go to the status line
-    onCompact: (on) => {
-      el.dataset.foxCompact = String(on);
-      const it = on ? flow?.notes.currentItem : null;
-      const text = it && it.kind !== 'explain' ? (it.plain ?? (typeof it.body === 'string' ? it.body : '')) : '';
-      if (text) setStatus(text);
-    },
+    // board-spec 14: the plaza fox is always shown (56px when compact), so the bubble is always visible and the status line keeps the
+    // next action (QA round 14 P2-5: the bubble text never replaces it)
+    onCompact: (on) => { el.dataset.foxCompact = String(on); },
   });
   zone.prepend(guide.el);
   // The bubble takes the strip while it is shown; the pose that was wanted meanwhile returns after it.
@@ -267,8 +266,6 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     onShown: (item) => {
       guide.setBase(item.kind === 'tip' ? 'think' : item.pose);
       zone.dataset.pose = item.kind === 'tip' ? 'tip' : 'note';
-      // compact strip (no room for the fox, spec 7.4 / 13.2): the line goes to the plaza status line, so it is never lost
-      if (guide.compact && item.kind !== 'explain') { const text = item.plain ?? (typeof item.body === 'string' ? item.body : ''); if (text) setStatus(text); }
     },
     onActive: (on) => {
       if (on === noteShown) return;
@@ -381,7 +378,8 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     return {
       render: (amount) => {
         const lt = loanTerms(amount, loanRateNow(state));
-        const slots = { amount: money(amount), monthlyPayment: money(lt.monthly), perSummary: money(lt.perPayday) };
+        // the live rate (a cheap-loan card halves it): "per ₪1,000" is computed, never typed (QA round 14 P3-2)
+        const slots = { amount: money(amount), monthlyPayment: money(lt.monthly), perSummary: money(lt.perPayday), perThousand: money(loanTerms(1000, loanRateNow(state)).monthly) };
         return { body: fillNodes(def.text, slots), more: fillNodes(def.more, slots) };
       },
     };
@@ -421,15 +419,16 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   // board-spec 14.2: the 6x8 ring fills the screen. JS sets --tile-c (width-bound, clamped 40-60) and the side-column row gap
   // --tile-gap-v (the spare height of a tall phone goes there, capped at c/2; leftover goes above the plate). Height-bound
   // (split screen / landscape): a smaller cell with the 4px gap. Below c = 40 the plate scales down as a whole, never scrolls.
-  const fitBoard = (W, H, safeT, safeB) => {
-    const hudH = H - safeT - safeB >= 700 ? 120 : 96;
+  const fitBoard = (W, H, safeT, safeB, measured = 0) => {
+    const nominal = H - safeT - safeB >= 700 ? 120 : 96;
+    const hudH = Math.max(nominal, measured); // the live HUD height (the cash row, the first-game goal line) when it is taller
     let c = Math.max(40, Math.min(60, Math.floor((Math.min(W, 430) - 16 - 12 - 20) / 6)));
     const padTop = (x) => 6 + Math.round(0.375 * x);
     const avail = H - safeT - hudH - 8 - safeB - 6;
     let gv = (avail - padTop(c) - 6 - 8 * c) / 7;
     if (gv < 4) { c = Math.floor((avail - padTop(c) - 6 - 28) / 8); gv = 4; }
     gv = Math.max(4, Math.min(Math.floor(gv), Math.round(0.5 * c)));
-    return { c, gv, hud: hudH, scale: c < 40 ? Math.max(0.5, c / 40) : 1, cell: Math.max(40, c) };
+    return { c, gv, hud: nominal, scale: c < 40 ? Math.max(0.5, c / 40) : 1, cell: Math.max(40, c) };
   };
   function sizeBoard() {
     if (destroyed) return;
@@ -437,12 +436,15 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     const safeT = Math.max(parseFloat(cs.paddingBlockStart) || 10, 6);
     const safeB = Math.max(parseFloat(cs.paddingBlockEnd) || 16, 8);
     const H = globalThis.visualViewport?.height || innerHeight;
-    const f = fitBoard(innerWidth, H, safeT, safeB);
+    const f = fitBoard(innerWidth, H, safeT, safeB, hud.offsetHeight || 0);
     el.style.setProperty('--tile-c', `${f.cell}px`);
     el.style.setProperty('--tile-gap-v', `${f.gv}px`);
     el.style.setProperty('--board-scale', String(f.scale));
     el.style.setProperty('--pad-top', `${6 + Math.round(0.375 * f.cell)}px`);
-    el.dataset.hud = f.hud === 96 ? 'compact' : 'slim';
+    const hudMode = f.hud === 96 ? 'compact' : 'slim';
+    const changed = el.dataset.hud && el.dataset.hud !== hudMode;
+    el.dataset.hud = hudMode;
+    if (changed) refreshHud(); // the goal caption form follows the bar
     if (f.cell < 50) el.dataset.small = ''; else delete el.dataset.small;
   }
   sizeBoard();
@@ -466,7 +468,9 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     flow.notes.push({ kind: 'tip', body: text, plain: text, pose: 'think' });
   }
   // Tap anywhere else closes the bubble (the roll button still works on the same tap); the fox itself re-opens the last one.
-  el.addEventListener('pointerdown', (e) => { if (!e.target.closest?.('.note, .fox-guide')) flow.notes.dismiss(); });
+  // A tap that opens a sheet (HUD buttons, the legend, a chip with a popover) keeps the bubble: it pauses under the sheet and
+  // its timer restarts when the sheet closes (spec 7.3, QA round 14 P2-2)
+  el.addEventListener('pointerdown', (e) => { if (!e.target.closest?.('.note, .fox-guide, .hud, [aria-haspopup], .payday-chip, .flow-chip')) flow.notes.dismiss(); });
 
   /** Lays out every pawn on one tile: a lone pawn is centred, shared tiles spread them out. */
   function layoutTile(tile) {
@@ -590,7 +594,8 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     meterPct.replaceChildren(tn('hud.progress', { pct: h('b', { class: 'meter-pct-num', dir: 'ltr' }, `${pct}%`) }));
     // the goal caption: hidden while the first-game family goal line says it; the smallest screens get the one-line figures
     const tutorialGoal = famHud ? !goalLine.hidden : false;
-    const tiny = mqMin?.matches ?? false;
+    // the smallest screens and the compact top bar (board-spec 14.3) show the one-line figures "המטרה: ₪0 מתוך ₪X" (QA round 14 P2-9)
+    const tiny = (mqMin?.matches ?? false) || el.dataset.hud === 'compact';
     goalCap.hidden = tutorialGoal;
     hud.dataset.goalCap = tutorialGoal ? 'tutorial' : tiny ? 'short' : 'long';
     if (tiny) goalCapText.replaceChildren(tn('hud.goalShort', { passive: money(st.passiveIncome), expenses: money(st.totalExpenses) }));
@@ -739,7 +744,9 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     syncCash();
     if (said.length) flow.feedback(said);
     // the milestone celebration queues AFTER the note about the decision that reached it
-    for (const ev of state.events) if (ev.type === 'milestone') celebrateMilestone(ev.pct);
+    // two milestones in one move: only the higher one is celebrated (QA round 14 P3-4); both stay recorded in the save
+    const reached = state.events.filter((ev) => ev.type === 'milestone').map((ev) => ev.pct);
+    if (reached.length) celebrateMilestone(Math.max(...reached));
     // Passive-income milestones: 25 / 50% come from the engine (once per game, above); 75% keeps the short log line per crossing.
     const st = statement(state);
     const pct = st.totalExpenses > 0 ? st.passiveIncome / st.totalExpenses : 0;
@@ -894,7 +901,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   let handingOver = false;
   /**
    * The ONE-TAP hand-over: the turn is resolved, so the sheet appears at once (no 'המשיכו' first). It shows the recap and one
-   * primary button 'זרקו קובייה, <name>'; the tap closes the sheet and rolls for that player right away.
+   * primary button 'הטילו קובייה, <name>'; the tap closes the sheet and rolls for that player right away.
    * `recap` null = nothing just happened (a fresh match, a resume between turns).
    */
   async function handoverAndRoll({ recap = null, extra = null } = {}) {
@@ -1188,6 +1195,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     clearTimeout(liveTimer);
     document.removeEventListener('visibilitychange', onHidden);
     removeEventListener('resize', sizeBoard);
+    document.documentElement.removeAttribute('data-flow-pop');
     famHud?.destroy();
     mqShort?.removeEventListener?.('change', refreshHud);
     mqMin?.removeEventListener?.('change', refreshHud);

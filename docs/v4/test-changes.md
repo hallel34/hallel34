@@ -113,3 +113,19 @@ Same rule. New file `tests/v4-stage4.test.js` only adds checks (decision cards, 
 | tests/e2e/smoke.mjs | B2: the payday float stays under the HUD and inside the viewport | float top >= HUD bottom | float inside `.board-center` (and still not over HUD text) | Owner item 2 |
 | tests/e2e/smoke.mjs | B1 / N3: chip amounts in <bdi>; "log shows the maths" in the roll-zone chip | the chip text holds `סיכום שנתי`, `× 12`, `=` | the chip is the payday chip (variant a/b/c, amount in <bdi>, 48px); its tap opens the stacked equation (months, ×, =); the status line holds the one-line maths | Owner item 2 |
 | tests/e2e/smoke.mjs | hiddenFigures() (L6 on screen) | every unpublished real-world percent is hidden | minus the rates real-world-verified.json marks VERIFIED (fractions only, e.g. 50%, 2.5%, 2%) and the guide figure published with its verified tag (3.25%) | Stage 4.3 (the real-world surfaces show official 2026 figures) + owner item 3 |
+
+## QA round 14 fixes (developer, 2026-10-25)
+
+Same rule; the QA fixes the CEO approved force these. New checks only add coverage.
+
+| File | Test | Old | New | Why |
+|---|---|---|---|---|
+| tests/e2e/smoke.mjs | start: one accessible h1 "MaxiFox" with the logo | logo width === 200 | logo visible and 120-200px wide (+ the restored "no mouse mascot" check on start) | QA P2-6: the logo is sized to the screen height by design (166px at 360x640); 120px is its minimum size (fox-usage.md) |
+| tests/e2e/smoke.mjs | hiddenFigures() / noHiddenFigures() | a percent equal to any VERIFIED rate was exempt anywhere on screen | hidden figures are never allowed outside the tagged surfaces (`.audit-reveal`, `#st-tax-pop`, `.dict-rw-entry`); inside them only the VERIFIED / tagged ones are | QA test review: restore the guard (2.5% etc. are guarded again outside their tagged place) |
+| tests/e2e/smoke.mjs | reactionStripClear | host vs HUD / tiles / die / roll | also host vs the status line, bubble vs the status line, bubble vs the roll button | QA test review: restore the bubble vs status coverage lost with board-spec 14 |
+| tests/e2e/smoke.mjs | (new) testHudCash | - | ₪158,420 / ₪1,234,560 / ₪9,999,999 / -₪99,999 at 320x568, 360x800, 390x844: the number is inside its box, nothing scrolls, the text is complete | QA P1 |
+| tests/e2e/smoke.mjs | (new) testMilestoneFastRoll | - | the 25% milestone bubble with its badge shows even when the player rolls at once | QA P2-3 |
+| tests/e2e/smoke.mjs | hot-seat sheet names the next roller | `זרקו קובייה, Bob` | `הטילו קובייה, Bob` | QA P3-6: one verb with the board's roll button |
+| tests/tutorial.test.js | one-tap hand-over strings | `players.rollFor` = `זרקו קובייה, {name}` | `הטילו קובייה, {name}` | same |
+| tests/kid-vocabulary.test.js | HE_GROUPS | no `statement` group | `statement` scanned too (the family overrides cover it) | QA P2-7 |
+| tests/e2e/smoke.mjs | N4: the statement has the assets / liabilities / net worth panel | `שווי נקי`, `סך התחייבויות` in every mode | family: `כמה יש לכם בסך הכול`, `סך החובות`; full unchanged | QA P2-7: the family statement uses the kid words |

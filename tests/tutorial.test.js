@@ -341,7 +341,7 @@ describe('one-tap hand-over (hot-seat)', () => {
     expect(modals).toContain('if (tapped) return;'); // double taps; taps while the sheet is still arming hit a real `disabled` (arm())
     expect(modals).not.toContain('players.ready');
     const he = JSON.parse(read('src/i18n/he.json'));
-    expect(he.players.rollFor).toBe('זרקו קובייה, {name}');
+    expect(he.players.rollFor).toBe('הטילו קובייה, {name}'); // QA round 14 P3-6: one verb with the board's roll button
   });
   it('the board still has 24 squares (the hand-over changes no rule)', () => { expect(BOARD).toHaveLength(24); });
 });

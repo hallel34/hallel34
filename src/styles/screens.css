@@ -459,7 +459,7 @@
 }
 /* very short phones (320x568): the daily card needs its room, so the tagline gives way and the hero tightens */
 @media (max-height: 600px) {
-  .screen-start .tagline { display: none; }
+  .screen-start .tagline { font-size: .8125rem; line-height: 1.3; margin-block-start: 0; } /* QA round 14 P3-7: the tagline stays at 320x568 */
   .screen-start .brand-logo { --logo-w: 132px; }
   .daily-streak { display: none; }
   .screen-daily { gap: 8px; padding-block-end: max(12px, env(safe-area-inset-bottom)); }

@@ -69,6 +69,7 @@ export function createFamilyHud({ hud, chip, goalLine, freeLine }) {
     open = want;
     chip.setAttribute('aria-expanded', String(open));
     chip.classList.toggle('is-open', open);
+    document.documentElement.toggleAttribute('data-flow-pop', open); // hides a board hint ring while the popover is up
     if (open) {
       pop = build(last);
       hud.append(pop);

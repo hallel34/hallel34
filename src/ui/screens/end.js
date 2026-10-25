@@ -45,8 +45,14 @@ export function createWin({ match, onAgain, onMenu }) {
     // the Web Share API when there is one; otherwise (or when it fails) the clipboard, then a toast says what happened
     const r = await shareText(text, { title: t('app.title') });
     if (r === 'copied') toast(t('win.copied'));
-    else if (r === 'failed') toast(t('win.copyFailed'));
+    else if (r === 'failed') {
+      // QA round 14 P2-8: like the daily result, a failed copy leaves the text in a box the player can select and copy by hand
+      toast(t('win.copyFailed'));
+      shareBox.hidden = false; shareBox.focus({ preventScroll: true }); shareBox.select(); shareBox.scrollIntoView?.({ block: 'nearest' });
+    }
   };
+  const shareBox = h('textarea', { class: 'daily-sharebox win-sharebox', readonly: '', hidden: true, rows: 3, 'aria-label': t('daily.shareBox'), 'data-sharebox': '' });
+  shareBox.value = text.replace(/[\u2066-\u2069]/g, '');
   const hammock = foxImg('hammock', { height: 250, altKey: 'fox.alt.hammock', cls: 'hammock', lazy: true });
   const winFox = h('div', { class: 'win-fox' }, h('div', { class: 'fox-halo fox-halo-win', 'aria-hidden': 'true' }), hammock, h('i', { class: 'glint', 'aria-hidden': 'true' }));
   const el = h('section', { class: 'screen screen-win', 'data-screen': 'win' },
@@ -66,7 +72,7 @@ export function createWin({ match, onAgain, onMenu }) {
     h('div', { class: 'end-actions' },
       button(t('win.again'), { variant: 'primary', size: 'lg', 'data-action': 'again', 'data-autofocus': '', onClick: onAgain }),
       h('div', { class: 'end-row' }, reportButton(match), button(t('win.change'), { variant: 'secondary', 'data-action': 'menu', onClick: onMenu })),
-      button(t('win.share'), { variant: 'text', cls: 'btn-share', 'data-action': 'share', onClick: share })));
+      button(t('win.share'), { variant: 'text', cls: 'btn-share', 'data-action': 'share', onClick: share }), shareBox));
   return {
     el,
     start() {
