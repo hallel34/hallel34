@@ -72,6 +72,12 @@ const LEARN_OBSERVER = () => {
             hitRoll: hit(me, box('.btn-roll')), hitHud: hit(me, box('.hud')), hitDice: hit(me, box('.dice')), hitStatus: hit(me, box('.board-status')),
             hitHere: hit(me, box('.here-line')), hitTiles: tiles.some((t) => hit(me, t)), hitFox: !!fb && hit(me, { l: fb.left, t: fb.top, r: fb.right, b: fb.bottom }),
             size: `${innerWidth}x${innerHeight}`,
+            // QA round 16: a clamped text must offer "עוד" (visible, inside the note)
+            clamped: (() => { const tx = n.querySelector('.note-text'); return !!tx && tx.scrollHeight > tx.clientHeight + 1; })(),
+            hasMore: [...n.querySelectorAll('[data-action="note-more"], [data-action="explain-more"]')].some((x) => x.getClientRects().length > 0),
+            badgeClipped: (() => { const bc = n.querySelector('.badge-chip'); const bb = n.querySelector('.note-bubble'); if (!bc || !bb) return false; const a = bc.getBoundingClientRect(); const c = bb.getBoundingClientRect(); return a.top < c.top - 0.5 || a.bottom > c.bottom + 0.5 || a.left < c.left - 0.5 || a.right > c.right + 0.5; })(),
+            bubbleW: Math.round(n.querySelector('.note-bubble')?.getBoundingClientRect().width || 0),
+            group0: n.dataset.group || null,
             inViewport: me.l >= 0 && me.r <= innerWidth + 0.5 && me.b <= innerHeight + 0.5 && me.t >= 0,
           };
           window.__learnLog.push(entry);
@@ -1315,6 +1321,46 @@ async function testMilestoneFastRoll(browser) {
 function noteGeometryCheck(log, label) {
   const bad = log.filter((x) => x.hitRoll || x.hitHud || x.hitDice || x.hitStatus || x.hitHere || x.hitTiles || x.hitFox || !x.inViewport);
   check(log.length > 0 && bad.length === 0, `notes never cover the HUD, tiles, die, status, "you are here", fox or CTA on ${label} (${log.length} notes: ${[...new Set(log.map((x) => x.kind))].join('/')})${bad.length ? ` ${JSON.stringify(bad.slice(0, 2))}` : ''}`);
+  // QA round 16: never truncated without a way to read all of it; the milestone badge is never clipped; no 1-2-word columns
+  const cut = log.filter((x) => (x.clamped && !x.hasMore) || x.badgeClipped);
+  check(cut.length === 0, `notes are never cut without "עוד", badges never clipped, on ${label}${cut.length ? ` ${JSON.stringify(cut.slice(0, 2))}` : ''}`);
+  const narrow = log.filter((x) => x.group0 !== 'hello' && x.bubbleW > 0 && x.bubbleW < 160);
+  check(narrow.length === 0, `no content note is narrower than 160px on ${label}${narrow.length ? ` ${JSON.stringify(narrow.slice(0, 2))}` : ''}`);
+}
+/** QA round 16: when a note is clamped, its "עוד" really shows the full text (a note: in place; the explainer: its dictionary entry). */
+async function moreOpensFull(page, label, tested) {
+  const info = await page.evaluate(() => {
+    const n = document.querySelector('.fox-strip .note'); if (!n) return null;
+    const tx = n.querySelector('.note-text');
+    return { kind: n.dataset.note, clamped: !!tx && tx.scrollHeight > tx.clientHeight + 1, text: tx?.textContent.trim() || '' };
+  });
+  if (!info || !info.clamped || tested.has(info.kind)) return;
+  tested.add(info.kind);
+  if (info.kind === 'explain') {
+    await page.locator('.fox-strip .note [data-action="explain-more"]').click({ timeout: 2000 }).catch(() => {});
+    await page.waitForTimeout(500);
+    const ok = await page.evaluate((t) => { const d = document.querySelector('#modal-root .layer:last-child .dict-detail'); return !!d && d.textContent.replace(/\s+/g, ' ').includes(t.replace(/\s+/g, ' ').slice(0, 40)); }, info.text);
+    check(ok, `explainer "עוד" opens the full entry (${label})`);
+    await page.keyboard.press('Escape').catch(() => {});
+    await page.waitForTimeout(300);
+    for (let i = 0; i < 3 && await page.locator('#modal-root .layer').count(); i++) {
+      await page.locator('#modal-root .layer:last-child [data-action="close"], #modal-root .layer:last-child .sheet-close').first().click({ timeout: 1000 }).catch(() => {});
+      await page.waitForTimeout(250);
+    }
+    return;
+  }
+  await page.locator('.fox-strip .note [data-action="note-more"]').click({ timeout: 2000 }).catch(() => {});
+  await page.waitForTimeout(250);
+  const r = await page.evaluate(() => {
+    const n = document.querySelector('.fox-strip .note'); const tx = n?.querySelector('.note-text'); if (!tx) return null;
+    const box = (s) => { const e = document.querySelector(s); if (!e || !e.getClientRects().length) return null; const b = e.getBoundingClientRect(); return b; };
+    const hit = (a, b) => !!(a && b && a.left < b.right - 0.5 && a.right > b.left + 0.5 && a.top < b.bottom - 0.5 && a.bottom > b.top + 0.5);
+    const bb = n.querySelector('.note-bubble').getBoundingClientRect();
+    const full = tx.scrollHeight <= tx.clientHeight + 1;
+    const fits = tx.scrollHeight <= n.querySelector('.note-bubble').clientHeight || n.querySelector('.note-bubble').scrollHeight > n.querySelector('.note-bubble').clientHeight; // all of it, or it scrolls
+    return { full, fits, status: hit(bb, box('.board-status')), roll: hit(bb, box('.btn-roll')), hud: hit(bb, box('.hud')) };
+  });
+  check(!!r && r.full && r.fits && !r.status && !r.roll && !r.hud, `${info.kind} "עוד" shows the whole text, still clear of the status, CTA and HUD (${label}) ${JSON.stringify(r)}`);
 }
 async function testNotesAtSizes(browser) {
   for (const [w, hgt] of [[390, 844], [320, 568]]) {
@@ -1322,7 +1368,9 @@ async function testNotesAtSizes(browser) {
     const page = await ctx.newPage();
     await page.addInitScript(LEARN_OBSERVER);
     await page.goto(`${URL_BASE}?seed=11`);
-    await page.evaluate(() => { localStorage.setItem('passivo.seenIntro', '1'); localStorage.setItem('passivo.tutorial', JSON.stringify({ storyDone: true, helpOn: false, hintsSeen: {}, quizDone: true })); });
+    // QA round 16: the family smoke plays this run with the tutorial help on, so hints show at 390 and 320 too
+    const help = MODE === 'family';
+    await page.evaluate((helpOn) => { localStorage.setItem('passivo.seenIntro', '1'); localStorage.setItem('passivo.tutorial', JSON.stringify({ storyDone: true, helpOn, hintsSeen: {}, quizDone: true })); }, help);
     await page.goto(`${URL_BASE}?seed=11`);
     await page.locator(`[data-mode="${MODE}"]`).click();
     await page.locator('[data-action="start"]').click();
@@ -1330,18 +1378,49 @@ async function testNotesAtSizes(browser) {
     await page.locator('.prof-card[data-prof="engineer"]').click();
     await page.locator('[data-action="go"]').click();
     await page.waitForSelector('[data-screen="board"]');
-    for (let k = 0; k < 120; k++) {
-      const kinds = await page.evaluate(() => new Set((window.__learnLog || []).map((x) => x.kind)).size);
+    const tested = new Set();
+    for (let k = 0; k < 160; k++) {
+      const kinds = await page.evaluate(() => [...new Set((window.__learnLog || []).map((x) => x.kind))]);
       const turn = Number(await page.evaluate(() => document.querySelector('.screen-board')?.dataset.turn || 0));
-      if (turn >= 6 && kinds >= 2) break;
+      if (turn >= 6 && kinds.length >= 2 && (!help || kinds.includes('hint'))) break;
+      await moreOpensFull(page, `${w}x${hgt}`, tested);
       const d = await page.evaluate(decide, 'sensible');
       if (d.click) await page.locator(d.click).first().click({ timeout: 2000 }).catch(() => {});
       await page.waitForTimeout(d.click === '[data-action="roll"]' ? 700 : 120);
     }
     await page.waitForTimeout(600);
-    noteGeometryCheck(await page.evaluate(() => window.__learnLog || []), `${w}x${hgt}`);
+    // a forced 25% milestone (crafted save, as in testMilestoneFastRoll); the page reloads, so the log so far is kept here
+    const before = await page.evaluate(() => window.__learnLog || []);
+    await forceMilestone(page);
+    let ms = false;
+    for (let k = 0; k < 60 && !ms; k++) {
+      ms = await page.evaluate(() => !!document.querySelector('.note-milestone .badge-chip'));
+      if (ms) { await page.waitForTimeout(500); await moreOpensFull(page, `${w}x${hgt}`, tested); break; }
+      const btn = page.locator('#modal-root .layer:last-child').locator('[data-action="pass"], [data-action="summary-ok"], [data-action="ok"], [data-action="skip"], [data-action="decline"], [data-action="pay"]').first();
+      if (await btn.count()) await btn.click({ timeout: 2000 }).catch(() => {});
+      await page.waitForTimeout(250);
+    }
+    const log = [...before, ...await page.evaluate(() => window.__learnLog || [])];
+    const kinds = new Set(log.map((x) => x.kind));
+    check(kinds.has('milestone') && (!help || kinds.has('hint')), `${w}x${hgt}: the run saw ${help ? 'hints and ' : ''}a milestone (${[...kinds].join('/')})`);
+    noteGeometryCheck(log, `${w}x${hgt}`);
     await ctx.close();
   }
+}
+async function forceMilestone(page) {
+  const engine = learnEngine();
+  await page.evaluate(() => localStorage.setItem('passivo.prefs', JSON.stringify({ guessFamily: false, guessFull: false, explain: false })));
+  const base = matchWithCard(engine, 'family', 'dec-001', { cash: 200000 });
+  const exp = currentState(base).profession.expenses.reduce((a, e) => a + e.amount, 0) + currentState(base).liabilities.reduce((a, l) => a + l.monthlyPayment, 0);
+  const own = [{ id: 'asset-m', cardId: 'opp-biz-002', type: 'business', title: 'x', price: 160000, downPayment: 80000, mortgage: 80000, monthlyCashFlow: Math.ceil(exp * 0.25) - 1800 + 20, profit: 3200, loanPayment: 1400 }];
+  const m = { ...base, players: base.players.map((p) => ({ ...p, state: { ...p.state, assets: own } })) };
+  await page.evaluate((json) => localStorage.setItem('passivo.save', json), serialize(m));
+  await page.goto(`${URL_BASE}?seed=3`);
+  await page.locator('[data-action="resume"]').click();
+  await page.waitForSelector('.card[data-decision]');
+  await page.waitForTimeout(400);
+  await page.locator('.card-actions [data-option="A"]').click();
+  await page.waitForSelector('#modal-root .layer', { state: 'detached' });
 }
 
 async function main() {

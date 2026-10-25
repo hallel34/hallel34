@@ -140,3 +140,15 @@ Same rule. The only existing test whose logic changed is the kid-vocabulary scan
 | tests/e2e/smoke.mjs | (new) testNotesAtSizes | - | the same check at 390x844 and 320x568 (seed 11, the smoke's mode, at least 2 note kinds and 6 turns) | same |
 | tests/kid-vocabulary.test.js | locale scan | every key matching FULL_ONLY was skipped (statement.netWorthTitle too) | a FULL_ONLY key is scanned when it has a family override (what tRaw() returns in family mode) | QA round 15: the FULL_ONLY gap |
 | tests/round15.test.js | (new) | - | the loan window's real-world row is filled from the live rate (normal and the cheap-loan rate, both modes); the raw texts hold slots, not figures; the netWorthTitle override exists | QA P3-2 residual |
+
+## QA round 16 fixes (developer, 2026-10-25)
+
+Same rule. Coverage only grows, and no existing assertion was loosened.
+
+| File | Test | Old | New | Why |
+|---|---|---|---|---|
+| tests/e2e/smoke.mjs | LEARN_OBSERVER entry | geometry only | also `clamped` (`.note-text` scrollHeight > clientHeight), `hasMore` (a visible "עוד"), `badgeClipped`, `bubbleW` | QA round 16 P3-c |
+| tests/e2e/smoke.mjs | noteGeometryCheck | overlap only | also: a clamped note must have "עוד"; the milestone badge is never clipped; no content note is narrower than 160px (the greeting is exempt) | QA round 16 P1 |
+| tests/e2e/smoke.mjs | (new) moreOpensFull | - | the first clamped note of each kind: its "עוד" shows the whole text (a note: in place, no clamp, still clear of the status, CTA and HUD; the explainer: its dictionary entry) | same |
+| tests/e2e/smoke.mjs | testNotesAtSizes (390x844, 320x568) | the smoke's mode, help off, no milestone | the family smoke turns the tutorial help on (hints), and every run ends with a forced 25% milestone (a crafted save, as in testMilestoneFastRoll). It checks that hints (family) and a milestone were seen, and keeps the log across the reload | QA round 16 P3-c |
+| tests/round16.test.js | (new) | - | the cheap-loan text of the loan window's real-world row drops "במכוון" and keeps the live figures, in both modes | QA round 16 P3-b |
