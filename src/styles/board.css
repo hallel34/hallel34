@@ -605,3 +605,42 @@
 /* QA round 14 (restored bubble vs status check): a bubble is capped to its fox row and scrolls inside, never over the status */
 .board-full .fox-strip .note:not(.note-explain) { inset-block: 0; align-items: flex-end; }
 .board-full .fox-strip .note:not(.note-explain) .note-bubble { max-block-size: 100%; overflow: auto; }
+
+/* ==== QA round 15 P1: the "מקסי מסביר" explainer is a full-width panel inside the plaza, above the CTA ====
+   While it is open the plaza makes room for it: the top row (flow chip, "?") steps out, the spacers close, and the corner fox
+   steps aside (the panel names מקסי in its kicker), so the panel gets the plaza's full width and every pixel between the status
+   line and the CTA. It never covers the status line, the die or the CTA (board-spec 7.4); the roll button stays visible. */
+.board-full .board-center:has(.note-explain) .plaza-top { display: none; }
+.board-full .board-center:has(.note-explain) .plaza-spacer { flex: 0 0 0; }
+.board-full .board-center:has(.note-explain) .roll-zone { flex: 1 1 auto; min-block-size: 0; }
+.board-full .board-center:has(.note-explain) .fox-guide-host { display: none; }
+.board-full .board-center:has(.note-explain) .status-chip { display: none; }
+.screen-board.board-full:has(.note-explain) .board-actions { visibility: visible; }
+.board-full .fox-strip .note-explain, .board-full .fox-strip[data-compact="true"] .note-explain {
+  position: absolute; inset: 0; min-block-size: 0; display: flex; align-items: stretch; justify-content: flex-end; flex-direction: column;
+}
+.board-full .fox-strip .note-explain .note-bubble {
+  display: grid; grid-template-columns: minmax(0, 1fr); grid-template-areas: "head" "text" "actions";
+  align-content: end; gap: 2px; inline-size: 100%; max-inline-size: 100%; max-block-size: 100%; box-sizing: border-box;
+  padding: 6px 10px 6px; overflow: hidden; cursor: default;
+}
+.board-full .fox-strip .note-explain .note-bubble::after { display: none; }
+.board-full .fox-strip .note-explain .note-main { display: contents; }
+.board-full .fox-strip .note-explain .note-head { grid-area: head; min-inline-size: 0; font-size: .9375rem; flex-wrap: nowrap; }
+.board-full .fox-strip .note-explain .note-term { flex: none; }
+.board-full .fox-strip .note-explain .note-kicker { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-inline-size: 0; }
+.board-full .fox-strip .note-explain .note-text { grid-area: text; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; overflow: hidden; font-size: .8125rem; line-height: 1.35; }
+/* the "why" line lives in the dictionary entry ("עוד"): the panel keeps the definition and its two buttons */
+.board-full .fox-strip .note-explain .note-why { display: none; }
+.board-full .fox-strip .note-explain .note-actions { grid-area: actions; flex-direction: row; justify-content: flex-end; gap: 6px; }
+.board-full .fox-strip .note-explain .note-btn { min-block-size: 48px; min-inline-size: 64px; padding-inline: 12px; }
+/* "עוד" is a real, visible button (it was a faint text button): the same outline as "הבנתי" */
+.board-full .fox-strip .note-explain .note-btn.btn-text { border: 1px solid var(--glass-border); border-radius: 12px; color: var(--text); background: transparent; }
+.board-full[data-hud="compact"] .fox-strip .note-explain .note-text { -webkit-line-clamp: 2; line-clamp: 2; }
+@media (max-height: 600px) {
+  .board-full .fox-strip .note-explain .note-kicker { display: none; }
+  .board-full .fox-strip .note-explain .note-head { font-size: .875rem; }
+  .board-full .fox-strip .note-explain .note-text { font-size: .75rem; line-height: 1.3; }
+  /* the die steps down to 56px while the panel is open (it stays visible and uncovered) */
+  .board-full .board-center:has(.note-explain) .dice { --die: 56px; --die-half: 28px; }
+}
