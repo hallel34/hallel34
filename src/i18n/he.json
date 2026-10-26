@@ -1,5 +1,11 @@
 {
   "meta": { "name": "עברית", "lang": "he", "dir": "rtl", "numberLocale": "he-IL" },
+  "coins": {
+    "amount": { "one": "מטבע אחד", "other": "{n} מטבעות" },
+    "signed": { "one": "{num} מטבע", "other": "{num} מטבעות" },
+    "word": "מטבעות",
+    "perCoin": "כל מטבע = {value}"
+  },
   "app": {
     "title": "MaxiFox",
     "tagline": "הכסף עובד בשבילכם. אתם רק צריכים להתחיל.",
@@ -155,7 +161,15 @@
     "ready": "מוכנים",
     "rollFor": "הטילו קובייה, {name}",
     "recapTitle": "בתור של {name}",
-    "changeSettings": "שנו הגדרות"
+    "changeSettings": "שנו הגדרות",
+    "ageGroup": "הגיל של {name}",
+    "ageGroupSingle": "הגיל שלכם",
+    "ageUpTo10": "עד 10",
+    "age11to13": "11–13",
+    "age14plus": "14+",
+    "ageNote": "{perCoin}.",
+    "familySuggested": "עד גיל 14 מומלץ מצב משפחה, ועברנו אליו.",
+    "juniorOn": "משחק צעירים: מספרים עגולים, והכסף במטבעות."
   },
   "square": {
     "payday": "סיכום שנתי",
@@ -626,6 +640,7 @@
   },
   "taxAudit": {
     "logPoints": "ביקורת רשות המסים: {points} נקודות ידע",
+    "juniorRest": "משבצת רשות המסים: הפעם אין שאלה. ממשיכים!",
     "pointsLine": "נקודות ידע במשחק הזה: {points}",
     "linkA11y": "{name} (נפתח בחלון חדש)"
   },

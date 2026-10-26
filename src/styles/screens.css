@@ -198,7 +198,6 @@
 .board-actions { display: flex; gap: 12px; margin-block-start: auto; align-items: flex-start; }
 .btn-roll { flex: 1; min-block-size: var(--tap-min); font-size: 1.1875rem; }
 .btn-roll:disabled { opacity: var(--btn-disabled-opacity); }
-.btn-die { inline-size: 30px; block-size: 30px; flex: none; }
 
 /* ===== Win / Over ===== */
 .screen-win { background: var(--grad-sunburst); gap: var(--sp-4); padding-block-end: max(28px, env(safe-area-inset-bottom)); }
@@ -471,3 +470,19 @@
 /* the longest name ("מפתח/ת תוכנה") stays on one line in a 2-column card: 20px from 390, a little smaller below */
 @media (max-width: 389px) { .screen-pick .prof-name { font-size: 1.125rem; } }
 @media (max-width: 359px) { .screen-pick .prof-name { font-size: 1rem; } }
+
+/* ---- owner 2026-10-26: the age picker (players screen) ---- */
+.age-group { margin: 0; padding: 0; border: 0; min-inline-size: 0; display: flex; flex-direction: column; gap: 6px; }
+.age-legend { padding: 0; margin-block-end: 6px; font-size: .875rem; font-weight: var(--fw-bold); color: var(--text-muted); }
+.age-chips { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.age-chip { position: relative; display: grid; place-items: center; min-block-size: 56px; padding: 0 8px; border-radius: 16px;
+  border: 2px solid var(--glass-border); background: var(--surface-2); color: var(--text); font-size: 1.125rem; font-weight: var(--fw-black);
+  cursor: pointer; touch-action: manipulation; }
+.age-input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }
+.age-chip:has(.age-input:checked) { border-color: var(--c-gold-400, #F2B53A); background: color-mix(in srgb, var(--c-gold-400, #F2B53A) 22%, var(--surface-2)); }
+.age-chip:has(.age-input:focus-visible) { outline: 3px solid var(--focus-ring); outline-offset: 2px; }
+.age-chip-text { font-variant-numeric: tabular-nums; }
+.name-fields .age-group { margin-block-end: 6px; }
+.age-note { margin: 0; display: flex; flex-direction: column; gap: 4px; font-size: .875rem; line-height: 1.4; color: var(--text); }
+.age-note[hidden] { display: none; }
+.parent-coins { margin: 0 0 8px; font-weight: var(--fw-bold); }

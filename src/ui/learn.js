@@ -1,6 +1,7 @@
 // L1 in the UI: the glossary ('המילון של מקסי'), term buttons everywhere, and the record of what was explained.
 // One delegated click handler opens the dictionary for any <button class="term" data-term="...">.
 import { h } from './dom.js';
+import { coinScale, scaleTypedMoney } from './format.js';
 import { t } from '../i18n/index.js';
 import { openLayer } from './modal.js';
 import { icon } from './icons.js';
@@ -39,16 +40,21 @@ const section = (label, ...kids) => h('section', { class: 'dict-sec' }, h('h4', 
 export function conceptDetail(c) {
   const ui = glossaryUi();
   const slots = glossarySlots(c);
-  const facts = factsForConcept(c.id).map((f) => realWorldView(f));
+  // a junior game (coins): the real-world notes (2026 shekel figures) stay hidden; typed game figures read as coins, and a text
+  // whose figures are not whole coins has its own `junior` wording in the glossary file
+  const junior = coinScale();
+  const facts = junior ? [] : factsForConcept(c.id).map((f) => realWorldView(f));
+  const cx = (text) => scaleTypedMoney(text);
+  const exampleText = junior && c.junior?.exampleText ? c.junior.exampleText : c.example.text;
   return h('article', { class: 'dict-detail', 'data-concept': c.id },
     h('div', { class: 'dict-hero' },
       h('div', { class: 'dict-hero-text' }, h('p', { class: 'dict-kicker' }, ui.explainTitle), h('h3', { class: 'dict-term' }, termName(c.id)),
         hasKidName(c.id) ? h('p', { class: 'dict-pro', 'data-pro': c.id }, professionalWord(c.term)) : null),
       foxImg('tip', { height: 84, cls: 'dict-fox' })),
-    h('p', { class: 'dict-short' }, c.short),
-    section(ui.whyLabel, h('p', null, c.why)),
-    section(ui.exampleLabel, h('p', { class: 'dict-example' }, fillSlots(c.example.text, slots))),
-    c.gameSimplification ? section(ui.simplificationLabel, h('p', null, fillSlots(c.gameSimplification, slots))) : null,
+    h('p', { class: 'dict-short' }, cx(c.short)),
+    section(ui.whyLabel, h('p', null, cx(c.why))),
+    section(ui.exampleLabel, h('p', { class: 'dict-example' }, cx(fillSlots(exampleText, slots)))),
+    c.gameSimplification ? section(ui.simplificationLabel, h('p', null, cx(fillSlots(c.gameSimplification, slots)))) : null,
     facts.length
       ? section(ui.realWorldLabel, ...facts.map((f) => h('p', { 'data-fact': f.id }, f.real)), h('p', { class: 'rw-disclaimer' }, facts[0].disclaimer))
       : null);

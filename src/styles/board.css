@@ -505,7 +505,6 @@
 .board-full .board-actions { flex: none; inline-size: 100%; margin: 0; }
 .board-full .btn-roll { inline-size: 100%; min-block-size: 60px; font-size: 1.125rem; }
 .board-full[data-small] .btn-roll { min-block-size: 56px; }
-.board-full .btn-die { inline-size: 24px; block-size: 24px; }
 /* 14.4 item 7: the bubble shows 3 lines (2 when compact); the fox re-opens the whole message, and every line is also in the log */
 .board-full .fox-strip .fox-bubble:not(.note-explain) .note-text { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; overflow: hidden; }
 .board-full[data-hud="compact"] .fox-strip .fox-bubble:not(.note-explain) .note-text { -webkit-line-clamp: 3; line-clamp: 3; } /* QA round 14: a hint keeps its amount in view */

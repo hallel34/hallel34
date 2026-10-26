@@ -131,7 +131,12 @@ export function statTile(label, valueNode, { tone = '', big = false, tut = null,
 export function cashDisplay(initial, { sign = false } = {}) {
   const el = h('bdi', { class: 'money cash-num', dir: 'ltr' });
   // data-len lets CSS step the font size down for long amounts so the HUD row never overflows.
-  const paint = (x) => { setMoney(el, x, { sign }); el.dataset.len = String(moneyText(x, { sign }).length); };
+  const paint = (x) => {
+    setMoney(el, x, { sign });
+    // the length of what is SHOWN (sign, symbol or coin icon, digits): a coin amount is short even though its text says "מטבעות"
+    const part = (c) => el.querySelector(`:scope > .${c}`)?.textContent.length ?? 0;
+    el.dataset.len = String(el.classList.contains('is-coins') ? part('sgn') + 1 + part('num') : moneyText(x, { sign }).length);
+  };
   paint(initial);
   let shown = initial;
   return {

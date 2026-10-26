@@ -11,10 +11,16 @@ import { statement } from '../../engine/index.js';
 import { haptic } from '../fx.js';
 import { playerToken } from '../players.js';
 
-export function createPick({ engine, mode, onBack, onGo, player = null }) {
-  const professions = engine.data.professions;
+export function createPick({ engine, mode, onBack, onGo, player = null, junior = false }) {
+  // a junior game (owner 2026-10-26) starts from the profession on round rules: the pick shows THOSE numbers (in coins)
+  const start = (id) => engine.newGame({ mode, professionId: id, seed: 1, ...(junior ? { junior: true } : {}) });
+  const professions = engine.data.professions.map((p) => {
+    if (!junior) return p;
+    const s = start(p.id);
+    return { ...p, salary: s.profession.salary, perChild: s.profession.perChild, expenses: s.profession.expenses, savings: s.cash, liabilities: s.liabilities };
+  });
   // the grid and the preview sheet show the SAME numbers: one statement() per profession (loans included), computed once
-  const figures = Object.fromEntries(professions.map((p) => [p.id, statement(engine.newGame({ mode, professionId: p.id, seed: 1 }))]));
+  const figures = Object.fromEntries(professions.map((p) => [p.id, statement(start(p.id))]));
 
   function preview(p) {
     const scope = createTermScope();

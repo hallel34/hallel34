@@ -2,6 +2,7 @@
 // A term turns into a dashed-underline button (class .term, data-term=id, aria-haspopup=dialog) that opens
 // 'המילון של מקסי' (a delegated handler in ui/learn.js). Unknown ids, and terms the current mode does not have
 // (e.g. net worth in family mode), render as plain text. Mark a term only once per screen with a scope.
+import { scaleTypedMoney } from './format.js';
 import { h } from './dom.js';
 import { parseMarkup } from '../i18n/markup.js';
 import { getLearnMode } from '../learn/context.js';
@@ -34,7 +35,8 @@ function slotNodes(text, params, used = new Set()) {
 export function richNodes(raw, params = {}, { scope = null, mode = getLearnMode() } = {}) {
   const frag = document.createDocumentFragment();
   const used = new Set();
-  for (const part of parseMarkup(raw)) {
+  // a junior game: typed shekel figures that are whole coins read as coins (format.js scaleTypedMoney; off = unchanged)
+  for (const part of parseMarkup(scaleTypedMoney(raw))) {
     if (!part.term) { frag.append(...slotNodes(part.text, params, used)); continue; }
     const c = conceptById(part.term);
     if (!c && import.meta.env?.DEV) console.warn(`[glossary] unknown term id in markup: ${part.term}`);

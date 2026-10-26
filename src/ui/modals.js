@@ -21,7 +21,7 @@ import {
   monthlyCashFlow, passiveIncome, maxLoan, loanCap, loanLimits, saleValue, canSell, loanPaydayImpact,
   paybackTier, PAYDAY_MONTHS, MONTHS_PER_YEAR, purchasePlan, loanTerms, dealMetrics, balanceSheet, assetLoanPayment, loanRateNow,
 } from '../engine/index.js';
-import { LOAN_STEP, TIMED_EFFECT_KINDS as TIMED_EFFECTS } from '../engine/index.js';
+import { loanStep, TIMED_EFFECT_KINDS as TIMED_EFFECTS } from '../engine/index.js';
 import { cardTitle, cardText, assetTitle } from './card-view.js';
 import hourglassSvg from '../assets/verdict/hourglass.svg?raw';
 import { tileLabelChip } from './tiles.js';
@@ -550,6 +550,7 @@ function capNote(state) {
 
 /** Loan dialog (spec 4.5). Resolves with the amount (multiple of 1000) or null. */
 export function loanDialog(state, { required = 0, gain = null, hint = null } = {}) {
+  const LOAN_STEP = loanStep(state); // the game's step (a junior game: 10,000 = 1 coin a month)
   const cap = loanCap(state);
   const max = cap.limit; // the one shared selector: the limit shown here is exactly what takeLoan() enforces
   // For a purchase the figures describe the state right AFTER buying: the asset's cash flow is part of the new flow and
@@ -699,8 +700,11 @@ export function loanDialog(state, { required = 0, gain = null, hint = null } = {
 /** Repay dialog (full mode). Resolves with the amount or null. */
 export function repayDialog(state, liability) {
   const cash = state.cash;
+  const LOAN_STEP = loanStep(state);
   const options = [];
-  for (let a = LOAN_STEP; a <= liability.principal; a += LOAN_STEP) options.push(a);
+  // a junior game repays a starting debt whole only (engine rule: its rounded payment would not split into whole coins)
+  const wholeOnly = !!state.junior && liability.kind !== 'loan';
+  if (!wholeOnly) for (let a = LOAN_STEP; a <= liability.principal; a += LOAN_STEP) options.push(a);
   if (!options.includes(liability.principal)) options.push(liability.principal);
   const affordable = options.filter((a) => a <= cash);
   let idx = 0;

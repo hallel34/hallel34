@@ -504,3 +504,6 @@
 .price-eq .stat-value { font-size: 1rem; font-weight: var(--fw-bold); }
 .price-eq .pe-debt .stat-value { color: #55508A; }
 .verdict .lamp { display: inline-grid; place-items: center; }
+/* 'צעירים' coins (owner 2026-10-26): the coin icon takes the ₪'s place, at the size of the digits' cap height */
+.money.is-coins .cur { display: inline-flex; vertical-align: -0.12em; margin-inline-end: .18em; opacity: 1; }
+.money.is-coins .cur .coin-ico { inline-size: .9em; block-size: .9em; }

@@ -7,7 +7,7 @@ import {
   totalExpenses, resumePlan, lastPlayerStanding, nextActiveIndex,
 } from '../engine/index.js';
 import { icon } from './icons.js';
-import { money, moneyText, moneyIsolated, tn, signedMoney, paydayCalc, numberText } from './format.js';
+import { money, moneyText, moneyIsolated, tn, signedMoney, paydayCalc, numberText, setCoinScale } from './format.js';
 import { button, iconButton, meter, cashDisplay, miniMeter, fitText } from './widgets.js';
 import { createDice } from './die.js';
 import { motionOK } from './prefs.js';
@@ -27,7 +27,7 @@ import { createFoxGuide } from './fox-guide.js';
 import { tileFamily, tileIcon, tileLabel, tileLabelChip, ensureTileSprite, boardTile } from './tiles.js';
 import { openLegend } from './legend.js';
 import { createLearnFlow } from './learn-flow.js';
-import { loanTerms, loanRateNow } from '../engine/index.js';
+import { loanTerms, loanRateNow, loanStep, seesCoins, currentPlayer as playerNow } from '../engine/index.js';
 import { setLearnHooks, clearLearnHooks } from './learn.js';
 import { setLearnMode } from '../learn/context.js';
 import { feedbackForChange, feedbackForEvent } from '../learn/feedback.js';
@@ -58,7 +58,6 @@ import {
 import { yearsPhrase, fillSlots } from '../learn/slots.js';
 import coinUrl from '../assets/coin.svg?url';
 import pawnUrl from '../assets/pawn.svg?url';
-import dieUrl from '../assets/die-3.svg?url';
 
 // v4 stage (docs/v4/design/board-spec.md section 5): the HOME skyline (start.js SKY: 10 buildings, 8 windows, no stars) as one
 // inline SVG behind the board plate's lower half and the fox strip (viewBox 0 640 360 160, meet, so % maps exactly). Two windows
@@ -86,6 +85,9 @@ function boardSky() {
 export function createPlay({ engine, match: initialMatch, nav, store: rawStore, professionIds = [], fresh = false }) {
   let match = initialMatch;
   let state = currentState(match);
+  // 'צעירים' (owner 2026-10-26): the player whose turn it is sees amounts in coins when they are 10 or under (per player)
+  const applyScale = () => setCoinScale(seesCoins(match, playerNow(match)));
+  applyScale();
   const multi = isMultiplayer(match);
   let busy = false;
   let destroyed = false;
@@ -235,8 +237,8 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   let currentTile = null;
 
   const rollLabel = h('span', null, t('game.roll'));
-  const dieIcon = h('img', { src: dieUrl, alt: '', width: 30, height: 30, class: 'btn-die' });
-  const rollBtn = button([dieIcon, rollLabel], { variant: 'primary', cls: 'btn-roll', 'data-action': 'roll', onClick: () => turn() });
+  // owner 2026-10-26: no die icon inside the button (the plaza die above it is the die)
+  const rollBtn = button([rollLabel], { variant: 'primary', cls: 'btn-roll', 'data-action': 'roll', onClick: () => turn() });
   const actions = h('div', { class: 'board-actions' }, rollBtn);
 
   // The fox strip (between the board plate and the roll button): the latest-event chip, the corner fox guide and its bubble.
@@ -379,8 +381,9 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
       render: (amount) => {
         const lt = loanTerms(amount, loanRateNow(state));
         // the live rate (a cheap-loan card halves it): "per ₪1,000" is computed, never typed (QA round 14 P3-2)
-        const slots = { amount: money(amount), monthlyPayment: money(lt.monthly), perSummary: money(lt.perPayday), perThousand: money(loanTerms(1000, loanRateNow(state)).monthly) };
-        return { body: fillNodes(def.text, slots), more: fillNodes(def.more, slots) };
+        const slots = { amount: money(amount), monthlyPayment: money(lt.monthly), perSummary: money(lt.perPayday), perThousand: money(loanTerms(1000, loanRateNow(state)).monthly), perStep: money(loanTerms(loanStep(state), loanRateNow(state)).monthly) };
+        // a junior game borrows in 10,000 steps: "per ₪1,000" would be a tenth of a coin, so its line counts per step
+        return { body: fillNodes(def.text, slots), more: fillNodes(state.junior && def.moreJunior ? def.moreJunior : def.more, slots) };
       },
     };
   }
@@ -881,6 +884,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   /** Switches the screen to the (new) current player of the match. */
   function switchPlayer() {
     state = currentState(match);
+    applyScale();
     refreshHud();
     markActive();
     cash.set(state.cash);
@@ -992,6 +996,8 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
       const title = engine.data.cards.find((c) => c.id === ev.cardId)?.title;
       if (title) pushLog(t('market.effectEnded', { title }));
     }
+    // a junior game asks no tax question (owner 2026-10-26): the square just says so
+    if (s.events.some((x) => x.type === 'taxAuditRest')) { pushLog(t('taxAudit.juniorRest')); setStatus(t('taxAudit.juniorRest')); }
     const shown = (ev) => ev.type === 'baby' || ev.type === 'babyMax' || (ev.type === 'expensePaid' && ev.card)
       || (ev.type === 'market' && s.pending?.kind !== 'offer');
     unseen = s.events.filter(shown).map((ev) => ({ ev, noMatch }));
@@ -1191,7 +1197,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     nav.menu();
   }
   function teardown() {
-    destroyed = true;
+    destroyed = true; // (the coin scale is set by the next screen: app.js)
     clearTimeout(liveTimer);
     document.removeEventListener('visibilitychange', onHidden);
     removeEventListener('resize', sizeBoard);

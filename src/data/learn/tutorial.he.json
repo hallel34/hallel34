@@ -35,7 +35,8 @@
       "total": "סך הכול (3 שאלות, 5 מסכים)",
       "term": "המונח המקצועי מהמילון",
       "title": "כותרת מסך בסיפור",
-      "perThousand": "the monthly payment of a ₪1,000 bank loan at the LIVE rate (loanTerms(1000, loanRateNow)), QA round 14 P3-2"
+      "perThousand": "the monthly payment of a ₪1,000 bank loan at the LIVE rate (loanTerms(1000, loanRateNow)), QA round 14 P3-2",
+      "perStep": "the monthly payment of one loan step at the LIVE rate (loanTerms(loanStep, loanRateNow)); a junior game: ₪10,000 = 1 coin a month"
     },
     "storage": "מפתח localStorage אחד: passivo.tutorial = { storyDone, quizDone, hintsSeen: { <hintId>: <turn> }, helpOn }",
     "rules": [
@@ -462,6 +463,7 @@
           }
         ],
         "explain": "על כל ₪1,000 משלמים ₪10 בחודש. הלוואה של ₪100,000 היא ₪1,000 בחודש: אצל מורה, מתוך ₪1,490 שנשארים בחודש נשארים רק ₪490. ובמשחק יש גם תקרה שלא מאפשרת ללוות יותר מדי.",
+          "explainJunior": "על כל ₪10,000 משלמים ₪100 בחודש. הלוואה של ₪100,000 היא ₪1,000 בחודש: אצל מורה, מתוך ₪1,400 שנשארים בחודש נשארים רק ₪400. ובמשחק יש גם תקרה שלא מאפשרת ללוות יותר מדי.",
         "computed": {
           "perThousand": 10,
           "loan": 100000,
@@ -621,6 +623,7 @@
         "target": "rows של ריבית עד הסיכום הבא וסך הכול להחזיר (טבעת הדגשה)",
         "text": "לוקחים {amount}. כל חודש משלמים {monthlyPayment} תוספת, והחוב של {amount} נשאר עד שמחזירים אותו.",
         "more": "על כל ₪1,000 משלמים {perThousand} בחודש. בסיכום שנתי התוספת היא {perSummary}. אפשר להחזיר מוקדם כדי לשלם פחות.",
+        "moreJunior": "על כל ₪10,000 משלמים {perStep} בחודש. בסיכום שנתי התוספת היא {perSummary}. אפשר להחזיר מוקדם כדי לשלם פחות.",
         "example": {
           "fixed": true,
           "sampleText": "לוקחים ₪10,000. כל חודש משלמים ₪100 תוספת, והחוב של ₪10,000 נשאר עד שמחזירים אותו.",
