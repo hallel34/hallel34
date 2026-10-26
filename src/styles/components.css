@@ -33,23 +33,9 @@
 :root[data-theme="light"] .btn-text { --bg-press: rgb(15 23 42 / .06); --bg-hover: rgb(15 23 42 / .04); }
 /* Disabled (a real `disabled` attribute, not focusable): the same variant at 50%, no press, no hover. The reason is visible text beside it. */
 .btn:disabled { opacity: var(--btn-disabled-opacity); cursor: not-allowed; }
-/* Arming (hand-over / payday summary, the first 700 ms): NOT dimmed. Outlined gold ghost-of-the-primary with a 4px bar filling from the
-   inline-start. `disabled` + aria-busy + data-arming in the DOM; JS removes them and the button snaps to the solid primary look. */
-.btn[data-arming] {
-  --bg-btn: transparent; --fg-btn: var(--c-gold-300); opacity: 1; cursor: default; overflow: hidden;
-  box-shadow: inset 0 0 0 1px var(--accent);
-}
-:root[data-theme="light"] .btn[data-arming] { --fg-btn: var(--c-navy-900); }
-.btn[data-arming]::after {
-  content: ''; position: absolute; inset-inline: 0; inset-block-end: 0; block-size: 4px; background: var(--btn-arming-bar); pointer-events: none;
-  transform-origin: left center; transform: scaleX(0); animation: arm-fill var(--arm-ms, 700ms) linear forwards;
-}
-[dir="rtl"] .btn[data-arming]::after { transform-origin: right center; }
-@keyframes arm-fill { to { transform: scaleX(1); } }
-.btn-text[data-arming] { box-shadow: none; --fg-btn: var(--btn-text-color); }
-.btn-text[data-arming]::after { inset-inline: 16px; inset-block-end: 6px; block-size: 3px; border-radius: 2px; }
-@media (prefers-reduced-motion: reduce) { .btn[data-arming]::after { animation: none; transform: scaleX(.5); } }
-:root[data-motion="reduced"] .btn[data-arming]::after { animation: none; transform: scaleX(.5); }
+/* Brief tap guard, not loading: keep the final button appearance with no progress sweep. */
+.btn[data-arming] { opacity: 1; cursor: default; }
+.btn[data-arming]::after, .btn-text[data-arming]::after { content: none; animation: none; }
 .btn-mini {
   min-block-size: var(--tap-min); padding-inline: var(--sp-4); border-radius: var(--r-pill); border: 0;
   background: var(--card-text); color: #fff; font-weight: var(--fw-bold); font-size: var(--fs-sm);

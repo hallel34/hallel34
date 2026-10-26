@@ -1,6 +1,8 @@
 // App shell: screen routing, persistence (save/resume), engine wiring.
 import { loadBoardStyles } from './board-styles.js';
+import { prepareBoardImage } from './board-ready.js';
 import { h, clear } from './dom.js';
+import { toast } from './fx.js';
 import {
   createEngine, serialize, deserialize, newMatch, rematch, isMultiplayer, currentState, dailySeed, dailyProfessionId, DAILY_MODE, seesCoins, isJuniorSetup, JUNIOR_AGE,
 } from '../engine/index.js';
@@ -20,7 +22,7 @@ import { streakView } from '../daily/streak.js';
 import { dailyStatus } from '../daily/attempt.js';
 import { loadResults, loadStreak, endDailyGame, resetDay } from '../daily/store.js';
 import { showInterstitial } from '../services/ads.js';
-import { getLocale } from '../i18n/index.js';
+import { getLocale, t } from '../i18n/index.js';
 import { destroyAllLayers } from './modal.js';
 import { initTermButtons } from './learn.js';
 import { setLearnMode } from '../learn/context.js';
@@ -201,6 +203,7 @@ export function createApp(host) {
     store.save(m);
     setLearnMode(m.mode);
     try { await loadBoardStyles(); } catch (err) { console.warn(err); } // the board is usable (if plainer) even without its v4 stylesheet
+    try { await prepareBoardImage(); } catch (err) { console.error(err); toast(t('app.loadError'), 4000); return; }
     const play = createPlay({ engine, match: m, nav, store, professionIds, fresh });
     mount({ el: play.el, destroy: () => play.destroy() }, { start: () => play.start() });
   }

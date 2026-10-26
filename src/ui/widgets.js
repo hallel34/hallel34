@@ -34,13 +34,12 @@ export function button(label, { variant = 'primary', onClick, disabled = false, 
 }
 
 /**
- * Arming (hand-over, payday summary): each button gets `disabled` + aria-busy + data-arming for `ms`, then they all snap to the
- * solid look at once and the first one gets the focus back (a disabled button cannot hold focus). Returns { done: Promise, cancel() }.
+ * Arming (hand-over, payday summary): each button gets `disabled` + data-arming for `ms`, with stable final styling and the first one gets the focus back (a disabled button cannot hold focus). Returns { done: Promise, cancel() }.
  * A real `disabled` means a tap during the window is not an event at all.
  */
 export function arm(buttons, ms, { onArmed = null, focus = true } = {}) {
   const list = [buttons].flat().filter(Boolean);
-  for (const b of list) { b.disabled = true; b.setAttribute('aria-busy', 'true'); b.setAttribute('data-arming', ''); b.style.setProperty('--arm-ms', `${ms}ms`); }
+  for (const b of list) { b.disabled = true; b.setAttribute('data-arming', ''); b.style.setProperty('--arm-ms', `${ms}ms`); }
   let timer = 0;
   let finished;
   const done = new Promise((r) => { finished = r; });

@@ -14,6 +14,7 @@ import { createApp } from './ui/app.js';
 import { registerServiceWorker } from './services/pwa.js';
 import { preloadTiles } from './ui/tiles.js';
 import { loadBoardStyles } from './ui/board-styles.js';
+import { prepareBoardImage } from './ui/board-ready.js';
 
 // ?theme=light|dark|auto switches (and remembers) the theme: handy for QA and screenshots.
 const themeParam = new URLSearchParams(location.search).get('theme');
@@ -34,5 +35,6 @@ try {
 registerServiceWorker();
 // the board is the main screen: its 3D tile art is preloaded at idle time after the first paint (never ahead of the home screen's LCP)
 preloadTiles();
+prepareBoardImage().catch(() => {});
 // the board stylesheet is a separate chunk (not render-blocking on the home screen): fetched at idle time, awaited by the board
 (globalThis.requestIdleCallback ?? ((f) => setTimeout(f, 1200)))(() => loadBoardStyles().catch(() => {}), { timeout: 2500 });
