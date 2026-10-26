@@ -1203,8 +1203,10 @@ async function testPhaseA(page) {
   check(card.bottom <= card.ih + 1 && card.top >= card.hudBottom - 4, `summary card stays inside the viewport and below the HUD (top ${Math.round(card.top)} / hud ${Math.round(card.hudBottom)})`);
   await noHScroll(page, 'summary card');
   await page.screenshot({ path: `${OUT}/summary-card-${HEIGHT}.png` });
+  const shownSummary = await page.locator('.summary-card').elementHandle();
   await page.locator('[data-action="summary-ok"]').click();
-  await page.waitForSelector('.summary-card', { state: 'hidden' });
+  // A long roll can immediately open a second yearly summary. Wait for THIS card to close.
+  await page.waitForFunction((card) => !card.isConnected, shownSummary);
   const f = await page.evaluate(() => ({ floatCount: document.querySelectorAll('.float-text').length }));
   const seen = await page.evaluate(() => window.__seen);
   const chipMsg = seen.find((x) => x.key === 'chip' && x.text.includes('סיכום שנתי'));
