@@ -1383,6 +1383,71 @@ async function moreOpensFull(page, label, tested) {
   });
   check(!!r && r.full && r.fits && !r.status && !r.roll && !r.hud, `${info.kind} "עוד" shows the whole text, still clear of the status, CTA and HUD (${label}) ${JSON.stringify(r)}`);
 }
+/**
+ * Owner 2026-10-26: the age picker and a 'צעירים' player (age band "עד 10", age 9) at 360x800. The chips are 48px radio buttons; an
+ * age under 14 switches a full-mode start to family; a junior player sees coins and never a ₪ on the HUD, the cards and the payday
+ * summary; the roll button has no die icon.
+ */
+async function testJunior(browser) {
+  const ctx = await browser.newContext({ viewport: { width: 360, height: 800 }, deviceScaleFactor: 2, locale: 'he-IL', reducedMotion: 'reduce', isMobile: true, hasTouch: true });
+  const page = await ctx.newPage();
+  await page.goto(`${URL_BASE}?seed=5`);
+  await page.evaluate(() => { localStorage.clear(); localStorage.setItem('passivo.seenIntro', '1'); localStorage.setItem('passivo.tutorial', JSON.stringify({ storyDone: true, helpOn: false, hintsSeen: {}, quizDone: true })); localStorage.setItem('passivo.prefs', JSON.stringify({ guessFamily: false, guessFull: false, explain: false })); });
+  await page.goto(`${URL_BASE}?seed=5`);
+  // a full-mode start + an age under 14 = family mode (the suggestion)
+  await page.locator('[data-mode="full"]').click();
+  await page.locator('[data-action="start"]').click();
+  await page.waitForSelector('[data-screen="players"]');
+  const chips = await page.evaluate(() => [...document.querySelectorAll('.age-chip')].map((c) => { const b = c.getBoundingClientRect(); return { w: b.width, h: b.height, text: c.textContent.trim() }; }));
+  check(chips.length === 3 && chips.every((c) => c.w >= 48 && c.h >= 48), `age picker: three chips, each a 48px target (${chips.map((c) => `${c.text} ${Math.round(c.w)}x${Math.round(c.h)}`).join(', ')})`);
+  check(await page.locator('.age-group input[type="radio"]').count() === 3 && await page.locator('.age-group legend').count() === 1, 'age picker: a native radio group with a legend');
+  await page.locator('.age-chip:has([data-age="upTo10"])').click();
+  const note = await page.locator('.age-note').innerText();
+  check(/מצב משפחה/.test(note) && /מטבע/.test(note) && /₪100/.test(note), `age "עד 10": family mode is suggested and the coin line says "כל מטבע = ₪100" (${note.replace(/\s+/g, ' ')})`);
+  check(await page.evaluate(() => localStorage.getItem('passivo.mode')) === 'family', 'an age under 14 switched the mode to family');
+  await noHScroll(page, 'age picker');
+  await page.screenshot({ path: `${OUT}/junior-age-picker.png` });
+  await page.locator('[data-action="players-next"]').click();
+  await page.waitForSelector('[data-screen="pick"]');
+  const pickText = await page.locator('section[data-screen="pick"]').innerText();
+  check(!/₪/.test(pickText) && /\d/.test(pickText), 'junior pick screen: amounts without ₪');
+  await page.locator('.prof-card[data-prof="teacher"]').click();
+  await page.locator('[data-action="go"]').click();
+  await page.waitForSelector('[data-screen="board"]');
+  await page.waitForTimeout(600);
+  const hud = await page.evaluate(() => ({ text: document.querySelector('.hud')?.innerText ?? '', coins: document.querySelectorAll('.hud .money.is-coins').length, cash: document.querySelector('.hud .cash-num')?.textContent ?? '', die: document.querySelectorAll('.btn-roll img, .btn-roll .btn-die').length }));
+  check(hud.coins > 0 && !/₪/.test(hud.text), `junior HUD: coins, no ₪ (${hud.text.replace(/\s+/g, ' ').slice(0, 90)})`);
+  check(/^\d{1,3}\s*מטבעות$/.test(hud.cash.trim()), `junior HUD cash: a coin number of at most 3 digits (${hud.cash.trim()})`);
+  check(hud.die === 0, 'the roll button has no die icon (the plaza die stays)');
+  await page.screenshot({ path: `${OUT}/junior-board.png` });
+  // play until a card and a payday summary were seen: never a ₪ on them
+  let card = false; let payday = false;
+  for (let k = 0; k < 160 && !(card && payday); k++) {
+    const seen = await page.evaluate(() => {
+      const top = document.querySelector('#modal-root .layer:last-child');
+      if (!top) return null;
+      return { card: !!top.querySelector('.card'), summary: !!top.querySelector('.summary-card'), text: top.innerText, coins: top.querySelectorAll('.money.is-coins').length };
+    });
+    if (seen?.card && !card) {
+      card = true;
+      check(!/₪/.test(seen.text) && seen.coins > 0, `junior card: coins, no ₪ (${seen.text.replace(/\s+/g, ' ').slice(0, 80)})`);
+      await page.screenshot({ path: `${OUT}/junior-card.png` });
+    }
+    if (seen?.summary && !payday) {
+      payday = true;
+      await page.waitForTimeout(400);
+      check(!/₪/.test(seen.text) && seen.coins > 0, `junior payday summary: coins, no ₪ (${seen.text.replace(/\s+/g, ' ').slice(0, 80)})`);
+      await page.screenshot({ path: `${OUT}/junior-payday.png` });
+    }
+    const d = await page.evaluate(decide, 'sensible');
+    if (d.done) break;
+    if (d.click) await page.locator(d.click).first().click({ timeout: 2000 }).catch(() => {});
+    await page.waitForTimeout(d.click === '[data-action="roll"]' ? 700 : 150);
+  }
+  check(card && payday, 'junior run saw a card and a payday summary');
+  check(!/₪/.test(await page.evaluate(() => document.querySelector('.hud')?.innerText ?? '')), 'junior HUD still has no ₪ after the turns');
+  await ctx.close();
+}
 async function testNotesAtSizes(browser) {
   for (const [w, hgt] of [[390, 844], [320, 568]]) {
     const ctx = await browser.newContext({ viewport: { width: w, height: hgt }, deviceScaleFactor: 2, locale: 'he-IL', reducedMotion: 'reduce' });
@@ -1639,7 +1704,7 @@ async function main() {
     await page.waitForSelector('[data-screen="start"]');
     check(await page.locator('[data-action="resume"]').count() === 0, 'no resume button after a finished game');
   }
-  if (PLAYERS === 1) { await testBuyStates(page); await testLegacySave(page); await testHudCash(browser); await testMilestoneFastRoll(browser); await testNotesAtSizes(browser); }
+  if (PLAYERS === 1) { await testBuyStates(page); await testLegacySave(page); await testHudCash(browser); await testMilestoneFastRoll(browser); await testNotesAtSizes(browser); if (MODE === 'family') await testJunior(browser); }
   await testRound5(page);
   await testPhaseA(page);
   if (PLAYERS === 1) { await testGuessFlow(page); await testExplainers(page); }

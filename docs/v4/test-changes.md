@@ -152,3 +152,28 @@ Same rule. Coverage only grows, and no existing assertion was loosened.
 | tests/e2e/smoke.mjs | (new) moreOpensFull | - | the first clamped note of each kind: its "עוד" shows the whole text (a note: in place, no clamp, still clear of the status, CTA and HUD; the explainer: its dictionary entry) | same |
 | tests/e2e/smoke.mjs | testNotesAtSizes (390x844, 320x568) | the smoke's mode, help off, no milestone | the family smoke turns the tutorial help on (hints), and every run ends with a forced 25% milestone (a crafted save, as in testMilestoneFastRoll). It checks that hints (family) and a milestone were seen, and keeps the log across the reload | QA round 16 P3-c |
 | tests/round16.test.js | (new) | - | the cheap-loan text of the loan window's real-world row drops "במכוון" and keeps the live figures, in both modes | QA round 16 P3-b |
+
+## Age picker and 'צעירים' (developer, 2026-10-26)
+
+The owner approved these changes on 2026-10-26: the age picker, save schema 6 and coins for ages up to 10. The bump to schema 6 forces the first three rows; the rest add coverage.
+
+| File | Test | Old | New | Why |
+|---|---|---|---|---|
+| tests/economy.test.js | economy constants; save schema 4 (two tests) | `SCHEMA_VERSION` / `schemaVersion` 5 | 6 | schema 6 (every player carries `age`) |
+| tests/learn.test.js | save schema 3 and migration (3 tests) | `toBe(5)` | `toBe(6)` | same bump |
+| tests/v4-stage4.test.js | schema 5: the v2.5 fixture migrates through 4 to 5 | `toBe(5)` (3 assertions) | `toBe(6)` | same bump (the fixture now migrates 3 -> 4 -> 5 -> 6) |
+| tests/junior.test.js | (new) | - | The v2.5 fixture migrates to 6 (age null, no junior flag, it plays on and saves again), as does a schema 5 save. Which setups are junior (a family game with a player of 10 or under; never full or daily). Loans in 10,000 steps. Starting debts are repaid whole only. With 6 bots x 40 games over every profession, plus hot-seat with mixed ages, every money field of every state, card, event and derived figure is a multiple of 100. A control check shows the same scan does find odd amounts in a normal family game. | Owner 2026-10-26 |
+| tests/e2e/smoke.mjs | (new) testJunior (family smoke, 360x800) | - | One player sees exactly three age chips (one radio group). The age chips are 48px radio buttons with a legend. An age under 14 switches a full-mode start to family. "עד 10" shows the "כל מטבע = ₪100" line. The pick screen, HUD, first card and payday summary show coins and no ₪. The HUD cash is at most 3 digits. The roll button has no die icon. | same |
+| tests/e2e/smoke.mjs | testBuyStates `load()` (and the opportunity search in `make()`) | wrote the crafted save while the previous case's board was still alive; `make()` took any pending card | goes to the start screen first (the old board is gone, so nothing else can write the save), writes the save, checks it is still the crafted one before the resume, and on a timeout logs what the screen showed; `make()` takes only an opportunity (a decision card opens another dialog) | CI red on PR 7 (run 40266904867): root cause below. Not a timeout raise or a skip |
+| tests/e2e/contrast-lib.mjs | backdrop(): what is hidden before the background screenshot | glyphs and inline `<svg>` | glyphs, inline `<svg>` and `.money img` | a 'צעירים' amount carries the coin icon (an `<img>`) inside its `.money` element: it is part of the amount, not the background it sits on (without this every coin amount "fails" at 1.0-1.5:1 against its own coin). Nothing is loosened: the text is still sampled against every backdrop pixel |
+
+### Root cause of the PR 7 CI failure (testBuyStates, smoke.mjs:1049)
+
+- **The failing step.** The "loan" case `load()` ran right after the blocked card was passed.
+- **What the board does after "דלגו".** The card's `close()` removes the element first and resolves after (modal.js). The board then runs `apply(pass)`, which calls `commit()` (save #1). Then it waits `pause()` (30 ms with reduced motion), and `afterTurn()` → `settleButton()` → `endTurn` + save #2. Save #2 is the post-pass state: phase `roll`, no pending card.
+- **What the test did.** Playwright saw the card detach at once (a MutationObserver) and wrote the crafted save while that board was still finishing. Locally the crafted write landed only 10-30 ms after save #2. Measured with the stacks of every `passivo.save` write: `commit < apply` at t, `settleButton < afterTurn` at t+45, the crafted save at t+76.
+- **The failure.** When the board's synchronous work after `commit()` is slower than the test's round trip, save #2 lands after the crafted save and overwrites it. On a slow runner that work is refreshHud, the feedback note and its `fitNote` layout measuring (new in fb22aa5). The start screen still offers "resume", but the save has no card, so `.card[data-card="opportunity"]` never appears. That is exactly the CI log: "resume" passed, then a 30 s wait.
+- **Reproduced.** On HEAD 950f03b, with that synchronous section stretched by 60 ms or 150 ms (busy-wait right after the board's commit write; nothing else changed), the crafted save was overwritten in 4/4 runs: `pendingAtResume: null`, no card. 20 ms did not flip it. The same stress with the fixed `load()` (the board is left first) opened the card in 4/4 runs, up to 300 ms.
+- **Not the cause.** Board-CSS idle loading: its failure is caught and the board mounts anyway. Notes and handoff: single player, help off, the guess off.
+- **The other smokes.** `loadMatch`, testPhaseA and the round11/round12 `resume()` already go to the start screen before writing. That is the same pattern as the fix.
+
