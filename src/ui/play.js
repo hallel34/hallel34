@@ -14,7 +14,7 @@ import { button, iconButton, meter, cashDisplay, miniMeter, fitText } from './wi
 import { createDice } from './die.js';
 import { motionOK } from './prefs.js';
 import {
-  haptic, sound, animate, cssMs, cssPx, floatText, coinBurst, shake, pulse, pause, toast,
+  haptic, sound, animate, cssMs, cssPx, coinBurst, shake, pulse, pause, toast,
 } from './fx.js';
 import * as raw from './modals.js';
 import { openStatement } from './statement.js';
@@ -814,11 +814,11 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     await summaryCardGated({ figures: f, hint: summaryHintFor(f) });
     if (destroyed) return;
     // spec 4.9 (owner approved 2026-10-25): the log / hand-over recap keeps the one-line form; the fox-row chip shows one of three
-    // phrasings (turn % 3), a tap opens the stacked equation; the float rises inside the board plaza
+    // phrasings (turn % 3); a tap opens the stacked equation without overlaying dice.
     pushLog(tn('game.logPayday', { calc: paydayCalc(f.monthly, f.months, f.amount) }), f.amount >= 0 ? 'good' : 'bad', { payday: true });
     chip.replaceChildren(paydayChip(f, state.turn, { host: zone }));
-    setStatus(tn('game.statusPayday', { calc: paydayCalc(f.monthly, f.months, f.amount) }));
-    floatText(cash.el, h('div', { class: 'float-stack' }, signedMoney(f.amount), h('span', { class: 'float-sub' }, t('game.paydayFloatLabel'))), f.amount >= 0 ? 'income' : 'expense', { within: center });
+    setStatus(t('game.paydayFloatLabel'));
+    // The summary already shows the full calculation. Animate the cash in its own HUD, not over dice and board text.
     pulse(el.querySelector('.hud-cash'), 1.04);
     if (f.amount > 0) react('celebrate');
     await cash.to(cash.value + f.amount, 450);
@@ -852,6 +852,8 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     const move = next.events.find((e) => e.type === 'move');
     setStatus(t('game.statusMoving'));
     await dice.roll(move.dice);
+    if (destroyed) return;
+    paintButton('working');
     const paydays = next.events.filter((e) => e.type === 'payday');
     let pi = 0;
     for (const idx of move.path) {
@@ -925,7 +927,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     busy = true;
     paintButton('working');
     el.classList.remove('is-busy');
-    const tapped = await handoffSheet({ name: nameOf(), color: colorOf(), recap, extra, onHome: () => askHome() });
+    const tapped = await handoffSheet({ name: nameOf(), color: colorOf(), recap, extra, onHome: () => goHome() });
     if (!tapped || destroyed) return;
     busy = false;
     paintButton('roll');

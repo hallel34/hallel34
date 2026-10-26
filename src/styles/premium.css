@@ -112,3 +112,13 @@
 .board-full .tile.scene-anchor.is-crowded .pawn-badge { inline-size: 15px; block-size: 15px; inset: 0; }
 .board-full .flow-popover { padding-block: 6px; gap: 2px; }
 @media(max-height:699px){ .board-full .flow-popover { padding-block: 3px; gap: 1px; } }
+
+/* Turn modifiers are a separate row, never an absolute badge over the dice. */
+.board-full .board-center .chip-charity {
+  position: static; flex: none; margin: 0; max-inline-size: 100%;
+  font-size: .6875rem; line-height: 1.25; padding: 3px 6px;
+}
+.board-full .board-center .chip-charity:not([data-active='true']) { display: none; }
+.board-full .board-center:has(.chip-charity[data-active='true']) .here-line { display: none; }
+.board-full .board-center .board-status { margin-block: 2px; min-block-size: 0; }
+.board-full .board-center .status-wrap { flex: 0 1 auto; }
