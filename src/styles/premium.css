@@ -130,3 +130,6 @@
   -webkit-text-stroke: 0; font-size: 2.5rem; line-height: 1;
 }
 .board-full .die-result-sum { background: #111b30; padding: 2px 6px; border-radius: 6px; color: #fff4d3; -webkit-text-stroke: 0; }
+
+/* Empty event slots and idle board narration must not leave ghost panels. */
+.board-full .status-chip[hidden], .board-full .board-status[hidden] { display: none; }

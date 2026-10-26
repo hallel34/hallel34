@@ -216,7 +216,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   const activePawn = () => pawns[match.currentIndex];
   const dice = createDice();
   dice.setValues(state.lastRoll?.dice || [1]);
-  const status = h('p', { class: 'board-status', 'aria-live': 'polite' }, t('game.statusStart'));
+  const status = h('p', { class: 'board-status', 'aria-live': 'polite', hidden: true });
   // "you are here" (idle): icon + "אתם על: הזדמנות" under the status line (merged into it as a prefix chip on the smallest screens)
   const hereIcon = h('span', { class: 'here-icon' });
   const hereText = h('span', { class: 'here-text' });
@@ -248,7 +248,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
 
   // The fox strip (between the board plate and the roll button): the latest-event chip, the corner fox guide and its bubble.
   // data-pose: 'roll' = idle, 'none' = a turn is playing, 'note' = a bubble is up, 'tip' = a family tip bubble is up.
-  const chip = h('div', { class: 'status-chip glass' }, t('game.noEvents'));
+  const chip = h('div', { class: 'status-chip glass', hidden: true });
   const zone = h('div', { class: 'roll-zone fox-strip', 'data-pose': 'roll' }, chip);
   let flow = null;
   const guide = createFoxGuide({
@@ -268,6 +268,8 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   flow = createLearnFlow({
     zone, mode: state.mode, seed: state.seed,
     getState: () => state,
+    getPlayerKey: () => match.currentIndex,
+    onQuietFeedback: (nodes, tone) => pushLog(nodes, tone === 'good' ? 'good' : tone === 'warn' ? 'bad' : '', { record: false }),
     setState: (next) => { state = next; commit(); },
     onDismiss: () => rollBtn.focus?.({ preventScroll: true }),
     onShown: (item) => {
@@ -410,10 +412,15 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
 
   // What happened in the turn that is being played, for the hot-seat recap (nodes: amounts keep their <bdi>).
   let turnLog = [];
-  function pushLog(text, tone = '', { record = true, payday = false } = {}) {
+  function pushLog(text, tone = '', { record = true, payday = false, present = true } = {}) {
     if (!text) return;
+    if (!present) {
+      if (record) turnLog.push(Array.isArray(text) ? text.map((n) => n.cloneNode?.(true) ?? n) : [text]);
+      return;
+    }
     chip.querySelector('.payday-chip')?.closePopover?.();
-    chip.replaceChildren(text); // a string or DOM nodes (amounts wrapped in <bdi dir="ltr">)
+    chip.hidden = false;
+    if (Array.isArray(text)) chip.replaceChildren(...text); else chip.replaceChildren(text); // a string or DOM nodes (amounts wrapped in <bdi dir="ltr">)
     chip.classList.toggle('is-payday', payday);
     chip.dataset.tone = tone;
     if (record) turnLog.push([...chip.childNodes].map((n) => n.cloneNode(true)));
@@ -647,7 +654,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     store.save(match);
   }
 
-  const setStatus = (text) => { status.replaceChildren(text); };
+  const setStatus = (text) => { status.replaceChildren(text); status.hidden = !text; };
 
   // The primary button always says what is happening: roll / rolling / advancing (disabled).
   const BTN_LABEL = { roll: 'game.roll', rolling: 'game.rolling', working: 'game.advancing' };
@@ -684,6 +691,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     }
     if (multi && state.status === 'playing' && canEndTurn(match) && !lastPlayerStanding(match)) { handOver(); return; }
     setBusy(false);
+    setStatus('');
   }
   /** Status line once a turn has played out: who is next in hot-seat, otherwise the roll prompt. */
   function afterTurnStatus() {
@@ -691,7 +699,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
       const next = nextActiveIndex(match);
       if (next >= 0 && next !== match.currentIndex) return t('game.statusNext', { name: nameOf(next) });
     }
-    return t('game.statusBack');
+    return ''; // The roll button already gives the next action.
   }
 
   const cardTitle = (id) => cardTitleOf(engine.data.cards.find((c) => c.id === id), state.mode);
@@ -832,6 +840,8 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     releaseUnshownHint();
     hints.drop('h-roll'); // the roll hint belongs to the moment before the first roll
     flow.newTurn();
+    chip.querySelector('.payday-chip')?.closePopover?.();
+    chip.hidden = true; // Never carry a previous turn's fact into the next roll.
     hints.newTurn();
     hints.sync(loadTutorial().hintsSeen);
     turnLog = [];
@@ -866,7 +876,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     haptic('land'); sound('land');
     // "נחתתם על: הוצאה לא צפויה" (status, aria-live) + the landing caption in the plaza, then the card opens
     setStatus(t('board.landed', { label: tileLabel(BOARD[move.to]) }));
-    pushLog(t('game.logMove', { steps: move.steps, square: t(`square.${BOARD[move.to]}`) }));
+    pushLog(t('game.logMove', { steps: move.steps, square: t(`square.${BOARD[move.to]}`) }), '', { present: BOARD[move.to] !== 'payday' });
     state = next;
     commit();
     refreshHud();
@@ -904,7 +914,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     cash.set(state.cash);
     dice.setValues(state.lastRoll?.dice || [1]);
     lastPct = (() => { const st = statement(state); return st.totalExpenses > 0 ? st.passiveIncome / st.totalExpenses : 0; })();
-    setStatus(t('game.statusStart'));
+    setStatus('');
     pushLog(t('game.playerTurn', { name: nameOf() }), '', { record: false });
     hideTip();
     toggleOthers(false);

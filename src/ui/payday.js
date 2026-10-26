@@ -31,7 +31,7 @@ export function stackedEquation({ monthly, months, amount }, { label = t('payday
 
 /** { variant, label, amount: Node, caption } of the chip for this summary. */
 export function chipModel(f, turn) {
-  const v = variantFor(turn);
+  const v = 'b'; // Show the actual credit, never repeat the monthly HUD figure.
   if (v === 'a') return { variant: v, label: t('payday.a.kicker'), amount: money(f.monthly, { sign: true }), caption: null };
   if (v === 'b') {
     return {
