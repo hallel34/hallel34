@@ -1028,7 +1028,7 @@ async function testBuyStates(page) {
       let m = newMatch(engine, { mode, players: [{ professionId: 'teacher' }], seed });
       m = act(m, (s) => engine.roll(s, [1])); // square 1 = opportunity
       const s = currentState(m);
-      const c = s.pending?.card;
+      const c = s.pending?.kind === 'opportunity' ? s.pending.card : null; // never a decision card (it opens another dialog)
       if (!c || c.type === 'stock') continue;
       const room = maxLoan(s);
       const cash = status === 'blocked' ? Math.max(0, c.downPayment - room - 5000) : status === 'loan' ? Math.max(0, c.downPayment - 2500) : c.downPayment + 100;
@@ -1040,13 +1040,34 @@ async function testBuyStates(page) {
     }
     throw new Error(`no ${status} scenario found`);
   };
+  const pageErrors = [];
+  page.on('pageerror', (e) => pageErrors.push(String(e)));
+  page.on('console', (msg) => { if (msg.type() === 'error' || msg.type() === 'warning') pageErrors.push(`${msg.type()}: ${msg.text()}`); });
   const load = async (m) => {
-    await page.evaluate((json) => localStorage.setItem('passivo.save', json), serialize(m));
+    // CI flake (2026-10-26): the crafted save was written while the PREVIOUS case's board was still alive in this page, so that
+    // board could write the save (or prefs) after us. Leave the board first: on the start screen nothing writes storage. Then
+    // write the save, reload, and confirm the start screen offers exactly this save before resuming it.
+    await page.goto(`${URL_BASE}?seed=3`);
+    await page.waitForSelector('[data-screen="start"]');
+    const json = serialize(m);
+    await page.evaluate((j) => localStorage.setItem('passivo.save', j), json);
     await guessPref(page, false); // these cases test the buy states themselves: the numbers must be there at once
     await page.goto(`${URL_BASE}?seed=3`);
     await page.waitForSelector('[data-action="resume"]');
+    if (await page.evaluate((j) => localStorage.getItem('passivo.save') !== j, json)) throw new Error('testBuyStates: the crafted save was overwritten before the resume');
     await page.locator('[data-action="resume"]').click();
-    await page.waitForSelector('.card[data-card="opportunity"]');
+    try {
+      await page.waitForSelector('.card[data-card="opportunity"]');
+    } catch (e) {
+      // evidence for the next time: what the screen showed instead of the card
+      const info = await page.evaluate(() => ({
+        screen: document.querySelector('#app')?.dataset.screen ?? null, layers: [...document.querySelectorAll('#modal-root .layer')].map((l) => `${l.className} | ${l.textContent.trim().slice(0, 80)}`),
+        status: document.querySelector('.board-status')?.textContent ?? null, pending: JSON.parse(localStorage.getItem('passivo.save') || 'null')?.players?.[0]?.state?.pending?.kind ?? null,
+      })).catch((err) => ({ evaluateFailed: String(err) }));
+      console.error(`testBuyStates: no opportunity card after resume ${JSON.stringify(info)} page errors: ${JSON.stringify(pageErrors.slice(-5))}`);
+      await page.screenshot({ path: `${OUT}/buy-states-no-card.png` }).catch(() => {});
+      throw e;
+    }
     await page.waitForTimeout(700);
   };
 
