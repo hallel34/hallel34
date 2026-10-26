@@ -331,6 +331,8 @@
     "label": "סיכום שנתי"
   },
   "statement": {
+    "parentsToggle": "להורים",
+    "parentsHint": "חובות, וכמה שווה הכול",
     "title": "דוח חודשי",
     "income": "הכנסות",
     "expenses": "הוצאות",
@@ -530,6 +532,7 @@
     "out": "מחוץ למשחק",
     "place": "מקום {n}",
     "row": "{name}, מקום {place}: הכנסה פסיבית {passive}, הוצאות {expenses}, שווי נקי {net}, {turns}",
+    "rowJunior": "{name}, מקום {place}: כסף שעובד {passive}, הוצאות {expenses}, {turns}",
     "allOutTitle": "כולם מחוץ למשחק",
     "allOutText": "לכל השחקנים נגמרו המזומן וההלוואות"
   },

@@ -7,7 +7,7 @@ import { icon } from './icons.js';
 import { foxImg } from './fox.js';
 import { playerToken, withName } from './players.js';
 import { hintStrip, showRing } from './hint-ui.js';
-import { money, moneyText, moneyIsolated, setMoney, tn, numberText, signedMoney } from './format.js';
+import { money, moneyText, moneyIsolated, setMoney, tn, numberText, signedMoney, coinScale } from './format.js';
 import { createTermScope, termButton } from './rich.js';
 import { realWorldForCard, realWorldForPlace } from './realworld.js';
 import { learnContent, conceptById } from '../learn/content.js';
@@ -246,6 +246,9 @@ export function opportunityModal(state, { guess = null, tour = null } = {}) {
       statTile(t('card.monthlyCashFlow'), money(c.monthlyCashFlow, { sign: true }), { tone: flowTone, big: true, tut: 'monthly', caption: t('card.perMonthCaption'), cls: 'stat-hero', minScale: HERO_MIN }),
       dealBadge(c, { mode: state.mode }),
       [statTile(t('card.downPayment'), money(c.downPayment), { big: true, tut: 'downPayment', cls: 'stat-key', minScale: KEY_MIN }), paybackTile]);
+    // 'צעירים' (owner 2026-10-26): the hero, the first payment, the payback and the badge only. No price equation, no debt total,
+    // no monthly breakdown (their 4-5 digit coin amounts and the loan inside the price are for grown-ups). The buy hint stays.
+    if (coinScale()) return { key, quiet: [] };
     const debt = balanceSheet(state).liabilitiesTotal + c.mortgage + (plan.status === 'loan' ? plan.need : 0);
     const quiet = [
       priceEquation(c, scope),

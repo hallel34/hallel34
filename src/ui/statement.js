@@ -3,7 +3,7 @@ import { h } from './dom.js';
 import { t, tp } from '../i18n/index.js';
 import { openLayer } from './modal.js';
 import { icon } from './icons.js';
-import { money, tn, numberText, paydayCalc } from './format.js';
+import { money, tn, numberText, paydayCalc, coinScale } from './format.js';
 import { categoryChip } from './categories.js';
 import { button, meter } from './widgets.js';
 import { createTermScope } from './rich.js';
@@ -48,6 +48,7 @@ function taxRow(e, s) {
 }
 
 export function openStatement({ getState, ops, title = t('statement.title') }) {
+  let parentsOpen = false; // 'צעירים': the 'להורים' part of the sheet (kept across re-renders, closed on every open)
   let layer;
   const body = h('div', { class: 'statement-body', tabindex: '0', role: 'region', 'aria-label': title });
 
@@ -63,6 +64,11 @@ export function openStatement({ getState, ops, title = t('statement.title') }) {
     const lab = (key, params = {}) => tn(key, params, { scope });
     const actionable = s.phase === 'roll' && s.status === 'playing'; // repay works in both modes
     const fullActions = full && actionable; // taking a voluntary loan and selling: full mode only
+    // 'צעירים' (owner 2026-10-26): the debts, the net worth and the balance sheet (big coin amounts) sit behind one 'להורים'
+    // toggle; they are built only while it is open, so nothing hidden is in the sheet. The kid keeps cash, income and expenses.
+    const junior = coinScale();
+    const parents = [];
+    const grown = (node) => { if (junior) parents.push(node); else body.append(node); };
     body.replaceChildren();
 
     const m = meter({ large: true });
@@ -86,7 +92,7 @@ export function openStatement({ getState, ops, title = t('statement.title') }) {
     // net-worth panel (spec 4.6): net worth, an assets-vs-liabilities bar and the two totals (family: 'חובות' wording, no red)
     const nwb = st.balance;
     const totalBoth = Math.max(1, nwb.assetsTotal + nwb.liabilitiesTotal);
-    body.append(h('section', { class: 'nw', 'data-networth': String(nwb.netWorth) },
+    grown(h('section', { class: 'nw', 'data-networth': String(nwb.netWorth) },
       h('div', { class: 'nw-top' }, h('span', null, lab('statement.netWorthTitle'))),
       h('div', { class: `nw-value${nwb.netWorth < 0 ? ' is-neg' : ''}` }, money(nwb.netWorth, { size: 'xl' })),
       h('div', { class: 'nw-bar', 'aria-hidden': 'true' },
@@ -114,7 +120,7 @@ export function openStatement({ getState, ops, title = t('statement.title') }) {
         h('span', { class: 'st-sub', 'data-asset': a.id },
           a.type === 'stock'
             ? t('statement.stockLine', { shares: tp('plural.shares', a.qty) })
-            : [t(`type.${a.type}`), ...(a.mortgage > 0 ? [' · ', tn('statement.assetMortgage', { amount: money(a.mortgage) })] : [])])))
+            : [t(`type.${a.type}`), ...(a.mortgage > 0 && !junior ? [' · ', tn('statement.assetMortgage', { amount: money(a.mortgage) })] : [])])))
       : [h('p', { class: 'st-empty' }, t('statement.noAssets'))];
     body.append(section(lab('statement.assets'), 'asset', ...assetRows));
 
@@ -146,17 +152,25 @@ export function openStatement({ getState, ops, title = t('statement.title') }) {
         liabRows.push(row(t('statement.insideAssets'), money(rep.totals.includedInAssets), 'sub'), h('p', { class: 'st-empty' }, t('statement.liabilityNote')));
       }
     }
-    body.append(section(lab('statement.liabilities'), 'liability', ...liabRows));
+    grown(section(lab('statement.liabilities'), 'liability', ...liabRows));
 
     // Balance sheet: what you own against what you owe.
     const bal = st.balance;
-    body.append(section(lab('statement.netWorthTitle'), 'networth',
+    grown(section(lab('statement.netWorthTitle'), 'networth',
       row(t('statement.balanceCash'), money(bal.cash)),
       row(t('statement.balanceHoldings'), money(bal.assetsTotal - bal.cash)),
       row(t('statement.balanceAssets'), money(bal.assetsTotal), 'total'),
       row(t('statement.balanceLiabilities'), money(bal.liabilitiesTotal), 'total'),
       row(lab('statement.balanceNet'), money(bal.netWorth), 'total'),
       h('p', { class: 'st-empty' }, t('statement.balanceNote'))));
+
+    if (junior) {
+      const toggle = button([h('span', null, t('statement.parentsToggle')), h('small', { class: 'st-parents-hint' }, t('statement.parentsHint'))], {
+        variant: 'secondary', cls: 'st-parents-btn', 'data-action': 'parents', 'aria-expanded': String(parentsOpen), 'aria-controls': 'st-parents',
+        onClick: () => { parentsOpen = !parentsOpen; render(); body.querySelector('[data-action="parents"]')?.focus({ preventScroll: true }); },
+      });
+      body.append(toggle, h('div', { class: 'st-parents', id: 'st-parents', 'data-parents': parentsOpen ? 'open' : 'closed' }, ...(parentsOpen ? parents : [])));
+    }
 
     if (fullActions) {
       const tools = h('div', { class: 'st-tools' });

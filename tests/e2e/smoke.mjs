@@ -1384,6 +1384,26 @@ async function moreOpensFull(page, label, tested) {
   check(!!r && r.full && r.fits && !r.status && !r.roll && !r.hud, `${info.kind} "עוד" shows the whole text, still clear of the status, CTA and HUD (${label}) ${JSON.stringify(r)}`);
 }
 /**
+ * 'צעירים' (owner 2026-10-26): every number over 999 under `root`, read from ALL its text nodes (hidden ones included), except
+ * inside `allow`; and every hidden element under `root` that still carries digits (a hidden figure must not be in the DOM at all).
+ */
+const JUNIOR_SCAN = ([root, allow]) => {
+  const top = typeof root === 'string' ? document.querySelector(root) : root;
+  if (!top) return { missing: true, big: [], leaks: [] };
+  const big = [];
+  const walk = document.createTreeWalker(top, NodeFilter.SHOW_TEXT);
+  for (let n = walk.nextNode(); n; n = walk.nextNode()) {
+    if (allow && n.parentElement?.closest(allow)) continue;
+    for (const m of n.data.matchAll(/\d{1,3}(?:,\d{3})+|\d+/g)) if (Number(m[0].replace(/,/g, '')) > 999) big.push(`${m[0]} in "${n.parentElement?.className}"`);
+  }
+  const leaks = [...top.querySelectorAll('*')].filter((e) => {
+    if (!/\d/.test(e.textContent) || e.children.length) return false;
+    const cs = getComputedStyle(e);
+    return e.closest('[hidden]') || cs.display === 'none' || cs.visibility === 'hidden' || (e.getClientRects().length === 0);
+  }).map((e) => `${e.className || e.tagName}: ${e.textContent.trim().slice(0, 30)}`);
+  return { big, leaks };
+};
+/**
  * Owner 2026-10-26: the age picker and a 'צעירים' player (age band "עד 10", age 9) at 360x800. The chips are 48px radio buttons; an
  * age under 14 switches a full-mode start to family; a junior player sees coins and never a ₪ on the HUD, the cards and the payday
  * summary; the roll button has no die icon.
@@ -1437,6 +1457,9 @@ async function testJunior(browser) {
       payday = true;
       await page.waitForTimeout(400);
       check(!/₪/.test(seen.text) && seen.coins > 0, `junior payday summary: coins, no ₪ (${seen.text.replace(/\s+/g, ' ').slice(0, 80)})`);
+      // only the cash line ('הכסף מגיע למזומן') may grow past 3 digits
+      const scan = await page.evaluate(JUNIOR_SCAN, ['#modal-root .layer:last-child .summary-card', '.sc-cash']);
+      check(!scan.missing && scan.big.length === 0 && scan.leaks.length === 0, `junior payday: no number over 999 (cash aside) and no hidden figure ${JSON.stringify(scan)}`);
       await page.screenshot({ path: `${OUT}/junior-payday.png` });
     }
     const d = await page.evaluate(decide, 'sensible');
@@ -1446,6 +1469,60 @@ async function testJunior(browser) {
   }
   check(card && payday, 'junior run saw a card and a payday summary');
   check(!/₪/.test(await page.evaluate(() => document.querySelector('.hud')?.innerText ?? '')), 'junior HUD still has no ₪ after the turns');
+
+  // the junior deal card (a crafted apartment that needs a loan, guess off and then the guess reveal), and the statement
+  const read = (f) => JSON.parse(readFileSync(new URL(`../../src/data/${f}`, import.meta.url), 'utf8'));
+  const eng = createEngine({ professions: read('professions.he.json'), cards: read('cards.he.json') });
+  let deal = null;
+  for (let seed = 1; seed < 800 && !deal; seed++) {
+    const m0 = act(newMatch(eng, { mode: 'family', players: [{ name: 'נועה', professionId: 'teacher', age: 'upTo10' }], seed }), (st) => eng.roll(st, [1]));
+    const c = currentState(m0).pending;
+    if (c?.kind !== 'opportunity' || c.card.type !== 'apartment') continue;
+    const m1 = act(m0, (st) => ({ ...st, cash: Math.max(0, c.card.downPayment - 3000) }));
+    if (purchasePlan(currentState(m1), c.card.downPayment).status === 'loan') deal = m1;
+  }
+  check(!!deal, 'junior deal scenario found');
+  for (const guess of [false, true]) {
+    await page.goto(`${URL_BASE}?seed=3`); // leave the board first (see testBuyStates), then write the save
+    await page.waitForSelector('[data-screen="start"]');
+    await page.evaluate((j) => localStorage.setItem('passivo.save', j), serialize(deal));
+    await guessPref(page, guess);
+    await page.goto(`${URL_BASE}?seed=3`);
+    await page.locator('[data-action="resume"]').click();
+    await page.waitForSelector('.card[data-card="opportunity"]');
+    if (guess) { await page.locator('[data-action="guess-skip"]').click(); await page.waitForSelector('.card [data-tut="downPayment"]'); }
+    await page.waitForTimeout(700);
+    const tag = guess ? 'after the guess' : 'numbers at once';
+    const parts = await page.evaluate(() => {
+      const c = document.querySelector('.card[data-card="opportunity"]');
+      return { hero: !!c.querySelector('.stat-hero'), down: !!c.querySelector('[data-tut="downPayment"]'), payback: !!c.querySelector('[data-tut="payback"]'), badge: !!c.querySelector('.deal-badge, [data-badge], .badge-abc'),
+        title: !!c.querySelector('.card-title, h2'), hint: c.querySelector('#buy-hint')?.textContent.trim() ?? '',
+        gone: ['.price-eq', '.debt-after', '.calc-line', '.banner:not(#buy-hint)', '[data-rw]'].filter((x) => c.querySelector(x)), text: c.innerText };
+    });
+    check(parts.hero && parts.down && parts.payback && parts.title, `junior deal card (${tag}): title, hero, first payment and payback ${JSON.stringify({ ...parts, text: undefined })}`);
+    check(parts.gone.length === 0, `junior deal card (${tag}): no price equation, debt total, monthly breakdown or banner (${parts.gone.join(', ')})`);
+    check(/חסרים לכם/.test(parts.hint) && /מטבע/.test(parts.hint) && !/₪/.test(parts.text), `junior deal card (${tag}): the loan hint stays, in coins ("${parts.hint}")`);
+    // the first payment and the loan hint are the only amounts allowed past 3 digits (a junior down payment is 400-7,560 coins)
+    const scan = await page.evaluate(JUNIOR_SCAN, ['.card[data-card="opportunity"]', '[data-tut="downPayment"], #buy-hint']);
+    check(scan.big.length === 0 && scan.leaks.length === 0, `junior deal card (${tag}): no other number over 999 and no hidden figure ${JSON.stringify(scan)}`);
+    if (!guess) await page.screenshot({ path: `${OUT}/junior-deal-card.png` });
+  }
+  // statement: cash, income, expenses and the month; debts and net worth only behind 'להורים' (built on open, never hidden)
+  await page.locator('.card [data-action="pass"]').click();
+  await page.waitForSelector('.card', { state: 'detached' });
+  await page.waitForTimeout(600);
+  await page.locator('[data-action="statement"]').click();
+  await page.waitForSelector('[data-action="parents"]');
+  await page.waitForTimeout(600);
+  const stClosed = await page.evaluate(() => { const sh = document.querySelector('#modal-root .layer:last-child'); return { nw: !!sh.querySelector('.nw, .st-sec-liability, .st-sec-networth'), expanded: sh.querySelector('[data-action="parents"]').getAttribute('aria-expanded'), income: !!sh.querySelector('.st-sec-income'), expense: !!sh.querySelector('.st-sec-expense'), cash: !!sh.querySelector('.st-cash'), shekel: /₪/.test(sh.innerText) }; });
+  check(!stClosed.nw && stClosed.expanded === 'false' && stClosed.income && stClosed.expense && stClosed.cash && !stClosed.shekel, `junior statement: cash, income and expenses; no debts or net worth until 'להורים' ${JSON.stringify(stClosed)}`);
+  const stScan = await page.evaluate(JUNIOR_SCAN, ['#modal-root .layer:last-child', '.st-cash']);
+  check(stScan.big.length === 0 && stScan.leaks.length === 0, `junior statement: no number over 999 (cash aside) and no hidden figure ${JSON.stringify(stScan)}`);
+  await page.locator('[data-action="parents"]').click();
+  await page.waitForTimeout(300);
+  const stOpen = await page.evaluate(() => { const sh = document.querySelector('#modal-root .layer:last-child'); return { nw: !!sh.querySelector('.nw'), liab: !!sh.querySelector('.st-sec-liability'), expanded: sh.querySelector('[data-action="parents"]').getAttribute('aria-expanded') }; });
+  check(stOpen.nw && stOpen.liab && stOpen.expanded === 'true', `junior statement: 'להורים' opens the debts and the net worth ${JSON.stringify(stOpen)}`);
+  await noHScroll(page, 'junior statement (להורים open)');
   await ctx.close();
 }
 async function testNotesAtSizes(browser) {

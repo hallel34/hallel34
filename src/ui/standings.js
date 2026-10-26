@@ -2,7 +2,7 @@
 import { h } from './dom.js';
 import { t, tp } from '../i18n/index.js';
 import { icon } from './icons.js';
-import { money, moneyIsolated, moneyText, numberText } from './format.js';
+import { money, moneyIsolated, moneyText, numberText, coinScale } from './format.js';
 import { playerToken, playerName, nameBdi } from './players.js';
 import { standings } from '../engine/index.js';
 
@@ -26,8 +26,8 @@ export function standingsList(match) {
     h('div', { class: 'stand-nums' },
       cell(t('standings.passive'), money(r.passive)),
       cell(t('standings.expenses'), money(r.expenses)),
-      cell(t('standings.netWorth'), money(r.netWorth)))));
-    list.lastChild.setAttribute('aria-label', t('standings.row', { name, place: r.place, passive: moneyIsolated(r.passive), expenses: moneyIsolated(r.expenses), net: moneyIsolated(r.netWorth), turns: tp('plural.turns', r.turns) }));
+      coinScale() ? null : cell(t('standings.netWorth'), money(r.netWorth))))); // 'צעירים': no net worth
+    list.lastChild.setAttribute('aria-label', t(coinScale() ? 'standings.rowJunior' : 'standings.row', { name, place: r.place, passive: moneyIsolated(r.passive), expenses: moneyIsolated(r.expenses), net: moneyIsolated(r.netWorth), turns: tp('plural.turns', r.turns) }));
   }
   return list;
 }

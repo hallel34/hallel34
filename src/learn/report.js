@@ -3,7 +3,7 @@ import { buildReport, conversationOrder } from '../engine/learn.js';
 import { tp } from '../i18n/index.js';
 import { passiveIncome, totalExpenses } from '../engine/selectors.js';
 import { learnContent, conceptsForMode } from './content.js';
-import { moneyText, numberText } from '../ui/format.js';
+import { moneyText, numberText, coinScale } from '../ui/format.js';
 import { yearsPhrase, pctText, fillSlots } from './slots.js';
 import { renderFeedback, feedbackForEnd, feedbackForWinExtra } from './feedback.js';
 
@@ -53,8 +53,8 @@ export function reportView(state, { seed = 0, theme = 0 } = {}) {
     sections.push({ id: 'worstDeal', title: S.worstDeal.title, text: S.worstDeal.empty, empty: true });
   }
 
-  // interest
-  if (data.interest.available) {
+  // interest (a 'צעירים' game leaves it out: a running loan total is a grown-up's figure, owner 2026-10-26)
+  if (data.interest.available && !coinScale()) {
     sections.push({
       id: 'interest', title: S.interest.title,
       text: data.interest.none ? S.interest.zero : fillSlots(S.interest.template, { amount: moneyText(data.interest.amount) }),

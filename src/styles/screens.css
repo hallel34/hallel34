@@ -486,3 +486,8 @@
 .age-note { margin: 0; display: flex; flex-direction: column; gap: 4px; font-size: .875rem; line-height: 1.4; color: var(--text); }
 .age-note[hidden] { display: none; }
 .parent-coins { margin: 0 0 8px; font-weight: var(--fw-bold); }
+
+/* 'צעירים' statement (owner 2026-10-26): the grown-ups' part (debts, net worth) behind one full-width toggle */
+.st-parents-btn { inline-size: 100%; min-block-size: 56px; flex-direction: column; gap: 2px; margin-block: 8px 4px; }
+.st-parents-hint { font-size: .8125rem; font-weight: var(--fw-medium, 500); opacity: .85; }
+.st-parents:empty { display: none; }
