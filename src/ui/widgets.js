@@ -139,15 +139,17 @@ export function cashDisplay(initial, { sign = false } = {}) {
   };
   paint(initial);
   let shown = initial;
+  let revision = 0;
   return {
     el,
     get value() { return shown; },
-    set(v) { shown = v; paint(v); },
+    set(v) { revision += 1; shown = v; paint(v); },
     async to(v, dur) {
       const from = shown;
+      const ownRevision = ++revision;
       shown = v;
-      await countUp(from, v, paint, dur);
-      paint(v);
+      await countUp(from, v, (x) => { if (revision === ownRevision) paint(x); }, dur);
+      if (revision === ownRevision) paint(v);
     },
   };
 }

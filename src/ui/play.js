@@ -1,5 +1,7 @@
 // Board screen + game flow controller. The engine is the source of truth; this file only
 // presents engine events (die, hops, cash) and applies the player's choices through the engine.
+import boardBaseUrl from '../assets/board-premium.webp?url';
+import { BOARD_GEO } from './board-geo.js';
 import { h, html } from './dom.js';
 import { t, tp, tRaw } from '../i18n/index.js';
 import {
@@ -197,9 +199,12 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   ensureTileSprite();
   const tiles = BOARD.map((sq, i) => {
     const [col, row] = ringPos(i);
-    // owner override 2026-10-24: the glossy 3D tile art on the board (monoline fallback while a file is missing)
+    const g = BOARD_GEO.tiles[i];
     const tile = boardTile(sq, { mode: state.mode, cls: `tile-${sq}`, attrs: { 'aria-hidden': 'true', 'data-i': i } });
+    tile.classList.add('scene-anchor');
     tile.style.setProperty('--c', col); tile.style.setProperty('--r', row);
+    tile.style.left = `${g.x * 100}%`; tile.style.top = `${g.y * 100}%`;
+    tile.style.inlineSize = `${g.w * 112}%`; tile.style.blockSize = `${g.h * 130}%`;
     return tile;
   });
   // One pawn per player, each with its OWN ground shadow (no filter on the moving pawn). Shared tiles offset the pawns (pawnOffsets).
@@ -230,10 +235,10 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   // owner override 2026-10-24b (board-spec 14.4): the plaza is a flex column. Top row: the flow chip (start) and "?" (end);
   // spacer; die (the landing caption takes its place on a landing); status + "you are here"; spacer; the fox row; the CTA.
   const plazaTop = h('div', { class: 'plaza-top' }, flowChip, legendBtn);
-  const center = h('div', { class: 'board-center' }, plazaTop, h('i', { class: 'plaza-spacer', 'aria-hidden': 'true' }),
+  const center = h('div', { class: 'board-center' }, h('i', { class: 'plaza-spacer', 'aria-hidden': 'true' }),
     h('div', { class: 'plaza-die' }, landCap, dice.el), h('div', { class: 'status-wrap' }, status, hereLine), charityChip, othersBtn,
     h('i', { class: 'plaza-spacer', 'aria-hidden': 'true' }));
-  const board = h('div', { class: `board${multi ? ' board-multi' : ''}`, role: 'group' }, boardSky(), ...tiles, center, othersPanel);
+  const board = h('div', { class: `board${multi ? ' board-multi' : ''}`, role: 'group', style: `background-image:url(${boardBaseUrl})` }, boardSky(), ...tiles, center, othersPanel);
   let currentTile = null;
 
   const rollLabel = h('span', null, t('game.roll'));
@@ -416,9 +421,9 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   }
 
   // the fox row and the CTA live INSIDE the plaza now (14.4 items 7-8); the plate sits under the slim HUD
-  center.append(zone, actions);
+  const dock = h('div', { class: 'play-dock' }, zone, actions);
   const el = h('section', { class: 'screen screen-board board-full', 'data-screen': 'board' },
-    h('h1', { class: 'vh' }, `${t('app.title')} · ${t('game.boardTitle')}`), hud, board);
+    h('h1', { class: 'vh' }, `${t('app.title')} · ${t('game.boardTitle')}`), hud, plazaTop, board, dock);
   // board-spec 14.2: the 6x8 ring fills the screen. JS sets --tile-c (width-bound, clamped 40-60) and the side-column row gap
   // --tile-gap-v (the spare height of a tall phone goes there, capped at c/2; leftover goes above the plate). Height-bound
   // (split screen / landscape): a smaller cell with the 4px gap. Below c = 40 the plate scales down as a whole, never scrolls.
@@ -449,9 +454,16 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     el.dataset.hud = hudMode;
     if (changed) refreshHud(); // the goal caption form follows the bar
     if (f.cell < 50) el.dataset.small = ''; else delete el.dataset.small;
+    const dockH = Math.max(dock.offsetHeight || 0, H < 700 ? 124 : 152);
+    const room = Math.max(190, H - safeT - safeB - Math.max(hud.offsetHeight, H < 700 ? 108 : 138) - 48 - dockH - 24);
+    const sceneW = Math.min(Math.min(innerWidth, 480) - 16, room * BOARD_GEO.aspect);
+    el.style.setProperty('--scene-w', `${sceneW}px`);
+    el.style.setProperty('--scene-ratio', String(BOARD_GEO.aspect));
   }
   sizeBoard();
   requestAnimationFrame(sizeBoard);
+  const dockObserver = new ResizeObserver(() => sizeBoard());
+  dockObserver.observe(dock);
   addEventListener('resize', sizeBoard);
   // The loops (window flicker, ring breathing) start once the board is interactive (idle callback, or 1.5 s), never before.
   let liveTimer = 0;
@@ -1200,6 +1212,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     destroyed = true; // (the coin scale is set by the next screen: app.js)
     clearTimeout(liveTimer);
     document.removeEventListener('visibilitychange', onHidden);
+    dockObserver.disconnect();
     removeEventListener('resize', sizeBoard);
     document.documentElement.removeAttribute('data-flow-pop');
     famHud?.destroy();

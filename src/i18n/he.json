@@ -101,7 +101,7 @@
     "turnApprox": "תור {turn} מתוך כ-{total}",
     "cash": "מזומן",
     "yourTurn": "התור שלכם",
-    "statusStart": "מוכנים? לחצו על הקובייה",
+    "statusStart": "הצעד הבא שלכם מתחיל כאן",
     "statusRolled": "הטלתם {steps} — אתם על משבצת {square}",
     "statusMoving": "בדרך...",
     "statusBack": "ממשיכים. הקובייה מחכה",

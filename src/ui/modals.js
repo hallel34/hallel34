@@ -772,7 +772,7 @@ export function sellSheet(getState, onSell, { shouldClose = () => false } = {}) 
         h('div', { class: 'sell-head' },
           categoryChip(a, { size: 32, on: 'dark' }),
           h('div', { class: 'sell-info' },
-            h('strong', null, assetTitle(a, state.mode)),
+            h('strong', null, assetTitle(a, state.mode), a.type === 'stock' ? [' · ', h('bdi', { dir: 'ltr', class: 'stock-symbol' }, a.symbol)] : null),
             h('span', { class: 'muted' }, a.type === 'stock' ? t('statement.stockLine', { shares: tp('plural.shares', a.qty) }) : categoryOf(a).label),
             h('span', null, tn('sell.proceeds', { amount: proceeds })))),
         qtyCtl?.el,
