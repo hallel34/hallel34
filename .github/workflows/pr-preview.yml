@@ -27,6 +27,8 @@ jobs:
         run: npm run build
       - name: Install Chromium for the smoke test
         run: npx playwright install --with-deps chromium
+      - name: Growing-business concept smoke test
+        run: npm run smoke:business
       - name: Full-flow smoke test (360x800, start to win)
         run: npm run smoke
 
