@@ -4,14 +4,14 @@
 import {
   BOARD, SCHEMA_VERSION, MAX_KIDS, CHARITY_PCT, CHARITY_TURNS, LOAN_STEP,
   MAX_STOCK_QTY, PAYDAY_MONTHS, INFLATION_PRICE_ROUND, TIMED_EFFECT_KINDS, INFLATION_FLOW_ROUND, INFLATION_EXPENSE_ROUND,
-  MILESTONES, TAX_AUDIT_PICKS, TAX_AUDIT_POINTS,
+  MILESTONES, TAX_AUDIT_PICKS, TAX_AUDIT_POINTS, JUNIOR_ROUND, JUNIOR_PRICE_ROUND, JUNIOR_LOAN_STEP,
 } from './config.js';
 import { validateData } from './validate.js';
 import { cardView } from './card-view.js';
 import {
   monthlyCashFlow, hasWon, maxLoan, saleValue, stockPrice, totalIncome,
   passiveIncome, canSell, loanMonthlyPayment, loanRateNow, priceFactor, expenseFactor, loanLimits, loanPayments, bankLoanPrincipal,
-  passiveRatio,
+  passiveRatio, loanStep,
 } from './selectors.js';
 import { emptyLearn, recordDecision, buyRecord, passRecord, loanRating, isDeal } from './learn.js';
 import { dailyDie, dailyPick, DAILY_TURN_CAP } from './daily.js';
@@ -51,6 +51,52 @@ export function inflateDeal(card, f) {
   return card;
 }
 
+/**
+ * 'צעירים' round rules for a NEW deal (after inflation): price and down payment to JUNIOR_PRICE_ROUND, mortgage = price - down,
+ * rent / profit / loan payment and cash flow to JUNIOR_ROUND, so every number on the card is a whole number of coins.
+ */
+export function juniorDeal(card) {
+  if (card.type === 'stock') return card;
+  card.price = Math.max(JUNIOR_PRICE_ROUND, roundTo(card.price, JUNIOR_PRICE_ROUND));
+  card.downPayment = Math.max(JUNIOR_PRICE_ROUND, roundTo(card.downPayment, JUNIOR_PRICE_ROUND));
+  if (Number.isFinite(card.mortgage)) card.mortgage = Math.max(0, card.price - card.downPayment);
+  const gross = card.type === 'business' ? 'profit' : 'rent';
+  if (Number.isFinite(card[gross]) && Number.isFinite(card.loanPayment)) {
+    card[gross] = roundTo(card[gross], JUNIOR_ROUND);
+    card.loanPayment = roundTo(card.loanPayment, JUNIOR_ROUND);
+    card.monthlyCashFlow = card[gross] - card.loanPayment;
+  } else {
+    card.monthlyCashFlow = roundTo(card.monthlyCashFlow, JUNIOR_ROUND);
+    if (Number.isFinite(card.loanPayment)) card.loanPayment = roundTo(card.loanPayment, JUNIOR_ROUND);
+    if (Number.isFinite(card[gross])) card[gross] = roundTo(card[gross], JUNIOR_ROUND);
+  }
+  return card;
+}
+
+/** The profession of a junior game: salary, expenses and the per-child cost to 100; starting debts to 1,000 / 100 a month. */
+function juniorProfession(p) {
+  const r = (x) => roundTo(x, JUNIOR_ROUND);
+  return { ...p, salary: r(p.salary), perChild: r(p.perChild), expenses: p.expenses.map((e) => ({ ...e, amount: r(e.amount) })) };
+}
+
+/**
+ * A card a junior game never deals: the cheap-loan card (half a coin a month) and a decision card with an amount that is not
+ * whole coins (or a fixed loan that is not a JUNIOR_LOAN_STEP multiple). The other decision cards keep their numbers.
+ */
+const MONEY_FIELDS = ['price', 'downPayment', 'mortgage', 'monthlyCashFlow', 'profit', 'rent', 'loanPayment', 'pay', 'repay'];
+export function juniorSkips(c) {
+  if (c.effect === 'cheapLoan') return true;
+  if (c.deck !== 'decision') return false;
+  const round = (v) => !Number.isFinite(v) || v % JUNIOR_ROUND === 0;
+  return c.options.some((o) => {
+    const fx = o.effects ?? {};
+    if (Number.isFinite(fx.loan) && fx.loan % JUNIOR_LOAN_STEP !== 0) return true;
+    if (Number.isFinite(fx.repay) && fx.repay % JUNIOR_LOAN_STEP !== 0) return true;
+    if (!MONEY_FIELDS.every((k) => round(fx[k]))) return true;
+    return [...(fx.buy ?? []), ...(fx.stocks ?? [])].some((x) => !MONEY_FIELDS.every((k) => round(x[k])) || !round(x.price));
+  });
+}
+
 const clone = (x) => structuredClone(x);
 const fail = (msg) => { throw new EngineError(msg); };
 
@@ -78,8 +124,8 @@ export function createEngine(data, { validate = true } = {}) {
   const professionById = new Map(data.professions.map((p) => [p.id, p]));
 
   // A square's draw pile: its own deck plus the decision cards dealt on it (`square`, v4 stage 4).
-  const eligible = (deck, mode) =>
-    data.cards.filter((c) => (c.deck === deck || (c.deck === 'decision' && c.square === deck)) && c.modes.includes(mode)).map((c) => c.id);
+  const eligible = (deck, mode, junior = false) =>
+    data.cards.filter((c) => (c.deck === deck || (c.deck === 'decision' && c.square === deck)) && c.modes.includes(mode) && !(junior && juniorSkips(c))).map((c) => c.id);
 
   // A card may carry the children's wording (titleFamily / textFamily): a family game draws the card with that wording in
   // title/text, so every screen, log line and asset name downstream is already in the right register. Numbers never differ.
@@ -95,7 +141,7 @@ export function createEngine(data, { validate = true } = {}) {
       return view(cardById.get(ids[dailyPick(d.seed, deck, d.turn, ids.length)]), d.mode);
     }
     for (let tries = 0; ; tries++) {
-      if (!d.decks[deck].length) d.decks[deck] = shuffle(d, eligible(deck, d.mode));
+      if (!d.decks[deck].length) d.decks[deck] = shuffle(d, eligible(deck, d.mode, !!d.junior));
       const card = cardById.get(d.decks[deck].shift());
       if (!card.requires || meetsRequires(d, card.requires) || tries > 64) return view(card, d.mode);
       d.decks[deck].push(card.id);
@@ -103,10 +149,12 @@ export function createEngine(data, { validate = true } = {}) {
   }
 
   // ---------- setup ----------
-  function newGame({ mode = 'full', professionId, seed = 1, daily = null } = {}) {
+  function newGame({ mode = 'full', professionId, seed = 1, daily = null, junior = false } = {}) {
     if (mode !== 'family' && mode !== 'full') fail(`unknown mode ${mode}`);
-    const profession = professionById.get(professionId ?? data.professions[0].id);
-    if (!profession) fail(`unknown profession ${professionId}`);
+    if (junior && (mode !== 'family' || daily)) fail('a junior game is a family game (and never the daily challenge)');
+    const raw = professionById.get(professionId ?? data.professions[0].id);
+    if (!raw) fail(`unknown profession ${professionId}`);
+    const profession = junior ? juniorProfession(raw) : raw;
     const d = {
       schemaVersion: SCHEMA_VERSION,
       mode,
@@ -116,9 +164,11 @@ export function createEngine(data, { validate = true } = {}) {
         id: profession.id, title: profession.title, salary: profession.salary,
         perChild: profession.perChild, expenses: profession.expenses,
       }),
-      cash: profession.savings,
+      cash: junior ? roundTo(profession.savings, JUNIOR_ROUND) : profession.savings,
       assets: [],
-      liabilities: profession.liabilities.map((l) => ({ ...l, kind: 'base' })),
+      liabilities: profession.liabilities.map((l) => (junior
+        ? { ...l, kind: 'base', principal: Math.max(JUNIOR_PRICE_ROUND, roundTo(l.principal, JUNIOR_PRICE_ROUND)), monthlyPayment: Math.max(JUNIOR_ROUND, roundTo(l.monthlyPayment, JUNIOR_ROUND)) }
+        : { ...l, kind: 'base' })),
       kids: 0,
       position: 0,
       turn: 0,
@@ -141,11 +191,12 @@ export function createEngine(data, { validate = true } = {}) {
       },
       learn: emptyLearn(), // what the player decided (feedback, guesses, report); never read by a rule
     };
+    if (junior) d.junior = true; // 'צעירים' round rules (schema 6)
     if (daily) {
       // opt-in rules flag: pre-determined dice / card streams (see daily.js) and an action log for later verification
       d.daily = { date: String(daily.date), turnCap: daily.turnCap ?? DAILY_TURN_CAP, log: [] };
     } else {
-      for (const deck of Object.keys(d.decks)) d.decks[deck] = shuffle(d, eligible(deck, mode));
+      for (const deck of Object.keys(d.decks)) d.decks[deck] = shuffle(d, eligible(deck, mode, junior));
     }
     settle(d);
     return d;
@@ -267,7 +318,7 @@ export function createEngine(data, { validate = true } = {}) {
         const card = clone(draw(d, 'opportunity'));
         if (card.deck === 'decision') { startDecision(d, card); break; }
         if (card.type === 'stock') card.price = stockPrice(d, card.symbol, card.price);
-        else inflateDeal(card, priceFactor(d));
+        else { inflateDeal(card, priceFactor(d)); if (d.junior) juniorDeal(card); }
         d.pending = { kind: 'opportunity', card };
         break;
       }
@@ -276,6 +327,7 @@ export function createEngine(data, { validate = true } = {}) {
         if (card.deck === 'decision') { startDecision(d, card); break; }
         const fx = expenseFactor(d);
         if (fx !== 1) { card.amount = Math.round((card.amount * fx) / INFLATION_EXPENSE_ROUND) * INFLATION_EXPENSE_ROUND; card.inflation = fx; }
+        if (d.junior) card.amount = Math.max(JUNIOR_ROUND, roundTo(card.amount, JUNIOR_ROUND));
         d.pending = { kind: 'expense', card, amount: card.amount };
         break;
       }
@@ -283,15 +335,18 @@ export function createEngine(data, { validate = true } = {}) {
       case 'baby':
         if (d.kids < MAX_KIDS) {
           d.kids += 1;
-          d.events.push({ type: 'baby', kids: d.kids, extra: d.profession.perChild });
+          d.events.push({ type: 'baby', kids: d.kids, extra: d.profession.perChild }); // junior: perChild is already round
         } else d.events.push({ type: 'babyMax' });
         break;
       case 'charity': {
-        const cost = Math.round((totalIncome(d) * CHARITY_PCT) / 10) * 10;
+        const q = d.junior ? JUNIOR_ROUND : 10;
+        const cost = Math.round((totalIncome(d) * CHARITY_PCT) / q) * q;
         d.pending = { kind: 'charity', cost };
         break;
       }
       case 'taxAudit': {
+        // a junior game asks no tax question: the quiz is about real 2026 shekel figures (they stay hidden in junior)
+        if (d.junior) { d.events.push({ type: 'taxAuditRest' }); break; }
         // v4 'ביקורת רשות המסים': a quiz question from the learn bank. `pick` chooses it (the UI maps it onto the questions of
         // the mode); the answer gives knowledge points only. Daily challenge: the pick depends on (seed, turn) only.
         const pick = d.daily ? dailyPick(d.seed, 'taxAudit', d.turn, TAX_AUDIT_PICKS) : randInt(d, TAX_AUDIT_PICKS);
@@ -326,6 +381,7 @@ export function createEngine(data, { validate = true } = {}) {
     if (TIMED_KINDS.has(card.effect)) {
       startEffect(d, card);
     } else if (card.effect === 'cash') {
+      if (d.junior) card.amount = roundTo(card.amount, JUNIOR_ROUND);
       d.cash += card.amount;
     } else if (card.effect === 'stockPrice') {
       d.stockPrices[card.symbol] = card.newPrice;
@@ -369,7 +425,8 @@ export function createEngine(data, { validate = true } = {}) {
     }
     const buys = Array.isArray(fx.buy) ? fx.buy : [];
     const down = buys.reduce((a, x) => a + x.downPayment, 0);
-    const loan = fx.loan === 'down' ? Math.ceil(down / LOAN_STEP) * LOAN_STEP : (fx.loan ?? 0);
+    const step = loanStep(d);
+    const loan = fx.loan === 'down' ? Math.ceil(down / step) * step : (fx.loan ?? 0);
     if (loan > 0) {
       const lim = loanLimits(d, { forced: !!card.expenseLoan, gain: buys.reduce((a, x) => a + x.monthlyCashFlow, 0) });
       if (loan > lim.max) return lim.netBinds ? 'net' : 'loan';
@@ -598,8 +655,9 @@ export function createEngine(data, { validate = true } = {}) {
   // ---------- loans ----------
   function takeLoan(state, amount) {
     const d = begin(state);
-    if (!Number.isInteger(amount) || amount <= 0 || amount % LOAN_STEP !== 0) {
-      fail(`loan must be a positive multiple of ${LOAN_STEP}`);
+    const step = loanStep(d);
+    if (!Number.isInteger(amount) || amount <= 0 || amount % step !== 0) {
+      fail(`loan must be a positive multiple of ${step}`);
     }
     if (amount > maxLoan(d)) fail('loan limit reached');
     logAction(d, 'takeLoan', amount);
@@ -633,8 +691,9 @@ export function createEngine(data, { validate = true } = {}) {
     const l = d.liabilities.find((x) => x.id === liabilityId);
     if (!l) fail('unknown liability');
     const whole = amount === l.principal;
+    // junior: a starting debt is repaid whole (its payment is rounded, so part of it would not be whole coins); bank loans in steps
     if (!Number.isInteger(amount) || amount <= 0 || amount > l.principal ||
-        (!whole && amount % LOAN_STEP !== 0)) fail('bad repayment amount');
+        (!whole && (amount % loanStep(d) !== 0 || (d.junior && l.kind !== 'loan')))) fail('bad repayment amount');
     if (d.cash < amount) fail('not enough cash');
     logAction(d, 'repayLoan', liabilityId, amount);
     d.cash -= amount;

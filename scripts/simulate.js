@@ -1,4 +1,5 @@
-// npm run simulate [-- --games=100 --max=200 --bots=sensible,alwaysBuy,... --modes=family,full --perProfession --json=out.json --multiplayer=0]
+// npm run simulate [-- --games=100 --max=200 --bots=sensible,alwaysBuy,... --modes=family,full,junior --perProfession --json=out.json --multiplayer=0]
+// mode 'junior' = a family game on the 'צעירים' round rules (owner 2026-10-26).
 // Plays N games per mode / bot / profession and prints balance statistics.
 // cash@t10 = median cash at the first roll phase on or after turn 10 (games that reached it), as in finance's runner.
 import { readFileSync } from 'node:fs';
@@ -25,7 +26,7 @@ const avg = (a) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : NaN);
 const f1 = (x) => (Number.isNaN(x) ? '-' : x.toFixed(1));
 
 function play(mode, bot, professionId, seed) {
-  let s = engine.newGame({ mode, professionId, seed });
+  let s = mode === 'junior' ? engine.newGame({ mode: 'family', professionId, seed, junior: true }) : engine.newGame({ mode, professionId, seed });
   let cash10 = null;
   let guard = 0;
   while (s.status === 'playing' && s.turn < MAX_TURNS && guard++ < 5000) {
@@ -74,7 +75,7 @@ for (const mode of modes) {
   }
   if (args.perProfession) {
     for (const p of data.professions) {
-      const start = monthlyCashFlow(engine.newGame({ mode, professionId: p.id }));
+      const start = monthlyCashFlow(engine.newGame(mode === 'junior' ? { mode: 'family', professionId: p.id, junior: true } : { mode, professionId: p.id }));
       for (const bot of String(args.perProfessionBots ?? 'sensible').split(',')) {
         const r = run(mode, bot, [p.id], GAMES);
         record(mode, bot, p.id, r);

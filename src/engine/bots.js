@@ -1,7 +1,6 @@
 // Bots used by the balance simulation (and handy for QA / demo mode).
-import { maxLoan, monthlyCashFlow, totalExpenses, loanRateNow, bankLoanPrincipal } from './selectors.js';
+import { maxLoan, monthlyCashFlow, totalExpenses, loanRateNow, bankLoanPrincipal, loanStep } from './selectors.js';
 import { decisionCanPass, isFreeOption, PASS_OPTION } from './engine.js';
-import { LOAN_STEP } from './config.js';
 import { act, canEndTurn, endTurn } from './match.js';
 
 // reserveMonths: cash buffer (in months of expenses) kept after a purchase.
@@ -20,7 +19,7 @@ export const BOTS = {
 function coverShortfall(engine, s, need) {
   // Take the smallest loan(s) that cover `need` extra cash, if allowed.
   while (need > 0 && maxLoan(s) > 0) {
-    const amt = Math.min(maxLoan(s), Math.ceil(need / LOAN_STEP) * LOAN_STEP);
+    const amt = Math.min(maxLoan(s), Math.ceil(need / loanStep(s)) * loanStep(s));
     s = engine.takeLoan(s, amt);
     need -= amt;
   }
@@ -89,7 +88,7 @@ export function step(engine, s, bot) {
       for (const a of s.assets) {
         if (n.pending && n.cash < (p.amount ?? 0) && n.mode === 'full') n = engine.sellAsset(n, a.id);
       }
-      if (n === s) return engine.takeLoan(s, LOAN_STEP); // will throw if impossible
+      if (n === s) return engine.takeLoan(s, loanStep(s)); // will throw if impossible
     }
     return n;
   }
@@ -109,7 +108,7 @@ export function step(engine, s, bot) {
       if (!cfg.borrow) return engine.pass(s);
       const need = c.downPayment - s.cash;
       if (need > 0) {
-        const loanNeeded = Math.ceil(need / LOAN_STEP) * LOAN_STEP;
+        const loanNeeded = Math.ceil(need / loanStep(s)) * loanStep(s);
         if (loanNeeded > maxLoan(s)) return engine.pass(s);
         // only borrow if the deal still improves cash flow after the loan payment (the over-borrowing bots skip this check)
         if (!cfg.overBorrow && c.monthlyCashFlow - loanNeeded * loanRateNow(s) <= 0) return engine.pass(s);

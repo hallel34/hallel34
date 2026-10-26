@@ -129,3 +129,30 @@ Decision cards per game: family 1.7, full 1.8; tax-audit questions per game: fam
 - Card 5 (repay 40,000 or buy the cart): the bots always take B (the cart, +900 a month) over A (-400 a month in expenses). As the doc's open point 2 expected, B is always correct inside the game (assets never fail). For finance / the educator: if A should be a real choice, the game needs a risk on small businesses.
 - Card 2: two small apartments (B) is never picked by a bot (A pays 300 more and costs the same), as open point 1 says; its value is flexibility only.
 - Card 8: the big down payment (B) is picked when the cash is there; the plain pass is common because many players cannot pay 200,000 when it comes.
+
+## Junior round rules ('צעירים', owner 2026-10-26), `npm run simulate -- --games=300 --modes=junior --multiplayer=0`
+
+These are family games on the junior round rules, which apply when a player is 10 or under:
+- The profession's figures are rounded to ₪100, and debts' principal to ₪1,000.
+- Deals' price and down payment are rounded to ₪1,000, and their monthly money to ₪100.
+- Expenses, charity, market cash and rent changes are rounded to ₪100.
+- Bank loans come in ₪10,000 steps.
+- The cheap-loan card is not dealt, and neither are decision cards whose amounts are not whole coins (dec-002, dec-004, dec-006).
+- The tax-audit square asks no question.
+
+Targets: sensible median 20-30 turns with under 5% lost; reckless bots lost 15-35%.
+
+| bot | win | lost | median | p90 | loans |
+|---|---|---|---|---|---|
+| sensible | 100% | 0% | 23 | 34 | 1.0 |
+| cautious | 99% | 1% | 29 | 42 | 0.1 |
+| alwaysBuy | 76% | 24% | 23 | 38 | 1.5 |
+| overBorrow | 69% | 31% | 25 | 39 | 1.3 |
+| overBorrowLite | 76% | 24% | 23 | 39 | 1.5 |
+| alwaysPass | 0% | 6% (94% timeout) | - | - | 0.9 |
+
+Every target is met. Two runs on the way:
+- **No decision cards at all:** this was the first rule, and reckless losses rose to 41-48%. The decision cards whose amounts are whole coins are dealt again, which brings losses back to 24-31%.
+- **Raising the junior net floor:** `JUNIOR_NET_FLOOR` at 500, 1,000, 1,500 and 2,500 changed reckless losses by at most 3 points (they sit at 40-48% without the decision cards), so it stays 0.
+
+The 10,000 loan step itself barely matters: a 1,000 step gave the same loss rates (38-48%). An engine test (tests/junior.test.js) checks that every amount a junior game reaches is a multiple of ₪100, with every bot and in hot-seat.

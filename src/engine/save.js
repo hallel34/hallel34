@@ -48,6 +48,15 @@ const migrations = {
       } : p))
       : m.players,
   }),
+  // 5 -> 6 (owner 2026-10-26): every player gets `age` (null = not given: today's rules and shekels). Old games are never
+  // junior games (no `junior` flag on the match or the states), so they play on exactly as before.
+  5: (m) => ({
+    ...m,
+    schemaVersion: 6,
+    players: Array.isArray(m.players)
+      ? m.players.map((p) => (p?.state ? { ...p, age: p.age ?? null, state: { ...p.state, schemaVersion: 6 } } : p))
+      : m.players,
+  }),
 };
 
 export function serialize(match) {

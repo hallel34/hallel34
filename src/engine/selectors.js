@@ -3,10 +3,14 @@ import {
   LOAN_STEP, LOAN_PAYMENT_RATE, LOAN_LIMIT_SALARY_PCT, MORTGAGE_PAYMENT_RATE, BUSINESS_LOAN_PAYMENT_RATE, SELL_FACTOR,
   PAYDAY_MONTHS, PAYBACK_OK_YEARS, PAYBACK_SLOW_YEARS, MONTHS_PER_YEAR, LOAN_CAP_SALARIES, FAMILY_NET_FLOOR,
   PRICE_INFLATION_PER_LAP, EXPENSE_INFLATION_PER_LAP, DAILY_INFLATION_FACTOR, PROPERTY_VALUE_ROUND, RENT_CHANGE_ROUND,
+  JUNIOR_LOAN_STEP, JUNIOR_ROUND, JUNIOR_NET_FLOOR,
 } from './config.js';
 
 const sum = (arr, f) => arr.reduce((a, x) => a + f(x), 0);
 const roundTo = (x, q) => Math.round(x / q) * q;
+
+/** The bank-loan step of this game: JUNIOR_LOAN_STEP in a 'צעירים' game (1 coin a month), else LOAN_STEP. */
+export const loanStep = (s) => (s?.junior ? JUNIOR_LOAN_STEP : LOAN_STEP);
 
 // ---- inflation and timed effects (v3 phase 3) ----
 /** Price factor of NEW deals: PRICE_INFLATION_PER_LAP ^ lap; the daily challenge always 1 (same prices for everyone). */
@@ -21,7 +25,7 @@ export const loanRateNow = (s) => activeEffect(s, 'cheapLoan')?.rate ?? LOAN_PAY
 export function rentChangeAmount(s, a) {
   const e = activeEffect(s, 'rentChange');
   if (!e || a.type !== 'apartment' || !Number.isFinite(a.rent)) return 0;
-  return roundTo(a.rent * e.pct, RENT_CHANGE_ROUND);
+  return roundTo(a.rent * e.pct, s.junior ? JUNIOR_ROUND : RENT_CHANGE_ROUND);
 }
 /** An asset's monthly cash flow right now (its stored flow + a running rent change). */
 export const assetCashFlow = (s, a) => a.monthlyCashFlow + rentChangeAmount(s, a);
@@ -112,7 +116,8 @@ export function purchasePlan(s, cost) {
   const need = Math.max(0, cost - s.cash);
   const loanRoom = maxLoan(s);
   const status = need === 0 ? 'ok' : need <= loanRoom ? 'loan' : 'blocked';
-  return { cost, need, loanRoom, status, loanAmount: need === 0 ? 0 : Math.ceil(need / LOAN_STEP) * LOAN_STEP };
+  const step = loanStep(s);
+  return { cost, need, loanRoom, status, loanAmount: need === 0 ? 0 : Math.ceil(need / step) * step };
 }
 
 /**
@@ -162,13 +167,15 @@ export function familyNetLimit(s, { forced = false, gain = null } = {}) {
   const purchase = p?.kind === 'opportunity' || (p?.kind === 'decision' && p.card?.square === 'opportunity');
   if (!purchase) return Infinity;
   const g = gain ?? (p.kind === 'opportunity' && Number.isFinite(p.card?.monthlyCashFlow) ? p.card.monthlyCashFlow : 0);
-  const room = monthlyCashFlow(s) + g - FAMILY_NET_FLOOR;
-  return Math.max(0, Math.floor(room / (LOAN_STEP * loanRateNow(s)) + 1e-9) * LOAN_STEP);
+  const room = monthlyCashFlow(s) + g - (s.junior ? JUNIOR_NET_FLOOR : FAMILY_NET_FLOOR);
+  const step = loanStep(s);
+  return Math.max(0, Math.floor(room / (step * loanRateNow(s)) + 1e-9) * step);
 }
 
 export function loanLimits(s, { forced: forcedLoan = false, gain = null } = {}) {
   const floor = -s.profession.salary * LOAN_LIMIT_SALARY_PCT;
   const room = monthlyCashFlow(s) - floor; // payment budget
+  const LOAN_STEP = loanStep(s); // eslint-disable-line no-shadow
   const byFlowRaw = Math.floor(room / (LOAN_STEP * loanRateNow(s)) + 1e-9) * LOAN_STEP;
   const byNet = familyNetLimit(s, { forced: forcedLoan, gain });
   const byFlow = Math.min(byFlowRaw, byNet);

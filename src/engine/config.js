@@ -1,9 +1,11 @@
 // Tunable rule constants. Pure data, no DOM.
+// 6 (owner 2026-10-26): every player carries `age` (an AGE_BANDS id or null = not given: today's rules and ₪), and a game with a
+// player of 10 or under is a 'צעירים' game: every player's state carries `junior: true` (round rules, see JUNIOR_* below).
 // 5 (v4 stage 4): every player's state carries `milestones` (25 / 50% celebrated once per game) and `taxAudit` (quiz points).
 // 4: every player's state carries `lap` (board laps completed, drives price inflation) and `effects` (timed market effects).
 // 3: every player's state carries a `learn` record (decisions, guesses, concepts). 2: saves hold a whole match (1-4 players).
 // Version 1 saves were a single game state; 1 -> 2 -> 3 -> 4 migrate step by step on load.
-export const SCHEMA_VERSION = 5;
+export const SCHEMA_VERSION = 6;
 export const MIN_PLAYERS = 1;
 export const MAX_PLAYERS = 4;
 export const NAME_MAX = 12;
@@ -111,3 +113,22 @@ export const TAX_AUDIT_POINTS = 1;
 // Family safety net (owner, 2026-10-25): in family mode a purchase loan may not leave the monthly cash flow (after the deal's own
 // monthly money and the new loan payment) below this many shekels a month. Full mode, expense and shortfall loans: no net.
 export const FAMILY_NET_FLOOR = 0;
+
+// ---- 'צעירים' (owner 2026-10-26, docs/decisions.md): a game with a player aged 10 or under ----
+// The age is a band picked after each name. 'upTo10' makes the game a junior game (family rules on round numbers, and that
+// player sees amounts in coins); '11to13' is family mode in shekels; '14plus' is today's game. null = not given (today's game).
+export const AGE_BANDS = ['upTo10', '11to13', '14plus'];
+export const JUNIOR_AGE = 'upTo10';
+/** Ages under 14 are suggested family mode. */
+export const FAMILY_SUGGESTED_AGES = ['upTo10', '11to13'];
+// One coin = this many shekels. Every amount of a junior game is a multiple of it, so coins are exact.
+export const COIN_VALUE = 100;
+// Junior round rules (an engine flag on every player's state, like the daily's): deals' price and down payment to 1,000, their
+// monthly money to 100, expenses / charity / market cash / rent changes to 100, the profession's figures to 100 (debts' principal
+// to 1,000), and bank loans in 10,000 steps (1% a month = 1 coin a month per step). Decision cards (their texts name shekel
+// figures) and the cheap-loan card (half a coin a month) are not dealt; the tax-audit square asks no question (real figures).
+export const JUNIOR_LOAN_STEP = 10000;
+export const JUNIOR_ROUND = 100;
+export const JUNIOR_PRICE_ROUND = 1000;
+// The family safety net's floor in a junior game (tuned by simulation, docs/BALANCE.md 'Junior round rules').
+export const JUNIOR_NET_FLOOR = 0; // not raised: 0 already meets the reckless target (15-35%); 500-2,500 changed nothing
