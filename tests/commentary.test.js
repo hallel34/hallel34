@@ -24,5 +24,6 @@ describe('quiet presentation without losing game facts', () => {
     expect(JSON.parse(read('src/i18n/he.json')).commentary['buy_good']).not.toContain('שנים');
     expect(read('src/ui/payday.js')).toContain("const v = 'b'");
     expect(read('src/ui/play.js')).toContain('chip.hidden = true');
+    expect(read('src/ui/play.js')).toContain('document.createTextNode(String(n))');
   });
 });

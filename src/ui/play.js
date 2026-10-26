@@ -415,7 +415,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   function pushLog(text, tone = '', { record = true, payday = false, present = true } = {}) {
     if (!text) return;
     if (!present) {
-      if (record) turnLog.push(Array.isArray(text) ? text.map((n) => n.cloneNode?.(true) ?? n) : [text]);
+      if (record) turnLog.push((Array.isArray(text) ? text : [text]).map((n) => n.cloneNode?.(true) ?? document.createTextNode(String(n))));
       return;
     }
     chip.querySelector('.payday-chip')?.closePopover?.();
