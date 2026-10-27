@@ -243,7 +243,9 @@
     "blockOr": "במקום הקלף שהוצע.",
     "level1": "שיפוץ ראשון",
     "level2": "מרפסת או טייק אוויי",
-    "level3": "קומה חדשה וגינת גג",
+    "level3": "קומת פעילות חדשה",
+    "level3terrace": "גינת גג מעל המרפסת",
+    "level3takeaway": "מטבח משלוחים רחב",
     "styleTitle": "איך המקום יגדל?",
     "styleText": "אותה עלות, אותה תוספת. רק האופי משתנה.",
     "terrace": "מרפסת שכונתית",
@@ -256,7 +258,9 @@
     "assetLevel1": "משופץ",
     "assetLevel2terrace": "עם מרפסת",
     "assetLevel2takeaway": "עם טייק אוויי",
-    "assetLevel3": "עם גינת גג"
+    "assetLevel3": "ברמה 3",
+    "assetLevel3terrace": "עם גינת גג",
+    "assetLevel3takeaway": "עם מטבח משלוחים"
   },
   "auction": {
     "title": "מכרז: {title}",

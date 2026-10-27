@@ -11,7 +11,7 @@ import { currentState } from './match.js';
 const fail = (msg) => { throw new EngineError(msg); };
 
 export const auctionable = (card) => card?.type === 'apartment' || card?.type === 'business';
-export const auctionStep = (m) => (m.junior ? JUNIOR_LOAN_STEP : LOAN_STEP);
+export const auctionStep = (m) => m?.auction?.step ?? (m?.junior ? JUNIOR_LOAN_STEP : LOAN_STEP);
 /** Indexes of the players still in the game, except `fromIndex`, in turn order starting after them. */
 export function auctionOrder(m, fromIndex) {
   const out = [];
@@ -26,11 +26,16 @@ export function auctionOrder(m, fromIndex) {
  * After the current player passed on an opportunity: the match gains an `auction` when the card is a deal and at
  * least one other player is still in the game. Otherwise the match is returned unchanged.
  */
-export function maybeStartAuction(m, card, fromIndex = m.currentIndex) {
+export function maybeStartAuction(m, card, fromIndex = m.currentIndex, rules = {}) {
   if (m.auction || !auctionable(card)) return m;
   const order = auctionOrder(m, fromIndex);
   if (!order.length) return m;
-  return { ...m, auction: { card, fromIndex, order, seat: 0, currentBid: 0, winner: null, out: [], history: [] } };
+  // Default floor (provisional, pending owner review 2026-10-27): half the printed down payment, so a passed deal
+  // sells often enough to matter but never as a steal. rules.floor overrides (0 = no floor).
+  const floorRule = rules.floor ?? ((c) => Math.round((c.downPayment ?? 0) / 2));
+  const floor = Math.max(0, Math.round(typeof floorRule === 'function' ? floorRule(card) : floorRule));
+  const step = Number.isInteger(rules.step) && rules.step > 0 ? rules.step : null;
+  return { ...m, auction: { card, fromIndex, order, seat: 0, currentBid: 0, winner: null, out: [], history: [], floor, step } };
 }
 
 export const auctionActive = (m) => !!m?.auction;
@@ -39,7 +44,9 @@ export const auctionBidderIndex = (m) => m.auction.order[m.auction.seat];
 /** The lowest amount the current bidder may offer (the first bid is one step; later bids top the current one). */
 export function auctionMinBid(m) {
   const step = auctionStep(m);
-  return m.auction.currentBid + step;
+  const a = m.auction;
+  if (a.currentBid > 0) return a.currentBid + step;
+  return Math.max(step, Math.ceil((a.floor ?? 0) / step) * step); // the opening bid clears the floor, rounded to a step
 }
 
 function advance(a) {

@@ -395,7 +395,7 @@ function breakdown(c, scope) {
 /** The 'שיפוץ אפשרי' section of an opportunity card, when the player owns a coffee business they can upgrade now. */
 function renoBlock(reno) {
   return h('section', { class: 'reno-block', 'data-reno': String(reno.level) },
-    h('h3', { class: 'reno-title' }, t('reno.blockTitle', { title: t(`reno.level${reno.level}`) })),
+    h('h3', { class: 'reno-title' }, t('reno.blockTitle', { title: t(reno.level === 3 && reno.assetStyle ? `reno.level3${reno.assetStyle}` : `reno.level${reno.level}`) })),
     h('p', null, tn('reno.blockLine', { cost: money(reno.cost), gain: money(reno.gain, { sign: true }) })),
     h('p', { class: 'reno-or' }, t('reno.blockOr')));
 }

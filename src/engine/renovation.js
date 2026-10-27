@@ -41,5 +41,5 @@ export function renovationOption(state, cards = []) {
   if (!asset) return null;
   const next = renovationLevelsFor(state)[renovationLevel(asset)];
   if (!next || state.cash < next.cost) return null;
-  return { assetId: asset.id, level: next.level, cost: next.cost, gain: next.gain, style: next.style };
+  return { assetId: asset.id, level: next.level, cost: next.cost, gain: next.gain, style: next.style, assetStyle: asset.renovations?.style ?? null };
 }

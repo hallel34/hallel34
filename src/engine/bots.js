@@ -178,17 +178,29 @@ export function auctionMaxBid(state, card, bot) {
  * A passed deal goes to auction: every bidder plays its own policy's ceiling. Stops at the first winner, when everyone
  * is out, or after `maxTurns` completed turns. Returns the final match.
  */
-export function playMatch(engine, match, bots, maxTurns = 2000) {
+export function playMatch(engine, match, bots, maxTurns = 2000, opts = {}) {
   let m = match;
   let guard = 0;
+  const stats = opts.stats ?? null;
   const policy = (i) => m.players[i].bot ?? bots[i % bots.length];
   while (m.status === 'playing' && m.turns < maxTurns && guard++ < maxTurns * 60) {
-    if (m.auction) { m = runAuction(engine, m, (st, card, i) => auctionMaxBid(st, card, policy(i))); continue; }
+    if (m.auction) {
+      const card = m.auction.card;
+      m = runAuction(engine, m, (st, card, i) => auctionMaxBid(st, card, policy(i)));
+      if (stats) {
+        stats.auctions += 1;
+        if (m.lastAuction?.winner !== null && m.lastAuction?.winner !== undefined) {
+          stats.sold += 1;
+          stats.bids.push({ price: m.lastAuction.price, down: card.downPayment, rounds: m.lastAuction.history.length });
+        }
+      }
+      continue;
+    }
     if (canEndTurn(m)) { m = endTurn(m); continue; }
     const bot = policy(m.currentIndex);
     m = act(m, (s) => step(engine, s, bot));
     const passed = m.players[m.currentIndex].state.events?.find((e) => e.type === 'passed' && e.card);
-    if (passed) m = maybeStartAuction(m, passed.card);
+    if (passed && opts.auctions !== false) m = maybeStartAuction(m, passed.card, m.currentIndex, opts.auctionRules ?? {});
   }
   return m;
 }

@@ -10,9 +10,9 @@ On an opportunity tile, a player holding a coffee-category business gets a **thi
 |-------|------|--------------|----------------|
 | 1 - paint & equipment | 40,000 | +800 | ~4.2 years |
 | 2 - terrace or takeaway (style choice, cosmetic) | 60,000 | +1,000 | ~5.0 years |
-| 3 - roof garden | 90,000 | +1,200 | ~6.25 years |
+| 3 - roof garden (terrace) / delivery kitchen (takeaway) | 90,000 | +1,200 | ~6.25 years |
 
-* Cash only, one level per landing, each level once per business. Level 3 requires a terrace.
+* Cash only, one level per landing, each level once per business. Level 3 takes the form matching the level-2 style (roof garden above a terrace, a delivery kitchen next to a takeaway window) - same cost, same gain; neither style is stranded.
 * The card is abandoned without an auction (same as the demo card).
 * Inspired by the growing-business demo (`demo/model.js` levels).
 
@@ -25,7 +25,7 @@ On an opportunity tile, a player holding a coffee-category business gets a **thi
 
 When a player **passes** on a purchasable deal card (apartment/business; stocks excluded), the other players bid on it openly, in turn order, starting after the decliner:
 
-* Bids rise in steps of the current mode's loan step (junior 10,000 / family 20,000 / full 40,000).
+* Bids rise in steps of 1,000 (junior: 10,000). **Opening bid floor: half the card's printed down payment** (provisional default, see the controlled experiment below).
 * **Cash only** - bids limited by cash on hand. Decliner does not bid. If everyone passes, the card is discarded.
 * **Winner's economics**: the bid is paid as the down payment; the card's **original mortgage and monthly payment are kept unchanged**, so the asset's monthly cash flow is exactly as printed. Asset price = bid + mortgage (the balance sheet always balances and immediate resale can never beat paying the bid: 90%·(B+M)−M < B). Renovation levels already bought stay with the asset.
 * Applies to multiplayer matches (human or bot seats). Single-player unchanged. UI: open card with a stepper; bots bid up to a payback ceiling by personality.
@@ -33,7 +33,17 @@ When a player **passes** on a purchasable deal card (apartment/business; stocks 
 ### Tradeoffs
 * **Bid = effective down payment** (recommended): simpler for kids, one number, zero arbitrage. Alternative: classic auction of the whole asset price - needs new-loan mechanics for the difference, more complex and lets the winner pay less than the card's printed financing terms.
 * **Open ascending** (recommended): transparent, exciting, kids learn pricing. Alternative: sealed single-round bids - faster, less social.
-* **Simulation effect**: 4-bot matches accelerate sharply - winner median turns 18->9 (family), 19->5 (full) - because deals no longer go to waste and auctions spread assets. That is inherent to "every deal finds a buyer" (like Monopoly auctions). If a slower game is preferred: add a floor (min bid = a % of down payment) or auction only in full mode.
+* **Controlled experiment** (scripts/sim-auction-variants.mjs; 60 matches/variant, 4 sensible bots, seeds 1-60 fixed; metric = winner's own turns, total player-turns in parens):
+
+| Variant | family winner (total) | full winner (total) | auctions/match | sold | avg bid/down |
+|---|---|---|---|---|---|
+| no auction | 16 (63) | 18 (70) | - | - | - |
+| no floor, step 1k | 7 (27) | 6 (21) | 5.6 / 5.1 | ~80% | 0.3-0.4 (steals) |
+| **floor = half down (default)** | 14 (52) | 14 (55) | 9-11 | 21-26% | 0.8 |
+| floor = full down | 16 (60) | 17 (64) | 10-13 | 6% | 1.4-1.5 |
+| step 5k vs 1k | same | same | same | same | same |
+
+  The no-floor variant trivialized progression (games 2.5x shorter, winning bids at 30-40% of the printed down). The full-down floor keeps baseline pacing but the mechanic almost never sells (6%) - the user's idea would feel absent. Half-down is the recommended middle: auctions regularly find a buyer (~2-3 sales/match) at sane prices, pacing mildly faster than baseline. (The no-auction baseline itself is 16/18 here vs BALANCE.md's 18/19 because bots now renovate - same conditions across variants.)
 
 ## Bots ("בוטים")
 

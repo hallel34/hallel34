@@ -105,7 +105,7 @@ describe('auction', () => {
   });
   it('the highest bidder pays the bid and gets the card with its own financing', () => {
     let m = newMatch(engine, { mode: 'full', players: players(), seed: 7 });
-    m = maybeStartAuction(m, apt);
+    m = maybeStartAuction(m, apt, m.currentIndex, { floor: 0 });
     expect(auctionBidderIndex(m)).toBe(1);
     expect(auctionMinBid(m)).toBe(1000);
     m = auctionBid(engine, m, 5000);
@@ -121,7 +121,7 @@ describe('auction', () => {
   });
   it('bids must top the current one, be step multiples, and stay in cash', () => {
     let m = newMatch(engine, { mode: 'full', players: players(), seed: 7 });
-    m = maybeStartAuction(m, apt);
+    m = maybeStartAuction(m, apt, m.currentIndex, { floor: 0 });
     expect(() => auctionBid(engine, m, 1500)).toThrow(EngineError); // not a step multiple
     m = auctionBid(engine, m, 3000);
     expect(() => auctionBid(engine, m, 3000)).toThrow(EngineError); // must top
@@ -138,7 +138,7 @@ describe('auction', () => {
   });
   it('a later raise keeps the auction open until a full round of passes', () => {
     let m = newMatch(engine, { mode: 'full', players: players(), seed: 7 });
-    m = maybeStartAuction(m, apt);
+    m = maybeStartAuction(m, apt, m.currentIndex, { floor: 0 });
     m = auctionBid(engine, m, 2000); // p1
     m = auctionBid(engine, m, 4000); // p2 tops
     m = auctionPass(engine, m); // p1 drops
@@ -150,14 +150,14 @@ describe('auction', () => {
     // player 1 is one deal away from freedom
     const s1 = m.players[1].state;
     m = { ...m, players: m.players.map((p, i) => (i === 1 ? { ...p, state: { ...s1, profession: { ...s1.profession, expenses: [] }, liabilities: [] } } : p)) };
-    m = maybeStartAuction(m, apt);
+    m = maybeStartAuction(m, apt, m.currentIndex, { floor: 0 });
     m = auctionBid(engine, m, 1000);
     expect(m.status).toBe('won');
     expect(m.winnerIndex).toBe(1);
   });
   it('an open auction survives a save round-trip and resumes', () => {
     let m = newMatch(engine, { mode: 'full', players: players(), seed: 7 });
-    m = maybeStartAuction(m, apt);
+    m = maybeStartAuction(m, apt, m.currentIndex, { floor: 0 });
     m = auctionBid(engine, m, 2000);
     const loaded = deserialize(serialize(m));
     expect(loaded.auction).toEqual(m.auction);
@@ -214,5 +214,94 @@ describe('bot seats', () => {
     const n2 = botStep(engine, { ...s, pending: { kind: 'opportunity', card: better } }, 'sensible');
     expect(n2.assets.some((a) => a.cardId === 'opp-apt')).toBe(true);
     expect(n2.assets.find((a) => a.id === 'asset-cafe').renovations).toBeUndefined();
+  });
+});
+
+describe('renovation style branches', () => {
+  const engine = mk([apt, cafe]);
+  it('both level-2 styles reach level 3 and keep their identity; the option exposes the asset style', () => {
+    for (const style of ['terrace', 'takeaway']) {
+      let s = withCafeAndCard(engine);
+      s = engine.renovate(s, 'asset-cafe');
+      s = { ...s, phase: 'decision', pending: { kind: 'opportunity', card: apt } };
+      s = engine.renovate(s, 'asset-cafe', style);
+      let a = s.assets.find((x) => x.id === 'asset-cafe');
+      expect(a.renovations).toEqual({ level: 2, style });
+      const opt = renovationOption({ ...s, phase: 'decision', pending: { kind: 'opportunity', card: apt } }, engine.data.cards);
+      expect(opt).toMatchObject({ level: 3, assetStyle: style }); // the UI labels level 3 per style (roof garden / delivery kitchen)
+      s = { ...s, phase: 'decision', pending: { kind: 'opportunity', card: apt } };
+      s = engine.renovate(s, 'asset-cafe');
+      a = s.assets.find((x) => x.id === 'asset-cafe');
+      expect(a.renovations).toEqual({ level: 3, style });
+      expect(a.monthlyCashFlow).toBe(1800 + RENOVATION_LEVELS[0].gain + RENOVATION_LEVELS[1].gain + RENOVATION_LEVELS[2].gain);
+      expect(renovationOption(s, engine.data.cards)).toBeNull(); // fully renovated
+    }
+  });
+});
+
+describe('auction economics coverage', () => {
+  const engine = mk([apt, cafe]);
+  /** A match whose current player just passed on `card`; everyone has `cash`. */
+  function matchAfterPass(card, cash = 500000, mode = 'full', rules = {}) {
+    let m = newMatch(engine, { mode, seed: 1, players: [{ name: 'A' }, { name: 'B' }, { name: 'C' }] });
+    m = { ...m, players: m.players.map((p) => ({ ...p, state: { ...p.state, cash } })) };
+    return maybeStartAuction(m, card, m.currentIndex, rules);
+  }
+  it('the recorded price tracks the bid at many levels, financing never changes with the bid', () => {
+    for (const bid of [1000, 25000, 80000, 200000]) {
+      const s = engine.auctionWin(
+        { ...engine.newGame({ mode: 'full', professionId: 'test', seed: 1 }), cash: 500000, phase: 'decision' },
+        apt, bid);
+      const a = s.assets.at(-1);
+      expect(a).toMatchObject({ downPayment: bid, mortgage: apt.mortgage, price: bid + apt.mortgage, monthlyCashFlow: apt.monthlyCashFlow, auctioned: true });
+    }
+  });
+  it('an immediate resale never beats simply keeping the bid, at any bid and any offer at/below full price', () => {
+    for (const bid of [1000, 25000, 80000, 200000]) {
+      for (const pct of [0.5, 0.9, 1.0]) {
+        let s = engine.auctionWin(
+          { ...engine.newGame({ mode: 'full', professionId: 'test', seed: 1 }), cash: 500000, phase: 'decision' },
+          apt, bid);
+        const a = s.assets.at(-1);
+        const offerPrice = Math.round(a.price * pct);
+        s = { ...s, phase: 'decision', pending: { kind: 'offer', card: cashEvt, assetId: a.id, offerPrice, proceeds: offerPrice - a.mortgage } };
+        const sold = engine.acceptOffer(s);
+        // never a profit; at exactly 100% of the recorded price it is break-even, same as a normally bought asset
+        expect(sold.cash - 500000).toBeLessThanOrEqual(0);
+      }
+    }
+  });
+  it('an above-price offer pays the same premium as for a normally bought asset (no auction-specific free value)', () => {
+    const base = { ...engine.newGame({ mode: 'full', professionId: 'test', seed: 1 }), cash: 500000, phase: 'decision' };
+    const gain = (s0, assetIdx) => {
+      const a = s0.assets[assetIdx];
+      const offerPrice = Math.round(a.price * 1.2);
+      const s = { ...s0, phase: 'decision', pending: { kind: 'offer', card: cashEvt, assetId: a.id, offerPrice, proceeds: offerPrice - a.mortgage } };
+      return engine.acceptOffer(s).cash - s0.cash + a.downPayment; // resale result relative to the cash that went in
+    };
+    const bought = engine.buy({ ...base, phase: 'decision', pending: { kind: 'opportunity', card: apt } });
+    const won = engine.auctionWin(base, apt, apt.downPayment);
+    expect(gain(won, won.assets.length - 1)).toBe(gain(bought, bought.assets.length - 1));
+  });
+  it('floor and custom step: the opening bid clears the floor rounded to a step', () => {
+    let m = matchAfterPass(apt, 500000, 'full', { floor: apt.downPayment }); // floor = the printed down payment
+    expect(auctionMinBid(m)).toBe(apt.downPayment);
+    m = matchAfterPass(apt, 500000, 'full', { floor: 20500 });
+    expect(auctionMinBid(m)).toBe(21000); // 20500 rounded up to a 1000 step
+    m = matchAfterPass(apt, 500000, 'full', { step: 5000, floor: 0 });
+    expect(auctionMinBid(m)).toBe(5000);
+    expect(() => auctionBid(engine, m, 3000)).toThrow(EngineError); // not a step multiple
+    m = auctionBid(engine, m, 10000);
+    expect(auctionMinBid(m)).toBe(15000);
+  });
+  it('junior auctions move in junior steps', () => {
+    let m = newMatch(engine, { mode: 'family', seed: 1, players: [{ name: 'A' }, { name: 'B' }] });
+    m = { ...m, junior: true, players: m.players.map((p) => ({ ...p, state: { ...p.state, junior: true, cash: 300000 } })) };
+    m = maybeStartAuction(m, apt);
+    expect(auctionMinBid(m)).toBe(10000);
+    expect(() => auctionBid(engine, m, 15000)).toThrow(EngineError);
+    m = auctionBid(engine, m, 20000); // the only other bidder takes it at once
+    expect(m.auction).toBeNull();
+    expect(m.lastAuction).toMatchObject({ winner: 1, price: 20000 });
   });
 });
