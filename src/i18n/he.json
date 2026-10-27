@@ -271,6 +271,7 @@
     "currentBid": "ההצעה הגבוהה",
     "noBids": "עוד אין הצעות",
     "yourCash": "יש לכם {amount} במזומן",
+    "inheritsMortgage": "שימו לב: עם העסקה באה משכנתא של {mortgage} — התשלום החודשי עליה כבר מופיע בתזרים למעלה.",
     "bid": "הציעו {amount}",
     "pass": "לוותר",
     "logOpen": "מכרז על {title}!",

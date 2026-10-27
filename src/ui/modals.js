@@ -253,6 +253,7 @@ export function auctionModal({ match, index, nameOf }) {
         null,
         [statTile(t('auction.listPrice'), money(c.price), { big: true, cls: 'stat-key', minScale: KEY_MIN }),
          statTile(t('auction.currentBid'), a.currentBid ? money(a.currentBid) : t('auction.noBids'), { big: true, cls: 'stat-key', minScale: KEY_MIN, caption: a.currentBid && leader ? leader : null })]), // the bidder's name gets its own line - it must never be clipped
+      c.mortgage > 0 ? h('p', { class: 'muted', 'data-auction-mortgage': '' }, tn('auction.inheritsMortgage', { mortgage: money(c.mortgage) })) : null, // the winner takes on the card's financing - say so before the final bid
       h('p', { class: 'muted', 'data-auction-cash': '' }, tn('auction.yourCash', { amount: money(st.cash) })),
       canBid ? h('div', { class: 'stepper-wrap', 'data-auction-stepper': '' }, stp.el) : null,
     ].filter(Boolean),
