@@ -59,3 +59,25 @@ describe('fox art is exported at display size', () => {
     }
   });
 });
+
+describe('family-mode dictionary has no stray "null" text', () => {
+  it('the nullable full-mode groups are filtered before replaceChildren (null would stringify into the list)', () => {
+    const src = read('src/ui/learn.js');
+    expect(src).not.toMatch(/replaceChildren\([^)]*israelGroup\(\), guideGroup\(\)\)/s);
+    expect(src).toMatch(/\.\.\.\[israelGroup\(\), guideGroup\(\)\]\.filter\(Boolean\)/);
+  });
+});
+
+describe('an open statement sheet never shows stale figures', () => {
+  it('refreshHud repaints the open statement when the state under it changed (payday during movement)', () => {
+    const src = read('src/ui/play.js');
+    expect(src).toMatch(/let stmtLayer = null;/);
+    expect(src).toMatch(/stmtLayer\.seenState !== state/);
+    expect(src).toMatch(/stmtLayer\.refresh\?\.\(\)/);
+    // the tracker is released when the sheet closes
+    expect(src).toMatch(/if \(stmtLayer === layer\) stmtLayer = null/);
+  });
+  it('the statement layer exposes the refresh hook used above', () => {
+    expect(read('src/ui/statement.js')).toMatch(/layer\.refresh = render;/);
+  });
+});

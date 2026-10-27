@@ -599,6 +599,9 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     othersBtn.setAttribute('aria-expanded', String(want));
     if (want) { refreshOthers(); othersClose.focus({ preventScroll: true }); if (motionOK()) animate(othersPanel, [{ opacity: 0, transform: 'scale(.96)' }, { opacity: 1, transform: 'scale(1)' }], { duration: 180, easing: 'ease-out' }); } else othersBtn.focus({ preventScroll: true });
   }
+  // The open statement sheet (if any): repainted from refreshHud whenever the state under it changes
+  // (a payday landing while it is open used to leave it showing the pre-turn figures forever).
+  let stmtLayer = null;
   function refreshHud() {
     const st = statement(state);
     paintPlayer();
@@ -644,6 +647,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     el.dataset.assets = String(state.assets.length);
     el.dataset.mortgages = String(state.assets.filter((a) => a.mortgage > 0).length);
     refreshOthers();
+    if (stmtLayer && !stmtLayer.done && stmtLayer.seenState !== state) { stmtLayer.seenState = state; stmtLayer.refresh?.(); }
   }
   const mqShort = typeof matchMedia === 'function' ? matchMedia(`(max-height: ${tut().goalLine.shortFromHeightPx}px)`) : null;
   const mqMin = typeof matchMedia === 'function' ? matchMedia(`(max-height: ${GOAL_MIN_HEIGHT}px)`) : null;
@@ -1284,7 +1288,9 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
         sell: async () => { await sellFlow(); closeIfOver(); },
       },
     });
-    layer.closed.then(() => finishIfOver());
+    stmtLayer = layer;
+    layer.seenState = state;
+    layer.closed.then(() => { if (stmtLayer === layer) stmtLayer = null; finishIfOver(); });
   }
 
   // ?debug=1 only: force-win / force-lose helpers for QA. No effect without the flag.
