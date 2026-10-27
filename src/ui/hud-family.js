@@ -2,7 +2,7 @@
 // the goal line above the meter and the 'עוד X בחודש לחופש' line under it. Pure presentation of engine numbers.
 import { h } from './dom.js';
 import { icon } from './icons.js';
-import { money, moneyText, numberText } from './format.js';
+import { money, moneyText, moneyIsolated, numberText } from './format.js';
 import { animate } from './fx.js';
 import { motionOK } from './prefs.js';
 import { statement, PAYDAY_MONTHS } from '../engine/index.js';
@@ -21,7 +21,7 @@ function splitRow(template, slot, node) {
 }
 
 /** The chip text 'נשאר בחודש +₪4,090' (plain, for aria and tests). */
-export const flowChipText = (monthly) => fillSlots(tut().hudFamily.chip, { monthlySigned: moneyText(monthly, { sign: true }) });
+export const flowChipText = (monthly) => fillSlots(tut().hudFamily.chip, { monthlySigned: moneyIsolated(monthly, { sign: true }) });
 
 /**
  * @param hud       the .hud element (the popover anchors under it)
@@ -54,7 +54,7 @@ export function createFamilyHud({ hud, chip, goalLine, freeLine }) {
       h('p', { class: 'fp-sub' }, salaryLabel, ' ', salaryAmt, ' + ', passiveLabel, ' ', passiveAmt),
       h('p', { class: `fp-left ${left < 0 ? 'is-negative' : 'is-positive'}`, 'data-fp': 'left' }, fillNodes(hf.resultRow, { monthly: money(left, { sign: true }) })),
       // '{monthly} × 24' is one unbreakable unit: it never wraps in the middle
-      h('p', { class: 'fp-foot' }, fillNodes(hf.arrivalLine.replace('{monthly} × {months}', '{calc}'), { calc: h('bdi', { class: 'nowrap money', dir: 'ltr' }, `${moneyText(left)} × ${numberText(PAYDAY_MONTHS)}`), monthly: money(left), months: numberText(PAYDAY_MONTHS) })));
+      h('p', { class: 'fp-foot' }, fillNodes(hf.arrivalLine.replace('{monthly} × {months}', '{calc}'), { calc: h('span', { class: 'nowrap', dir: 'ltr' }, money(left), h('bdi', null, ' × '), h('bdi', { dir: 'ltr' }, numberText(PAYDAY_MONTHS))), monthly: money(left), months: numberText(PAYDAY_MONTHS) })));
   }
 
   function paintPop(st) {
@@ -69,6 +69,7 @@ export function createFamilyHud({ hud, chip, goalLine, freeLine }) {
     open = want;
     chip.setAttribute('aria-expanded', String(open));
     chip.classList.toggle('is-open', open);
+    document.documentElement.toggleAttribute('data-flow-pop', open); // hides a board hint ring while the popover is up
     if (open) {
       pop = build(last);
       hud.append(pop);
@@ -109,7 +110,7 @@ export function createFamilyHud({ hud, chip, goalLine, freeLine }) {
         const minimal = window.matchMedia?.(`(max-height: ${GOAL_MIN_HEIGHT}px)`).matches; // never hidden: at the smallest screens it is one short line
         goalLine.textContent = minimal ? t('goal.min') : short ? gl.textShort : gl.text;
         const fv = freedomView(state);
-        goalLine.setAttribute('aria-label', fv.left > 0 ? fillSlots(leftWords(gl.a11y, state), { left: moneyText(fv.left) }) : `${gl.text}. ${fv.kind === 'won' ? gl.progress.won : gl.progress.onTheLine}`);
+        goalLine.setAttribute('aria-label', fv.left > 0 ? fillSlots(leftWords(gl.a11y, state), { left: moneyIsolated(fv.left) }) : `${gl.text}. ${fv.kind === 'won' ? gl.progress.won : gl.progress.onTheLine}`);
         freeLine.replaceChildren(freeText(fv, gl.progress, state));
         freeLine.dataset.kind = fv.kind;
       }

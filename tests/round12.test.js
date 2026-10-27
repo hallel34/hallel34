@@ -230,8 +230,8 @@ describe('items 12, 2, 16, 17: story part 5, the h-card source ring, the home li
     expect(src('src/ui/modals.js')).toMatch(/elementFromPoint[\s\S]{0,200}target = null/);
   });
   it('the home link arms with the same sweep as the primary button', () => {
-    expect(src('src/ui/modals.js')).toMatch(/btn-handoff-home is-arming/);
-    expect(src('src/styles/tutorial.css')).toMatch(/\.btn-handoff-home\.is-arming::after/);
+    expect(src('src/ui/modals.js')).toMatch(/arm\(\[\.\.\.content\.querySelectorAll\('\.sheet-cta \.btn'\)\]/);
+    expect(src('src/styles/components.css')).toMatch(/\.btn-text\[data-arming\]::after/);
   });
   it('short screens show a compact cash word instead of hiding the caption', () => {
     expect(src('src/ui/play.js')).toContain('cap-short');

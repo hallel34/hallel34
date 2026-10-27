@@ -1,8 +1,14 @@
 {
   "meta": { "name": "עברית", "lang": "he", "dir": "rtl", "numberLocale": "he-IL" },
+  "coins": {
+    "amount": { "one": "מטבע אחד", "other": "{n} מטבעות" },
+    "signed": { "one": "{num} מטבע", "other": "{num} מטבעות" },
+    "word": "מטבעות",
+    "perCoin": "כל מטבע = {value}"
+  },
   "app": {
-    "title": "פסיבו",
-    "tagline": "הכסף עובד בשבילך. אתם רק צריכים להתחיל.",
+    "title": "MaxiFox",
+    "tagline": "הכסף עובד בשבילכם. אתם רק צריכים להתחיל.",
     "loading": "טוענים את הלוח...",
     "loadError": "משהו השתבש בטעינת המשחק. נסו לרענן"
   },
@@ -26,13 +32,17 @@
     "gamesPlayedOne": "משחק אחד"
   },
   "fox": {
+    "lastMessage": "מקסי: הודעה אחרונה",
+    "bubbleClose": "סגירת ההודעה",
+    "bubbleMore": "עוד",
+    "bubbleMoreLabel": "עוד: כל ההודעה",
     "alt": {
-      "tired": "פסיבו השועל, עייף עם כוס קפה",
-      "wave": "פסיבו השועל מנופף לשלום",
-      "hammock": "פסיבו השועל נח בערסל ליד ערימת מטבעות",
-      "think": "פסיבו השועל חושב עם מטבע ביד"
+      "tired": "מקסי השועל, עייף עם כוס קפה",
+      "wave": "מקסי השועל מנופף לשלום",
+      "hammock": "מקסי השועל נח בערסל ליד ערימת מטבעות",
+      "think": "מקסי השועל חושב עם מטבע ביד"
     },
-    "hello": "היי, אני פסיבו!",
+    "hello": "היי, אני מקסי!",
     "joke1": "עוד יום בשגרה... בואו נשנה את זה",
     "joke2": "קפה, עבודה, חשבונות. נמאס כבר!",
     "joke3": "הכסף צריך לעבוד בשבילנו, לא להפך",
@@ -58,7 +68,12 @@
     "showExpenses": "הצגת הפירוט",
     "hideExpenses": "הסתרת הפירוט",
     "selected": "נבחר",
-    "previewTitle": "{profession}"
+    "previewTitle": "{profession}",
+    "cardExpenses": "הוצאות",
+    "cardLeft": "נשאר",
+    "cardLeftPocket": "נשאר בכיס {amount}",
+    "cardSalary": "שכר",
+    "subtitleFox": "השועל שלכם מתלבש בהתאם"
   },
   "game": {
     "roll": "הטילו קובייה",
@@ -66,6 +81,8 @@
     "advancing": "מתקדמים...",
     "continue": "המשיכו",
     "home": "חזרה לבית",
+    "menu": "תפריט",
+    "menuQuick": "הגדרות מהירות",
     "homeTitle": "לחזור לתפריט?",
     "homeText": "המשחק נשמר ואפשר להמשיך אותו אחר כך",
     "homeConfirm": "חזרה לבית",
@@ -96,14 +113,14 @@
     "goal": "יעד",
     "kids": "ילדים: {n}",
     "settings": "הגדרות",
-    "payday": "סיכום שנתיים! {amount}",
+    "payday": "סיכום שנתי! {amount}",
     "paydayCalc": "{monthly} × {months} חודשים = {amount}",
-    "paydayFloatLabel": "סיכום שנתיים",
-    "statusPayday": "סיכום שנתיים! {calc}",
+    "paydayFloatLabel": "סיכום שנתי",
+    "statusPayday": "סיכום שנתי! {calc}",
     "boardTitle": "לוח המשחק",
     "lastEvents": "אירועים אחרונים",
     "noEvents": "עוד לא קרה כלום. זורקים קובייה ומתחילים",
-    "logPayday": "סיכום שנתיים: {calc}",
+    "logPayday": "סיכום שנתי: {calc}",
     "logBought": "קניתם: {title}",
     "logPassed": "דילגתם על ההזדמנות",
     "logExpense": "הוצאה: {title}, {amount}",
@@ -118,7 +135,10 @@
     "charityBoost": "שתי קוביות · {turns}",
     "noMatchingAsset": "אין לכם נכס שמתאים להצעה",
     "milestone": "{pct}% מהדרך לחופש!",
-    "boardLabel": "לוח המשחק, אתם במשבצת {n} מתוך {total}: {square}"
+    "boardLabel": "לוח המשחק, אתם במשבצת {n} מתוך {total}: {square}",
+    "paydayChipOpen": "הצגת החישוב",
+    "paydayChipClose": "סגירת החישוב",
+    "passivePct": "{pct}% מההוצאות"
   },
   "players": {
     "title": "כמה שחקנים?",
@@ -139,17 +159,73 @@
     "handoffTitle": "תור של {name}",
     "handoffText": "העבירו את המכשיר אל {name}",
     "ready": "מוכנים",
-    "rollFor": "זרקו קובייה, {name}",
+    "rollFor": "הטילו קובייה, {name}",
     "recapTitle": "בתור של {name}",
-    "changeSettings": "שנו הגדרות"
+    "changeSettings": "שנו הגדרות",
+    "ageGroup": "הגיל של {name}",
+    "ageGroupSingle": "הגיל שלכם",
+    "ageUpTo10": "עד 10",
+    "age11to13": "11–13",
+    "age14plus": "14+",
+    "ageNote": "{perCoin}.",
+    "familySuggested": "עד גיל 14 מומלץ מצב משפחה, ועברנו אליו.",
+    "juniorOn": "משחק צעירים: מספרים עגולים, והכסף במטבעות."
   },
   "square": {
-    "payday": "סיכום שנתיים",
+    "payday": "סיכום שנתי",
     "opportunity": "הזדמנות",
     "expense": "הוצאה לא צפויה",
     "market": "אירוע שוק",
     "baby": "תינוק",
-    "charity": "צדקה"
+    "charity": "צדקה",
+    "taxAudit": "ביקורת רשות המסים"
+  },
+  "board": {
+    "youAreHere": "אתם על: {label}",
+    "landed": "נחתתם על: {label}",
+    "dieSum": "{a} + {b}"
+  },
+  "legend": {
+    "open": "מקרא המשבצות",
+    "title": "מה יש על הלוח?",
+    "close": "סגירת המקרא",
+    "gain": "כסף נכנס",
+    "loss": "כסף יוצא",
+    "info": "אירועים",
+    "payday": "עוברים או נוחתים כאן: מקבלים את מה שנשאר מהמשכורת בשנה (התזרים החודשי כפול 12).",
+    "opportunity": "עסקה שאפשר לקנות או לוותר עליה. מה בפנים? מגלים רק כשנוחתים.",
+    "expense": "תשלום שלא תכננתם. אם חסר מזומן, אפשר הלוואה.",
+    "market": "משהו קורה בשוק: הצעה לקנות מכם נכס, או שינוי לכולם.",
+    "baby": "המשפחה גדלה: ההוצאות החודשיות עולות קצת.",
+    "charity": "אפשר לתרום 10% מההכנסה ולקבל שתי קוביות לשלושה תורות.",
+    "taxAudit": "שאלה קצרה על כללי הכסף בישראל. תשובה נכונה נותנת נקודת ידע, לא כסף."
+  },
+  "hud": {
+    "goal": "המטרה: חופש כלכלי",
+    "goalFirst": "המטרה: שהכנסה הפסיבית תעבור את ההוצאות",
+    "goalShort": "המטרה: {passive} מתוך {expenses}",
+    "progress": "{pct} מהדרך"
+  },
+  "deal": {
+    "badge": { "a": "חזקה", "b": "סבירה", "c": "חלשה", "cFamily": "איטית" },
+    "badgeAria": "דירוג עסקה {letter}, עסקה {label}, תשואה {yield} בשנה",
+    "speculative": "ספקולטיבי",
+    "speculativeAria": "מניה ספקולטיבית: אין דיבידנד, רק סיכוי לעליית מחיר",
+    "payback": "החזר ההשקעה",
+    "paybackNever": "לא חוזר",
+    "cost": "עלות",
+    "dividendMonthly": "דיבידנד חודשי"
+  },
+  "category": {
+    "apartment": "דירה",
+    "coffee": "קפה",
+    "food-stand": "אוכל",
+    "snack-cart": "חטיפים",
+    "retail": "חנות",
+    "franchise": "זכיינות",
+    "service": "שירותים",
+    "leisure": "פנאי וכושר",
+    "stock": "מניה"
   },
   "type": { "apartment": "דירה", "business": "עסק", "stock": "מניות" },
   "card": {
@@ -180,8 +256,8 @@
     "cashAfter": "מזומן אחרי",
     "amount": "סכום",
     "notEnough": "חסרים לכם {amount}",
-    "payback": "[[term:payback|החזר]]: {years}",
-    "paybackNever": "[[term:payback|החזר]]: אף פעם",
+    "payback": "[[term:payback|תקופת החזר]]: {years}",
+    "paybackNever": "[[term:payback|תקופת החזר]]: אף פעם",
     "newPassive": "[[term:passive_income|ההכנסה הפסיבית]] שלכם תעלה ל-{amount} לחודש",
     "negativeFlow": "שימו לב: הנכס הזה יעלה לכם {amount} בכל חודש",
     "newPassiveStock": "הדיבידנד יוסיף {amount} לחודש",
@@ -194,7 +270,12 @@
     "noFundsMax": "אין מספיק כסף, גם עם הלוואה מקסימלית",
     "needLoan": "חסרים לכם {amount}. הלחיצה על קנו תפתח הלוואה בסכום הנכון",
     "decrease": "פחות",
-    "increase": "יותר"
+    "increase": "יותר",
+    "perMonthCaption": "בחודש",
+    "debtAfter": "סך החובות שלכם יהיה {debt}",
+    "showNumbers": "הראו לי את המספרים",
+    "unavailable": "לא זמין",
+    "familyNet": "מקסי אומר: עם ההלוואה הזאת, בכל חודש ייצא יותר כסף ממה שנכנס. עדיף לחכות להזדמנות הבאה."
   },
   "baby": {
     "title": "תינוק חדש!",
@@ -208,8 +289,15 @@
     "cashLoss": "יצאו לכם {amount}",
     "stockPrice": "מחיר {symbol} עכשיו {price}",
     "noAsset": "אין לכם נכס מתאים להצעה, אז הפעם בלי עסקה",
-    "familyNote": "בגרסת המשפחה אין מכירות. ממשיכים בשמחה",
-    "stockHeld": "יש לכם {shares}"
+    "stockHeld": "יש לכם {shares}",
+    "effect": {
+      "propertyValue": "שווי כל דירה שלכם",
+      "cheapLoan": "תוספת בחודש על הלוואה חדשה",
+      "rentChange": "שכירות מכל דירה",
+      "turns": "למשך"
+    },
+    "teaches": "מה זה מלמד",
+    "effectEnded": "{title}: ההשפעה נגמרה"
   },
   "charity": {
     "title": "תרומה",
@@ -220,7 +308,31 @@
     "boostDaily": "תרומה נותנת שתי קוביות לשלושה תורות, ולכן משנה את המסלול שלכם",
     "cost": "עלות התרומה"
   },
+  "payday": {
+    "a": {
+      "kicker": "נשארו בחודש",
+      "months": "{months} חודשים"
+    },
+    "b": {
+      "kicker": "נכנסו למזומן",
+      "kickerFamily": "הגיעו אליכם",
+      "kickerNeg": "ירדו מהמזומן",
+      "kickerNegFamily": "יצאו מהמזומן",
+      "caption": "{months} חודשים בבת אחת",
+      "captionFamily": "כסף של {months} חודשים בבת אחת"
+    },
+    "c": {
+      "kicker": "המזומן שלכם",
+      "before": "לפני",
+      "after": "אחרי",
+      "caption": "אחרי סיכום שנתי",
+      "captionFamily": "אחרי סיכום שנתי"
+    },
+    "label": "סיכום שנתי"
+  },
   "statement": {
+    "parentsToggle": "להורים",
+    "parentsHint": "חובות, וכמה שווה הכול",
     "title": "דוח חודשי",
     "income": "הכנסות",
     "expenses": "הוצאות",
@@ -241,7 +353,7 @@
     "sell": "מכרו",
     "repay": "החזירו",
     "goalLine": "היעד: הכנסה פסיבית מעל ההוצאות",
-    "paydayLine": "סיכום שנתיים: {monthly} × {months} חודשים = {amount}",
+    "paydayLine": "סיכום שנתי: {monthly} × {months} חודשים = {amount}",
     "principal": "קרן {amount}",
     "stockLine": "{shares}",
     "cash": "מזומן",
@@ -271,14 +383,14 @@
   "loan": {
     "title": "צריך הלוואה?",
     "titleVoluntary": "הלוואה מהבנק",
-    "text": "חסרים לכם {amount}. אפשר לקחת הלוואה בכפולות של {step}",
+    "text": "חסרים לכם {amount}.",
     "textVoluntary": "בכפולות של {step}. משלמים רק ריבית, והקרן נשארת עד שמחזירים",
     "take": "קחו הלוואה",
     "takeAnyway": "קחו בכל זאת",
-    "paydayNext": "סיכום שנתיים הבא ({months} חודשים × תזרים): {amount}",
+    "paydayNext": "סיכום שנתי הבא ({months} חודשים × תזרים): {amount}",
     "rateLine": "[[term:interest|ריבית]]: {apr}% בשנה, כלומר {unitPay} בחודש על כל {unit}",
     "interestUntil": "[[term:interest|ריבית]] עד הסיכום הבא ({months} חודשים)",
-    "totalDue": "סך הכול להחזיר, אם תפרעו בסיכום הקרוב",
+    "totalDue": "סך הכול להחזיר, אם תחזירו את ההלוואה בסיכום הקרוב",
     "paydayWarn": "זהירות: עם ההלוואה הזו הסיכום השנתי הבא יוריד אתכם למינוס של {amount}. כדאי לקחת פחות",
     "repay": "החזירו",
     "cancel": "ביטול",
@@ -297,7 +409,15 @@
     "repayAmount": "סכום להחזר",
     "remaining": "יתרת קרן אחרי ההחזר",
     "less": "פחות",
-    "more": "יותר"
+    "more": "יותר",
+    "numMonthly": "תשלום חודשי",
+    "numRate": "ריבית שנתית",
+    "numCost": "עלות ב-{months} חודשים",
+    "stepNote": "בכפולות של {step}",
+    "nextSummary": "בסיכום הבא",
+    "detailsShow": "פרטים נוספים",
+    "detailsHide": "הסתרת הפרטים",
+    "costNote": "העלות היא התשלומים בלבד. החוב עצמו נשאר עד שמחזירים אותו"
   },
   "sell": {
     "title": "מה למכור?",
@@ -319,11 +439,12 @@
     "again": "שחק שוב",
     "change": "שנו מצב או מקצוע",
     "share": "שתפו את התוצאה",
-    "shareText": "הגעתי לחופש כלכלי {turns} ב״פסיבו״! הכנסה פסיבית: {passive}",
-    "copied": "הועתק ללוח"
+    "shareText": "הגעתי לחופש כלכלי {turns} ב-MaxiFox! הכנסה פסיבית: {passive}",
+    "copied": "הועתק ללוח",
+    "copyFailed": "לא הצלחנו לשתף. נסו שוב בעוד רגע"
   },
   "hint": {
-    "incomeMany": "הנכסים שקניתם הכניסו {passiveTotal} בשנתיים האלה.",
+    "incomeMany": "הנכסים שקניתם הכניסו {passiveTotal} בשנה הזאת.",
     "incomeManyMore": "בכל חודש הם מכניסים יחד {passive}. {months} חודשים זה {passiveTotal}, והם כבר בתוך הסכום שהגיע למזומן."
   },
   "goal": { "min": "המטרה: מעל ההוצאות", "andABit": "ועוד קצת", "andABitShort": "וקצת" },
@@ -354,7 +475,7 @@
     "badgeEarned": "קיבלתם תג חדש: {badge}",
     "badgeLocked": "עוד לא הושג",
     "share": "שתפו",
-    "shareTitle": "פסיבו אתגר יומי",
+    "shareTitle": "MaxiFox אתגר יומי",
     "copied": "הועתק",
     "copyFailed": "לא הצלחנו להעתיק. אפשר להעתיק מכאן",
     "shareBox": "טקסט לשיתוף",
@@ -367,7 +488,7 @@
     "giveUpStay": "ממשיכים לשחק",
     "debugReset": "איפוס היום (דיבאג)",
     "shareLines": {
-      "head": "פסיבו אתגר יומי {date} | {outcome} | שווי נקי {net}",
+      "head": "MaxiFox אתגר יומי {date} | {outcome} | שווי נקי {net}",
       "freedom": "חופש כלכלי {turns}",
       "notToday": "לא הצלחתי היום",
       "green": "🟩",
@@ -395,7 +516,7 @@
       "assets": { "one": "נכס", "other": "נכסים" },
       "kids": { "one": "ילד", "other": "ילדים" },
       "donations": { "one": "תרומה", "other": "תרומות" },
-      "paydays": { "one": "סיכום שנתיים", "other": "סיכומי שנתיים" },
+      "paydays": { "one": "סיכום שנתי", "other": "סיכומים שנתיים" },
       "deals": { "one": "עסקה", "other": "עסקאות" }
     },
     "sharesOf": { "one": "מניה אחת של {symbol}", "other": "{n} מניות של {symbol}" }
@@ -411,6 +532,7 @@
     "out": "מחוץ למשחק",
     "place": "מקום {n}",
     "row": "{name}, מקום {place}: הכנסה פסיבית {passive}, הוצאות {expenses}, שווי נקי {net}, {turns}",
+    "rowJunior": "{name}, מקום {place}: כסף שעובד {passive}, הוצאות {expenses}, {turns}",
     "allOutTitle": "כולם מחוץ למשחק",
     "allOutText": "לכל השחקנים נגמרו המזומן וההלוואות"
   },
@@ -427,7 +549,7 @@
   },
   "stats": {
     "turns": "תורות",
-    "paydays": "סיכומי שנתיים",
+    "paydays": "סיכומים שנתיים",
     "dealsBought": "עסקאות",
     "loansTaken": "הלוואות",
     "donations": "תרומות",
@@ -440,11 +562,11 @@
     "sound": "צלילים",
     "haptics": "רטט",
     "reducedMotion": "פחות אנימציה",
-    "explain": "הסברים של פסיבו",
+    "explain": "הסברים של מקסי",
     "explainHelp": "הסבר קצר בפעם הראשונה שמושג מופיע",
     "guess": "ניחוש לפני קנייה",
     "guessHelp": "לנחש אם עסקה טובה לפני שרואים את המספרים",
-    "dictionary": "המילון של פסיבו",
+    "dictionary": "המילון של מקסי",
     "theme": "מראה",
     "themeDark": "כהה",
     "themeLight": "בהיר",
@@ -458,19 +580,19 @@
   },
   "howto": {
     "title": "איך משחקים",
-    "step1": "זורקים קובייה ומתקדמים על הלוח. בכל מעבר במשבצת סיכום שנתיים מקבלים {months} חודשי תזרים בבת אחת: [[term:cashflow|התזרים החודשי]] (הכנסות פחות הוצאות) כפול {months}. תזרים שלילי יורד מהמזומן באותה צורה",
+    "step1": "זורקים קובייה ומתקדמים על הלוח. בכל מעבר במשבצת סיכום שנתי מקבלים {months} חודשי תזרים בבת אחת: [[term:cashflow|התזרים החודשי]] (הכנסות פחות הוצאות) כפול {months}. תזרים שלילי יורד מהמזומן באותה צורה",
     "step2": "הזדמנויות: קונים דירות, עסקים (ובמצב מלא גם מניות) שמכניסים כסף כל חודש",
     "step3": "הוצאות לא צפויות קורות. חסר מזומן? אפשר לקחת הלוואה מהבנק",
     "step4": "מנצחים כשההכנסה הפסיבית גדולה מההוצאות החודשיות. אז מגיעים לחופש כלכלי",
     "dailyNote": "באתגר היומי כולם מקבלים את אותן קוביות, והקלפים נקבעים לפי מספר התור. תרומה משנה את המסלול שלכם בגלל הקובייה הנוספת",
-    "note": "המספרים מפושטים כדי שהמשחק יזרום. בחיים האמיתיים תשואות הדירות נמוכות יותר, ההון העצמי שצריך גבוה יותר, ובין שני סיכומים עוברות שנתיים"
+    "note": "המספרים מפושטים כדי שהמשחק יזרום. בחיים האמיתיים תשואות הדירות נמוכות יותר, ההון העצמי שצריך גבוה יותר, ובין שני סיכומים עוברת שנה"
   },
   "learn": {
     "more": "עוד",
     "moreLabel": "עוד על המושג: {term}",
     "gotItLabel": "הבנתי, סגירת ההסבר",
     "back": "חזרה למילון",
-    "foxSays": "פסיבו אומר",
+    "foxSays": "מקסי אומר",
     "dictionaryHint": "כל המושגים של המשחק, לפי סדר האלפבית",
     "reportOpen": "מה למדתי",
     "reportPlayer": "הדוח של",
@@ -492,5 +614,42 @@
     "win": "ניצחון",
     "lose": "הפסד"
   },
-  "common": { "ok": "אישור", "cancel": "ביטול", "close": "סגירה", "back": "חזרה", "currency": "₪" }
+  "common": { "ok": "אישור", "cancel": "ביטול", "close": "סגירה", "back": "חזרה", "currency": "₪" },
+  "decision": {
+    "kicker": "החלטה",
+    "choose": "מה בוחרים?",
+    "pass": "לא עכשיו",
+    "passFox": "אין חובה לבחור. ההזדמנות הבאה תגיע.",
+    "cash": "מזומן",
+    "monthly": "בחודש",
+    "none": "בלי שינוי",
+    "teaches": "מה זה מלמד",
+    "unavailable": "לא זמין",
+    "optionUnavailableA11y": "{label}, לא זמין: {reason}",
+    "reason": { "cash": "אין מספיק כסף", "loan": "הבנק לא נותן עוד הלוואות כרגע", "net": "בכל חודש ייצא יותר ממה שנכנס", "asset": "אין לכם נכס שמתאים", "bankLoan": "אין הלוואה להחזיר" },
+    "logChose": "בחרתם: {label}"
+  },
+  "milestone": {
+    "lines": {
+      "note": "docs/v4/milestones.md: one line at random per crossing, never the same twice in a row. Slots {pct} {passive} {expenses} {left}; {left} is always followed by 'ועוד קצת'. Full line 3 of 25% is left out until finance's simulation supports it.",
+      "m25family": { "1": "רבע מהדרך! הנכסים שלכם כבר מכניסים {passive} בחודש, רבע מההוצאות.", "2": "{pct}% מהדרך לחופש! הכסף שעובד בשבילכם מכסה כבר רבע ממה שיוצא בחודש.", "3": "התחלה מצוינת: {passive} בחודש נכנסים בלי שתעבדו בשבילם. חסרים עוד {left} ועוד קצת." },
+      "m25full": { "1": "{pct}% מהדרך: הכנסה פסיבית של {passive} מול הוצאות של {expenses}. חסרים עוד {left} ועוד קצת בחודש.", "2": "רבע מההוצאות כבר מכוסה בהכנסה פסיבית. עכשיו השאלה היא איזה נכס הבא מקרב הכי הרבה." },
+      "m50family": { "1": "חצי מהדרך! הנכסים שלכם מכניסים {passive} בחודש, חצי מכל ההוצאות.", "2": "{pct}% מהדרך לחופש! עוד {left} ועוד קצת בחודש, והכסף שעובד בשבילכם יכסה הכול.", "3": "וואו, חצי דרך! כל נכס טוב מקרב אתכם לקו. כדאי להשאיר גם קצת כסף בצד להפתעות." },
+      "m50full": { "1": "{pct}% מהדרך: {passive} בחודש מכסים חצי מההוצאות ({expenses}). חסרים עוד {left} ועוד קצת.", "2": "חצי מההוצאות כבר מכוסה בהכנסה פסיבית. עכשיו כדאי לבדוק שלא כל הכסף נמצא בנכס אחד.", "3": "חצי דרך. עסקה עם תקופת החזר קצרה מקרבת, ועסקה מפסידה מרחיקה. הכרית שלכם עדיין חשובה." }
+    },
+    "badge25": { "name": "רבע הדרך", "description": "הנכסים שלכם מכסים רבע מההוצאות", "earned": "קיבלתם תג: רבע הדרך" },
+    "badge50": { "name": "חצי הדרך", "description": "הנכסים שלכם מכסים חצי מההוצאות", "earned": "קיבלתם תג: חצי הדרך" },
+    "badgeA11y": "{name}: {description}"
+  },
+  "taxAudit": {
+    "logPoints": "ביקורת רשות המסים: {points} נקודות ידע",
+    "juniorRest": "משבצת רשות המסים: הפעם אין שאלה. ממשיכים!",
+    "pointsLine": "נקודות ידע במשחק הזה: {points}",
+    "linkA11y": "{name} (נפתח בחלון חדש)"
+  },
+  "statementTax": {
+    "open": "מה יש בשורה הזאת?",
+    "close": "סגירה",
+    "rowsCaption": "שיעורי 2026"
+  }
 }

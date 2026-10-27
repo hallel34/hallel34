@@ -11,10 +11,11 @@ import { reportView } from '../learn/report.js';
 import { setLearnMode } from '../learn/context.js';
 import { playerToken, playerName, nameBdi } from './players.js';
 import { haptic } from './fx.js';
+import { isolateMoney } from './format.js';
 
 function sectionNode(sec, extra = null) {
   return h('section', { class: `rep-sec${sec.empty ? ' is-empty' : ''}`, 'data-section': sec.id, 'data-tier': sec.tier ?? null, 'data-kind': sec.kind ?? null },
-    h('h3', { class: 'rep-title' }, sec.title), h('p', { class: 'rep-text' }, sec.text), extra);
+    h('h3', { class: 'rep-title' }, sec.title), h('p', { class: 'rep-text' }, isolateMoney(sec.text)), extra);
 }
 
 /** The report of one player's final state as DOM (also used by tests through its data attributes). */
@@ -29,7 +30,7 @@ export function reportBody(state, { seed, theme, onTheme, onDictionary }) {
   return h('div', { class: 'rep', 'data-won': String(v.won), 'data-tip': v.tipId },
     h('div', { class: 'rep-hero' },
       v.fox ? h('div', { class: 'fox-pop rep-pop', 'aria-hidden': 'true' }, foxImg(v.fox.pose, { size: 52 })) : null,
-      h('div', { class: 'rep-hero-text' }, h('p', { class: 'rep-subtitle' }, v.subtitle), v.fox ? h('p', { class: 'rep-fox' }, v.fox.text) : null,
+      h('div', { class: 'rep-hero-text' }, h('p', { class: 'rep-subtitle' }, v.subtitle), v.fox ? h('p', { class: 'rep-fox' }, isolateMoney(v.fox.text)) : null,
         v.foxExtra ? h('p', { class: 'rep-fox rep-fox-extra' }, v.foxExtra) : null)),
     ...v.sections.map((sec) => {
       if (sec.id === 'concepts') {
@@ -40,7 +41,7 @@ export function reportBody(state, { seed, theme, onTheme, onDictionary }) {
     }),
     h('section', { class: 'rep-sec rep-stats', 'data-section': 'stats' }, h('h3', { class: 'rep-title' }, v.statsTitle),
       h('div', { class: 'rep-grid' }, v.stats.map((x) => h('div', { class: 'rep-stat', 'data-stat': x.id }, h('span', { class: 'rep-stat-label' }, x.label), h('bdi', { class: 'rep-stat-value', dir: 'ltr' }, x.value))))),
-    h('section', { class: 'rep-sec rep-tip', 'data-section': 'nextStep', 'data-tip': v.tip.id }, h('h3', { class: 'rep-title' }, v.tip.title), h('p', { class: 'rep-text' }, v.tip.text)),
+    h('section', { class: 'rep-sec rep-tip', 'data-section': 'nextStep', 'data-tip': v.tip.id }, h('h3', { class: 'rep-title' }, v.tip.title), h('p', { class: 'rep-text' }, isolateMoney(v.tip.text))),
     conv);
 }
 

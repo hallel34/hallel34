@@ -18,13 +18,15 @@ const jsFiles = walk(root).filter((f) => f.endsWith('.js'));
 const lookup = (key) => key.split('.').reduce((o, k) => o?.[k], he);
 
 describe('board layout', () => {
-  it('places 24 unique squares on the perimeter of a 7x7 grid', () => {
+  it('places 24 unique squares on the perimeter of a 6x8 ring (board-spec 14.1)', () => {
     const cells = BOARD.map((_, i) => ringPos(i));
     expect(new Set(cells.map((c) => c.join(','))).size).toBe(24);
     for (const [c, r] of cells) {
-      expect(c >= 1 && c <= 7 && r >= 1 && r <= 7).toBe(true);
-      expect(c === 1 || c === 7 || r === 1 || r === 7).toBe(true);
+      expect(c >= 1 && c <= 6 && r >= 1 && r <= 8).toBe(true);
+      expect(c === 1 || c === 6 || r === 1 || r === 8).toBe(true);
     }
+    // the corners are squares 0, 5, 12 and 17; square 0 (payday) is the top inline-start corner
+    expect([0, 5, 12, 17].map((i) => ringPos(i))).toEqual([[1, 1], [6, 1], [6, 8], [1, 8]]);
   });
   it('consecutive squares are adjacent (the pawn can hop one tile at a time), including the wrap', () => {
     for (let i = 0; i < 24; i++) {
@@ -151,18 +153,20 @@ describe('v2 phase A: amounts, payday copy, no typed numbers', () => {
     const fmt = src('ui/format.js');
     expect(fmt).toContain("h('bdi', { class: `money");
     expect(fmt).toContain("dir: 'ltr'");
+    // owner 2026-10-25: the statement hero shows the stacked equation (its spoken name is still the one-line paydayCalc)
+    expect(src('ui/statement.js')).toContain('stackedEquation({ monthly: st.monthlyCashFlow, months: PAYDAY_MONTHS');
     expect(src('ui/statement.js')).toContain("paydayCalc(st.monthlyCashFlow, PAYDAY_MONTHS");
     // the log/status containers accept nodes
     expect(play).toContain('chip.replaceChildren(text)');
     expect(play).toContain('status.replaceChildren(text)');
   });
-  it('B2: the payday float is placed under the HUD, never over its text', () => {
-    expect(src('ui/play.js')).toContain("{ below: hud }");
+  it('B2: the payday float is confined to the board plaza, never over the HUD (owner approved spec 4.9, 2026-10-25)', () => {
+    expect(src('ui/play.js')).toContain("{ within: center }");
     const fx = src('ui/fx.js');
-    expect(fx).toContain('below.getBoundingClientRect().bottom');
+    expect(fx).toContain('within.getBoundingClientRect()');
   });
-  it('N3: the payday event is called "סיכום שנתיים" everywhere, with the maths from the config', () => {
-    expect(lookup('square.payday')).toBe('סיכום שנתיים');
+  it('N3: the payday event is called "סיכום שנתי" everywhere, with the maths from the config', () => {
+    expect(lookup('square.payday')).toBe('סיכום שנתי');
     for (const key of ['game.payday', 'game.paydayFloatLabel', 'game.statusPayday', 'game.logPayday', 'statement.paydayLine', 'loan.paydayNext', 'howto.step1']) {
       expect(lookup(key), key).toContain('שנתי');
     }

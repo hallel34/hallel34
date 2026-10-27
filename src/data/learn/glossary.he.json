@@ -1,9 +1,12 @@
 {
-  "version": 2,
+  "version": 3,
   "notes": {
-    "numbers": "Card and profession numbers in the examples are literal and were recomputed on 2026-10-21 against src/data/cards.he.json and professions.he.json. Each example carries a `computed` block so a QA script can compare it to the data (see docs/v2/learn/spec.md section 9). Rates and loan costs are never typed: they use slots.",
+    "numbers": "Card and profession numbers in the examples are literal and were recomputed on 2026-10-21 against src/data/cards.he.json and professions.he.json (payback and roi: recomputed 2026-10-22 against opp-biz-006 and opp-apt-008, by hand: no shell was available, so a node test must confirm; see docs/v3/learn/glossary-fix.md section 5). Each example carries a `computed` block so a QA script can compare it to the data (see docs/v2/learn/spec.md section 9). Rates and loan costs are never typed: they use slots.",
+    "v3PaybackRoi": "2026-10-22: the old concept `payback` was titled 'החזר השקעה' but defined a TIME. It is now 'תקופת החזר' (payback period, years). New concept `roi` = 'החזר השקעה' (annual percentage). `yield` ('תשואה') stays: it is the same number as roi in the game (dealMetrics.yieldPct) and is what the reveal tile shows; roi is unlocked together with yield (unlockWith). Concept counts: 14 in full mode, 11 in family mode. New optional fields per concept: formula, link, related, unlockWith, sameNumberAs.",
     "slots": {
-      "months": "PAYDAY_MONTHS as a number (24)",
+      "okYears": "PAYBACK_OK_YEARS phrase with unit ('8 שנים'), same helper as guess.he.json",
+      "slowYears": "PAYBACK_SLOW_YEARS phrase with unit ('14 שנים')",
+      "months": "PAYDAY_MONTHS as a number (12)",
       "monthlyRate": "LOAN_PAYMENT_RATE as percent, with sign, e.g. '1%' (derived, per month)",
       "rate": "LOAN_APR_NOMINAL as percent with sign, e.g. '12%' (nominal yearly: monthly rate x 12; NOT the effective rate)",
       "amount": "principal of the example loan, formatted money (the example uses 5,000)",
@@ -13,13 +16,15 @@
     }
   },
   "ui": {
-    "explainTitle": "פסיבו מסביר",
-    "dictionaryTitle": "המילון של פסיבו",
+    "explainTitle": "מקסי מסביר",
+    "dictionaryTitle": "המילון של מקסי",
     "dictionaryEmpty": "עוד לא נפתחו מושגים. שחקו, והמילון יתמלא",
     "whyLabel": "למה זה חשוב",
     "exampleLabel": "דוגמה מהמשחק",
     "simplificationLabel": "במשחק זה מפושט",
     "realWorldLabel": "בעולם האמיתי",
+    "formulaLabel": "הנוסחה",
+    "relatedLabel": "קשור",
     "gotIt": "הבנתי",
     "newTerm": "מושג חדש",
     "lockedTerm": "עוד לא פגשתם את המושג הזה"
@@ -28,10 +33,11 @@
     {
       "id": "cashflow",
       "order": 1,
+      "junior": { "exampleText": "למורה יש משכורת של ₪8,800, הוצאות של ₪6,800 ותשלומי חובות של ₪600 (הלוואת רכב ₪400 וחוב בכרטיס אשראי ₪200), ולכן נשארים ₪1,400 בחודש." },
       "family": {
         "why": "אם יוצא יותר ממה שנכנס המזומן נגמר, ואם נכנס יותר יש מה לחסוך ולהשקיע.",
         "exampleText": "למורה יש משכורת של ₪8,800, הוצאות של ₪6,800 ותשלומי חובות של ₪510 (הלוואת רכב ₪360 וחוב בכרטיס אשראי ₪150), ולכן נשארים ₪1,490 בחודש.",
-        "gameSimplification": "במשחק מחשבים מה נשאר בחודש אחד, ובמשבצת ״סיכום שנתיים״ מסכמים {months} חודשים בבת אחת: מה שנשאר בחודש כפול {months}. זה מקצר את המשחק. בחיים הכסף נכנס ויוצא כל חודש, והסכומים משתנים."
+        "gameSimplification": "במשחק מחשבים מה נשאר בחודש אחד, ובמשבצת ״סיכום שנתי״ מסכמים {months} חודשים בבת אחת: מה שנשאר בחודש כפול {months}. זה מקצר את המשחק. בחיים הכסף נכנס ויוצא כל חודש, והסכומים משתנים."
       },
       "term": "תזרים חודשי",
       "level": "family",
@@ -40,9 +46,9 @@
       "example": {
         "professionId": "teacher",
         "text": "למורה יש משכורת של ₪8,800, הוצאות של ₪6,800 ותשלומי חובות של ₪510 (הלוואת רכב ₪360 וחוב בכרטיס אשראי ₪150), ולכן התזרים החודשי הוא ₪1,490.",
-        "computed": { "salary": 8800, "expenses": 6800, "debtPayments": 510, "cashFlow": 1490, "perSummary": 35760 }
+        "computed": { "salary": 8800, "expenses": 6800, "debtPayments": 510, "cashFlow": 1490, "perSummary": 17880 }
       },
-      "gameSimplification": "במשחק מחשבים תזרים של חודש אחד, ובמשבצת ״סיכום שנתיים״ מסכמים {months} חודשים בבת אחת: התזרים החודשי כפול {months}. זה מקצר את המשחק. בחיים הכסף נכנס ויוצא כל חודש, והסכומים משתנים.",
+      "gameSimplification": "במשחק מחשבים תזרים של חודש אחד, ובמשבצת ״סיכום שנתי״ מסכמים {months} חודשים בבת אחת: התזרים החודשי כפול {months}. זה מקצר את המשחק. בחיים הכסף נכנס ויוצא כל חודש, והסכומים משתנים.",
       "needs_review": null
     },
     {
@@ -86,6 +92,7 @@
     {
       "id": "liability",
       "order": 4,
+      "junior": { "exampleText": "למורה יש הלוואת רכב של ₪18,000 שעולה ₪400 בכל חודש, וחוב בכרטיס אשראי של ₪5,000 שעולה ₪200 בחודש. יחד זה חוב של ₪23,000 ותשלום של ₪600 בחודש." },
       "family": {
         "why": "תשלומי חובות מקטינים את מה שנשאר בחודש, ולכן כדאי לדעת כמה חובות יש ומה הם עולים."
       },
@@ -166,27 +173,60 @@
       "order": 8,
       "family": {
         "why": "ככל שהכסף חוזר מהר יותר, הוא פחות זמן תקוע בעסקה.",
-        "exampleText": "עגלת הפופקורן: התשלום הראשון ₪40,000 ו-₪900 בחודש, כלומר ₪10,800 בשנה, ולכן הכסף חוזר תוך כ-3.7 שנים. בדירה בקומה תשיעית בלי מעלית, התשלום הראשון ₪320,000 מול ₪10,800 בשנה, והכסף חוזר תוך כ-29.6 שנים.",
-        "gameSimplification": "החישוב מניח שהכסף שהנכס מכניס בחודש נשאר קבוע. בחיים הוא משתנה, ויכול גם לרדת."
+        "formula": "התשלום הראשון ÷ מה שנשאר בשנה",
+        "exampleText": "עגלת הפופקורן: התשלום הראשון ₪40,000, ונשאר ₪900 בחודש אחרי התשלום על הלוואת העסק. זה ₪10,800 בשנה (900 × 12). ₪40,000 ÷ ₪10,800 הם כ-3.7 שנים עד שהכסף חוזר. בדירה בקומה תשיעית בלי מעלית: התשלום הראשון ₪320,000 ונשאר אותו דבר, ₪10,800 בשנה, ולכן הכסף חוזר רק אחרי כ-29.6 שנים.",
+        "link": "תוך כמה שנים הכסף חוזר וכמה אחוזים הכסף מרוויח בשנה הם שתי דרכים להסתכל על אותו מספר: 27% בשנה = כ-3.7 שנים.",
+        "gameSimplification": "החישוב מניח שהכסף שהנכס מכניס בחודש נשאר קבוע. בחיים הוא משתנה, ויכול גם לרדת. הצבעים של הרמזור (ירוק, צהוב ואדום) הם כלל אצבע של המשחק, לא כלל אמיתי."
+      },
+      "term": "תקופת החזר",
+      "level": "family",
+      "short": "תקופת החזר היא כמה שנים לוקח עד שהנכס מחזיר לכם את המקדמה, הכסף ששילמתם בהתחלה.",
+      "formula": "מקדמה ÷ תזרים שנתי (תזרים חודשי × 12)",
+      "why": "ככל שתקופת ההחזר קצרה יותר, הכסף שלכם פחות זמן תקוע בעסקה.",
+      "example": {
+        "cardId": "opp-biz-006",
+        "text": "עגלת הפופקורן: מקדמה של ₪40,000 ותזרים של ₪900 בחודש אחרי תשלום ההלוואה של העסק, כלומר ₪10,800 בשנה (900 × 12). ₪40,000 ÷ ₪10,800 הם כ-3.7 שנים. בדירה בקומה תשיעית בלי מעלית: מקדמה של ₪320,000 מול אותם ₪10,800 בשנה, ולכן תקופת ההחזר היא כ-29.6 שנים.",
+        "computed": { "biz006": { "downPayment": 40000, "monthlyCashFlow": 900, "yearly": 10800, "paybackYears": 3.7 }, "apt008": { "downPayment": 320000, "monthlyCashFlow": 900, "yearly": 10800, "paybackYears": 29.6 } }
+      },
+      "link": "תקופת החזר ואחוז תשואה הם שתי דרכים להסתכל על אותו מספר: 27% בשנה = כ-3.7 שנים.",
+      "related": ["roi", "yield"],
+      "gameSimplification": "החישוב מניח שהתזרים נשאר קבוע. בחיים הוא משתנה, ויכול גם לרדת, ויש גם מסים, תחזוקה וחודשים בלי שוכר שלא נספרים כאן. כשהמקדמה חוזרת, הנכס עדיין שלכם. הצבעים של הרמזור (ירוק עד 8 שנים, צהוב עד 14 שנים) הם כלל אצבע של המשחק, לא תקן אמיתי.",
+      "needs_review": "finance: הקשר 'שנים = 100 ÷ אחוז' נכון רק כשהתזרים קבוע (כמו במשחק). אם יש חשש מפישוט יתר, אפשר להשמיט את משפט ה-link מהמצב המלא."
+    },
+    {
+      "id": "roi",
+      "order": 9,
+      "family": {
+        "kidName": "כמה אחוזים הכסף מרוויח בשנה",
+        "why": "כשיודעים כמה אחוזים הכסף מרוויח בשנה אפשר להשוות בין עסקאות במחירים שונים לגמרי.",
+        "formula": "מה שנשאר בשנה ÷ התשלום הראשון",
+        "exampleText": "עגלת הפופקורן: התשלום הראשון ₪40,000, ונשאר ₪10,800 בשנה. ₪10,800 ÷ ₪40,000 הם 27%, כלומר הכסף מרוויח 27% בשנה. אותם ₪10,800 בשנה על תשלום ראשון של ₪320,000, בדירה בקומה תשיעית בלי מעלית, הם רק כ-3.4% בשנה.",
+        "link": "כמה אחוזים הכסף מרוויח בשנה ותוך כמה שנים הוא חוזר הם שתי דרכים להסתכל על אותו מספר: 27% בשנה = כ-3.7 שנים.",
+        "gameSimplification": "במשחק מחשבים לפי התשלום הראשון בלבד, והתשלום על ההלוואה כבר הורד ממה שנשאר. בחיים יש עוד דברים שמשנים את התוצאה, כמו מסים ותחזוקה, והמספר לא קבוע."
       },
       "term": "החזר השקעה",
       "level": "family",
-      "short": "החזר השקעה הוא הזמן שלוקח עד שנכס מחזיר לכם את הכסף ששילמתם בהתחלה.",
-      "why": "ככל שההחזר מהיר יותר, הכסף שלכם פחות זמן תקוע בעסקה.",
+      "short": "החזר השקעה (ROI) הוא כמה כסף הנכס מחזיר בשנה, באחוזים מהכסף שהשקעתם בו.",
+      "formula": "תזרים שנתי ÷ מקדמה",
+      "why": "אחוזים מאפשרים להשוות בין עסקאות במחירים שונים לגמרי: ₪10,800 בשנה הם הרבה על ₪40,000 ומעט על ₪320,000.",
       "example": {
         "cardId": "opp-biz-006",
-        "text": "עגלת הפופקורן: מקדמה של ₪40,000 ותזרים של ₪900 בחודש, כלומר ₪10,800 בשנה, ולכן ההחזר לוקח כ-3.7 שנים. בדירה בקומה תשיעית בלי מעלית, מקדמה של ₪320,000 מול ₪10,800 בשנה, ההחזר לוקח כ-29.6 שנים.",
-        "computed": { "biz006": { "downPayment": 40000, "monthlyCashFlow": 900, "yearly": 10800, "paybackYears": 3.7 }, "apt008": { "downPayment": 320000, "monthlyCashFlow": 900, "yearly": 10800, "paybackYears": 29.6 } }
+        "text": "עגלת הפופקורן: מקדמה של ₪40,000, ותזרים של ₪900 בחודש אחרי תשלום ההלוואה של העסק, כלומר ₪10,800 בשנה. ₪10,800 ÷ ₪40,000 = 27% בשנה. אותם ₪10,800 בשנה על מקדמה של ₪320,000, בדירה בקומה תשיעית בלי מעלית, הם רק כ-3.4% בשנה.",
+        "computed": { "biz006": { "downPayment": 40000, "monthlyCashFlow": 900, "yearly": 10800, "roiPct": 27, "paybackYears": 3.7 }, "apt008": { "downPayment": 320000, "monthlyCashFlow": 900, "yearly": 10800, "roiPct": 3.4, "paybackYears": 29.6 } }
       },
-      "gameSimplification": "החישוב מניח שהתזרים נשאר קבוע. בחיים הוא משתנה, ויכול גם לרדת.",
-      "needs_review": null
+      "link": "תקופת החזר ואחוז תשואה הם שתי דרכים להסתכל על אותו מספר: 27% בשנה = כ-3.7 שנים.",
+      "related": ["payback", "yield"],
+      "unlockWith": "yield",
+      "sameNumberAs": "yield: במשחק החזר השקעה ותשואה על המקדמה הם אותו חישוב (dealMetrics.yieldPct). 'תשואה בשנה' בכרטיס היא החזר ההשקעה.",
+      "gameSimplification": "המשחק מחשב לפי המקדמה בלבד, ותשלום ההלוואה כבר מופחת מהתזרים כאילו הוא כולו הוצאה. בחיים חלק מכל תשלום על הלוואה רגילה מקטין את החוב, ויש גם מסים, תחזוקה ושינויי מחיר שלא נספרים כאן. החישוב גם מניח שהתזרים קבוע.",
+      "needs_review": "finance: לאשר את המינוח (החזר השקעה = ROI, ו'תשואה' כמילה קרובה) ואת ההגדרה השנתית. בעולם האמיתי ROI נמדד לעיתים על סך ההשקעה ולתקופות שונות, ולכן ההגדרה כאן היא 'במשחק, לשנה'. כרגע אין עובדה אמיתית עם מספר בכרטיס הזה."
     },
     {
       "id": "interest",
-      "order": 9,
+      "order": 10,
       "family": {
         "why": "תוספת גבוהה הופכת הלוואה ליקרה בהרבה, ולכן כדאי ללוות רק כמה שצריך ולהחזיר כשאפשר.",
-        "exampleText": "הלוואה של {amount} מהבנק במשחק עולה {monthlyPayment} תוספת בחודש. בכל סיכום שנתיים זה {interest}, והחוב של {amount} נשאר עד שמחזירים אותו. אם מחזירים בסיכום הקרוב משלמים {total}: החוב ועוד {interest} תוספת.",
+        "exampleText": "הלוואה של {amount} מהבנק במשחק עולה {monthlyPayment} תוספת בחודש. בכל סיכום שנתי זה {interest}, והחוב של {amount} נשאר עד שמחזירים אותו. אם מחזירים בסיכום הקרוב משלמים {total}: החוב ועוד {interest} תוספת.",
         "gameSimplification": "במשחק ההלוואה היא תוספת בלבד: כל חודש משלמים {monthlyRate} מהחוב, והחוב עצמו נשאר עד שמחליטים להחזיר אותו. התוספת קבועה וגבוהה במכוון, כדי להראות שהלוואה עולה כסף. בעולם האמיתי התוספת משתנה לפי הבנק, סוג ההלוואה ומי שלוקח אותה."
       },
       "term": "ריבית",
@@ -194,16 +234,16 @@
       "short": "ריבית היא המחיר של כסף שלוקחים בהלוואה: מחזירים יותר ממה שלקחו.",
       "why": "ריבית גבוהה הופכת הלוואה ליקרה בהרבה, ולכן כדאי ללוות רק כמה שצריך ולהחזיר כשאפשר.",
       "example": {
-        "text": "הלוואה של {amount} מהבנק במשחק עולה {monthlyPayment} בחודש. זו ריבית של {rate} בשנה. בכל סיכום שנתיים זה {interest}, והחוב של {amount} נשאר עד שמחזירים אותו. אם מחזירים בסיכום הקרוב משלמים {total}: החוב ועוד {interest} ריבית.",
+        "text": "הלוואה של {amount} מהבנק במשחק עולה {monthlyPayment} בחודש. זו ריבית של {rate} בשנה. בכל סיכום שנתי זה {interest}, והחוב של {amount} נשאר עד שמחזירים אותו. אם מחזירים בסיכום הקרוב משלמים {total}: החוב ועוד {interest} ריבית.",
         "slotsFrom": "loanTerms(5000)",
-        "computed": { "amount": 5000, "monthlyPayment": 50, "perYear": 600, "interest": 1200, "total": 6200, "rateNominalPct": 12, "perThousand": { "monthly": 10, "perSummary": 240, "total": 1240 } }
+        "computed": { "amount": 5000, "monthlyPayment": 50, "perYear": 600, "interest": 600, "total": 5600, "rateNominalPct": 12, "perThousand": { "monthly": 10, "perSummary": 120, "total": 1120 } }
       },
       "gameSimplification": "במשחק ההלוואה היא ריבית בלבד: כל חודש משלמים {monthlyRate} מהחוב, והחוב עצמו נשאר עד שמחליטים להחזיר אותו. הריבית קבועה ({rate} בשנה) וגבוהה במכוון, כדי להראות שהלוואה עולה כסף. בעולם האמיתי הריבית משתנה לפי הבנק, סוג ההלוואה ומי שלוקח אותה.",
       "needs_review": "finance: לאשר שהשוואה לריבית אמיתית ('בדרך כלל נמוכה מ-{rate}') נשארת מחוץ לטקסט עד אימות. בהצעה: ממוצע הלוואה לא צמודה למשקי בית כ-8.23% ביולי 2026 (מקור משני, icf.co.il, עודכן 25.8.2026). ראו real-world.he.json, rw-loan-rate."
     },
     {
       "id": "dividend",
-      "order": 10,
+      "order": 11,
       "term": "דיבידנד",
       "level": "full",
       "short": "דיבידנד הוא חלק מהרווח של חברה שמחולק למי שמחזיק במניות שלה.",
@@ -218,7 +258,7 @@
     },
     {
       "id": "cushion",
-      "order": 11,
+      "order": 12,
       "family": {
         "why": "עם כסף בצד אפשר לשלם הוצאה פתאומית בלי לקחת הלוואה ובלי לשלם תוספת.",
         "exampleText": "טיפול גדול לרכב עולה ₪7,500. למורה יש חיסכון של ₪9,000, וזה מספיק ונשארים ₪1,500. לטבח/ית יש ₪5,000 בלבד, חסרים ₪2,500 וצריך הלוואה, והיא עולה תוספת."
@@ -237,7 +277,7 @@
     },
     {
       "id": "net_worth",
-      "order": 12,
+      "order": 13,
       "term": "שווי נקי",
       "level": "full",
       "short": "שווי נקי הוא כל מה שיש לכם, מזומן ונכסים, פחות כל מה שאתם חייבים.",
@@ -252,7 +292,7 @@
     },
     {
       "id": "diversification",
-      "order": 13,
+      "order": 14,
       "term": "פיזור",
       "level": "full",
       "short": "פיזור הוא לא לשים את כל הכסף במקום אחד אלא לחלק אותו בין כמה נכסים.",

@@ -14,9 +14,9 @@ import { greenText } from '../../learn/report.js';
 import { nextChallengeText, streakText, badgeLabel, headlineGreen } from '../daily-format.js';
 
 /** Share through the system sheet, else the clipboard (click handler only). Resolves 'shared' | 'copied' | 'failed' | 'cancelled'. */
-export async function shareText(text, { nav = globalThis.navigator, doc = globalThis.document } = {}) {
+export async function shareText(text, { nav = globalThis.navigator, doc = globalThis.document, title = t('daily.shareTitle') } = {}) {
   try {
-    if (nav?.share) { await nav.share({ title: t('daily.shareTitle'), text }); return 'shared'; }
+    if (nav?.share) { await nav.share({ title, text }); return 'shared'; }
   } catch (e) {
     if (e?.name === 'AbortError') return 'cancelled'; // the player closed the share sheet: nothing to report
     // any other failure: fall through to the clipboard

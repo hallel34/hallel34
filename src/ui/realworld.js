@@ -2,14 +2,15 @@
 // labelled blocks and the fixed disclaimer. Real-world figures (numbers with publish:false) are never part of it.
 import { h } from './dom.js';
 import { icon } from './icons.js';
+import { coinScale } from './format.js';
 import { factForCard, factForPlace, realWorldView } from '../learn/rw.js';
 
 let uid = 0;
 
 /** The row for a fact, or null when there is none. */
-export function realWorldRow(fact) {
+export function realWorldRow(fact, opts = {}) {
   if (!fact) return null;
-  const v = realWorldView(fact);
+  const v = realWorldView(fact, opts);
   const id = `rw-${(uid += 1)}`;
   const body = h('div', { class: 'rw-body', id, hidden: true },
     h('p', { class: 'rw-block', 'data-block': 'game' }, h('b', null, `${v.gameLabel}: `), v.game),
@@ -30,5 +31,6 @@ export function realWorldRow(fact) {
   return h('div', { class: 'rw', 'data-rw': fact.id }, toggle, body);
 }
 
-export const realWorldForCard = (card) => (card?.realWorld ? realWorldRow(factForCard(card.id)) : null);
-export const realWorldForPlace = (place) => realWorldRow(factForPlace(place));
+// a junior game (coins, owner 2026-10-26): the real-world row (2026 shekel figures) is not shown
+export const realWorldForCard = (card) => (card?.realWorld && !coinScale() ? realWorldRow(factForCard(card.id)) : null);
+export const realWorldForPlace = (place, opts = {}) => (coinScale() ? null : realWorldRow(factForPlace(place), opts)); // opts.rate: the live bank rate

@@ -1,14 +1,14 @@
-# מיצוב — פסיבו (Passivo)
+# מיצוב — MaxiFox
 
 ## משפט אחד
-פסיבו הוא משחק לוח ישראלי בעברית שמלמד, בכיף, איך הכסף יכול לעבוד בשבילך: מתחילים בשגרה עם משכורת והוצאות, קונים נכסים, ומגיעים לחופש כלכלי כשההכנסה הפסיבית גדולה מההוצאות.
+MaxiFox הוא משחק לוח ישראלי בעברית שמלמד, בכיף, איך הכסף יכול לעבוד בשבילך: מתחילים בשגרה עם משכורת והוצאות, קונים נכסים, ומגיעים לחופש כלכלי כשההכנסה הפסיבית גדולה מההוצאות.
 
-English: Passivo is a short money board game that shows how passive income works: start in the daily grind with a salary and bills, buy assets, and reach financial freedom when passive income beats expenses.
+English: MaxiFox is a short money board game that shows how passive income works: start in the daily grind with a salary and bills, buy assets, and reach financial freedom when passive income beats expenses.
 
 תגית: "הכסף עובד בשבילך" / "Make your money work".
 
 ## מיתוג וכללי שפה
-- שם: פסיבו (עברית) / Passivo (אנגלית). מותג אחד בשתי השפות.
+- שם: MaxiFox, מותג לטיני אחד בשתי השפות (לוגו ב-`design/brand/`). הדמות: מקסי / מקסי השועל (Maxi). שם קודם: פסיבו (שונה ב-23.10.2026).
 - שלב הפתיחה: "השגרה" / "the daily grind". היעד: "חופש כלכלי" / "financial freedom".
 - אסור בכל חומר שיווקי: ביטויי "מרוץ" (בעברית ובאנגלית), "Fast Track", וכל קמע של עכבר/חולדה. הקמע מעוצב מחדש על ידי designer; עד שיושלם מתארים מסכים בלי דמות.
 - לא מזכירים או משווים למשחקים של מותגים אחרים בשם.
@@ -45,7 +45,7 @@ English: Passivo is a short money board game that shows how passive income works
 4. **ללא הרשמה וללא אינטרנט** אחרי ההתקנה; שמירה והמשך אוטומטיים.
 5. **הוגן**: חינם לתמיד כולל שני המצבים, 6 מקצועות וכל קלפי הליבה (ראו `business/sales/pricing.md`); רכישות חד-פעמיות, בלי מנויים.
 6. **מראה של משחק חנות**, לא של טופס: אנימציות, קוביה, סיכום ניצחון.
-7. **שם שאומר את הרעיון**: "פסיבו" מחבר ישירות להכנסה פסיבית, ויעבוד גם באנגלית.
+7. **דמות שזוכרים**: מקסי השועל, חבר חכם וחם שמסביר כל החלטה במספרים, ושם לטיני אחד (MaxiFox) שעובד בשתי השפות. (הנימוק הקודם, שהשם "פסיבו" אומר הכנסה פסיבית, כבר לא תקף אחרי השינוי; ניסוח סופי: marketing.)
 
 ## קול ומסרים
 - חם, קליל, קצת הומור ישראלי; בלי הבטחות רווח.

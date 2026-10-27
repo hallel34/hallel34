@@ -2,7 +2,7 @@
 // engine state (own profession, cash, deck, rng). Actions are applied to the current player's state; the turn passes
 // with endTurn(). A one-player match behaves exactly like the plain single-player game.
 import { EngineError } from './engine.js';
-import { SCHEMA_VERSION, MIN_PLAYERS, MAX_PLAYERS, NAME_MAX } from './config.js';
+import { SCHEMA_VERSION, MIN_PLAYERS, MAX_PLAYERS, NAME_MAX, AGE_BANDS, JUNIOR_AGE } from './config.js';
 import { passiveIncome, totalExpenses, monthlyCashFlow, netWorth } from './selectors.js';
 
 const SEED_STEP = 7919; // player i plays with seed + i * SEED_STEP (player 0 keeps the match seed)
@@ -30,27 +30,37 @@ export function uniqueNames(names) {
   });
 }
 
+/** A player's age band, or null (not given / unknown). */
+export const cleanAge = (age) => (AGE_BANDS.includes(age) ? age : null);
+/** 'צעירים': a family game with a player aged 10 or under plays on round rules (every player: the rules are game-wide). */
+export const isJuniorSetup = (mode, players) => mode === 'family' && players.some((p) => cleanAge(p?.age) === JUNIOR_AGE);
+/** The player sees amounts in coins (a junior player of a junior game). */
+export const seesCoins = (m, player) => !!m?.junior && cleanAge(player?.age) === JUNIOR_AGE;
+
 /**
  * @param engine createEngine(...) result
- * @param players [{ name?, professionId }] 1-4 entries; an empty name means "use the default label" (UI side)
+ * @param players [{ name?, professionId, age? }] 1-4 entries; an empty name means "use the default label" (UI side)
  */
 export function newMatch(engine, { mode = 'full', players, seed = 1, daily = null } = {}) {
   if (!Array.isArray(players) || players.length < MIN_PLAYERS || players.length > MAX_PLAYERS) {
     fail(`a match needs ${MIN_PLAYERS}-${MAX_PLAYERS} players`);
   }
   const names = uniqueNames(players.map((p) => p.name));
+  const junior = !daily && isJuniorSetup(mode, players);
   return {
     schemaVersion: SCHEMA_VERSION,
     kind: 'match',
     mode,
     seed,
     ...(daily ? { daily: { date: String(daily.date) } } : {}), // a daily challenge (one player); normal matches carry no such field
+    ...(junior ? { junior: true } : {}), // schema 6: a 'צעירים' game (round rules for everyone)
     players: players.map((p, i) => ({
       id: `p${i + 1}`,
       name: names[i],
       color: i + 1, // 1-4: token colour and number badge
       professionId: p.professionId,
-      state: engine.newGame({ mode, professionId: p.professionId, seed: seed + i * SEED_STEP, ...(daily ? { daily } : {}) }),
+      age: daily ? null : cleanAge(p.age), // schema 6
+      state: engine.newGame({ mode, professionId: p.professionId, seed: seed + i * SEED_STEP, ...(daily ? { daily } : {}), ...(junior ? { junior: true } : {}) }),
     })),
     currentIndex: 0,
     turns: 0, // completed turns across all players
@@ -155,7 +165,7 @@ export function standings(m) {
 export function rematch(engine, m, seed) {
   return newMatch(engine, {
     mode: m.mode, seed,
-    players: m.players.map((p) => ({ name: p.name, professionId: p.professionId })),
+    players: m.players.map((p) => ({ name: p.name, professionId: p.professionId, age: p.age ?? null })),
   });
 }
 
@@ -166,7 +176,7 @@ export function matchFromState(state) {
     kind: 'match',
     mode: state.mode,
     seed: state.seed,
-    players: [{ id: 'p1', name: '', color: 1, professionId: state.profession?.id, state: { ...state, schemaVersion: SCHEMA_VERSION } }],
+    players: [{ id: 'p1', name: '', color: 1, professionId: state.profession?.id, age: null, state: { ...state, schemaVersion: SCHEMA_VERSION } }],
     currentIndex: 0,
     turns: 0,
     turnMark: state.phase === 'roll' ? state.turn : Math.max(0, state.turn - 1),

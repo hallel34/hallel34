@@ -3,15 +3,52 @@ import { h } from './dom.js';
 import { t, tp } from '../i18n/index.js';
 import { openLayer } from './modal.js';
 import { icon } from './icons.js';
-import { money, moneyText, tn, numberText, paydayCalc } from './format.js';
+import { money, tn, numberText, paydayCalc, coinScale } from './format.js';
+import { categoryChip } from './categories.js';
 import { button, meter } from './widgets.js';
 import { createTermScope } from './rich.js';
 import { animate } from './fx.js';
 import { motionOK } from './prefs.js';
 import { assetTitle } from './card-view.js';
 import { statement, maxLoan, PAYDAY_MONTHS, LOAN_PAYMENT_RATE } from '../engine/index.js';
+import { learnContent } from '../learn/content.js';
+import { asOfLine } from './tax-audit.js';
+import { stackedEquation } from './payday.js';
+
+const textOf = (x) => (typeof x === 'string' ? x : [x].flat().map((n) => (typeof n === 'string' ? n : n?.textContent ?? '')).join(''));
+
+/**
+ * v4 stage 4: the 'מסים וביטוח לאומי' row (full mode) is a disclosure button that opens the statement popover of guide.he.json:
+ * the 2026 income-tax brackets and national-insurance rates, the pension rule, this profession's real figure next to the game
+ * line, the "נכון ל-2026" tag and the source link. `open` survives a re-render of the sheet.
+ */
+let taxOpen = false;
+function taxRow(e, s) {
+  const pop = learnContent().guide?.statementPopover;
+  if (!pop) return null;
+  const fillT = (tpl, slots) => tpl.split(/(\{\w+\})/).filter(Boolean).map((part) => { const m = part.match(/^\{(\w+)\}$/); return m && m[1] in slots ? slots[m[1]] : part; });
+  const prof = pop.profession?.rows?.[s.profession.id];
+  const table = (rows) => h('table', null, h('tbody', null, rows.map((r) => h('tr', null, h('td', null, r.label), h('td', null, h('bdi', { dir: 'ltr' }, r.value))))));
+  const panel = h('div', { class: 'st-tax-pop', id: 'st-tax-pop', role: 'region', 'aria-label': pop.title, hidden: !taxOpen },
+    h('p', null, pop.short),
+    h('h4', null, pop.incomeTax.title), h('p', null, pop.incomeTax.short), table(pop.incomeTax.rows), pop.incomeTax.rowsNote ? h('p', null, pop.incomeTax.rowsNote) : null,
+    h('h4', null, pop.nationalInsurance.title), h('p', null, pop.nationalInsurance.short), table(pop.nationalInsurance.rows), pop.nationalInsurance.rowsNote ? h('p', null, pop.nationalInsurance.rowsNote) : null,
+    pop.pension ? [h('h4', null, pop.pension.title), h('p', null, pop.pension.short)] : null,
+    // the profession line only while the guide's figures still match the live salary (the game line is always read live)
+    prof && prof.gross === s.profession.salary ? [
+      h('p', null, fillT(pop.profession.template, { title: s.profession.title, gross: money(prof.gross), gameLine: money(e.amount), real: money(prof.realTaxPlusNi) })),
+      pop.profession.assumption ? h('p', null, pop.profession.assumption) : null] : null,
+    h('p', null, pop.gameNote),
+    asOfLine(learnContent().guide.ui, pop));
+  const btn = h('button', {
+    type: 'button', class: 'st-tax-btn', 'aria-expanded': String(taxOpen), 'aria-controls': 'st-tax-pop', 'data-action': 'tax-row',
+    onClick: () => { taxOpen = !taxOpen; panel.hidden = !taxOpen; btn.setAttribute('aria-expanded', String(taxOpen)); },
+  }, h('span', { class: 'st-label' }, e.label), h('span', { class: 'st-value' }, money(e.amount)));
+  return [h('div', { class: 'st-row st-row-tax' }, btn), panel];
+}
 
 export function openStatement({ getState, ops, title = t('statement.title') }) {
+  let parentsOpen = false; // 'צעירים': the 'להורים' part of the sheet (kept across re-renders, closed on every open)
   let layer;
   const body = h('div', { class: 'statement-body', tabindex: '0', role: 'region', 'aria-label': title });
 
@@ -27,6 +64,11 @@ export function openStatement({ getState, ops, title = t('statement.title') }) {
     const lab = (key, params = {}) => tn(key, params, { scope });
     const actionable = s.phase === 'roll' && s.status === 'playing'; // repay works in both modes
     const fullActions = full && actionable; // taking a voluntary loan and selling: full mode only
+    // 'צעירים' (owner 2026-10-26): the debts, the net worth and the balance sheet (big coin amounts) sit behind one 'להורים'
+    // toggle; they are built only while it is open, so nothing hidden is in the sheet. The kid keeps cash, income and expenses.
+    const junior = coinScale();
+    const parents = [];
+    const grown = (node) => { if (junior) parents.push(node); else body.append(node); };
     body.replaceChildren();
 
     const m = meter({ large: true });
@@ -42,29 +84,43 @@ export function openStatement({ getState, ops, title = t('statement.title') }) {
       h('div', { class: 'meter-labels' },
         h('span', null, t('game.passive'), ' ', h('b', { class: 'tone-income' }, money(st.passiveIncome))),
         h('span', null, t('game.expenses'), ' ', h('b', { class: 'tone-expense' }, money(st.totalExpenses)))),
-      h('p', { class: 'st-goal st-payday' }, paydayCalc(st.monthlyCashFlow, PAYDAY_MONTHS, st.monthlyCashFlow * PAYDAY_MONTHS, 'statement.paydayLine')),
+      // spec 4.6 / 4.9 (owner approved 2026-10-25): the stacked equation in the hero (the one-line form stays as its spoken name)
+      h('div', { class: 'st-goal st-payday', 'aria-label': textOf(paydayCalc(st.monthlyCashFlow, PAYDAY_MONTHS, st.monthlyCashFlow * PAYDAY_MONTHS, 'statement.paydayLine')) },
+        stackedEquation({ monthly: st.monthlyCashFlow, months: PAYDAY_MONTHS, amount: st.monthlyCashFlow * PAYDAY_MONTHS }, { label: t('payday.label') })),
       h('p', { class: 'st-goal' }, t('statement.goalLine'))));
+
+    // net-worth panel (spec 4.6): net worth, an assets-vs-liabilities bar and the two totals (family: 'חובות' wording, no red)
+    const nwb = st.balance;
+    const totalBoth = Math.max(1, nwb.assetsTotal + nwb.liabilitiesTotal);
+    grown(h('section', { class: 'nw', 'data-networth': String(nwb.netWorth) },
+      h('div', { class: 'nw-top' }, h('span', null, lab('statement.netWorthTitle'))),
+      h('div', { class: `nw-value${nwb.netWorth < 0 ? ' is-neg' : ''}` }, money(nwb.netWorth, { size: 'xl' })),
+      h('div', { class: 'nw-bar', 'aria-hidden': 'true' },
+        h('i', { class: 'nw-assets', style: `inline-size:${(nwb.assetsTotal / totalBoth) * 100}%` }),
+        h('i', { class: 'nw-liab', style: `inline-size:${(nwb.liabilitiesTotal / totalBoth) * 100}%` })),
+      h('div', { class: 'nw-cols' },
+        h('div', { class: 'nw-col' }, h('span', null, t('statement.balanceAssets')), h('span', { class: 'nw-assets-v' }, money(nwb.assetsTotal))),
+        h('div', { class: 'nw-col', style: 'text-align:end' }, h('span', null, t('statement.totalLiabilities')), h('span', { class: 'nw-liab-v' }, money(nwb.liabilitiesTotal))))));
 
     body.append(section(t('statement.income'), 'income',
       row(t('statement.salary'), money(st.salary)),
       row(lab('statement.passiveIncome'), money(st.passiveIncome, { sign: st.passiveIncome > 0 }), 'income'),
       row(t('statement.totalIncome'), money(st.totalIncome), 'total')));
 
-    const expenseRows = st.expenseItems.map((e) => row(e.label, money(e.amount)));
+    const expenseRows = st.expenseItems.flatMap((e) => (e.id === 'tax' && full ? taxRow(e, s) ?? [row(e.label, money(e.amount))] : [row(e.label, money(e.amount))]));
     if (st.kids) expenseRows.push(row(t('statement.children', { n: st.kids }), money(st.childExpenses)));
     if (st.loanPayments) expenseRows.push(row(t('statement.loans'), money(st.loanPayments)));
     body.append(section(t('statement.expenses'), 'expense', ...expenseRows, row(t('statement.totalExpenses'), money(st.totalExpenses), 'total')));
 
     const assetRows = s.assets.length
-      ? s.assets.map((a) => row(
-        assetTitle(a, s.mode),
-        money(a.monthlyCashFlow, { sign: true }),
-        'asset',
+      ? s.assets.map((a) => h('div', { class: 'st-row st-asset st-asset-row', 'data-category': categoryChip(a, { size: 32, on: 'dark' }).dataset.category },
+        categoryChip(a, { size: 32, on: 'dark' }),
+        h('span', { class: 'st-label' }, assetTitle(a, s.mode)),
+        h('span', { class: 'st-value' }, money(a.monthlyCashFlow, { sign: true })),
         h('span', { class: 'st-sub', 'data-asset': a.id },
           a.type === 'stock'
             ? t('statement.stockLine', { shares: tp('plural.shares', a.qty) })
-            : `${t(`type.${a.type}`)}${a.mortgage > 0 ? ` · ${t('statement.assetMortgage', { amount: moneyText(a.mortgage) })}` : ''}`),
-      ))
+            : [t(`type.${a.type}`), ...(a.mortgage > 0 && !junior ? [' · ', tn('statement.assetMortgage', { amount: money(a.mortgage) })] : [])])))
       : [h('p', { class: 'st-empty' }, t('statement.noAssets'))];
     body.append(section(lab('statement.assets'), 'asset', ...assetRows));
 
@@ -76,8 +132,8 @@ export function openStatement({ getState, ops, title = t('statement.title') }) {
         const label = l.kind === 'mortgage' ? lab('statement.mortgageLabel', { asset: l.assetTitle })
           : l.kind === 'bizloan' ? t('statement.bizLoanLabel', { asset: l.assetTitle })
             : (l.label === 'loan' ? t('statement.loanLabel') : l.label);
-        const notes = [t('statement.balance', { amount: moneyText(l.principal) })];
-        if (l.kind === 'loan') notes.push(lab('statement.interestOnly', { rate: numberText(Math.round((l.rate ?? LOAN_PAYMENT_RATE) * 1e4) / 100) }));
+        const notes = [tn('statement.balance', { amount: money(l.principal) })];
+        if (l.kind === 'loan') notes.push(lab('statement.interestOnly', { rate: h('bdi', { dir: 'ltr' }, numberText(Math.round((l.rate ?? LOAN_PAYMENT_RATE) * 1e4) / 100)) }));
         if (l.includedInAssets) notes.push(t('statement.inAssetFlow'));
         const sub = notes.flatMap((n, i) => (i ? [' · ', n] : [n]));
         return h('div', { class: 'st-row st-liab', 'data-liab': l.id, 'data-kind': l.kind },
@@ -96,17 +152,25 @@ export function openStatement({ getState, ops, title = t('statement.title') }) {
         liabRows.push(row(t('statement.insideAssets'), money(rep.totals.includedInAssets), 'sub'), h('p', { class: 'st-empty' }, t('statement.liabilityNote')));
       }
     }
-    body.append(section(lab('statement.liabilities'), 'liability', ...liabRows));
+    grown(section(lab('statement.liabilities'), 'liability', ...liabRows));
 
     // Balance sheet: what you own against what you owe.
     const bal = st.balance;
-    body.append(section(lab('statement.netWorthTitle'), 'networth',
+    grown(section(lab('statement.netWorthTitle'), 'networth',
       row(t('statement.balanceCash'), money(bal.cash)),
       row(t('statement.balanceHoldings'), money(bal.assetsTotal - bal.cash)),
       row(t('statement.balanceAssets'), money(bal.assetsTotal), 'total'),
       row(t('statement.balanceLiabilities'), money(bal.liabilitiesTotal), 'total'),
       row(lab('statement.balanceNet'), money(bal.netWorth), 'total'),
       h('p', { class: 'st-empty' }, t('statement.balanceNote'))));
+
+    if (junior) {
+      const toggle = button([h('span', null, t('statement.parentsToggle')), h('small', { class: 'st-parents-hint' }, t('statement.parentsHint'))], {
+        variant: 'secondary', cls: 'st-parents-btn', 'data-action': 'parents', 'aria-expanded': String(parentsOpen), 'aria-controls': 'st-parents',
+        onClick: () => { parentsOpen = !parentsOpen; render(); body.querySelector('[data-action="parents"]')?.focus({ preventScroll: true }); },
+      });
+      body.append(toggle, h('div', { class: 'st-parents', id: 'st-parents', 'data-parents': parentsOpen ? 'open' : 'closed' }, ...(parentsOpen ? parents : [])));
+    }
 
     if (fullActions) {
       const tools = h('div', { class: 'st-tools' });

@@ -10,6 +10,7 @@ import { tut } from '../hint-ui.js';
 import { createQuiz, shuffled } from '../../learn/tutorial.js';
 import { markQuizDone } from '../../learn/tutorial-store.js';
 import { fillSlots } from '../../learn/slots.js';
+import { coinScale, scaleTypedMoney } from '../format.js';
 
 const swap = (host, ...kids) => host.replaceChildren(...kids);
 const fade = (el) => animate(el, [{ opacity: 0, transform: motionOK() ? 'translateY(8px)' : 'none' }, { opacity: 1, transform: 'none' }], { duration: motionOK() ? 220 : 120, easing: 'ease-out' });
@@ -92,7 +93,7 @@ export function runAfterStory(hosts, { openParent = null } = {}) {
         const last = q.index >= q.total - 1;
         status.replaceChildren(
           h('p', { class: 'quiz-fb' }, correct ? h('b', null, `${cui.correctTitle}. `) : null, feedback),
-          h('p', { class: 'quiz-explain' }, h('b', null, `${cui.explainTitle}: `), q.question.explain));
+          h('p', { class: 'quiz-explain' }, h('b', null, `${cui.explainTitle}: `), scaleTypedMoney(coinScale() && q.question.explainJunior ? q.question.explainJunior : q.question.explain)));
         void revealCorrect;
         fade(status);
         ctaHost.replaceChildren(button(last ? cui.finish : cui.nextQuestion, { variant: 'primary', size: 'lg', cls: 'story-next', 'data-action': 'quiz-next', 'data-autofocus': '', onClick: () => { haptic('tap'); if (last) { markQuizDone(); result(q); } else { q.next(); ask(); } } }));

@@ -2,7 +2,7 @@
 import { h } from './dom.js';
 import { icon } from './icons.js';
 import { t } from '../i18n/index.js';
-import { moneyText, money } from './format.js';
+import { moneyText, moneyIsolated, money, setMoney } from './format.js';
 import { countUp, haptic, shake, pulse } from './fx.js';
 
 /**
@@ -31,6 +31,31 @@ export function button(label, { variant = 'primary', onClick, disabled = false, 
   return h('button', {
     type: 'button', class: `btn btn-${variant} ${size ? `btn-${size}` : ''} ${cls}`.trim(), disabled, onClick, ...attrs,
   }, label);
+}
+
+/**
+ * Arming (hand-over, payday summary): each button gets `disabled` + aria-busy + data-arming for `ms`, then they all snap to the
+ * solid look at once and the first one gets the focus back (a disabled button cannot hold focus). Returns { done: Promise, cancel() }.
+ * A real `disabled` means a tap during the window is not an event at all.
+ */
+export function arm(buttons, ms, { onArmed = null, focus = true } = {}) {
+  const list = [buttons].flat().filter(Boolean);
+  for (const b of list) { b.disabled = true; b.setAttribute('aria-busy', 'true'); b.setAttribute('data-arming', ''); b.style.setProperty('--arm-ms', `${ms}ms`); }
+  let timer = 0;
+  let finished;
+  const done = new Promise((r) => { finished = r; });
+  const release = (armed) => {
+    clearTimeout(timer);
+    for (const b of list) { b.disabled = false; b.removeAttribute('aria-busy'); b.removeAttribute('data-arming'); }
+    if (armed) {
+      onArmed?.();
+      const target = list.find((b) => b.hasAttribute('data-autofocus')) ?? list[0];
+      if (focus && target?.isConnected && !target.closest('[inert]')) target.focus?.({ preventScroll: true });
+    }
+    finished(armed);
+  };
+  timer = setTimeout(() => release(true), ms);
+  return { done, cancel: () => release(false) };
 }
 
 export const iconButton = (name, label, onClick, cls = '') =>
@@ -82,7 +107,7 @@ export function meter({ large = false } = {}) {
       fill.style.setProperty('--fill', String(p));
       track.dataset.reached = String(p >= 0.9);
       track.setAttribute('aria-valuenow', String(Math.round(p * 100)));
-      track.setAttribute('aria-valuetext', t('a11y.passiveMeterValue', { pct: Math.round(p * 100), passive: moneyText(passive), expenses: moneyText(expenses) }));
+      track.setAttribute('aria-valuetext', t('a11y.passiveMeterValue', { pct: Math.round(p * 100), passive: moneyIsolated(passive), expenses: moneyIsolated(expenses) }));
       for (const mark of [0.25, 0.5, 0.75]) {
         if (anim && last < mark && p >= mark) { pulse(track, 1.04); haptic('tap'); }
       }
@@ -97,16 +122,21 @@ export function miniMeter(pct, valueText, cls = 'or-bar') {
     h('i', { style: `--fill:${pct}` }));
 }
 
-export function statTile(label, valueNode, { tone = '', big = false, tut = null } = {}) {
-  return h('div', { class: `stat-tile${tone ? ` stat-${tone}` : ''}${big ? ' stat-big' : ''}`, 'data-tut': tut },
-    h('span', { class: 'stat-label' }, label), fitText(h('span', { class: 'stat-value' }, valueNode)));
+export function statTile(label, valueNode, { tone = '', big = false, tut = null, caption = null, cls = '', minScale = 0.6, extra = null } = {}) {
+  return h('div', { class: `stat-tile${tone ? ` stat-${tone}` : ''}${big ? ' stat-big' : ''}${cls ? ` ${cls}` : ''}`, 'data-tut': tut },
+    h('span', { class: 'stat-label' }, label), fitText(h('span', { class: 'stat-value' }, valueNode), { minScale }), caption ? h('span', { class: 'stat-caption' }, caption) : null, extra);
 }
 
 /** A money <output> that can count up to new values. */
 export function cashDisplay(initial, { sign = false } = {}) {
-  const el = h('span', { class: 'money cash-num', dir: 'ltr' });
+  const el = h('bdi', { class: 'money cash-num', dir: 'ltr' });
   // data-len lets CSS step the font size down for long amounts so the HUD row never overflows.
-  const paint = (x) => { const text = moneyText(x, { sign }); el.textContent = text; el.dataset.len = String(text.length); };
+  const paint = (x) => {
+    setMoney(el, x, { sign });
+    // the length of what is SHOWN (sign, symbol or coin icon, digits): a coin amount is short even though its text says "מטבעות"
+    const part = (c) => el.querySelector(`:scope > .${c}`)?.textContent.length ?? 0;
+    el.dataset.len = String(el.classList.contains('is-coins') ? part('sgn') + 1 + part('num') : moneyText(x, { sign }).length);
+  };
   paint(initial);
   let shown = initial;
   return {

@@ -1,6 +1,6 @@
 // Bots used by the balance simulation (and handy for QA / demo mode).
-import { maxLoan, monthlyCashFlow, totalExpenses } from './selectors.js';
-import { LOAN_STEP, LOAN_PAYMENT_RATE } from './config.js';
+import { maxLoan, monthlyCashFlow, totalExpenses, loanRateNow, bankLoanPrincipal, loanStep } from './selectors.js';
+import { decisionCanPass, isFreeOption, PASS_OPTION } from './engine.js';
 import { act, canEndTurn, endTurn } from './match.js';
 
 // reserveMonths: cash buffer (in months of expenses) kept after a purchase.
@@ -9,17 +9,68 @@ export const BOTS = {
   alwaysBuy: { reserveMonths: 0, maxPayback: Infinity, borrow: true, charity: true, acceptOffers: false },
   sensible: { reserveMonths: 0.5, maxPayback: 130, borrow: true, charity: true, acceptOffers: 1.2 },
   cautious: { reserveMonths: 2, maxPayback: 80, borrow: false, charity: true, acceptOffers: 1.15 },
+  // finance's over-borrowing bots (docs/v3/economy-experiments.md). Both buy everything and skip the "does the deal still pay
+  // after the loan payment" check. overBorrow takes the MAXIMUM loan whenever it is short; overBorrowLite borrows only the gap.
+  overBorrow: { reserveMonths: 0, maxPayback: Infinity, borrow: true, charity: true, acceptOffers: false, overBorrow: 'max' },
+  overBorrowLite: { reserveMonths: 0, maxPayback: Infinity, borrow: true, charity: true, acceptOffers: false, overBorrow: 'gap' },
   alwaysPass: { reserveMonths: 0, maxPayback: -1, borrow: false, charity: false, acceptOffers: false },
 };
 
 function coverShortfall(engine, s, need) {
   // Take the smallest loan(s) that cover `need` extra cash, if allowed.
   while (need > 0 && maxLoan(s) > 0) {
-    const amt = Math.min(maxLoan(s), Math.ceil(need / LOAN_STEP) * LOAN_STEP);
+    const amt = Math.min(maxLoan(s), Math.ceil(need / loanStep(s)) * loanStep(s));
     s = engine.takeLoan(s, amt);
     need -= amt;
   }
   return s;
+}
+
+/**
+ * A decision card (v4 stage 4): every available option is scored by what it does to the monthly money (passive income minus
+ * new loan payments) and the cash it uses, inside the bot's own rules (reserve, payback, borrowing): the best monthly gain
+ * wins. The reckless bots (alwaysBuy, overBorrow*) take the option that commits the most money; alwaysPass takes the free
+ * option (on an expense card, the one with the least debt). Ties go to the option listed first.
+ */
+function decideBot(engine, s, cfg) {
+  const card = s.pending.card;
+  const avail = engine.decisionOptions(s).filter((o) => o.available).map((o) => o.id);
+  const canPass = decisionCanPass(card);
+  const free = card.options.find((o) => isFreeOption(o) && avail.includes(o.id))?.id ?? (canPass ? PASS_OPTION : null);
+  const reserve = cfg.reserveMonths * totalExpenses(s);
+  const scored = avail.map((id) => {
+    const n = engine.decide(s, id);
+    const gain = (monthlyCashFlow(n) - monthlyCashFlow(s));
+    const used = s.cash - n.cash;
+    const borrowed = bankLoanPrincipal(n) - bankLoanPrincipal(s);
+    return { id, gain, used, borrowed, n };
+  });
+  if (cfg.maxPayback < 0) { // alwaysPass
+    if (free) return engine.decide(s, free);
+    return engine.decide(s, scored.sort((a, b) => a.borrowed - b.borrowed)[0].id);
+  }
+  const ok = scored.filter((x) => {
+    if (x.borrowed > 0 && !cfg.borrow && card.square !== 'expense') return false;
+    if (card.square === 'expense') return true;
+    if (x.gain <= 0 && x.used > 0) return false;
+    if (x.n.cash < reserve && x.used > 0) return false;
+    const payback = x.gain > 0 ? Math.max(0, x.used) / x.gain : Infinity;
+    return payback <= cfg.maxPayback || x.used <= 0;
+  });
+  if (card.square === 'expense') {
+    // pay from cash when the reserve allows it, else the cheapest loan
+    const cashFirst = ok.filter((x) => x.borrowed === 0 && x.n.cash >= reserve);
+    const pick = cashFirst[0] ?? ok.sort((a, b) => a.borrowed - b.borrowed)[0];
+    return engine.decide(s, pick.id);
+  }
+  // the reckless bots (no payback limit) commit the most money they can (cash + new debt), like they buy every deal
+  if (cfg.maxPayback === Infinity) {
+    const big = scored.filter((x) => x.used + x.borrowed > 0).sort((a, b) => (b.used + b.borrowed) - (a.used + a.borrowed) || b.gain - a.gain)[0];
+    if (big) return engine.decide(s, big.id);
+  }
+  const best = ok.filter((x) => x.gain > 0).sort((a, b) => b.gain - a.gain)[0];
+  if (best) return engine.decide(s, best.id);
+  return engine.decide(s, free ?? scored[0].id);
 }
 
 /** Plays one decision. Returns the new state. */
@@ -37,7 +88,7 @@ export function step(engine, s, bot) {
       for (const a of s.assets) {
         if (n.pending && n.cash < (p.amount ?? 0) && n.mode === 'full') n = engine.sellAsset(n, a.id);
       }
-      if (n === s) return engine.takeLoan(s, LOAN_STEP); // will throw if impossible
+      if (n === s) return engine.takeLoan(s, loanStep(s)); // will throw if impossible
     }
     return n;
   }
@@ -57,11 +108,11 @@ export function step(engine, s, bot) {
       if (!cfg.borrow) return engine.pass(s);
       const need = c.downPayment - s.cash;
       if (need > 0) {
-        const loanNeeded = Math.ceil(need / LOAN_STEP) * LOAN_STEP;
-        // only borrow if the deal still improves cash flow after the loan payment
-        if (loanNeeded > maxLoan(s) ||
-            c.monthlyCashFlow - loanNeeded * LOAN_PAYMENT_RATE <= 0) return engine.pass(s);
-        n = engine.takeLoan(s, loanNeeded);
+        const loanNeeded = Math.ceil(need / loanStep(s)) * loanStep(s);
+        if (loanNeeded > maxLoan(s)) return engine.pass(s);
+        // only borrow if the deal still improves cash flow after the loan payment (the over-borrowing bots skip this check)
+        if (!cfg.overBorrow && c.monthlyCashFlow - loanNeeded * loanRateNow(s) <= 0) return engine.pass(s);
+        n = engine.takeLoan(s, cfg.overBorrow === 'max' ? maxLoan(s) : loanNeeded);
       }
     }
     return n.cash >= c.downPayment ? engine.buy(n) : engine.pass(n);
@@ -75,6 +126,8 @@ export function step(engine, s, bot) {
     return cfg.charity && s.cash - p.cost >= reserve && monthlyCashFlow(s) >= 0
       ? engine.donate(s) : engine.declineCharity(s);
   }
+  if (p.kind === 'decision') return decideBot(engine, s, cfg);
+  if (p.kind === 'taxAudit') return engine.answerAudit(s, { questionId: null, correct: null }); // knowledge only: never money
   throw new Error(`bot cannot handle ${p.kind}`);
 }
 

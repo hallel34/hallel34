@@ -59,7 +59,7 @@
       {
         "id": "tax",
         "label": "מסים וביטוח לאומי",
-        "amount": 1700
+        "amount": 1950
       },
       {
         "id": "housing",
@@ -109,7 +109,7 @@
       {
         "id": "tax",
         "label": "מסים וביטוח לאומי",
-        "amount": 800
+        "amount": 700
       },
       {
         "id": "housing",
@@ -202,7 +202,7 @@
       {
         "id": "tax",
         "label": "מסים וביטוח לאומי",
-        "amount": 2000
+        "amount": 2300
       },
       {
         "id": "housing",
@@ -293,7 +293,7 @@
       {
         "id": "tax",
         "label": "מסים וביטוח לאומי",
-        "amount": 700
+        "amount": 600
       },
       {
         "id": "housing",

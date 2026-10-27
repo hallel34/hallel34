@@ -1,4 +1,4 @@
-// 'המשחק הראשון עם פסיבו': the five story screens (spec section 2, art.md section 2) in one full-screen layer. Loaded lazily
+// 'המשחק הראשון עם מקסי': the five story screens (spec section 2, art.md section 2) in one full-screen layer. Loaded lazily
 // (dynamic import) together with its three SVG illustrations, so the first paint of the app never pays for it.
 import { h } from '../dom.js';
 import { t } from '../../i18n/index.js';
@@ -6,7 +6,7 @@ import { openLayer } from '../modal.js';
 import { foxImg, dirSign } from '../fox.js';
 import { icon } from '../icons.js';
 import { button } from '../widgets.js';
-import { money, moneyText } from '../format.js';
+import { money, moneyText, coinScale, scaleTypedMoney } from '../format.js';
 import { animate, haptic } from '../fx.js';
 import { motionOK } from '../prefs.js';
 import { holdBack } from '../history.js';
@@ -23,7 +23,7 @@ const num = (n) => h('bdi', { class: 'money story-num', dir: 'ltr' }, moneyText(
 /** Text with every ₪ amount wrapped as a big, direction-safe number (the fixed examples of screens 1 and 4). */
 function emphasise(text) {
   const out = [];
-  for (const part of String(text).split(/(₪[\d,]+)/)) {
+  for (const part of String(scaleTypedMoney(text)).split(/(₪[\d,]+)/)) { // a junior game: typed figures read as coins
     if (/^₪[\d,]+$/.test(part)) out.push(h('bdi', { class: 'money story-num', dir: 'ltr' }, part));
     else if (part) out.push(part);
   }
@@ -32,7 +32,7 @@ function emphasise(text) {
 
 /** The slot values of every screen for a profession (numbers from the game data, see storyFigures). */
 export function storySlots(engine, professionId) {
-  const state = engine.newGame({ mode: 'family', professionId, seed: 1 });
+  const state = engine.newGame({ mode: 'family', professionId, seed: 1, ...(coinScale() ? { junior: true } : {}) }); // junior: round rules
   const f = storyFigures(state, engine.data.cards);
   return {
     f,

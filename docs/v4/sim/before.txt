@@ -1,0 +1,68 @@
+Simulation: 300 games per row, cap 200 turns (professions rotated)
+
+== mode: family
+sensible                   win 100%  lost   0%  timeout   0%  avgTurns  19.7  median  19.0  p90  31.0  loans 0.6  cash@t10 406360
+cautious                   win  99%  lost   1%  timeout   0%  avgTurns  24.0  median  23.0  p90  37.0  loans 0.1  cash@t10 363720
+alwaysBuy                  win  69%  lost  31%  timeout   0%  avgTurns  21.8  median  18.0  p90  41.0  loans 1.2  cash@t10 273950
+overBorrow                 win  55%  lost  45%  timeout   0%  avgTurns  22.4  median  19.0  p90  41.0  loans 1.0  cash@t10 270530
+overBorrowLite             win  57%  lost  43%  timeout   0%  avgTurns  20.7  median  18.0  p90  35.0  loans 1.2  cash@t10 266090
+alwaysPass                 win   0%  lost  10%  timeout  90%  avgTurns     -  median     -  p90     -  loans 1.1  cash@t10 328560
+  sensible/teacher (cf 1490) win 100%  lost   0%  timeout   0%  avgTurns  18.8  median  18.0  p90  28.0  loans 0.6  cash@t10 318460
+  alwaysBuy/teacher (cf 1490) win  67%  lost  33%  timeout   0%  avgTurns  20.1  median  18.0  p90  32.0  loans 1.0  cash@t10 232200
+  alwaysPass/teacher (cf 1490) win   0%  lost   0%  timeout 100%  avgTurns     -  median     -  p90     -  loans 0.0  cash@t10 249380
+  sensible/engineer (cf 2300) win 100%  lost   0%  timeout   0%  avgTurns  21.3  median  20.0  p90  31.0  loans 0.6  cash@t10 519650
+  alwaysBuy/engineer (cf 2300) win  70%  lost  30%  timeout   0%  avgTurns  25.5  median  21.0  p90  45.0  loans 1.2  cash@t10 349810
+  alwaysPass/engineer (cf 2300) win   0%  lost   0%  timeout 100%  avgTurns     -  median     -  p90     -  loans 0.0  cash@t10 394900
+  sensible/driver (cf 1000) win 100%  lost   0%  timeout   0%  avgTurns  20.9  median  19.0  p90  31.0  loans 0.8  cash@t10 194680
+  alwaysBuy/driver (cf 1000) win  66%  lost  34%  timeout   0%  avgTurns  21.6  median  19.0  p90  34.0  loans 1.2  cash@t10 146200
+  alwaysPass/driver (cf 1000) win   0%  lost  84%  timeout  16%  avgTurns     -  median     -  p90     -  loans 8.4  cash@t10 156100
+  sensible/nurse (cf 2080) win 100%  lost   0%  timeout   0%  avgTurns  18.2  median  17.0  p90  28.0  loans 0.5  cash@t10 446140
+  alwaysBuy/nurse (cf 2080) win  67%  lost  33%  timeout   0%  avgTurns  20.1  median  17.0  p90  37.0  loans 1.1  cash@t10 321580
+  alwaysPass/nurse (cf 2080) win   0%  lost   0%  timeout 100%  avgTurns     -  median     -  p90     -  loans 0.0  cash@t10 353860
+  sensible/programmer (cf 2160) win 100%  lost   0%  timeout   0%  avgTurns  23.0  median  21.0  p90  33.0  loans 0.7  cash@t10 489500
+  alwaysBuy/programmer (cf 2160) win  70%  lost  30%  timeout   0%  avgTurns  27.7  median  24.0  p90  47.0  loans 1.3  cash@t10 337340
+  alwaysPass/programmer (cf 2160) win   0%  lost   0%  timeout 100%  avgTurns     -  median     -  p90     -  loans 0.0  cash@t10 370620
+  sensible/police (cf 1960) win 100%  lost   0%  timeout   0%  avgTurns  17.6  median  16.0  p90  27.0  loans 0.5  cash@t10 417930
+  alwaysBuy/police (cf 1960) win  70%  lost  30%  timeout   0%  avgTurns  20.0  median  17.0  p90  36.0  loans 1.0  cash@t10 306740
+  alwaysPass/police (cf 1960) win   0%  lost   0%  timeout 100%  avgTurns     -  median     -  p90     -  loans 0.0  cash@t10 333620
+  sensible/cook (cf 1920)  win 100%  lost   0%  timeout   0%  avgTurns  15.8  median  15.0  p90  24.0  loans 0.5  cash@t10 411890
+  alwaysBuy/cook (cf 1920) win  72%  lost  28%  timeout   0%  avgTurns  16.2  median  14.0  p90  26.0  loans 0.8  cash@t10 287560
+  alwaysPass/cook (cf 1920) win   0%  lost   0%  timeout 100%  avgTurns     -  median     -  p90     -  loans 0.1  cash@t10 327560
+  sensible/lawyer (cf 2450) win 100%  lost   0%  timeout   0%  avgTurns  23.8  median  22.0  p90  35.0  loans 0.6  cash@t10 541800
+  alwaysBuy/lawyer (cf 2450) win  72%  lost  28%  timeout   0%  avgTurns  29.1  median  26.0  p90  49.0  loans 1.5  cash@t10 364940
+  alwaysPass/lawyer (cf 2450) win   0%  lost   0%  timeout 100%  avgTurns     -  median     -  p90     -  loans 0.0  cash@t10 422600
+
+== mode: full
+sensible                   win 100%  lost   0%  timeout   0%  avgTurns  23.2  median  21.0  p90  38.0  loans 0.5  cash@t10 397020
+cautious                   win  99%  lost   1%  timeout   0%  avgTurns  30.5  median  28.0  p90  47.0  loans 0.1  cash@t10 367220
+alwaysBuy                  win  87%  lost  13%  timeout   0%  avgTurns  27.5  median  23.0  p90  54.0  loans 2.2  cash@t10 220760
+overBorrow                 win  70%  lost  30%  timeout   0%  avgTurns  27.1  median  22.0  p90  49.0  loans 2.9  cash@t10 205180
+overBorrowLite             win  76%  lost  24%  timeout   0%  avgTurns  26.6  median  22.0  p90  49.0  loans 2.9  cash@t10 183884
+alwaysPass                 win   0%  lost  10%  timeout  90%  avgTurns     -  median     -  p90     -  loans 1.0  cash@t10 321440
+  sensible/teacher (cf 1490) win 100%  lost   0%  timeout   0%  avgTurns  21.4  median  20.0  p90  33.0  loans 0.5  cash@t10 292020
+  alwaysBuy/teacher (cf 1490) win  83%  lost  17%  timeout   0%  avgTurns  27.2  median  21.0  p90  49.0  loans 2.2  cash@t10 206110
+  alwaysPass/teacher (cf 1490) win   0%  lost   0%  timeout 100%  avgTurns     -  median     -  p90     -  loans 0.0  cash@t10 247380
+  sensible/engineer (cf 2300) win 100%  lost   0%  timeout   0%  avgTurns  25.2  median  23.0  p90  40.0  loans 0.5  cash@t10 478750
+  alwaysBuy/engineer (cf 2300) win  88%  lost  12%  timeout   0%  avgTurns  29.0  median  25.0  p90  54.0  loans 2.2  cash@t10 287110
+  alwaysPass/engineer (cf 2300) win   0%  lost   0%  timeout 100%  avgTurns     -  median     -  p90     -  loans 0.0  cash@t10 393400
+  sensible/driver (cf 1000) win  99%  lost   1%  timeout   0%  avgTurns  25.2  median  23.0  p90  39.0  loans 0.8  cash@t10 188220
+  alwaysBuy/driver (cf 1000) win  77%  lost  23%  timeout   0%  avgTurns  29.4  median  24.0  p90  52.0  loans 2.7  cash@t10 135100
+  alwaysPass/driver (cf 1000) win   0%  lost  85%  timeout  15%  avgTurns     -  median     -  p90     -  loans 8.3  cash@t10 154600
+  sensible/nurse (cf 2080) win 100%  lost   0%  timeout   0%  avgTurns  20.6  median  18.0  p90  33.0  loans 0.4  cash@t10 429170
+  alwaysBuy/nurse (cf 2080) win  92%  lost   8%  timeout   0%  avgTurns  26.5  median  19.0  p90  52.0  loans 1.7  cash@t10 260488
+  alwaysPass/nurse (cf 2080) win   0%  lost   0%  timeout 100%  avgTurns     -  median     -  p90     -  loans 0.0  cash@t10 353360
+  sensible/programmer (cf 2160) win 100%  lost   0%  timeout   0%  avgTurns  27.3  median  25.0  p90  41.0  loans 0.5  cash@t10 450410
+  alwaysBuy/programmer (cf 2160) win  88%  lost  12%  timeout   0%  avgTurns  31.7  median  27.0  p90  58.0  loans 2.3  cash@t10 280220
+  alwaysPass/programmer (cf 2160) win   0%  lost   0%  timeout 100%  avgTurns     -  median     -  p90     -  loans 0.0  cash@t10 368620
+  sensible/police (cf 1960) win 100%  lost   0%  timeout   0%  avgTurns  20.2  median  18.0  p90  32.0  loans 0.5  cash@t10 405100
+  alwaysBuy/police (cf 1960) win  91%  lost   9%  timeout   0%  avgTurns  26.9  median  20.0  p90  54.0  loans 2.0  cash@t10 260110
+  alwaysPass/police (cf 1960) win   0%  lost   0%  timeout 100%  avgTurns     -  median     -  p90     -  loans 0.0  cash@t10 332780
+  sensible/cook (cf 1920)  win 100%  lost   0%  timeout   0%  avgTurns  17.6  median  16.0  p90  28.0  loans 0.5  cash@t10 393140
+  alwaysBuy/cook (cf 1920) win  89%  lost  11%  timeout   0%  avgTurns  23.2  median  17.0  p90  50.0  loans 1.9  cash@t10 254020
+  alwaysPass/cook (cf 1920) win   0%  lost   0%  timeout 100%  avgTurns     -  median     -  p90     -  loans 0.1  cash@t10 324560
+  sensible/lawyer (cf 2450) win 100%  lost   0%  timeout   0%  avgTurns  27.3  median  26.0  p90  42.0  loans 0.5  cash@t10 515620
+  alwaysBuy/lawyer (cf 2450) win  88%  lost  12%  timeout   0%  avgTurns  31.8  median  28.0  p90  57.0  loans 2.2  cash@t10 336710
+  alwaysPass/lawyer (cf 2450) win   0%  lost   0%  timeout 100%  avgTurns     -  median     -  p90     -  loans 0.0  cash@t10 421800
+
+== multiplayer family, 4 sensible bots, 50 matches: winner 50  allOut 0  timeout 0  winner's turns avg 13.4 median 13.0 p90 19.0  wins by seat 17/15/12/6
+== multiplayer full, 4 sensible bots, 50 matches: winner 50  allOut 0  timeout 0  winner's turns avg 13.5 median 13.0 p90 20.0  wins by seat 11/11/16/12

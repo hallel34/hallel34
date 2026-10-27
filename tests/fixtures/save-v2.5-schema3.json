@@ -1,0 +1,475 @@
+{
+ "schemaVersion": 3,
+ "kind": "match",
+ "mode": "full",
+ "seed": 77,
+ "players": [
+  {
+   "id": "p1",
+   "name": "דנה",
+   "color": 1,
+   "professionId": "teacher",
+   "state": {
+    "schemaVersion": 3,
+    "mode": "full",
+    "seed": 77,
+    "rngState": 4287391073,
+    "profession": {
+     "id": "teacher",
+     "title": "מורה",
+     "salary": 8800,
+     "perChild": 450,
+     "expenses": [
+      {
+       "id": "tax",
+       "label": "מסים וביטוח לאומי",
+       "amount": 900
+      },
+      {
+       "id": "housing",
+       "label": "שכר דירה",
+       "amount": 3500
+      },
+      {
+       "id": "food",
+       "label": "סופר ואוכל",
+       "amount": 1300
+      },
+      {
+       "id": "transport",
+       "label": "תחבורה",
+       "amount": 500
+      },
+      {
+       "id": "other",
+       "label": "חוגים, פלאפון ושונות",
+       "amount": 600
+      }
+     ]
+    },
+    "cash": 76840,
+    "assets": [
+     {
+      "id": "asset-2",
+      "cardId": "opp-biz-013",
+      "type": "business",
+      "title": "אפליקציה של הבן של השכן",
+      "price": 240000,
+      "downPayment": 120000,
+      "mortgage": 120000,
+      "monthlyCashFlow": 500,
+      "loanPayment": 2100
+     }
+    ],
+    "liabilities": [
+     {
+      "id": "car",
+      "label": "הלוואת רכב",
+      "debt": "car",
+      "principal": 18000,
+      "monthlyPayment": 360,
+      "kind": "base"
+     },
+     {
+      "id": "card",
+      "label": "חוב בכרטיס אשראי",
+      "debt": "card",
+      "principal": 5000,
+      "monthlyPayment": 150,
+      "kind": "base"
+     },
+     {
+      "id": "loan-1",
+      "kind": "loan",
+      "label": "loan",
+      "principal": 40000,
+      "monthlyPayment": 400,
+      "rate": 0.01
+     }
+    ],
+    "kids": 0,
+    "position": 17,
+    "turn": 4,
+    "charityTurns": 0,
+    "stockPrices": {},
+    "decks": {
+     "opportunity": [
+      "opp-apt-009",
+      "opp-apt-015",
+      "opp-biz-003",
+      "opp-biz-006",
+      "opp-apt-006",
+      "opp-biz-007",
+      "opp-biz-004",
+      "opp-biz-015",
+      "opp-biz-009",
+      "opp-biz-010",
+      "opp-apt-016",
+      "opp-apt-001",
+      "opp-biz-012",
+      "opp-biz-011",
+      "opp-biz-001",
+      "opp-apt-010",
+      "opp-apt-003",
+      "opp-biz-014",
+      "opp-biz-002",
+      "opp-biz-016",
+      "opp-biz-005",
+      "opp-stk-003",
+      "opp-stk-001",
+      "opp-apt-005",
+      "opp-stk-002",
+      "opp-apt-011",
+      "opp-apt-014",
+      "opp-apt-013",
+      "opp-apt-004",
+      "opp-apt-008",
+      "opp-apt-012",
+      "opp-apt-002",
+      "opp-biz-008"
+     ],
+     "expense": [
+      "exp-011",
+      "exp-002",
+      "exp-005",
+      "exp-013",
+      "exp-008",
+      "exp-015",
+      "exp-003",
+      "exp-001",
+      "exp-014",
+      "exp-012",
+      "exp-007",
+      "exp-006",
+      "exp-010",
+      "exp-004",
+      "exp-009"
+     ],
+     "market": [
+      "mkt-007",
+      "mkt-001",
+      "mkt-017",
+      "mkt-016",
+      "mkt-002",
+      "mkt-012",
+      "mkt-003",
+      "mkt-011",
+      "mkt-013",
+      "mkt-015",
+      "mkt-010",
+      "mkt-008",
+      "mkt-004",
+      "mkt-006",
+      "mkt-005",
+      "mkt-014",
+      "mkt-009"
+     ]
+    },
+    "pending": null,
+    "phase": "roll",
+    "status": "playing",
+    "lastRoll": {
+     "dice": [
+      4
+     ],
+     "steps": 4
+    },
+    "events": [
+     {
+      "type": "payday",
+      "amount": 38160,
+      "monthly": 1590,
+      "months": 24,
+      "interest": 9600
+     },
+     {
+      "type": "move",
+      "from": 13,
+      "to": 17,
+      "dice": [
+       4
+      ],
+      "steps": 4,
+      "path": [
+       14,
+       15,
+       16,
+       17
+      ]
+     },
+     {
+      "type": "square",
+      "square": "payday"
+     }
+    ],
+    "seq": 2,
+    "stats": {
+     "paydays": 4,
+     "dealsBought": 1,
+     "dealsSold": 0,
+     "loansTaken": 1,
+     "donations": 0,
+     "expensesPaid": 0,
+     "peakPassive": 500,
+     "totalPaid": 0,
+     "interestPaid": 19200
+    },
+    "learn": {
+     "decisions": [
+      {
+       "turn": 2,
+       "kind": "loan",
+       "amount": 40000,
+       "purpose": "purchase",
+       "cardId": "opp-biz-013",
+       "rating": "costly",
+       "green": false
+      },
+      {
+       "turn": 2,
+       "kind": "buy",
+       "cardId": "opp-biz-013",
+       "title": "אפליקציה של הבן של השכן",
+       "type": "business",
+       "tier": "bad",
+       "years": 20,
+       "yieldPct": 5,
+       "cf": 500,
+       "down": 120000,
+       "green": false
+      },
+      {
+       "turn": 3,
+       "kind": "pass",
+       "cardId": "opp-apt-007",
+       "title": "דירת גג בתל אביב",
+       "type": "apartment",
+       "tier": "ok",
+       "years": 11.76,
+       "yieldPct": 8.5,
+       "cf": 8500,
+       "down": 1200000,
+       "afford": false,
+       "green": null
+      }
+     ],
+     "guesses": [],
+     "concepts": [],
+     "shown": []
+    }
+   }
+  },
+  {
+   "id": "p2",
+   "name": "יוסי",
+   "color": 2,
+   "professionId": "nurse",
+   "state": {
+    "schemaVersion": 3,
+    "mode": "full",
+    "seed": 7996,
+    "rngState": 4287398992,
+    "profession": {
+     "id": "nurse",
+     "title": "אח/ות",
+     "salary": 9800,
+     "perChild": 500,
+     "expenses": [
+      {
+       "id": "tax",
+       "label": "מסים וביטוח לאומי",
+       "amount": 1100
+      },
+      {
+       "id": "housing",
+       "label": "שכר דירה",
+       "amount": 3600
+      },
+      {
+       "id": "food",
+       "label": "סופר ואוכל",
+       "amount": 1300
+      },
+      {
+       "id": "transport",
+       "label": "תחבורה",
+       "amount": 600
+      },
+      {
+       "id": "other",
+       "label": "קפה של אחרי משמרת ושונות",
+       "amount": 600
+      }
+     ]
+    },
+    "cash": 143260,
+    "assets": [],
+    "liabilities": [
+     {
+      "id": "car",
+      "label": "הלוואת רכב",
+      "debt": "car",
+      "principal": 20000,
+      "monthlyPayment": 400,
+      "kind": "base"
+     },
+     {
+      "id": "student",
+      "label": "הלוואת לימודים",
+      "debt": "student",
+      "principal": 12000,
+      "monthlyPayment": 120,
+      "kind": "base"
+     }
+    ],
+    "kids": 1,
+    "position": 10,
+    "turn": 4,
+    "charityTurns": 0,
+    "stockPrices": {},
+    "decks": {
+     "opportunity": [
+      "opp-biz-001",
+      "opp-biz-016",
+      "opp-apt-015",
+      "opp-apt-002",
+      "opp-apt-008",
+      "opp-apt-006",
+      "opp-stk-003",
+      "opp-biz-006",
+      "opp-biz-010",
+      "opp-biz-009",
+      "opp-biz-008",
+      "opp-apt-011",
+      "opp-apt-016",
+      "opp-apt-010",
+      "opp-apt-004",
+      "opp-biz-002",
+      "opp-stk-001",
+      "opp-biz-013",
+      "opp-apt-001",
+      "opp-apt-007",
+      "opp-biz-003",
+      "opp-biz-015",
+      "opp-apt-012",
+      "opp-biz-004",
+      "opp-stk-002",
+      "opp-apt-009",
+      "opp-biz-012",
+      "opp-biz-011",
+      "opp-apt-013",
+      "opp-biz-014",
+      "opp-biz-005",
+      "opp-apt-014",
+      "opp-apt-005",
+      "opp-apt-003",
+      "opp-biz-007"
+     ],
+     "expense": [
+      "exp-011",
+      "exp-003",
+      "exp-010",
+      "exp-014",
+      "exp-004",
+      "exp-005",
+      "exp-006",
+      "exp-002",
+      "exp-007",
+      "exp-001",
+      "exp-012",
+      "exp-015",
+      "exp-009",
+      "exp-013"
+     ],
+     "market": [
+      "mkt-009",
+      "mkt-017",
+      "mkt-010",
+      "mkt-012",
+      "mkt-007",
+      "mkt-005",
+      "mkt-003",
+      "mkt-014",
+      "mkt-006",
+      "mkt-011",
+      "mkt-008",
+      "mkt-001",
+      "mkt-013",
+      "mkt-002",
+      "mkt-004",
+      "mkt-015",
+      "mkt-016"
+     ]
+    },
+    "pending": null,
+    "phase": "roll",
+    "status": "playing",
+    "lastRoll": {
+     "dice": [
+      1
+     ],
+     "steps": 1
+    },
+    "events": [
+     {
+      "type": "payday",
+      "amount": 37920,
+      "monthly": 1580,
+      "months": 24,
+      "interest": 0
+     },
+     {
+      "type": "move",
+      "from": 9,
+      "to": 10,
+      "dice": [
+       1
+      ],
+      "steps": 1,
+      "path": [
+       10
+      ]
+     },
+     {
+      "type": "square",
+      "square": "payday"
+     }
+    ],
+    "seq": 0,
+    "stats": {
+     "paydays": 3,
+     "dealsBought": 0,
+     "dealsSold": 0,
+     "loansTaken": 0,
+     "donations": 0,
+     "expensesPaid": 1,
+     "peakPassive": 0,
+     "totalPaid": 2500,
+     "interestPaid": 0
+    },
+    "learn": {
+     "decisions": [
+      {
+       "turn": 1,
+       "kind": "expense",
+       "cardId": "exp-008",
+       "amount": 2500,
+       "viaLoan": false,
+       "viaSale": false,
+       "loanAmount": 0,
+       "green": true
+      }
+     ],
+     "guesses": [],
+     "concepts": [],
+     "shown": []
+    }
+   }
+  }
+ ],
+ "currentIndex": 0,
+ "turns": 8,
+ "turnMark": 4,
+ "status": "playing",
+ "winnerIndex": null
+}

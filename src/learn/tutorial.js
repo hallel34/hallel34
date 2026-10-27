@@ -1,4 +1,4 @@
-// 'המשחק הראשון עם פסיבו': the pure rules (no DOM, no storage, no Date). Story numbers, the itemised summary, the goal line,
+// 'המשחק הראשון עם מקסי': the pure rules (no DOM, no storage, no Date). Story numbers, the itemised summary, the goal line,
 // the hint scheduler and the quiz. docs/v2/tutorial/spec.md is the authority; the wording lives in tutorial.he.json.
 import {
   passiveIncome, totalExpenses, loanPayments, loanTerms, paybackYears, PAYDAY_MONTHS,

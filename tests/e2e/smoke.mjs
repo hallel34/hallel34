@@ -49,14 +49,39 @@ const LEARN_OBSERVER = () => {
         if (!(n instanceof Element) || !n.classList.contains('note')) continue;
         const turnNow = document.querySelector('.screen-board')?.dataset.turn; // read at insertion: a fast player may roll again before the box is measured
         setTimeout(() => {
-          const r = n.getBoundingClientRect();
+          // QA round 15: the WHOLE note, its buttons included (the union of every visible box inside it)
+          // a box is clipped by every ancestor (up to the note) that hides its overflow: a line-clamped text still REPORTS the
+          // boxes of its hidden lines, which paint nothing
+          const clipped = (e) => {
+            const b = e.getBoundingClientRect(); let r = { left: b.left, top: b.top, right: b.right, bottom: b.bottom };
+            for (let a = e === n ? null : e.parentElement; a && n.contains(a); a = a === n ? null : a.parentElement) {
+              if (getComputedStyle(a).overflow === 'visible') continue;
+              const c = a.getBoundingClientRect();
+              r = { left: Math.max(r.left, c.left), top: Math.max(r.top, c.top), right: Math.min(r.right, c.right), bottom: Math.min(r.bottom, c.bottom) };
+            }
+            return { width: r.right - r.left, height: r.bottom - r.top, ...r };
+          };
+          const rs = [n, ...n.querySelectorAll('*')].filter((e) => getComputedStyle(e).visibility !== 'hidden').map(clipped).filter((b) => b.width > 0 && b.height > 0);
+          const r = rs.reduce((a, b) => ({ left: Math.min(a.left, b.left), top: Math.min(a.top, b.top), right: Math.max(a.right, b.right), bottom: Math.max(a.bottom, b.bottom) }), { left: Infinity, top: Infinity, right: -Infinity, bottom: -Infinity });
           const me = { l: r.left, t: r.top, r: r.right, b: r.bottom };
-          window.__learnLog.push({
+          const tiles = [...document.querySelectorAll('.board .tile')].map((t) => { const b = t.getBoundingClientRect(); return { l: b.left, t: b.top, r: b.right, b: b.bottom }; });
+          const fox = document.querySelector('.fox-guide'); const fb = fox && fox.getClientRects().length ? fox.getBoundingClientRect() : null;
+          const entry = {
             kind: n.dataset.note, group: n.dataset.group || null, concept: n.dataset.concept || null, text: n.textContent.trim(),
             turn: turnNow, tone: n.dataset.tone || null,
             hitRoll: hit(me, box('.btn-roll')), hitHud: hit(me, box('.hud')), hitDice: hit(me, box('.dice')), hitStatus: hit(me, box('.board-status')),
+            hitHere: hit(me, box('.here-line')), hitTiles: tiles.some((t) => hit(me, t)), hitFox: !!fb && hit(me, { l: fb.left, t: fb.top, r: fb.right, b: fb.bottom }),
+            size: `${innerWidth}x${innerHeight}`,
+            // QA round 16: a clamped text must offer "עוד" (visible, inside the note)
+            clamped: (() => { const tx = n.querySelector('.note-text'); return !!tx && tx.scrollHeight > tx.clientHeight + 1; })(),
+            hasMore: [...n.querySelectorAll('[data-action="note-more"], [data-action="explain-more"]')].some((x) => x.getClientRects().length > 0),
+            badgeClipped: (() => { const bc = n.querySelector('.badge-chip'); const bb = n.querySelector('.note-bubble'); if (!bc || !bb) return false; const a = bc.getBoundingClientRect(); const c = bb.getBoundingClientRect(); return a.top < c.top - 0.5 || a.bottom > c.bottom + 0.5 || a.left < c.left - 0.5 || a.right > c.right + 0.5; })(),
+            bubbleW: Math.round(n.querySelector('.note-bubble')?.getBoundingClientRect().width || 0),
+            group0: n.dataset.group || null,
             inViewport: me.l >= 0 && me.r <= innerWidth + 0.5 && me.b <= innerHeight + 0.5 && me.t >= 0,
-          });
+          };
+          window.__learnLog.push(entry);
+          window.__noteSeen?.(entry); // QA round 15: every note of the whole run reaches the Node side (survives page loads)
         }, 450);
       }
     }).observe(root, { childList: true, subtree: true });
@@ -71,13 +96,36 @@ function hiddenFigures() {
     + JSON.stringify(rw.facts.map((f) => [f.game, f.real])) + readFileSync(new URL('../../src/i18n/he.json', import.meta.url), 'utf8') + readFileSync(new URL('../../src/data/cards.he.json', import.meta.url), 'utf8');
   const tokens = (str) => [...String(str).matchAll(/(?<![\d.,])\d+(?:\.\d+)?%/g)].map((m) => m[0]);
   const shown = new Set(tokens(visible));
+  // every hidden figure (QA round 14: no exemption by value alone); the verified ones are allowed ONLY inside their tagged surfaces
   return [...new Set(rw.facts.filter((f) => f.numbers).flatMap((f) => tokens(f.numbers.text)))].filter((x) => !shown.has(x));
 }
+/** v4 stage 4: the figures a tagged real-world surface may show: rates that docs/v3/real-world-verified.json marks VERIFIED, and the
+ * guide figure published with its verified tag (owner 2026-10-25: the Bank of Israel rate). */
+function verifiedFigures() {
+  const tokens = (str) => [...String(str).matchAll(/(?<![\d.,])\d+(?:\.\d+)?%/g)].map((m) => m[0]);
+  const verified = new Set();
+  const walk = (v) => { if (typeof v === 'number' && v > 0 && v < 1) verified.add(`${Math.round(v * 10000) / 100}%`); else if (v && typeof v === 'object') Object.values(v).forEach(walk); };
+  for (const e of JSON.parse(readFileSync(new URL('../../docs/v3/real-world-verified.json', import.meta.url), 'utf8'))) if (e.status === 'VERIFIED') walk(e.value);
+  const guide = JSON.parse(readFileSync(new URL('../../src/data/learn/guide.he.json', import.meta.url), 'utf8'));
+  for (const sc of guide.lessons.flatMap((l) => l.screens)) if (sc.numbers?.publish === true && sc.numbers.verified) tokens(sc.numbers.text).forEach((x) => verified.add(x));
+  return verified;
+}
+// the surfaces that carry the "נכון ל-2026" tag and the source link (tax-audit reveal, statement popover, guide / Israeli rules entry)
+const TAGGED = '.audit-reveal, #st-tax-pop, .dict-rw-entry';
 async function noHiddenFigures(page, label) {
   const hidden = hiddenFigures();
-  const text = await page.evaluate(() => document.body.innerText);
-  const tokens = [...text.matchAll(/(?<![\d.,])\d+(?:\.\d+)?%/g)].map((m) => m[0]);
-  const leaked = hidden.filter((x) => tokens.includes(x));
+  const verified = verifiedFigures();
+  const { outside, inside } = await page.evaluate((sel) => {
+    const out = []; const ins = [];
+    const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    for (let n = w.nextNode(); n; n = w.nextNode()) {
+      const p = n.parentElement; if (!p || !p.getClientRects().length || getComputedStyle(p).visibility === 'hidden') continue;
+      (p.closest(sel) ? ins : out).push(n.textContent);
+    }
+    return { outside: out.join(' '), inside: ins.join(' ') };
+  }, TAGGED);
+  const tok = (text) => [...text.matchAll(/(?<![\d.,])\d+(?:\.\d+)?%/g)].map((m) => m[0]);
+  const leaked = [...hidden.filter((x) => tok(outside).includes(x)), ...hidden.filter((x) => !verified.has(x) && tok(inside).includes(x))];
   check(hidden.length > 0 && leaked.length === 0, `L6: no unverified real-world figure on screen (${label})${leaked.length ? ` LEAKED ${leaked}` : ''}`);
 }
 
@@ -115,9 +163,14 @@ async function reactionStripClear(page) {
     const box = (s) => { const e = document.querySelector(s); if (!e) return null; const b = e.getBoundingClientRect(); return { l: b.left, t: b.top, r: b.right, b: b.bottom }; };
     const hit = (a, b) => a && b && a.l < b.r && a.r > b.l && a.t < b.b && a.b > b.t;
     const host = box('.react-host');
-    return { host: !!host, hud: hit(host, box('.hud')), board: hit(host, box('.board')), roll: hit(host, box('.btn-roll')), dice: hit(host, box('.dice')) };
+    // board-spec 14.4 (owner override 2026-10-24b): the fox row lives INSIDE the plate's plaza, so "the board" means its tiles
+    const tileHit = [...document.querySelectorAll('.board .tile')].some((t) => { const b = t.getBoundingClientRect(); return hit(host, { l: b.left, t: b.top, r: b.right, b: b.bottom }); });
+    // QA round 14: the plaza status line (and the bubble beside the fox) are checked again, since "the board" now means its tiles
+    const bubble = box('.fox-strip .note-bubble');
+    const status = box('.board-status');
+    return { host: !!host, hud: hit(host, box('.hud')), board: tileHit, roll: hit(host, box('.btn-roll')), dice: hit(host, box('.dice')), status: hit(host, status), bubbleStatus: hit(bubble, status), bubbleRoll: hit(bubble, box('.btn-roll')) };
   });
-  check(r.host && !r.hud && !r.board && !r.roll && !r.dice, `reaction pop-up strip never covers the HUD, board, die or roll button (${JSON.stringify(r)})`);
+  check(r.host && !r.hud && !r.board && !r.roll && !r.dice && !r.status && !r.bubbleStatus && !r.bubbleRoll, `reaction pop-up strip and its bubble never cover the HUD, tiles, die, status line or roll button (${JSON.stringify(r)})`);
 }
 
 /** Every given selector's box must lie fully inside the viewport (nothing below the fold, nothing cut off). */
@@ -393,7 +446,7 @@ async function checkStatementLiabilities(page, info) {
 async function testHome(page, label) {
   await page.waitForSelector('[data-action="home"]');
   const aria = await page.locator('[data-action="home"]').getAttribute('aria-label');
-  check(aria === 'חזרה לבית', `home button has aria-label "חזרה לבית" (${label})`);
+  check(aria === 'תפריט', `home (menu) button has aria-label "תפריט" (${label})`);
   const box = await page.locator('[data-action="home"]').boundingBox();
   check(box.width >= 47.5 && box.height >= 47.5, `home button is a 48px target (${label})`);
   const before = await page.evaluate(() => ({ turn: document.querySelector('.screen-board')?.dataset.turn, players: document.querySelector('.screen-board')?.dataset.players }));
@@ -500,7 +553,7 @@ async function testGuessFlow(page) {
       buy: !!c.querySelector('[data-action="buy"]'), pass: !!c.querySelector('[data-action="pass"]'), skip: !!c.querySelector('[data-action="guess-skip"]'),
     };
   });
-  check(rev.done === 'done' && rev.light === 'green' && rev.role === 'img' && /רמזור ירוק/.test(rev.aria) && rev.label === 'החזר מהיר' && rev.lampIcon, `L2: green light with an icon shape and a text label (${rev.label})`);
+  check(rev.done === 'done' && rev.light === 'green' && rev.role === 'img' && /רמזור ירוק/.test(rev.aria) && rev.label === (MODE === 'family' ? 'הכסף חוזר מהר' : 'תקופת החזר קצרה') && rev.lampIcon, `L2: green light with an icon shape and a text label (${rev.label})`);
   check(rev.result === 'correct', 'L2: a right guess says so');
   check(rev.tiles.some((x) => x.includes('20.4%')) && rev.tiles.some((x) => x.includes('4.9 שנים')), `L2: annual yield and payback match the engine (${rev.tiles.join(' | ')})`);
   check(/20\.4%/.test(rev.verdict) && /4\.9/.test(rev.verdict) && /8 שנים/.test(rev.legend) && /1 מתוך 3/.test(rev.eye), `L2: verdict, legend (thresholds from the config) and the streak chip (${rev.eye})`);
@@ -560,7 +613,7 @@ async function testGuessFlow(page) {
   await page.locator('[data-action="guess-good"]').click();
   await page.waitForSelector('.reveal');
   const wrong = await page.evaluate(() => ({ result: document.querySelector('.guess-result')?.dataset.result, light: document.querySelector('.light')?.dataset.light, label: document.querySelector('.light-label')?.textContent.trim(), eye: document.querySelector('.eye-chip')?.textContent }));
-  check(wrong.light === 'red' && wrong.result === 'wrong' && wrong.label === 'החזר איטי או אין החזר' && /0 מתוך 3/.test(wrong.eye), `L2: a red deal guessed good is "wrong", the light is red with its text label, streak 0 (${wrong.eye})`);
+  check(wrong.light === 'red' && wrong.result === 'wrong' && wrong.label === (MODE === 'family' ? 'הכסף חוזר לאט או לא חוזר' : 'תקופת החזר ארוכה או שהכסף לא חוזר') && /0 מתוך 3/.test(wrong.eye), `L2: a red deal guessed good is "wrong", the light is red with its text label, streak 0 (${wrong.eye})`);
   await page.screenshot({ path: `${OUT}/learn-guess-red-${HEIGHT}.png` });
   await page.reload();
   await page.waitForSelector('[data-action="resume"]');
@@ -634,7 +687,7 @@ async function testExplainers(page) {
   check(!!note, 'L1: an explainer note appears after a turn');
   await page.waitForTimeout(500);
   const ex = await page.evaluate(() => { const n = document.querySelector('.note-explain'); return { concept: n.dataset.concept, text: n.innerText, region: n.getAttribute('role'), label: n.getAttribute('aria-label'), buttons: [...n.querySelectorAll('button')].map((b) => ({ a: b.dataset.action, h: b.getBoundingClientRect().height, w: b.getBoundingClientRect().width })) }; });
-  check(ex.region === 'region' && /פסיבו מסביר/.test(ex.label) && /פסיבו מסביר/.test(ex.text) && ex.buttons.length === 2, `L1: the explainer is a labelled region with two buttons (concept ${ex.concept})`);
+  check(ex.region === 'region' && /מקסי מסביר/.test(ex.label) && /מקסי מסביר/.test(ex.text) && ex.buttons.length === 2, `L1: the explainer is a labelled region with two buttons (concept ${ex.concept})`);
   check(ex.buttons.every((b) => b.h >= 47.5 && b.w >= 47.5), `L1: explainer buttons are 48px targets (${ex.buttons.map((b) => `${Math.round(b.w)}x${Math.round(b.h)}`).join(', ')})`);
   const geo = await page.evaluate(() => window.__learnLog.find((x) => x.kind === 'explain'));
   check(geo && !geo.hitRoll && !geo.hitHud && !geo.hitDice && !geo.hitStatus && geo.inViewport, `L1: the explainer never covers the roll button, the HUD numbers, the die or the status text (${JSON.stringify({ r: geo?.hitRoll, h: geo?.hitHud, d: geo?.hitDice, s: geo?.hitStatus, v: geo?.inViewport })})`);
@@ -672,7 +725,7 @@ async function testExplainers(page) {
   check(log.every((x) => !x.hitRoll && !x.hitHud && !x.hitDice && !x.hitStatus && x.inViewport), 'L1: no explainer ever covered the roll button, HUD, die or status');
   await page.evaluate(() => localStorage.removeItem('passivo.save'));
 
-  // global off: 'הסברים של פסיבו' in settings
+  // global off: 'הסברים של מקסי' in settings
   await page.goto(`${URL_BASE}?seed=3`);
   await page.waitForSelector('[data-screen="start"]');
   await page.evaluate(() => { localStorage.removeItem('passivo.learn.seen'); });
@@ -680,7 +733,7 @@ async function testExplainers(page) {
   await page.waitForSelector('[data-screen="start"]');
   await page.locator('.topbar .icon-btn').last().click();
   await page.waitForSelector('.layer-dialog');
-  check(await page.locator('#pref-explain').isChecked(), 'L1: settings has "הסברים של פסיבו" on by default');
+  check(await page.locator('#pref-explain').isChecked(), 'L1: settings has "הסברים של מקסי" on by default');
   const guessDefault = await page.locator('#pref-guess').isChecked();
   check(guessDefault === (MODE === 'family') || true, `L2: settings has "ניחוש לפני קנייה" (shown ${guessDefault ? 'on' : 'off'} for the ${MODE} mode)`);
   await tapTargets(page, 'settings with the learning toggles');
@@ -717,7 +770,7 @@ async function testDictionary(page) {
   await page.locator('.topbar .icon-btn').first().click(); // menu entry
   await page.waitForSelector('.dict-sheet .dict-list');
   await page.waitForTimeout(350);
-  const want = MODE === 'full' ? 13 : 10;
+  const want = MODE === 'full' ? 14 : 11;
   const terms = await page.locator('.dict-item .dict-item-term').allInnerTexts();
   check(terms.length === want, `L1: the dictionary lists ${want} concepts in ${MODE} mode (${terms.length})`);
   const sorted = [...terms].sort((a, b) => a.localeCompare(b, 'he'));
@@ -916,7 +969,7 @@ async function testRound5(page) {
     await page.waitForTimeout(40);
   }
   const sheet = await page.locator('.handoff-sheet').innerText();
-  check(sheet.includes('תור של Bob') && sheet.replace(/\s+/g, ' ').includes('זרקו קובייה, Bob'), `after a hot-seat turn the sheet names the next roller and offers one rolling button ("${sheet.replace(/\n/g, ' | ').slice(0, 400)}")`);
+  check(sheet.includes('תור של Bob') && sheet.replace(/\s+/g, ' ').includes('הטילו קובייה, Bob'), `after a hot-seat turn the sheet names the next roller and offers one rolling button ("${sheet.replace(/\n/g, ' | ').slice(0, 400)}")`);
   check(await page.locator('.handoff-sheet [data-recap]').count() === 1, 'the hand-over sheet carries a recap of the turn');
   check(await page.locator('[data-action="continue"]').count() === 0, "no 'המשיכו' board button in hot-seat");
   await page.locator('[data-action="roll-next"]').click();
@@ -975,7 +1028,7 @@ async function testBuyStates(page) {
       let m = newMatch(engine, { mode, players: [{ professionId: 'teacher' }], seed });
       m = act(m, (s) => engine.roll(s, [1])); // square 1 = opportunity
       const s = currentState(m);
-      const c = s.pending?.card;
+      const c = s.pending?.kind === 'opportunity' ? s.pending.card : null; // never a decision card (it opens another dialog)
       if (!c || c.type === 'stock') continue;
       const room = maxLoan(s);
       const cash = status === 'blocked' ? Math.max(0, c.downPayment - room - 5000) : status === 'loan' ? Math.max(0, c.downPayment - 2500) : c.downPayment + 100;
@@ -987,13 +1040,34 @@ async function testBuyStates(page) {
     }
     throw new Error(`no ${status} scenario found`);
   };
+  const pageErrors = [];
+  page.on('pageerror', (e) => pageErrors.push(String(e)));
+  page.on('console', (msg) => { if (msg.type() === 'error' || msg.type() === 'warning') pageErrors.push(`${msg.type()}: ${msg.text()}`); });
   const load = async (m) => {
-    await page.evaluate((json) => localStorage.setItem('passivo.save', json), serialize(m));
+    // CI flake (2026-10-26): the crafted save was written while the PREVIOUS case's board was still alive in this page, so that
+    // board could write the save (or prefs) after us. Leave the board first: on the start screen nothing writes storage. Then
+    // write the save, reload, and confirm the start screen offers exactly this save before resuming it.
+    await page.goto(`${URL_BASE}?seed=3`);
+    await page.waitForSelector('[data-screen="start"]');
+    const json = serialize(m);
+    await page.evaluate((j) => localStorage.setItem('passivo.save', j), json);
     await guessPref(page, false); // these cases test the buy states themselves: the numbers must be there at once
     await page.goto(`${URL_BASE}?seed=3`);
     await page.waitForSelector('[data-action="resume"]');
+    if (await page.evaluate((j) => localStorage.getItem('passivo.save') !== j, json)) throw new Error('testBuyStates: the crafted save was overwritten before the resume');
     await page.locator('[data-action="resume"]').click();
-    await page.waitForSelector('.card[data-card="opportunity"]');
+    try {
+      await page.waitForSelector('.card[data-card="opportunity"]');
+    } catch (e) {
+      // evidence for the next time: what the screen showed instead of the card
+      const info = await page.evaluate(() => ({
+        screen: document.querySelector('#app')?.dataset.screen ?? null, layers: [...document.querySelectorAll('#modal-root .layer')].map((l) => `${l.className} | ${l.textContent.trim().slice(0, 80)}`),
+        status: document.querySelector('.board-status')?.textContent ?? null, pending: JSON.parse(localStorage.getItem('passivo.save') || 'null')?.players?.[0]?.state?.pending?.kind ?? null,
+      })).catch((err) => ({ evaluateFailed: String(err) }));
+      console.error(`testBuyStates: no opportunity card after resume ${JSON.stringify(info)} page errors: ${JSON.stringify(pageErrors.slice(-5))}`);
+      await page.screenshot({ path: `${OUT}/buy-states-no-card.png` }).catch(() => {});
+      throw e;
+    }
     await page.waitForTimeout(700);
   };
 
@@ -1004,11 +1078,11 @@ async function testBuyStates(page) {
     const b = document.querySelector('.card [data-action="buy"]');
     const hint = document.querySelector('#buy-hint');
     const cs = getComputedStyle(b);
-    return { aria: b.getAttribute('aria-disabled'), buy: document.querySelector('.card').dataset.buy, hint: hint?.textContent.trim(), described: b.getAttribute('aria-describedby'), border: cs.borderTopStyle, hintVisible: !!hint && hint.getBoundingClientRect().height > 0 };
+    return { disabled: b.disabled, tag: b.querySelector('.btn-tag')?.textContent, buy: document.querySelector('.card').dataset.buy, hint: hint?.textContent.trim(), described: b.getAttribute('aria-describedby'), hintVisible: !!hint && hint.getBoundingClientRect().height > 0 };
   });
-  check(st.buy === 'blocked' && st.aria === 'true', 'unaffordable even after the max loan: buy is aria-disabled');
+  check(st.buy === 'blocked' && st.disabled === true, 'unaffordable even after the max loan: buy is disabled');
   check(st.hint?.startsWith('אין מספיק כסף, גם עם הלוואה מקסימלית') && st.hintVisible && st.described === 'buy-hint', 'blocked buy shows the reason line and is described by it');
-  check(st.border === 'dashed', 'blocked buy looks disabled (dashed outline, flat colour)');
+  check(st.tag === 'לא זמין', 'blocked buy looks disabled and says "לא זמין"');
   await insideViewport(page, ['#modal-root .layer:last-child .card-actions .btn[data-action="buy"]', '#buy-hint'], 'blocked buy + reason');
   await page.screenshot({ path: `${OUT}/buy-blocked.png` });
   await page.locator('.card [data-action="buy"]').click({ force: true });
@@ -1103,6 +1177,13 @@ async function testPhaseA(page) {
     const rec = (sel, key) => new MutationObserver(() => {
       const e = document.querySelector(sel);
       if (e) window.__seen.push({ key, text: e.textContent, bdi: e.querySelectorAll('bdi').length });
+      // owner-approved spec 4.9: the payday chip is caught the moment it appears (later events replace it); its tap opens the equation
+      const pc = key === 'chip' && e?.querySelector('.payday-chip');
+      if (pc && !window.__pc) {
+        pc.click();
+        window.__pc = { variant: pc.dataset.variant, bdi: pc.querySelectorAll('bdi').length, h: pc.getBoundingClientRect().height, eq: document.querySelector('.payday-pop .eq')?.textContent ?? '' };
+        pc.click();
+      }
     }).observe(document.querySelector(sel), { childList: true, subtree: true, characterData: true });
     rec('.status-chip', 'chip');
     rec('.board-status', 'status');
@@ -1127,22 +1208,28 @@ async function testPhaseA(page) {
   const f = await page.evaluate(() => {
     const r = (e) => { const b = e.getBoundingClientRect(); return { top: b.top, bottom: b.bottom, left: b.left, right: b.right }; };
     const hud = r(document.querySelector('.hud'));
+    const plaza = r(document.querySelector('.board-center'));
     const fl = r(document.querySelector('.float-text'));
     const texts = [...document.querySelectorAll('.hud-prof, .hud-sub, .hud-id, .hud-btns, .hud-cash, .meter-labels')].map(r);
     return {
-      hud, fl, overlapsHud: texts.some((t) => fl.top < t.bottom && fl.bottom > t.top && fl.left < t.right && fl.right > t.left),
+      hud, fl, plaza, overlapsHud: texts.some((t) => fl.top < t.bottom && fl.bottom > t.top && fl.left < t.right && fl.right > t.left),
       floatBdi: document.querySelectorAll('.float-text bdi').length,
     };
   });
   const seen = await page.evaluate(() => window.__seen);
-  const chipMsg = seen.find((x) => x.key === 'chip' && x.text.includes('סיכום שנתיים'));
-  const statusMsg = seen.find((x) => x.key === 'status' && x.text.includes('סיכום שנתיים'));
+  const chipMsg = seen.find((x) => x.key === 'chip' && x.text.includes('סיכום שנתי'));
+  const statusMsg = seen.find((x) => x.key === 'status' && x.text.includes('סיכום שנתי'));
   f.chip = chipMsg?.text ?? ''; f.chipBdi = chipMsg?.bdi ?? 0;
   f.statusText = statusMsg?.text ?? ''; f.statusBdi = statusMsg?.bdi ?? 0;
   check(!f.overlapsHud, `B2: the payday float does not overlap any HUD text (float top ${Math.round(f.fl.top)}, hud bottom ${Math.round(f.hud.bottom)})`);
-  check(f.fl.top >= f.hud.bottom - 1 && f.fl.left >= 0 && f.fl.right <= 360, 'B2: the payday float stays under the HUD and inside the viewport');
-  check(f.chipBdi >= 2 && f.statusBdi >= 2 && f.floatBdi >= 1, `B1: payday amounts are wrapped in <bdi> (chip ${f.chipBdi}, status ${f.statusBdi}, float ${f.floatBdi})`);
-  check(f.chip.includes('סיכום שנתיים') && f.chip.includes(`× ${PAYDAY_MONTHS}`) && /×.*=/.test(f.chip), `N3: log shows the maths ("${f.chip}")`);
+  // owner approved spec 4.9 (2026-10-25): the float rises inside the board plaza; the fox-row chip is the 3-variant payday chip
+  // whose tap opens the stacked equation; the status line keeps the one-line maths
+  check(f.fl.top >= f.plaza.top - 1 && f.fl.bottom <= f.plaza.bottom + 1 && f.fl.left >= f.plaza.left - 1 && f.fl.right <= f.plaza.right + 1, `B2: the payday float stays inside the board plaza (${JSON.stringify(f.fl)} in ${JSON.stringify(f.plaza)})`);
+  const pc = await page.evaluate(() => window.__pc ?? null);
+  check(!!pc && ['a', 'b', 'c'].includes(pc.variant) && pc.bdi >= 1 && pc.h >= 47.5, `B1: the payday chip (variant ${pc?.variant}) has its amount in <bdi> and is a 48px target (${JSON.stringify(pc)})`);
+  check(!!pc && pc.eq.includes(`${PAYDAY_MONTHS} חודשים`) && pc.eq.includes('=') && pc.eq.includes('×'), `N3: the chip opens the stacked equation ("${pc?.eq}")`);
+  check(f.statusBdi >= 2 && f.floatBdi >= 1, `B1: payday amounts are wrapped in <bdi> (status ${f.statusBdi}, float ${f.floatBdi})`);
+  check(f.statusText.includes('סיכום שנתי') && f.statusText.includes(`× ${PAYDAY_MONTHS}`) && /×.*=/.test(f.statusText), `N3: the status line shows the maths ("${f.statusText}")`);
   check(!/יום משכורת/.test(f.chip + f.statusText), 'N3: no "יום משכורת" left in the payday messages');
   await page.waitForTimeout(1500);
 
@@ -1163,7 +1250,9 @@ async function testPhaseA(page) {
   await page.locator('[data-action="statement"]').click();
   await page.waitForSelector('.statement-body');
   const panel = await page.locator('.st-sec-networth').innerText();
-  check(/שווי נקי/.test(panel) && /סך נכסים/.test(panel) && /סך התחייבויות/.test(panel), 'N4: the statement has the assets / liabilities / net worth panel');
+  // QA round 14 P2-7: the family statement speaks the kid words (the family override layer); full mode keeps the adult terms
+  const words = MODE === 'family' ? [/כמה יש לכם בסך הכול/, /סך נכסים/, /סך החובות/] : [/שווי נקי/, /סך נכסים/, /סך התחייבויות/];
+  check(words.every((re) => re.test(panel)), `N4: the statement has the assets / liabilities / net worth panel (${MODE} wording)`);
   check(await page.locator('[data-action="repay"]').count() >= 1, `loans can be repaid in ${MODE} mode (repay buttons)`);
   check((await page.locator('[data-kind="loan"] .st-sub').innerText()).match(/ריבית|תוספת/), 'the bank loan row says interest only');
   await noHScroll(page, 'statement');
@@ -1186,6 +1275,317 @@ async function testPhaseA(page) {
   await page.waitForSelector('[data-screen="start"]');
 }
 
+/** QA round 14 P1: the HUD cash is never clipped (₪ sign, every digit, the minus) for 6- and 7-digit and negative amounts. */
+async function testHudCash(browser) {
+  const engine = learnEngine();
+  for (const [w, hgt] of [[320, 568], [360, 800], [390, 844]]) {
+    const ctx = await browser.newContext({ viewport: { width: w, height: hgt }, deviceScaleFactor: 2, locale: 'he-IL', reducedMotion: 'reduce' });
+    const page = await ctx.newPage();
+    await page.goto(`${URL_BASE}?seed=3`);
+    await page.evaluate(() => { localStorage.setItem('passivo.seenIntro', '1'); localStorage.setItem('passivo.tutorial', JSON.stringify({ storyDone: true, helpOn: false, hintsSeen: {}, quizDone: true })); });
+    for (const cash of [158420, 1234560, 9999999, -99999]) {
+      let m = newMatch(engine, { mode: MODE, seed: 5, players: [{ name: 'דנה', professionId: 'lawyer' }] });
+      m = act(m, (st) => ({ ...st, cash }));
+      await page.evaluate((json) => localStorage.setItem('passivo.save', json), serialize(m));
+      await page.goto(`${URL_BASE}?seed=3`);
+      await page.locator('[data-action="resume"]').click();
+      await page.waitForSelector('[data-screen="board"]');
+      await page.waitForTimeout(400);
+      const r = await page.evaluate(() => {
+        const wrap = document.querySelector('.hud .cash-wrap'); const num = wrap.querySelector('.cash-num') ?? wrap.firstElementChild;
+        const a = wrap.getBoundingClientRect(); const b = num.getBoundingClientRect();
+        const clip = [...document.querySelectorAll('.hud .cash-wrap, .hud .cash-col, .hud-cash')].some((e) => e.scrollWidth > e.clientWidth + 1);
+        return { text: num.textContent.replace(/\s/g, ''), inside: b.left >= a.left - 0.5 && b.right <= a.right + 0.5, clip, font: getComputedStyle(num).fontSize };
+      });
+      const want = `${cash < 0 ? '-' : ''}₪${Math.abs(cash).toLocaleString('en-US')}`;
+      check(r.inside && !r.clip && r.text.replace(/[\u2066-\u2069\u200e\u200f]/g, '') === want, `HUD cash ${want} shows in full at ${w}x${hgt} (${JSON.stringify(r)})`);
+    }
+    await ctx.close();
+  }
+}
+
+/** QA round 14 P2-3: a milestone reached by a choice still celebrates when the player rolls at once. */
+async function testMilestoneFastRoll(browser) {
+  const engine = learnEngine();
+  const ctx = await browser.newContext({ viewport: { width: 360, height: HEIGHT }, deviceScaleFactor: 2, locale: 'he-IL', reducedMotion: 'reduce' });
+  const page = await ctx.newPage();
+  await page.goto(`${URL_BASE}?seed=3`);
+  await page.evaluate(() => { localStorage.setItem('passivo.seenIntro', '1'); localStorage.setItem('passivo.tutorial', JSON.stringify({ storyDone: true, helpOn: false, hintsSeen: {}, quizDone: true })); localStorage.setItem('passivo.prefs', JSON.stringify({ guessFamily: false, guessFull: false, explain: false })); });
+  const base = matchWithCard(engine, 'family', 'dec-001', { cash: 200000 });
+  const exp = currentState(base).profession.expenses.reduce((a, e) => a + e.amount, 0) + currentState(base).liabilities.reduce((a, l) => a + l.monthlyPayment, 0);
+  const own = [{ id: 'asset-m', cardId: 'opp-biz-002', type: 'business', title: 'x', price: 160000, downPayment: 80000, mortgage: 80000, monthlyCashFlow: Math.ceil(exp * 0.25) - 1800 + 20, profit: 3200, loanPayment: 1400 }];
+  const m = { ...base, players: base.players.map((p) => ({ ...p, state: { ...p.state, assets: own } })) };
+  await page.evaluate((json) => localStorage.setItem('passivo.save', json), serialize(m));
+  await page.goto(`${URL_BASE}?seed=3`);
+  await page.locator('[data-action="resume"]').click();
+  await page.waitForSelector('.card[data-decision]');
+  await page.waitForTimeout(400);
+  await page.locator('.card-actions [data-option="A"]').click();
+  await page.waitForSelector('#modal-root .layer', { state: 'detached' });
+  await page.locator('[data-action="roll"]').click({ timeout: 5000 }).catch(() => {}); // the fast roll, at once
+  // whatever the roll opens is answered quickly; the bubble may only wait while a card is open
+  let seen = false;
+  for (let k = 0; k < 60 && !seen; k++) {
+    seen = await page.evaluate(() => !!document.querySelector('.note-milestone .badge-chip'));
+    if (seen) break;
+    const btn = page.locator('#modal-root .layer:last-child').locator('[data-action="pass"], [data-action="summary-ok"], [data-action="ok"], [data-action="skip"], [data-action="decline"], [data-action="pay"]').first();
+    if (await btn.count()) await btn.click({ timeout: 2000 }).catch(() => {});
+    await page.waitForTimeout(250);
+  }
+  check(seen, 'P2-3: the 25% milestone bubble (with its badge) still shows after a fast roll');
+  await ctx.close();
+}
+
+/** QA round 15: every note that opens (explainer, hint, feedback, milestone, tip), measured whole with its buttons, never covers
+ * the HUD, the tiles, the die, the status line, the "you are here" line, the fox or the CTA; checked on the main page and at
+ * 390x844 and 320x568 (the main run covers 360x800, SMOKE_H=640 covers 360x640). */
+function noteGeometryCheck(log, label) {
+  const bad = log.filter((x) => x.hitRoll || x.hitHud || x.hitDice || x.hitStatus || x.hitHere || x.hitTiles || x.hitFox || !x.inViewport);
+  check(log.length > 0 && bad.length === 0, `notes never cover the HUD, tiles, die, status, "you are here", fox or CTA on ${label} (${log.length} notes: ${[...new Set(log.map((x) => x.kind))].join('/')})${bad.length ? ` ${JSON.stringify(bad.slice(0, 2))}` : ''}`);
+  // QA round 16: never truncated without a way to read all of it; the milestone badge is never clipped; no 1-2-word columns
+  const cut = log.filter((x) => (x.clamped && !x.hasMore) || x.badgeClipped);
+  check(cut.length === 0, `notes are never cut without "עוד", badges never clipped, on ${label}${cut.length ? ` ${JSON.stringify(cut.slice(0, 2))}` : ''}`);
+  const narrow = log.filter((x) => x.group0 !== 'hello' && x.bubbleW > 0 && x.bubbleW < 160);
+  check(narrow.length === 0, `no content note is narrower than 160px on ${label}${narrow.length ? ` ${JSON.stringify(narrow.slice(0, 2))}` : ''}`);
+}
+/** QA round 16: when a note is clamped, its "עוד" really shows the full text (a note: in place; the explainer: its dictionary entry). */
+async function moreOpensFull(page, label, tested) {
+  const info = await page.evaluate(() => {
+    const n = document.querySelector('.fox-strip .note'); if (!n) return null;
+    const tx = n.querySelector('.note-text');
+    return { kind: n.dataset.note, clamped: !!tx && tx.scrollHeight > tx.clientHeight + 1, text: tx?.textContent.trim() || '' };
+  });
+  if (!info || !info.clamped || tested.has(info.kind)) return;
+  tested.add(info.kind);
+  if (info.kind === 'explain') {
+    await page.locator('.fox-strip .note [data-action="explain-more"]').click({ timeout: 2000 }).catch(() => {});
+    await page.waitForTimeout(500);
+    const ok = await page.evaluate((t) => { const d = document.querySelector('#modal-root .layer:last-child .dict-detail'); return !!d && d.textContent.replace(/\s+/g, ' ').includes(t.replace(/\s+/g, ' ').slice(0, 40)); }, info.text);
+    check(ok, `explainer "עוד" opens the full entry (${label})`);
+    await page.keyboard.press('Escape').catch(() => {});
+    await page.waitForTimeout(300);
+    for (let i = 0; i < 3 && await page.locator('#modal-root .layer').count(); i++) {
+      await page.locator('#modal-root .layer:last-child [data-action="close"], #modal-root .layer:last-child .sheet-close').first().click({ timeout: 1000 }).catch(() => {});
+      await page.waitForTimeout(250);
+    }
+    return;
+  }
+  await page.locator('.fox-strip .note [data-action="note-more"]').click({ timeout: 2000 }).catch(() => {});
+  await page.waitForTimeout(250);
+  const r = await page.evaluate(() => {
+    const n = document.querySelector('.fox-strip .note'); const tx = n?.querySelector('.note-text'); if (!tx) return null;
+    const box = (s) => { const e = document.querySelector(s); if (!e || !e.getClientRects().length) return null; const b = e.getBoundingClientRect(); return b; };
+    const hit = (a, b) => !!(a && b && a.left < b.right - 0.5 && a.right > b.left + 0.5 && a.top < b.bottom - 0.5 && a.bottom > b.top + 0.5);
+    const bb = n.querySelector('.note-bubble').getBoundingClientRect();
+    const full = tx.scrollHeight <= tx.clientHeight + 1;
+    const fits = tx.scrollHeight <= n.querySelector('.note-bubble').clientHeight || n.querySelector('.note-bubble').scrollHeight > n.querySelector('.note-bubble').clientHeight; // all of it, or it scrolls
+    return { full, fits, status: hit(bb, box('.board-status')), roll: hit(bb, box('.btn-roll')), hud: hit(bb, box('.hud')) };
+  });
+  check(!!r && r.full && r.fits && !r.status && !r.roll && !r.hud, `${info.kind} "עוד" shows the whole text, still clear of the status, CTA and HUD (${label}) ${JSON.stringify(r)}`);
+}
+/**
+ * 'צעירים' (owner 2026-10-26): every number over 999 under `root`, read from ALL its text nodes (hidden ones included), except
+ * inside `allow`; and every hidden element under `root` that still carries digits (a hidden figure must not be in the DOM at all).
+ */
+const JUNIOR_SCAN = ([root, allow]) => {
+  const top = typeof root === 'string' ? document.querySelector(root) : root;
+  if (!top) return { missing: true, big: [], leaks: [] };
+  const big = [];
+  const walk = document.createTreeWalker(top, NodeFilter.SHOW_TEXT);
+  for (let n = walk.nextNode(); n; n = walk.nextNode()) {
+    if (allow && n.parentElement?.closest(allow)) continue;
+    for (const m of n.data.matchAll(/\d{1,3}(?:,\d{3})+|\d+/g)) if (Number(m[0].replace(/,/g, '')) > 999) big.push(`${m[0]} in "${n.parentElement?.className}"`);
+  }
+  const leaks = [...top.querySelectorAll('*')].filter((e) => {
+    if (!/\d/.test(e.textContent) || e.children.length) return false;
+    const cs = getComputedStyle(e);
+    return e.closest('[hidden]') || cs.display === 'none' || cs.visibility === 'hidden' || (e.getClientRects().length === 0);
+  }).map((e) => `${e.className || e.tagName}: ${e.textContent.trim().slice(0, 30)}`);
+  return { big, leaks };
+};
+/**
+ * Owner 2026-10-26: the age picker and a 'צעירים' player (age band "עד 10", age 9) at 360x800. The chips are 48px radio buttons; an
+ * age under 14 switches a full-mode start to family; a junior player sees coins and never a ₪ on the HUD, the cards and the payday
+ * summary; the roll button has no die icon.
+ */
+async function testJunior(browser) {
+  const ctx = await browser.newContext({ viewport: { width: 360, height: 800 }, deviceScaleFactor: 2, locale: 'he-IL', reducedMotion: 'reduce', isMobile: true, hasTouch: true });
+  const page = await ctx.newPage();
+  await page.goto(`${URL_BASE}?seed=5`);
+  await page.evaluate(() => { localStorage.clear(); localStorage.setItem('passivo.seenIntro', '1'); localStorage.setItem('passivo.tutorial', JSON.stringify({ storyDone: true, helpOn: false, hintsSeen: {}, quizDone: true })); localStorage.setItem('passivo.prefs', JSON.stringify({ guessFamily: false, guessFull: false, explain: false })); });
+  await page.goto(`${URL_BASE}?seed=5`);
+  // a full-mode start + an age under 14 = family mode (the suggestion)
+  await page.locator('[data-mode="full"]').click();
+  await page.locator('[data-action="start"]').click();
+  await page.waitForSelector('[data-screen="players"]');
+  const chips = await page.evaluate(() => [...document.querySelectorAll('.age-chip')].map((c) => { const b = c.getBoundingClientRect(); return { w: b.width, h: b.height, text: c.textContent.trim() }; }));
+  check(chips.length === 3 && chips.every((c) => c.w >= 48 && c.h >= 48), `age picker: three chips, each a 48px target (${chips.map((c) => `${c.text} ${Math.round(c.w)}x${Math.round(c.h)}`).join(', ')})`);
+  check(await page.locator('.age-group input[type="radio"]').count() === 3 && await page.locator('.age-group legend').count() === 1, 'age picker: a native radio group with a legend');
+  await page.locator('.age-chip:has([data-age="upTo10"])').click();
+  const note = await page.locator('.age-note').innerText();
+  check(/מצב משפחה/.test(note) && /מטבע/.test(note) && /₪100/.test(note), `age "עד 10": family mode is suggested and the coin line says "כל מטבע = ₪100" (${note.replace(/\s+/g, ' ')})`);
+  check(await page.evaluate(() => localStorage.getItem('passivo.mode')) === 'family', 'an age under 14 switched the mode to family');
+  await noHScroll(page, 'age picker');
+  await page.screenshot({ path: `${OUT}/junior-age-picker.png` });
+  await page.locator('[data-action="players-next"]').click();
+  await page.waitForSelector('[data-screen="pick"]');
+  const pickText = await page.locator('section[data-screen="pick"]').innerText();
+  check(!/₪/.test(pickText) && /\d/.test(pickText), 'junior pick screen: amounts without ₪');
+  await page.locator('.prof-card[data-prof="teacher"]').click();
+  await page.locator('[data-action="go"]').click();
+  await page.waitForSelector('[data-screen="board"]');
+  await page.waitForTimeout(600);
+  const hud = await page.evaluate(() => ({ text: document.querySelector('.hud')?.innerText ?? '', coins: document.querySelectorAll('.hud .money.is-coins').length, cash: document.querySelector('.hud .cash-num')?.textContent ?? '', die: document.querySelectorAll('.btn-roll img, .btn-roll .btn-die').length }));
+  check(hud.coins > 0 && !/₪/.test(hud.text), `junior HUD: coins, no ₪ (${hud.text.replace(/\s+/g, ' ').slice(0, 90)})`);
+  check(/^\d{1,3}\s*מטבעות$/.test(hud.cash.trim()), `junior HUD cash: a coin number of at most 3 digits (${hud.cash.trim()})`);
+  check(hud.die === 0, 'the roll button has no die icon (the plaza die stays)');
+  await page.screenshot({ path: `${OUT}/junior-board.png` });
+  // play until a card and a payday summary were seen: never a ₪ on them
+  let card = false; let payday = false;
+  for (let k = 0; k < 160 && !(card && payday); k++) {
+    const seen = await page.evaluate(() => {
+      const top = document.querySelector('#modal-root .layer:last-child');
+      if (!top) return null;
+      return { card: !!top.querySelector('.card'), summary: !!top.querySelector('.summary-card'), text: top.innerText, coins: top.querySelectorAll('.money.is-coins').length };
+    });
+    if (seen?.card && !card) {
+      card = true;
+      check(!/₪/.test(seen.text) && seen.coins > 0, `junior card: coins, no ₪ (${seen.text.replace(/\s+/g, ' ').slice(0, 80)})`);
+      await page.screenshot({ path: `${OUT}/junior-card.png` });
+    }
+    if (seen?.summary && !payday) {
+      payday = true;
+      await page.waitForTimeout(400);
+      check(!/₪/.test(seen.text) && seen.coins > 0, `junior payday summary: coins, no ₪ (${seen.text.replace(/\s+/g, ' ').slice(0, 80)})`);
+      // only the cash line ('הכסף מגיע למזומן') may grow past 3 digits
+      const scan = await page.evaluate(JUNIOR_SCAN, ['#modal-root .layer:last-child .summary-card', '.sc-cash']);
+      check(!scan.missing && scan.big.length === 0 && scan.leaks.length === 0, `junior payday: no number over 999 (cash aside) and no hidden figure ${JSON.stringify(scan)}`);
+      await page.screenshot({ path: `${OUT}/junior-payday.png` });
+    }
+    const d = await page.evaluate(decide, 'sensible');
+    if (d.done) break;
+    if (d.click) await page.locator(d.click).first().click({ timeout: 2000 }).catch(() => {});
+    await page.waitForTimeout(d.click === '[data-action="roll"]' ? 700 : 150);
+  }
+  check(card && payday, 'junior run saw a card and a payday summary');
+  check(!/₪/.test(await page.evaluate(() => document.querySelector('.hud')?.innerText ?? '')), 'junior HUD still has no ₪ after the turns');
+
+  // the junior deal card (a crafted apartment that needs a loan, guess off and then the guess reveal), and the statement
+  const read = (f) => JSON.parse(readFileSync(new URL(`../../src/data/${f}`, import.meta.url), 'utf8'));
+  const eng = createEngine({ professions: read('professions.he.json'), cards: read('cards.he.json') });
+  let deal = null;
+  for (let seed = 1; seed < 800 && !deal; seed++) {
+    const m0 = act(newMatch(eng, { mode: 'family', players: [{ name: 'נועה', professionId: 'teacher', age: 'upTo10' }], seed }), (st) => eng.roll(st, [1]));
+    const c = currentState(m0).pending;
+    if (c?.kind !== 'opportunity' || c.card.type !== 'apartment') continue;
+    const m1 = act(m0, (st) => ({ ...st, cash: Math.max(0, c.card.downPayment - 3000) }));
+    if (purchasePlan(currentState(m1), c.card.downPayment).status === 'loan') deal = m1;
+  }
+  check(!!deal, 'junior deal scenario found');
+  for (const guess of [false, true]) {
+    await page.goto(`${URL_BASE}?seed=3`); // leave the board first (see testBuyStates), then write the save
+    await page.waitForSelector('[data-screen="start"]');
+    await page.evaluate((j) => localStorage.setItem('passivo.save', j), serialize(deal));
+    await guessPref(page, guess);
+    await page.goto(`${URL_BASE}?seed=3`);
+    await page.locator('[data-action="resume"]').click();
+    await page.waitForSelector('.card[data-card="opportunity"]');
+    if (guess) { await page.locator('[data-action="guess-skip"]').click(); await page.waitForSelector('.card [data-tut="downPayment"]'); }
+    await page.waitForTimeout(700);
+    const tag = guess ? 'after the guess' : 'numbers at once';
+    const parts = await page.evaluate(() => {
+      const c = document.querySelector('.card[data-card="opportunity"]');
+      return { hero: !!c.querySelector('.stat-hero'), down: !!c.querySelector('[data-tut="downPayment"]'), payback: !!c.querySelector('[data-tut="payback"]'), badge: !!c.querySelector('.deal-badge, [data-badge], .badge-abc'),
+        title: !!c.querySelector('.card-title, h2'), hint: c.querySelector('#buy-hint')?.textContent.trim() ?? '',
+        gone: ['.price-eq', '.debt-after', '.calc-line', '.banner:not(#buy-hint)', '[data-rw]'].filter((x) => c.querySelector(x)), text: c.innerText };
+    });
+    check(parts.hero && parts.down && parts.payback && parts.title, `junior deal card (${tag}): title, hero, first payment and payback ${JSON.stringify({ ...parts, text: undefined })}`);
+    check(parts.gone.length === 0, `junior deal card (${tag}): no price equation, debt total, monthly breakdown or banner (${parts.gone.join(', ')})`);
+    check(/חסרים לכם/.test(parts.hint) && /מטבע/.test(parts.hint) && !/₪/.test(parts.text), `junior deal card (${tag}): the loan hint stays, in coins ("${parts.hint}")`);
+    // the first payment and the loan hint are the only amounts allowed past 3 digits (a junior down payment is 400-7,560 coins)
+    const scan = await page.evaluate(JUNIOR_SCAN, ['.card[data-card="opportunity"]', '[data-tut="downPayment"], #buy-hint']);
+    check(scan.big.length === 0 && scan.leaks.length === 0, `junior deal card (${tag}): no other number over 999 and no hidden figure ${JSON.stringify(scan)}`);
+    if (!guess) await page.screenshot({ path: `${OUT}/junior-deal-card.png` });
+  }
+  // statement: cash, income, expenses and the month; debts and net worth only behind 'להורים' (built on open, never hidden)
+  await page.locator('.card [data-action="pass"]').click();
+  await page.waitForSelector('.card', { state: 'detached' });
+  await page.waitForTimeout(600);
+  await page.locator('[data-action="statement"]').click();
+  await page.waitForSelector('[data-action="parents"]');
+  await page.waitForTimeout(600);
+  const stClosed = await page.evaluate(() => { const sh = document.querySelector('#modal-root .layer:last-child'); return { nw: !!sh.querySelector('.nw, .st-sec-liability, .st-sec-networth'), expanded: sh.querySelector('[data-action="parents"]').getAttribute('aria-expanded'), income: !!sh.querySelector('.st-sec-income'), expense: !!sh.querySelector('.st-sec-expense'), cash: !!sh.querySelector('.st-cash'), shekel: /₪/.test(sh.innerText) }; });
+  check(!stClosed.nw && stClosed.expanded === 'false' && stClosed.income && stClosed.expense && stClosed.cash && !stClosed.shekel, `junior statement: cash, income and expenses; no debts or net worth until 'להורים' ${JSON.stringify(stClosed)}`);
+  const stScan = await page.evaluate(JUNIOR_SCAN, ['#modal-root .layer:last-child', '.st-cash']);
+  check(stScan.big.length === 0 && stScan.leaks.length === 0, `junior statement: no number over 999 (cash aside) and no hidden figure ${JSON.stringify(stScan)}`);
+  await page.locator('[data-action="parents"]').click();
+  await page.waitForTimeout(300);
+  const stOpen = await page.evaluate(() => { const sh = document.querySelector('#modal-root .layer:last-child'); return { nw: !!sh.querySelector('.nw'), liab: !!sh.querySelector('.st-sec-liability'), expanded: sh.querySelector('[data-action="parents"]').getAttribute('aria-expanded') }; });
+  check(stOpen.nw && stOpen.liab && stOpen.expanded === 'true', `junior statement: 'להורים' opens the debts and the net worth ${JSON.stringify(stOpen)}`);
+  await noHScroll(page, 'junior statement (להורים open)');
+  await ctx.close();
+}
+async function testNotesAtSizes(browser) {
+  for (const [w, hgt] of [[390, 844], [320, 568]]) {
+    const ctx = await browser.newContext({ viewport: { width: w, height: hgt }, deviceScaleFactor: 2, locale: 'he-IL', reducedMotion: 'reduce' });
+    const page = await ctx.newPage();
+    await page.addInitScript(LEARN_OBSERVER);
+    await page.goto(`${URL_BASE}?seed=11`);
+    // QA round 16: the family smoke plays this run with the tutorial help on, so hints show at 390 and 320 too
+    const help = MODE === 'family';
+    await page.evaluate((helpOn) => { localStorage.setItem('passivo.seenIntro', '1'); localStorage.setItem('passivo.tutorial', JSON.stringify({ storyDone: true, helpOn, hintsSeen: {}, quizDone: true })); }, help);
+    await page.goto(`${URL_BASE}?seed=11`);
+    await page.locator(`[data-mode="${MODE}"]`).click();
+    await page.locator('[data-action="start"]').click();
+    await page.locator('[data-action="players-next"]').click();
+    await page.locator('.prof-card[data-prof="engineer"]').click();
+    await page.locator('[data-action="go"]').click();
+    await page.waitForSelector('[data-screen="board"]');
+    const tested = new Set();
+    for (let k = 0; k < 160; k++) {
+      const kinds = await page.evaluate(() => [...new Set((window.__learnLog || []).map((x) => x.kind))]);
+      const turn = Number(await page.evaluate(() => document.querySelector('.screen-board')?.dataset.turn || 0));
+      if (turn >= 6 && kinds.length >= 2 && (!help || kinds.includes('hint'))) break;
+      await moreOpensFull(page, `${w}x${hgt}`, tested);
+      const d = await page.evaluate(decide, 'sensible');
+      if (d.click) await page.locator(d.click).first().click({ timeout: 2000 }).catch(() => {});
+      await page.waitForTimeout(d.click === '[data-action="roll"]' ? 700 : 120);
+    }
+    await page.waitForTimeout(600);
+    // a forced 25% milestone (crafted save, as in testMilestoneFastRoll); the page reloads, so the log so far is kept here
+    const before = await page.evaluate(() => window.__learnLog || []);
+    await forceMilestone(page);
+    let ms = false;
+    for (let k = 0; k < 60 && !ms; k++) {
+      ms = await page.evaluate(() => !!document.querySelector('.note-milestone .badge-chip'));
+      if (ms) { await page.waitForTimeout(500); await moreOpensFull(page, `${w}x${hgt}`, tested); break; }
+      const btn = page.locator('#modal-root .layer:last-child').locator('[data-action="pass"], [data-action="summary-ok"], [data-action="ok"], [data-action="skip"], [data-action="decline"], [data-action="pay"]').first();
+      if (await btn.count()) await btn.click({ timeout: 2000 }).catch(() => {});
+      await page.waitForTimeout(250);
+    }
+    const log = [...before, ...await page.evaluate(() => window.__learnLog || [])];
+    const kinds = new Set(log.map((x) => x.kind));
+    check(kinds.has('milestone') && (!help || kinds.has('hint')), `${w}x${hgt}: the run saw ${help ? 'hints and ' : ''}a milestone (${[...kinds].join('/')})`);
+    noteGeometryCheck(log, `${w}x${hgt}`);
+    await ctx.close();
+  }
+}
+async function forceMilestone(page) {
+  const engine = learnEngine();
+  await page.evaluate(() => localStorage.setItem('passivo.prefs', JSON.stringify({ guessFamily: false, guessFull: false, explain: false })));
+  const base = matchWithCard(engine, 'family', 'dec-001', { cash: 200000 });
+  const exp = currentState(base).profession.expenses.reduce((a, e) => a + e.amount, 0) + currentState(base).liabilities.reduce((a, l) => a + l.monthlyPayment, 0);
+  const own = [{ id: 'asset-m', cardId: 'opp-biz-002', type: 'business', title: 'x', price: 160000, downPayment: 80000, mortgage: 80000, monthlyCashFlow: Math.ceil(exp * 0.25) - 1800 + 20, profit: 3200, loanPayment: 1400 }];
+  const m = { ...base, players: base.players.map((p) => ({ ...p, state: { ...p.state, assets: own } })) };
+  await page.evaluate((json) => localStorage.setItem('passivo.save', json), serialize(m));
+  await page.goto(`${URL_BASE}?seed=3`);
+  await page.locator('[data-action="resume"]').click();
+  await page.waitForSelector('.card[data-decision]');
+  await page.waitForTimeout(400);
+  await page.locator('.card-actions [data-option="A"]').click();
+  await page.waitForSelector('#modal-root .layer', { state: 'detached' });
+}
+
 async function main() {
   await startServer();
   const browser = await chromium.launch({ executablePath: exe, args: ['--no-sandbox'] });
@@ -1194,6 +1594,8 @@ async function main() {
     locale: 'he-IL', reducedMotion: process.env.SMOKE_MOTION === 'full' ? 'no-preference' : 'reduce',
   });
   const page = await ctx.newPage();
+  const allNotes = [];
+  await page.exposeFunction('__noteSeen', (e) => { allNotes.push(e); });
   await page.addInitScript(LEARN_OBSERVER);
   const errors = [];
   const bad = [];
@@ -1208,18 +1610,18 @@ async function main() {
   await noHScroll(page, 'start');
   await tapTargets(page, 'start');
   await page.screenshot({ path: `${OUT}/01-start-first-launch.png` });
-  // First launch: the fox waves once, then settles into the tired pose; the flag keeps the intro from replaying.
-  check(await page.locator('img.pose-wave').count() === 1, 'first launch shows the wave pose');
-  await page.waitForFunction(() => localStorage.getItem('passivo.seenIntro') === '1');
-  await page.waitForTimeout(2800);
-  check(await page.evaluate(() => getComputedStyle(document.querySelector('img.pose-tired')).opacity) === '1', 'fox crossfaded from wave to tired');
-  const h1 = await page.evaluate(() => ({ n: document.querySelectorAll('h1').length, text: document.querySelector('h1')?.textContent.trim(), wm: !!document.querySelector('h1 img[src*="wordmark"]') }));
-  check(h1.n === 1 && h1.text === 'פסיבו' && h1.wm, 'start has one accessible h1 "פסיבו" with the wordmark');
-  await foxChecks(page, 'start');
+  // Home shows the MaxiFox logo, never the character (rename 2026-10-23, decisions 2026-10-24); the first-launch greeting
+  // "היי, אני מקסי!" moved to the board's corner guide, so the flag is still unset on home.
+  check(await page.locator('.screen-start img.fox').count() === 0, 'home shows no fox character pose (the logo only)');
+  check(await page.evaluate(() => localStorage.getItem('passivo.seenIntro')) === null, 'the greeting flag is not used up on home');
+  const h1 = await page.evaluate(() => ({ n: document.querySelectorAll('h1').length, text: document.querySelector('h1')?.textContent.trim(), wm: !!document.querySelector('h1 img[src*="maxifox-logo-alpha"]'), w: Math.round(document.querySelector('h1 img')?.getBoundingClientRect().width ?? 0) }));
+  // the logo is sized to the screen height by design (200 at 800, smaller on short screens): visible and >= 120px (its minimum size)
+  check(h1.n === 1 && h1.text === 'MaxiFox' && h1.wm && h1.w >= 120 && h1.w <= 200, `start has one accessible h1 "MaxiFox" with the logo, visible and >= 120px (${JSON.stringify(h1)})`);
+  const mouseHome = await page.evaluate(() => /mouse|עכבר/i.test(document.documentElement.outerHTML));
+  check(!mouseHome, 'no mouse mascot anywhere in the DOM on start'); // restored from foxChecks(page, 'start') (QA round 14)
   await page.screenshot({ path: `${OUT}/01-start.png` });
   await page.reload();
   await page.waitForSelector('[data-screen="start"]');
-  check(await page.locator('img.pose-wave').count() === 0, 'wave pose does not replay after the first launch');
   await noVScroll(page, 'start (returning user)');
   await insideViewport(page, ['[data-action="start"]', '.mode-grid'], 'start CTA');
 
@@ -1298,9 +1700,11 @@ async function main() {
   await foxChecks(page, 'board');
   await reactionStripClear(page);
   const pose = await page.evaluate(() => document.querySelector('.roll-zone')?.dataset.pose);
-  check((MODE === 'family' ? ['tip', 'note'].includes(pose) : pose === 'roll') || PLAYERS > 1, `roll zone shows the ${MODE === 'family' ? 'family tip' : 'roll pose'} at the start (got ${pose})`);
+  // first launch of the device: the corner guide greets ("היי, אני מקסי!", moved off home by the rename) before going idle
+  const hello = await page.evaluate(() => /היי, אני מקסי!/.test(document.querySelector('.roll-zone .note')?.textContent ?? ''));
+  check((MODE === 'family' ? ['tip', 'note'].includes(pose) : pose === 'roll' || (pose === 'note' && hello)) || PLAYERS > 1, `roll zone shows the ${MODE === 'family' ? 'family tip' : 'roll pose (or the first-launch greeting)'} at the start (got ${pose})`);
   const theme = await page.evaluate(() => document.querySelector('meta[name="theme-color"]').content);
-  check(theme.toLowerCase() === '#0f1e46', 'theme-color is navy');
+  check(theme.toLowerCase() === '#0f172a', 'theme-color is navy');
 
   // a11y wiring: named progressbar, <main> + h1 landmarks, debug helpers off without the flag
   const a11y = await page.evaluate(() => ({
@@ -1377,7 +1781,7 @@ async function main() {
     await page.waitForSelector('[data-screen="start"]');
     check(await page.locator('[data-action="resume"]').count() === 0, 'no resume button after a finished game');
   }
-  if (PLAYERS === 1) { await testBuyStates(page); await testLegacySave(page); }
+  if (PLAYERS === 1) { await testBuyStates(page); await testLegacySave(page); await testHudCash(browser); await testMilestoneFastRoll(browser); await testNotesAtSizes(browser); if (MODE === 'family') await testJunior(browser); }
   await testRound5(page);
   await testPhaseA(page);
   if (PLAYERS === 1) { await testGuessFlow(page); await testExplainers(page); }
@@ -1407,6 +1811,7 @@ async function main() {
   }
 
   if (PLAYERS > 1) check(oneTap.total >= 3 && oneTap.ok === oneTap.total, `one-tap hand-over: every resolved turn needed ONE tap to roll the next player (${oneTap.ok}/${oneTap.total})`);
+  noteGeometryCheck(allNotes, `360x${HEIGHT} (the whole run)`);
   check(errors.length === 0, `no console/page errors${errors.length ? `: ${errors.slice(0, 3).join(' | ')}` : ''}`);
   check(bad.length === 0, `no failed requests${bad.length ? `: ${bad.slice(0, 3).join(' | ')}` : ''}`);
   await browser.close();

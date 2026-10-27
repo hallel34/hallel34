@@ -1,4 +1,4 @@
-// Passivo the fox: raster poses (WebP @1x/@2x) from src/assets/fox. Placement and motion: design/fox-usage.md.
+// Maxi the fox (מקסי): raster poses (WebP @1x/@2x) from src/assets/fox. Placement and motion: design/fox-usage.md.
 // Cutouts keep their aspect ratio (height drives size); reaction crops are always shown as gold-ringed circles.
 import { h } from './dom.js';
 import { t } from '../i18n/index.js';

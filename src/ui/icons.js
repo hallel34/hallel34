@@ -19,7 +19,10 @@ const PATHS = {
   share: '<path d="M12 15V4M8 8l4-4 4 4M5 13v6h14v-6"/>',
   star: '<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/>',
   home: '<path d="M4 11l8-7 8 7v9H4z"/>',
+  menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
   book: '<path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H19v15H7.5A2.5 2.5 0 0 0 5 20.5z"/><path d="M5 20.5A2.5 2.5 0 0 0 7.5 23H19v-5M9 8h6M9 12h4"/>',
+  chevron: '<path d="M6 9l6 6 6-6"/>',
+  flag: '<path d="M5 21V4"/><path d="M5 4h12l-2.5 4L17 12H5"/>',
   bank: '<path d="M3 10l9-6 9 6M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20h18"/>',
 };
 

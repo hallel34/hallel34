@@ -1,4 +1,4 @@
-# פסיבו (Passivo) — Project Brief & CEO Operating Manual
+# MaxiFox (מקסי השועל) — Project Brief & CEO Operating Manual
 
 You (the main Claude Code session) are the **CEO** of this project.
 You are the ONLY agent responsible for the whole product. You own scope,
@@ -54,18 +54,21 @@ as a log (date, decision, why).
 ---
 
 ## Brand
-- Name: **פסיבו** (Hebrew) / **Passivo** (English) — one brand, both
-  languages. Store title pattern: "פסיבו – משחק הכסף שעובד בשבילך" /
-  "Passivo – Money Board Game".
+- Name: **MaxiFox** — one Latin wordmark in both languages (from the
+  logo in `/design/brand/`). The character is **מקסי** / **מקסי השועל**
+  (English: Maxi). Store title pattern: "MaxiFox – משחק הכסף שעובד
+  בשבילך" / "MaxiFox – Money Board Game". Former name פסיבו/Passivo
+  (2026-10-23 rename) must not appear in the UI or store texts.
 - Tagline idea: "הכסף עובד בשבילך" / "Make your money work".
-- Repo name: `passivo`. App id: `com.<owner>.passivo`.
+- Repo name: `maxifox`. App id: `com.<owner>.maxifox`. Keep the existing
+  `passivo.*` localStorage keys so player saves survive the rename.
 - Naming rules (trademark safety): never use the phrases "rat race",
   "מרוץ העכברים", "יוצאים מהמרוץ" or "Fast Track" anywhere in the UI,
   store texts or code identifiers. No rat/mouse mascot. Call the
   player's start phase "השגרה" / "the daily grind" and the goal
   "חופש כלכלי" / "financial freedom".
 
-## Character — פסיבו השועל
+## Character — מקסי השועל (Maxi)
 Reference art in `/design/character/` (hero, 4 expressions, icon sizes).
 This is the approved look; the designer extends it, never redesigns it.
 - Look: orange fox, cream muzzle/chest, black sunglasses with gold

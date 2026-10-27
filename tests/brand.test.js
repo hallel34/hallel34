@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { readdirSync, readFileSync, statSync, mkdtempSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
+import { tmpdir } from 'node:os';
+import { execSync } from 'node:child_process';
 
 const ROOT = new URL('..', import.meta.url).pathname;
 const BANNED = [/rat\s*race/i, /מרוץ העכברים/, /יוצאים מהמרוץ/, /יצאתם מהמרוץ/, /fast\s*track/i, /exit the race/i];
@@ -48,6 +50,35 @@ describe('character: the fox replaced the mouse mascot', () => {
       expect(names).toContain(`src/assets/fox/${pose}@2x.webp`);
     }
     for (const crop of ['think', 'celebrate', 'worried', 'ponder']) expect(names).toContain(`src/assets/fox/${crop}.webp`);
-    expect(names).toContain('src/assets/wordmark.svg');
+    // the home logo (rename 2026-10-23): the MaxiFox alpha logo replaced src/assets/wordmark.svg
+    expect(names).toContain('src/assets/brand/maxifox-logo-alpha-1x.webp');
+    expect(names).toContain('src/assets/brand/maxifox-logo-alpha-2x.webp');
+    expect(names).not.toContain('src/assets/wordmark.svg');
   });
+});
+
+describe('MaxiFox rename: the old brand never reaches the built app', () => {
+  // Kept on purpose (docs/decisions.md 2026-10-23, docs/v4/rename-inventory.md): the passivo.* storage keys, the daily seed
+  // 'passivo-daily|', the history.state.passivo marker, the sw cache prefix and the debug hook. All lowercase code names.
+  const KEPT = [/passivo\./g, /passivo-daily\|/g, /passivo:/g, /\?\.passivo\b/g, /\.passivo(?=[!=])/g, /`passivo-\$\{BUILD\}`/g, /'passivo-'/g, /__passivoDebug/g];
+  it('dist has no "פסיבו" / "Passivo" and no other passivo token than the kept keys and seed', () => {
+    const out = mkdtempSync(join(tmpdir(), 'maxifox-brand-'));
+    try {
+      execSync(`npx vite build --outDir ${out} --emptyOutDir`, { cwd: ROOT, stdio: 'pipe', env: { ...process.env, BASE_PATH: './' } });
+      const texts = walk(out).filter((f) => /\.(js|json|html|css|webmanifest|svg|txt)$/.test(f));
+      expect(texts.length).toBeGreaterThan(3);
+      const hits = [];
+      for (const f of texts) {
+        const s = readFileSync(f, 'utf8');
+        if (/פסיבו|Passivo|PASSIVO/.test(s)) hits.push(`${f.slice(out.length)}: old brand`);
+        const rest = KEPT.reduce((x, re) => x.replace(re, ''), s);
+        const m = rest.match(/.{0,30}passivo.{0,30}/i);
+        if (m) hits.push(`${f.slice(out.length)}: ${m[0]}`);
+      }
+      expect(hits).toEqual([]);
+      const html = readFileSync(join(out, 'index.html'), 'utf8');
+      expect(html).toContain('<title>MaxiFox');
+      expect(JSON.parse(readFileSync(join(out, 'manifest.webmanifest'), 'utf8')).short_name).toBe('MaxiFox');
+    } finally { rmSync(out, { recursive: true, force: true }); }
+  }, 180000);
 });

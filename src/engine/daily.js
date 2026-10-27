@@ -85,6 +85,8 @@ const APPLY = {
   repayLoan: (e, s, id, amount) => e.repayLoan(s, id, amount),
   sellAsset: (e, s, id, qty) => e.sellAsset(s, id, qty),
   forfeit: (e, s) => e.forfeit(s),
+  decide: (e, s, optionId) => e.decide(s, optionId),
+  answerAudit: (e, s, answer) => e.answerAudit(s, answer),
 };
 
 /** Re-runs a daily game from its date and action log. The server-side check of a score is exactly this. */

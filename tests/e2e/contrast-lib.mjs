@@ -32,7 +32,7 @@ async function collect(page) {
 
 /** Pixels of the viewport with every glyph hidden: the background each amount really sits on (gradients, scrims, glass). */
 async function backdrop(page, boxes) {
-  const handle = await page.addStyleTag({ content: '*, *::before, *::after { color: transparent !important; -webkit-text-fill-color: transparent !important; text-shadow: none !important; caret-color: transparent !important; } svg { visibility: hidden !important; }' });
+  const handle = await page.addStyleTag({ content: '*, *::before, *::after { color: transparent !important; -webkit-text-fill-color: transparent !important; text-shadow: none !important; caret-color: transparent !important; } svg, .money img { visibility: hidden !important; }' }); // the coin icon of a 'צעירים' amount (an <img>) is part of the amount, not its background
   const png = await page.screenshot({ type: 'png', animations: 'allow' });
   await handle.evaluate((n) => n.remove());
   return page.evaluate(async ({ b64, boxes }) => {

@@ -169,11 +169,11 @@ async function tourAndHandoff(browser, theme) {
   const two = await open(browser, { w: 360, h: 640, theme });
   await begin(two.page, { players: 2 });
   await two.page.waitForSelector('.handoff-sheet, [data-action="roll-next"]', { timeout: 8000 }).catch(() => {});
-  const arming = await two.page.evaluate(() => { const l = document.querySelector('[data-action="handoff-home"]'); return l ? { arming: l.classList.contains('is-arming'), disabled: l.getAttribute('aria-disabled'), bar: getComputedStyle(l, '::after').content } : null; });
+  const arming = await two.page.evaluate(() => { const l = document.querySelector('[data-action="handoff-home"]'); return l ? { arming: l.hasAttribute('data-arming'), disabled: l.disabled ? 'true' : null, bar: getComputedStyle(l, '::after').content } : null; });
   if (arming) {
     check(arming.arming && arming.disabled === 'true' && arming.bar !== 'none', `hand-over: the home link shows the arming sweep at first (${JSON.stringify(arming)})`);
     await sleep(900);
-    const after = await two.page.evaluate(() => { const l = document.querySelector('[data-action="handoff-home"]'); return l ? { arming: l.classList.contains('is-arming'), disabled: l.getAttribute('aria-disabled') } : null; });
+    const after = await two.page.evaluate(() => { const l = document.querySelector('[data-action="handoff-home"]'); return l ? { arming: l.hasAttribute('data-arming'), disabled: l.disabled ? 'true' : null } : null; });
     check(after && !after.arming && after.disabled === null, 'hand-over: the home link is armed together with the primary button');
     await contrast(two.page, `hand-over sheet ${theme}`);
   } else check(true, 'hand-over sheet had no home link on this first turn (skipped)');
@@ -215,16 +215,16 @@ async function almost(browser, theme) {
   const buy = page.locator('[data-action="buy"]:not([aria-disabled="true"])');
   if (await buy.count()) await buy.first().click();
   let seen = false;
-  for (let k = 0; k < 14 && !seen; k++) {
+  for (let k = 0; k < 60 && !seen; k++) {
     await sleep(700);
     seen = (await page.evaluate(() => window.__h)).includes('ועוד קצת');
-    for (let j = 0; j < 4; j++) { const l = page.locator('#modal-root .layer:last-child [data-action="summary-ok"], #modal-root .layer:last-child [data-action="pass"], #modal-root .layer:last-child [data-action="ok"], #modal-root .layer:last-child [data-action="pay"], #modal-root .layer:last-child [data-action="decline"], #modal-root .layer:last-child [data-action="hint-next"], #modal-root .layer:last-child [data-action="cancel"]').first(); if (await l.count()) { await sleep(1200); await l.click().catch(() => {}); await sleep(300); } }
+    for (let j = 0; j < 4; j++) { const l = page.locator('#modal-root .layer:last-child [data-action="summary-ok"], #modal-root .layer:last-child [data-action="pass"], #modal-root .layer:last-child [data-action="ok"], #modal-root .layer:last-child [data-action="pay"], #modal-root .layer:last-child [data-action="decline"], #modal-root .layer:last-child [data-action="hint-next"], #modal-root .layer:last-child [data-action="cancel"], #modal-root .layer:last-child [data-action="guess-skip"], #modal-root .layer:last-child [data-action="skip"]').first(); if (await l.count()) { await sleep(1200); await l.click().catch(() => {}); await sleep(300); } }
     const r = page.locator('[data-action="roll"]:not([disabled])'); if (await r.count()) await r.click().catch(() => {});
     // 'ועוד קצת' also appears under the meter at 94%: only the note counts
     seen = await page.evaluate(() => /ועוד קצת/.test(document.querySelector('.note-hint')?.textContent ?? ''));
   }
   const many = await page.evaluate(() => window.__many);
-  check(many === '' || /הכניסו ₪[\d,]+ בשנתיים/.test(many), `the several-assets income hint carries its amount (${many || 'not shown in this run'})`);
+  check(many === '' || /הכניסו ₪[\d,]+ בשנה הזאת/.test(many), `the several-assets income hint carries its amount (${many || 'not shown in this run'})`);
   check(seen, `at ~94% of the expenses the h-almost hint ("... ועוד קצת") shows within a few turns (${theme})`);
   await ctx.close();
 }

@@ -1,4 +1,4 @@
-// 'המשחק הראשון עם פסיבו': the pure rules (summary figures vs the engine, first-time triggers, hint scheduling, goal line,
+// 'המשחק הראשון עם מקסי': the pure rules (summary figures vs the engine, first-time triggers, hint scheduling, goal line,
 // vocabulary layer, quiz) and the hot-seat one-tap hand-over contract.
 import { describe, it, expect, beforeEach } from 'vitest';
 import { readFileSync } from 'node:fs';
@@ -315,7 +315,7 @@ describe('one-tap hand-over (hot-seat)', () => {
     // 2 players: the turn is over -> endTurn gives the other player, who rolls with the single sheet tap
     let m = mk(2);
     let s = engine.roll(currentState(m));
-    while (s.pending) s = s.pending.kind === 'opportunity' ? engine.pass(s) : s.pending.kind === 'charity' ? engine.declineCharity(s) : engine.pay ? engine.pay(s) : s;
+    while (s.pending) s = s.pending.kind === 'opportunity' ? engine.pass(s) : s.pending.kind === 'charity' ? engine.declineCharity(s) : s.pending.kind === 'decision' ? engine.decide(s, engine.decisionOptions(s).find((o) => o.available)?.id ?? 'pass') : s.pending.kind === 'taxAudit' ? engine.answerAudit(s, {}) : engine.pay ? engine.pay(s) : s; // v4 stage 4: decision / tax-audit pendings
     m = setCurrentState(m, s);
     expect(isMultiplayer(m) && !lastPlayerStanding(m)).toBe(true);
     expect(canEndTurn(m)).toBe(true);
@@ -325,7 +325,7 @@ describe('one-tap hand-over (hot-seat)', () => {
     // single player: the turn closes silently (no hand-over, no sheet)
     let one = mk(1);
     let s1 = engine.roll(currentState(one));
-    while (s1.pending) s1 = s1.pending.kind === 'opportunity' ? engine.pass(s1) : s1.pending.kind === 'charity' ? engine.declineCharity(s1) : s1;
+    while (s1.pending) s1 = s1.pending.kind === 'opportunity' ? engine.pass(s1) : s1.pending.kind === 'charity' ? engine.declineCharity(s1) : s1.pending.kind === 'decision' ? engine.decide(s1, engine.decisionOptions(s1).find((o) => o.available)?.id ?? 'pass') : s1.pending.kind === 'taxAudit' ? engine.answerAudit(s1, {}) : s1; // v4 stage 4
     one = setCurrentState(one, s1);
     expect(isMultiplayer(one)).toBe(false);
     expect(endTurn(one).currentIndex).toBe(0);
@@ -338,10 +338,10 @@ describe('one-tap hand-over (hot-seat)', () => {
     expect(play).not.toContain("paintButton('continue')");
     const modals = read('src/ui/modals.js');
     expect(modals).toContain("'data-action': 'roll-next'");
-    expect(modals).toContain('if (tapped || !armed) return;'); // double taps, and taps while the sheet is still arming
+    expect(modals).toContain('if (tapped) return;'); // double taps; taps while the sheet is still arming hit a real `disabled` (arm())
     expect(modals).not.toContain('players.ready');
     const he = JSON.parse(read('src/i18n/he.json'));
-    expect(he.players.rollFor).toBe('זרקו קובייה, {name}');
+    expect(he.players.rollFor).toBe('הטילו קובייה, {name}'); // QA round 14 P3-6: one verb with the board's roll button
   });
   it('the board still has 24 squares (the hand-over changes no rule)', () => { expect(BOARD).toHaveLength(24); });
 });

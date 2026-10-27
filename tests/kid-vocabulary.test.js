@@ -15,12 +15,12 @@ const he = JSON.parse(readFileSync(new URL('../src/i18n/he.json', import.meta.ur
  */
 export const FORBIDDEN = [
   'ריבית', 'תזרים', 'כרית', 'תשואה', 'מקדמה', 'הכנסה פסיבית', 'הכנסות פסיביות', 'פסיבית', 'משכנתא', 'התחייבות', 'התחייבויות',
-  'החזר השקעה', 'דיבידנד', 'שווי נקי', 'פיזור', 'מהי ',
+  'החזר השקעה', 'תקופת החזר', 'דיבידנד', 'שווי נקי', 'פיזור', 'מהי ',
 ];
 const FORBIDDEN_RE = new RegExp(FORBIDDEN.join('|'), 'u');
 /** The only places where the real term is shown on purpose (spec: 'חריגים מותרים'): the story's first screen names it once. */
 const ALLOWED = /^tutorial\.story\.screens\.0\.lines/;
-const NON_TEXT = new Set(['notes', 'computed', 'was', 'sampleText', 'sampleOneLine', 'sampleNoAsset', 'sample', 'ownerWording', 'trigger', 'note', 'howto', 'keepAsIs', 'showWhile', 'round11', 'example', 'target', 'targetKey', 'textKey', 'a11y', 'reducedMotion', 'assumes', 'id', 'pose', 'term', 'level', 'kidName', 'kidShort', 'opening', 'tier', 'when', 'minNeeded', 'readSec']);
+const NON_TEXT = new Set(['notes', 'computed', 'was', 'sampleText', 'sampleOneLine', 'sampleNoAsset', 'sample', 'ownerWording', 'trigger', 'note', 'howto', 'keepAsIs', 'showWhile', 'round11', 'round13', 'example', 'target', 'targetKey', 'textKey', 'a11y', 'reducedMotion', 'assumes', 'id', 'pose', 'term', 'level', 'kidName', 'kidShort', 'opening', 'tier', 'when', 'minNeeded', 'readSec']);
 
 function* walk(v, path = []) {
   if (typeof v === 'string') yield [path.join('.'), v];
@@ -29,7 +29,7 @@ function* walk(v, path = []) {
 }
 
 /** Locale-file groups shown in family mode (full-only, stock-only and daily-share strings are not family surfaces). */
-const HE_GROUPS = ['game', 'card', 'loan', 'win', 'gameOver', 'fox', 'pick', 'stats', 'standings', 'a11y'];
+const HE_GROUPS = ['game', 'card', 'loan', 'win', 'gameOver', 'fox', 'pick', 'stats', 'standings', 'a11y', 'statement']; // statement: QA round 14 P2-7
 const FULL_ONLY = /Stock|dividend|netWorth|repay|sell|Sell|share|daily/;
 
 describe('family vocabulary: no adult money words on the key screens', () => {
@@ -41,7 +41,8 @@ describe('family vocabulary: no adult money words on the key screens', () => {
     leaks = [];
     const check = (where, text) => { const plain = stripMarkup(text); if (!ALLOWED.test(where) && FORBIDDEN_RE.test(plain)) leaks.push(`${where}: ${plain}`); };
     // locale file with the family layer on top (what t() returns in family mode)
-    for (const g of HE_GROUPS) for (const [p] of walk(he[g], [g])) { if (FULL_ONLY.test(p)) continue; check(`he.json ${p}`, tRaw(p)); }
+    // QA round 15: a full-only-looking key that HAS a family override (statement.netWorthTitle, ...) is a family surface: scan it
+    for (const g of HE_GROUPS) for (const [p] of walk(he[g], [g])) { if (FULL_ONLY.test(p) && !(p in map)) continue; check(`he.json ${p}`, tRaw(p)); }
     // learn files (family view): feedback (family + shared lines), guess, report, hints, summary card, HUD, goal line, how-to, story
     // feedback: the lines a family player really gets = the group's family list, else its shared (all) list (feedback.js resolve)
     const feedbackLines = {};

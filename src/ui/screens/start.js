@@ -1,11 +1,12 @@
-// Start screen (design/screens.md #1, fox placement: design/fox-usage.md): night sky + skyline, wordmark,
-// tired fox with a joke bubble (waves hello on first launch only), mode pick, primary CTA, resume.
-import { h, html, sleep } from '../dom.js';
+// Start screen (docs/v3/design/spec.md 4.1, design/fox-usage.md "Logo vs character"): night sky + skyline, the MaxiFox logo
+// (brand art, never the character), tagline, mode pick, daily row, primary CTA, resume. The first-launch greeting
+// "היי, אני מקסי!" lives in the board's corner guide (play.js), never on home next to the logo.
+import { h, html } from '../dom.js';
 import { t } from '../../i18n/index.js';
 import { dayKey } from '../../daily/calendar.js';
 import { nextChallengeText, streakText, outcomeText, cardTitleText } from '../daily-format.js';
 import { debugEnabled } from '../debug.js';
-import { foxImg, loadFox, riseIn, squash, warmFox, dirSign } from '../fox.js';
+import { warmFox } from '../fox.js';
 import { icon } from '../icons.js';
 import { button, iconButton } from '../widgets.js';
 import { openSettings, openHowTo } from '../settings.js';
@@ -13,9 +14,9 @@ import { openDictionary } from '../learn.js';
 import { setLearnMode } from '../../learn/context.js';
 import { haptic, animate, cssMs } from '../fx.js';
 import { motionOK } from '../prefs.js';
-import { readRaw, writeRaw } from '../../services/storage.js';
 import { currentState, isMultiplayer } from '../../engine/index.js';
-import wordmarkUrl from '../../assets/wordmark.svg?url';
+import logo1x from '../../assets/brand/maxifox-logo-alpha-1x.webp';
+import logo2x from '../../assets/brand/maxifox-logo-alpha-2x.webp';
 import coinUrl from '../../assets/coin-small.svg?url';
 
 const resumeInfo = (m) => (isMultiplayer(m)
@@ -26,8 +27,6 @@ const resumeInfo = (m) => (isMultiplayer(m)
     ? t('menu.resumeInfoNew', { profession: currentState(m).profession.title })
     : t('menu.resumeInfo', { turn: currentState(m).turn, profession: currentState(m).profession.title })));
 
-export const WAVE_MS = 1800;
-const JOKES = ['fox.joke1', 'fox.joke2', 'fox.joke3'];
 
 const SKY = `<svg class="sky" aria-hidden="true" focusable="false" viewBox="0 0 360 800" preserveAspectRatio="xMidYMax slice">
 <g class="stars" fill="#fff"><circle cx="34" cy="64" r="1.6" opacity=".9"/><circle cx="100" cy="38" r="1.1" opacity=".7"/><circle class="tw" cx="160" cy="88" r="1.8" opacity=".8"/><circle cx="236" cy="50" r="1.3" opacity=".9"/><circle class="tw tw2" cx="310" cy="82" r="1.7" opacity=".7"/><circle cx="334" cy="34" r="1.2" opacity=".8"/><circle class="tw tw3" cx="70" cy="140" r="1.2" opacity=".6"/><circle cx="288" cy="138" r="1.4" opacity=".6"/></g>
@@ -38,9 +37,7 @@ const SKY = `<svg class="sky" aria-hidden="true" focusable="false" viewBox="0 0 
 export function createStart({ save, mode: initialMode, gamesPlayed = 0, daily = null, onPlay, onResume, onMode, onDaily, onDailyReset, onRefresh }) {
   let mode = initialMode;
   setLearnMode(mode);
-  const firstLaunch = !readRaw('seenIntro');
   let alive = true;
-  let jokeTimer = 0;
   let dailyTimer = 0;
 
   const modeBtn = (id, name, desc) => {
@@ -65,22 +62,15 @@ export function createStart({ save, mode: initialMode, gamesPlayed = 0, daily = 
       iconButton('help', t('menu.howTo'), () => openHowTo({ mode }), 'icon-btn-glass'),
       iconButton('gear', t('menu.settings'), () => openSettings({ version: __APP_VERSION__, mode }), 'icon-btn-glass')));
 
-  // h1 keeps the accessible name 'פסיבו'; the wordmark art itself is decorative.
-  const title = h('h1', { class: 'wordmark' },
-    h('img', { src: wordmarkUrl, alt: '', width: 232, height: 129, decoding: 'async', fetchpriority: 'high' }),
-    h('span', { class: 'vh' }, t('app.title')));
+  // h1 keeps the accessible name 'MaxiFox' (he.json app.title); the logo art itself is decorative (alt="").
+  const logo = h('img', {
+    class: 'brand-logo', src: logo1x, srcset: `${logo1x} 1x, ${logo2x} 2x`, alt: '', width: 200, height: 218,
+    decoding: 'async', fetchpriority: 'high', draggable: 'false',
+  });
+  const title = h('h1', { class: 'wordmark brand' }, logo, h('span', { class: 'vh' }, t('app.title')));
   const tagline = h('p', { class: 'tagline' }, t('app.tagline'));
 
-  // ---- fox stage ----
-  // First launch: wave is the LCP image, so `tired` only starts loading once the wave has painted.
-  const tired = foxImg('tired', { height: 296, altKey: 'fox.alt.tired', cls: 'bob', priority: !firstLaunch, defer: firstLaunch });
-  const wave = firstLaunch ? foxImg('wave', { height: 296, altKey: 'fox.alt.wave', priority: true }) : null;
-  if (wave) { tired.style.opacity = '0'; tired.setAttribute('alt', ''); tired.setAttribute('aria-hidden', 'true'); }
-  const slot = h('div', { class: 'fox-slot' }, tired, wave);
-  const bubble = h('div', { class: 'bubble', role: 'note' }, firstLaunch ? t('fox.hello') : t(JOKES[0]));
-  const stage = h('div', { class: 'fox-stage' }, h('div', { class: 'fox-halo', 'aria-hidden': 'true' }), slot, bubble);
-
-  const hero = h('div', { class: 'start-hero' }, title, tagline, stage);
+  const hero = h('div', { class: 'start-hero' }, title, tagline);
 
   // ---- daily challenge card (v2.5): gold secondary card under the mode cards ----
   // daily = { date, status: 'new' | 'playing' | 'done', entry, streak: streakView() }
@@ -112,50 +102,13 @@ export function createStart({ save, mode: initialMode, gamesPlayed = 0, daily = 
 
   const el = h('section', { class: 'screen screen-start', 'data-screen': 'start' }, html(SKY), topbar, hero, bottom);
 
-  slot.addEventListener('click', () => squash(slot));
-
-  async function swapBubble(text) {
-    if (!alive) return;
-    const d = 180;
-    await animate(bubble, [{ opacity: 1 }, { opacity: 0 }], { duration: d }).finished.catch(() => {});
-    bubble.textContent = text;
-    await animate(bubble, [{ opacity: 0 }, { opacity: 1 }], { duration: d }).finished.catch(() => {});
-  }
-
-  function startJokes() {
-    let i = 0;
-    jokeTimer = setInterval(() => {
-      if (!alive || !el.isConnected) { clearInterval(jokeTimer); return; }
-      i = (i + 1) % JOKES.length;
-      swapBubble(t(JOKES[i]));
-    }, 6000);
-  }
-
-  async function intro() {
-    writeRaw('seenIntro', '1');
-    setTimeout(() => { if (alive) loadFox(tired, 'tired'); }, 700);
-    const enter = motionOK() ? 500 : cssMs('--dur-base', 120);
-    animate(wave, motionOK()
-      ? [{ opacity: 0, transform: `translateX(${dirSign() * 40}px)` }, { opacity: 1, transform: 'translateX(0)' }]
-      : [{ opacity: 0 }, { opacity: 1 }], { duration: enter, easing: 'cubic-bezier(.16,1,.3,1)' });
-    await sleep(enter + WAVE_MS);
-    if (!alive) return;
-    // crossfade 200ms to the tired pose and the normal bubble line
-    tired.setAttribute('alt', t('fox.alt.tired')); tired.removeAttribute('aria-hidden');
-    wave.setAttribute('aria-hidden', 'true');
-    animate(wave, [{ opacity: 1 }, { opacity: 0 }], { duration: 200 });
-    animate(tired, [{ opacity: 0 }, { opacity: 1 }], { duration: 200 }).finished.catch(() => {}).then(() => { tired.style.opacity = ''; });
-    swapBubble(t(JOKES[0]));
-    startJokes();
-  }
-
   return {
     el,
-    /** Called once mounted: entrance rise, then (first launch) wave -> tired, joke rotation. */
+    /** Called once mounted: the logo's entrance (fade + scale .96 to 1, 400ms; fade only under reduced motion). */
     start() {
-      riseIn(slot);
+      animate(logo, motionOK() ? [{ opacity: 0, transform: 'scale(.96)' }, { opacity: 1, transform: 'scale(1)' }] : [{ opacity: 0 }, { opacity: 1 }],
+        { duration: motionOK() ? cssMs('--dur-slow', 400) : cssMs('--dur-base', 120), easing: 'cubic-bezier(.16,1,.3,1)' });
       warmFox(['roll']);
-      if (firstLaunch) intro(); else startJokes();
       if (daily) {
         // the countdown ticks while the screen is open; a new calendar day (midnight passed) rebuilds the card
         dailyTimer = setInterval(() => {
@@ -165,6 +118,6 @@ export function createStart({ save, mode: initialMode, gamesPlayed = 0, daily = 
         }, 30000);
       }
     },
-    destroy() { alive = false; clearInterval(jokeTimer); clearInterval(dailyTimer); },
+    destroy() { alive = false; clearInterval(dailyTimer); },
   };
 }

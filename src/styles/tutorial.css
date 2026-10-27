@@ -1,13 +1,11 @@
-/* 'המשחק הראשון עם פסיבו' (docs/v2/tutorial/art.md): the itemised summary card, the family HUD (chip, popover, goal line), the one-tap
+/* 'המשחק הראשון עם מקסי' (docs/v2/tutorial/art.md): the itemised summary card, the family HUD (chip, popover, goal line), the one-tap
    hand-over recap, the hint strips and the highlight ring, and the five-screen story with its check. Logical properties only. */
 
-.btn-text { --bg-btn: transparent; --fg-btn: var(--text-soft); box-shadow: none; margin-block-end: 0; font-size: var(--fs-sm); font-weight: var(--fw-bold); text-decoration: underline; text-underline-offset: 3px; backdrop-filter: none; touch-action: manipulation; }
-.btn-text:active:not(:disabled) { transform: scale(var(--press-scale)); box-shadow: none; }
 
 /* ===== Family HUD: 'נשאר בחודש' chip, goal line, 'עוד X בחודש לחופש' ===== */
 .flow-chip-btn {
   display: inline-flex; align-items: center; gap: 4px; min-block-size: var(--tap-min); max-inline-size: 132px; padding: 2px 8px 2px 6px;
-  border: 0; border-radius: 14px; text-align: start; font-family: inherit; font-size: .8125rem; line-height: 1.15;
+  border: 1px solid var(--border); background-color: var(--surface-2); color: var(--income); border-radius: 14px; text-align: start; font-family: inherit; font-size: .875rem; font-weight: var(--fw-bold); line-height: 1.15;
   white-space: normal; touch-action: manipulation; cursor: pointer;
 }
 .flow-chip-btn .fc-text { text-wrap: balance; }
@@ -22,7 +20,7 @@
 
 .goal-line, .free-line { margin: 0; font-size: .75rem; line-height: 1.2; font-weight: var(--fw-medium); color: var(--text-muted); }
 .free-line { font-weight: var(--fw-bold); color: var(--income); }
-.free-line .money { font-weight: var(--fw-black); }
+.free-line .money { font-weight: var(--fw-money); }
 .goal-line[hidden], .free-line[hidden] { display: none; }
 .hud:has(.goal-line:not([hidden])) { gap: 6px; }
 @media (max-height: 700px) { .hud:has(.goal-line:not([hidden])) { gap: 3px; } }
@@ -49,10 +47,10 @@
 .fp-out .fp-total { color: var(--expense); }
 .fp-sub { margin: 0; font-size: .6875rem; line-height: 1.2; color: var(--text-muted); }
 @media (max-height: 779px) { .fp-sub { display: none; } }
-.fp-sub .money { font-weight: var(--fw-bold); }
+.fp-sub .money { font-weight: var(--fw-money); }
 .fp-op { align-self: center; display: grid; place-items: center; inline-size: 20px; block-size: 20px; border-radius: 50%; background: var(--surface-sunken); color: var(--text); font-weight: var(--fw-black); font-size: .9375rem; line-height: 1; }
 .fp-left { margin: 2px 0 0; display: flex; align-items: center; justify-content: space-between; min-block-size: 36px; padding-inline: 14px; border-radius: 18px; font-size: .9375rem; font-weight: var(--fw-bold); }
-.fp-left .money { font-size: 1.25rem; font-weight: var(--fw-black); }
+.fp-left .money { font-size: 1.25rem; font-weight: var(--fw-money); }
 .fp-left.is-positive { background: var(--income-fill); color: #032A1A; }
 /* a negative result is never red (no shaming): calm amber with an explicit minus sign */
 .fp-left.is-negative { background: var(--amber-fill); color: var(--amber-ink); }
@@ -66,7 +64,7 @@
 .layer-summary { max-inline-size: 448px; max-block-size: calc(100dvh - 168px); }
 .summary-card {
   min-block-size: 0; max-block-size: 100%; overflow-y: auto; gap: 6px; padding: 14px 16px 6px;
-  background: var(--card-bg); color: var(--card-text); border: 3px solid var(--card-ring); border-block-end: 0; box-shadow: var(--shadow-glow-gold);
+  background-color: var(--card-bg); color: var(--card-text); border: 1px solid var(--card-border); border-block-end: 0; box-shadow: inset 0 1px 0 var(--card-highlight), 0 -10px 40px rgb(0 0 0 / .45);
   border-start-start-radius: 24px; border-start-end-radius: 24px; cursor: pointer;
 }
 .sc-title { margin: 0; text-align: center; font-size: 1.0625rem; font-weight: var(--fw-black); color: var(--card-muted); letter-spacing: 0; }
@@ -77,28 +75,28 @@
 .sc-passive.has-income { background: var(--card-income-bg); }
 .sc-passive .sc-amt { color: #0A7560; }
 .sc-passive .sc-none { color: var(--card-muted); font-size: .9375rem; font-weight: var(--fw-medium); }
-.sc-expense .sc-amt { color: var(--expense-ink); }
-.sc-divider { border-block-start: 2px dashed var(--card-border); margin-block: 2px; }
+.sc-expense .sc-amt { color: var(--negative-ink); }
+.sc-divider { border-block-start: 1px solid var(--card-border); margin-block: 2px; }
 .sc-left { display: flex; align-items: baseline; justify-content: center; gap: 6px; flex-wrap: wrap; font-size: 1rem; font-weight: var(--fw-black); text-align: center; }
 .sc-big { font-size: 1.625rem; font-weight: var(--fw-black); font-variant-numeric: tabular-nums; }
 .summary-card.is-positive .sc-left .sc-big { color: var(--income-ink); }
 .summary-card { --amber-ink: #6E4200; --amber-fill: #FFEBC2; } /* the card is cream in both themes */
 .summary-card.is-negative .sc-left .sc-big { color: var(--amber-ink); }
-.sc-band { display: flex; align-items: baseline; justify-content: center; flex-wrap: wrap; gap: 2px 6px; padding: 8px 12px; border-radius: 14px; background: var(--c-navy-900); color: #fff; font-size: 1rem; font-weight: var(--fw-bold); text-align: center; }
+.sc-band { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 0 2px; text-align: center; }
 .sc-calc { white-space: nowrap; font-variant-numeric: tabular-nums; }
-.sc-result { font-size: 1.5rem; font-weight: var(--fw-black); color: #F6C453; font-variant-numeric: tabular-nums; }
-.summary-card.is-negative .sc-result { color: #FFD27A; }
+.sc-result { font-size: 1.75rem; font-weight: 900; color: var(--income-ink); font-variant-numeric: tabular-nums; }
+.summary-card.is-negative .sc-result { color: var(--negative-ink); }
 .sc-passive.has-loss { background: var(--amber-fill); }
 .sc-passive.has-loss .sc-amt { color: var(--amber-ink); }
 .sc-losstag { display: block; font-size: .75rem; font-weight: var(--fw-bold); color: var(--amber-ink); }
-.sc-note { flex-basis: 100%; font-size: .8125rem; font-weight: var(--fw-medium); color: #fff; opacity: .92; }
+.sc-note { font-size: .8125rem; font-weight: var(--fw-medium); color: var(--card-muted); }
 .sc-cash { margin: 0; text-align: center; font-size: .8125rem; line-height: 1.3; color: var(--card-muted); }
 .sc-arrow { display: inline-block; margin-inline: 4px; }
 .sc-pair { display: inline-block; white-space: nowrap; }
 .sc-cash { text-wrap: balance; }
 [dir="rtl"] .sc-arrow { transform: scaleX(-1); }
 .sc-cta { position: sticky; inset-block-end: 0; padding-block: 4px 6px; background: var(--card-bg); margin-inline: -16px; padding-inline: 16px; }
-.sc-cta .btn { inline-size: 100%; min-block-size: 56px; font-size: 1.25rem; }
+.sc-cta .btn { inline-size: 100%; min-block-size: var(--tap-min); font-size: 1.1875rem; }
 .summary-card .hint-strip { cursor: default; }
 @media (max-height: 600px) { .summary-card { padding-block-start: 8px; gap: 3px; } .sc-row { min-block-size: 30px; } .sc-title { display: none; } }
 
@@ -106,21 +104,21 @@
 .handoff-recap { inline-size: 100%; display: flex; flex-direction: column; gap: 2px; padding: 8px 12px; border-radius: 16px; text-align: start; background: var(--glass-chip); border: 1px solid var(--glass-border); font-size: .875rem; line-height: 1.35; }
 .hr-title { margin: 0; font-size: .75rem; font-weight: var(--fw-bold); color: var(--text-muted); }
 .hr-line { margin: 0; color: var(--text); }
-.hr-fox { margin: 4px 0 0; padding-inline-start: 8px; border-inline-start: 3px solid var(--c-gold-400); font-weight: var(--fw-bold); color: var(--text); }
+.hr-fox { margin: 4px 0 0; padding-inline-start: 8px; border-inline-start: 3px solid var(--border-strong); font-weight: var(--fw-bold); color: var(--text); }
 .handoff-sheet .hint-strip { inline-size: 100%; text-align: start; }
 .handoff-sheet { gap: var(--sp-2); }
 .handoff-sheet .dialog-text { margin: 0; }
 @media (max-height: 700px) { .handoff-fox .fox { block-size: 72px; inline-size: auto; } .handoff-fox { margin-block-start: -48px; } .handoff-title { font-size: 1.5rem; } .handoff-sheet .ptoken-xl { transform: scale(.85); margin-block: -6px; } }
-.btn-roll-next { min-block-size: 64px; }
+.btn-roll-next { min-block-size: var(--tap-min); }
 
 /* ===== Hint strip (inside a card, the summary, the loan window, the hand-over sheet) ===== */
-.hint-strip { display: flex; align-items: center; gap: 8px; padding: 6px 10px 6px 8px; border-radius: 16px; background: var(--c-navy-900); color: #fff; border: 2px solid var(--c-gold-400); }
+.hint-strip { display: flex; align-items: center; gap: 8px; padding: 6px 10px 6px 8px; border-radius: 16px; background-color: var(--surface-2); color: var(--text); border: 1px solid var(--border); }
 .hint-fox { flex: none; align-self: flex-end; margin-block-start: -18px; }
 .hint-fox .fox { block-size: 60px; inline-size: auto; filter: drop-shadow(0 4px 6px rgb(0 0 0 / .5)); }
 .hint-body { flex: 1; min-inline-size: 0; display: flex; flex-direction: column; gap: 2px; }
 .hint-text, .hint-more { margin: 0; font-size: .875rem; line-height: 1.35; font-weight: var(--fw-bold); }
-.hint-more { font-weight: var(--fw-medium); color: var(--c-ice-100); font-size: .8125rem; }
-.hint-text .money, .hint-text bdi { color: var(--c-gold-300); }
+.hint-more { font-weight: var(--fw-medium); color: var(--text-muted); font-size: .8125rem; }
+.hint-text .money, .hint-text bdi { color: var(--text); }
 .hint-next { flex: none; min-inline-size: 64px; padding-inline: 12px; margin-block-end: 0; }
 .card-foot > .hint-strip { margin: 10px 22px 0; }
 .summary-card .hint-strip { margin-block-start: 4px; }
@@ -158,7 +156,7 @@
 .story-top .icon-btn { inline-size: 48px; block-size: 48px; }
 .story-dots { justify-self: center; display: flex; align-items: center; gap: 6px; }
 .story-dots i { display: block; inline-size: 8px; block-size: 8px; border-radius: 4px; background: var(--c-navy-500); }
-.story-dots i.is-on { inline-size: 22px; background: var(--c-gold-400); }
+.story-dots i.is-on { inline-size: 22px; background: var(--text); }
 .story-skip { justify-self: end; min-block-size: 48px; min-inline-size: 48px; padding-inline: 10px; }
 .story-skip-gap { inline-size: 48px; }
 .story-view { flex: 1 1 0; min-block-size: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; }
@@ -172,7 +170,7 @@
 @media (max-height: 600px) { .story-stage[data-pose="hammock"] .story-fox .fox { inline-size: 160px; } }
 @media (min-height: 620px) and (max-height: 700px) { .story-stage[data-pose="hammock"] .story-fox .fox { inline-size: 190px; } }
 .story-art { position: relative; z-index: 1; flex: none; inline-size: calc(var(--story-fox) * 1.33); block-size: auto; max-inline-size: 55%; margin-inline-start: -24px; }
-.story-title { margin: 0; font-size: 1.375rem; line-height: 1.2; font-weight: var(--fw-black); background: var(--title-grad); -webkit-background-clip: text; background-clip: text; color: transparent; outline: none; text-wrap: balance; padding-block: 2px; }
+.story-title { margin: 0; font-size: 1.375rem; line-height: 1.2; font-weight: var(--fw-black); color: var(--text); outline: none; text-wrap: balance; padding-block: 2px; }
 .story-body { max-inline-size: 312px; font-size: 1.125rem; line-height: 1.4; font-weight: var(--fw-medium); display: flex; flex-direction: column; gap: 4px; }
 .story-body p { margin: 0; }
 @media (max-height: 640px) { .story-body { font-size: 1rem; line-height: 1.35; } .story-title { font-size: 1.25rem; } }
@@ -188,7 +186,7 @@
 .story-simplify-label { color: var(--text); }
 @media (max-height: 600px) { .story-simplify { font-size: .6875rem; line-height: 1.25; padding: 4px 8px; } }
 .story-cta { flex: none; padding-block-start: 4px; }
-.story-cta .btn { inline-size: 100%; min-block-size: 56px; font-size: 1.25rem; }
+.story-cta .btn { inline-size: 100%; min-block-size: var(--tap-min); font-size: 1.1875rem; }
 .story-card .money { white-space: nowrap; }
 
 .chain { display: flex; flex-direction: column; gap: 4px; }
@@ -202,7 +200,7 @@
 @media (max-height: 600px) { .chain-icon { inline-size: 30px; block-size: 30px; } .chain-icon svg { inline-size: 18px; block-size: 18px; } .chain-arrow { margin-block-start: 5px; } .chain-dots i { inline-size: 5px; block-size: 5px; } }
 
 .offer-actions { inline-size: 100%; display: flex; flex-direction: column; gap: 10px; }
-.offer-actions .btn { inline-size: 100%; min-block-size: 56px; }
+.offer-actions .btn { inline-size: 100%; min-block-size: var(--tap-min); }
 .story-parent { min-block-size: 48px; }
 
 /* ===== The check: three questions ===== */
@@ -221,7 +219,7 @@
 .quiz-option:disabled { color: var(--text); }
 .quiz-status { inline-size: 100%; text-align: start; font-size: .9375rem; line-height: 1.4; }
 .quiz-status p { margin: 0 0 4px; }
-.quiz-hint { color: var(--c-gold-300); font-weight: var(--fw-bold); }
+.quiz-hint { color: var(--text); font-weight: var(--fw-bold); }
 :root[data-theme="light"] .quiz-hint { color: var(--c-fox-700); }
 .quiz-explain { padding: 8px 12px; border-radius: 14px; background: var(--glass-chip); }
 .quiz-showme { align-self: center; min-block-size: 48px; }
@@ -275,16 +273,8 @@
   .story-screen[data-story="s5-turn"] .story-stage { min-block-size: calc(var(--story-fox) * .6); }
 }
 
-/* hand-over sheet: the primary button arms itself (fills over 700 ms) so a quick second tap from the previous card never rolls */
-.btn.is-arming { position: relative; overflow: hidden; cursor: default; border: 0; opacity: 1; --bg-btn: var(--btn-primary-bg); --fg-btn: var(--btn-primary-text); filter: saturate(.55) brightness(.8); }
-.btn.is-arming::after { content: ''; position: absolute; inset: 0; background: rgb(255 255 255 / .38); transform-origin: left center; transform: scaleX(0); animation: arm-fill var(--arm-ms, 700ms) linear forwards; pointer-events: none; }
-[dir="rtl"] .btn.is-arming::after { transform-origin: right center; }
-@keyframes arm-fill { to { transform: scaleX(1); } }
-@media (prefers-reduced-motion: reduce) { .btn.is-arming::after { animation: none; transform: scaleX(.5); } }
+/* hand-over sheet: the buttons arm themselves (data-arming, see components.css) so a quick second tap from the previous card never rolls */
 .btn-handoff-home { min-block-size: 48px; }
-/* the home link arms with the same sweep as the primary button (a thin bar under its text instead of a fill), so a silent first 700 ms is never a dead tap */
-.btn-handoff-home.is-arming { --bg-btn: transparent; --fg-btn: var(--text-soft); filter: none; overflow: hidden; opacity: .75; cursor: default; }
-.btn-handoff-home.is-arming::after { inset: auto 12px 8px 12px; block-size: 3px; border-radius: 2px; background: currentColor; opacity: .8; }
 
 /* family HUD: the cash is named in words (a caption on tall screens; a tap shows the tooltip on short ones) */
 .cash-cap { margin: -6px 0 0; font-size: .6875rem; line-height: 1.1; color: var(--text-muted); text-align: start; }
@@ -299,3 +289,4 @@
 .story-part-of { margin: 0; font-size: .75rem; color: var(--text-muted); text-align: center; font-variant-numeric: tabular-nums; }
 .fp-total { white-space: nowrap; }
 @media (max-width: 340px) { .fp-total { font-size: .875rem; } .fp-eq { gap: 4px; } }
+.fp-foot .nowrap { display: inline-block; }

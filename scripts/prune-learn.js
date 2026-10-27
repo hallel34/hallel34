@@ -16,7 +16,8 @@ function strip(value, path = []) {
       if (k === 'computed' && path.at(-1) === 'example' && Number.isFinite(v?.amount)) out.computed = { amount: v.amount };
       continue;
     }
-    if (k === 'numbers') { if (v?.publish === true) out.numbers = { publish: true, text: v.text }; continue; }
+    // a published figure keeps its text and, when it has one, the id of its entry in docs/v3/real-world-verified.json
+    if (k === 'numbers') { if (v?.publish === true) out.numbers = { publish: true, text: v.text, ...(v.verified ? { verified: v.verified } : {}) }; continue; }
     out[k] = strip(v, [...path, k]);
   }
   return out;

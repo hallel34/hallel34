@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import {
   createEngine, EngineError, newMatch, act, currentState, currentPlayer, canEndTurn, endTurn, standings, rematch,
   setCurrentState, serialize, deserialize, playMatch, isMultiplayer, activeCount, liabilityReport, purchasePlan,
-  statement, monthlyCashFlow, passiveIncome, totalExpenses, maxLoan, BOARD, NAME_MAX,
+  statement, monthlyCashFlow, passiveIncome, totalExpenses, maxLoan, BOARD, NAME_MAX, isFreeOption,
 } from '../src/engine/index.js';
 
 const read = (p) => JSON.parse(readFileSync(new URL(`../src/data/${p}`, import.meta.url), 'utf8'));
@@ -21,6 +21,9 @@ function playTurn(m) {
       if (k === 'charity') return engine.declineCharity(s);
       if (k === 'offer') return engine.declineOffer(s);
       if (k === 'expense' || k === 'shortfall') return engine.takeLoan(s, 1000);
+      // v4 stage 4: a decision card takes its first available option (a pass when it has one); the tax audit gives no money
+      if (k === 'decision') { const o = engine.decisionOptions(s).filter((x) => x.available); return engine.decide(s, (o.find((x) => isFreeOption(s.pending.card.options.find((c) => c.id === x.id))) ?? o[0] ?? { id: 'pass' }).id); }
+      if (k === 'taxAudit') return engine.answerAudit(s, {});
       throw new Error(`stuck ${s.phase} ${k}`);
     });
   }
@@ -179,7 +182,7 @@ describe('match: bots (multiplayer simulation)', () => {
 describe('statement: all liabilities', () => {
   const buyFirst = (mode = 'full') => {
     for (let seed = 1; seed < 200; seed++) {
-      let s = engine.newGame({ mode, professionId: 'engineer', seed });
+      let s = engine.newGame({ mode, professionId: 'lawyer', seed });
       s = { ...s, cash: 900000 };
       for (let i = 0; i < 30 && s.status === 'playing'; i++) {
         if (s.phase === 'roll') s = engine.roll(s);

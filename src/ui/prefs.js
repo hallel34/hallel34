@@ -1,7 +1,7 @@
 // User preferences (sound, haptics, theme, motion), persisted in localStorage.
 import { readJSON, writeJSON } from '../services/storage.js';
 
-// explain: 'פסיבו מסביר' (first-time concept explainers). guessFamily / guessFull: the 'עסקה טובה?' guess before the numbers,
+// explain: 'מקסי מסביר' (first-time concept explainers). guessFamily / guessFull: the 'עסקה טובה?' guess before the numbers,
 // on by default in family mode, off in full mode.
 const DEFAULTS = { sound: true, haptics: true, theme: 'dark', reduceMotion: false, locale: 'he', explain: true, guessFamily: true, guessFull: false };
 let prefs = { ...DEFAULTS, ...(readJSON('prefs', {}) || {}) };
@@ -31,6 +31,6 @@ export function applyPrefs() {
   root.dataset.theme = theme;
   if (prefs.reduceMotion) root.dataset.motion = 'reduced'; else delete root.dataset.motion;
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute('content', theme === 'light' ? '#FBF3E1' : '#0F1E46');
+  if (meta) meta.setAttribute('content', theme === 'light' ? '#FBF3E1' : '#0F172A');
 }
 mq?.addEventListener?.('change', () => { if (prefs.theme === 'auto') applyPrefs(); });

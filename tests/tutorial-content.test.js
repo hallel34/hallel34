@@ -96,9 +96,9 @@ describe('tutorial.he.json: the hand-computed figures equal the game data', () =
 
   it('the interest rule behind the numbers is the configured 1% a month', () => {
     expect(LOAN_PAYMENT_RATE).toBe(0.01);
-    expect(loanTerms(10000)).toMatchObject({ monthly: 100, perPayday: 2400, totalAtPayday: 12400 });
+    expect(loanTerms(10000)).toMatchObject({ monthly: 100, perPayday: 1200, totalAtPayday: 11200 });
     expect(T.expenses).toBe(7310);
-    expect(flowWith(apt.monthlyCashFlow) * PAYDAY_MONTHS).toBe(98160);
+    expect(flowWith(apt.monthlyCashFlow) * PAYDAY_MONTHS).toBe(49080);
   });
 
   it('card cash flow = rent|profit minus the loan payment (the 2,600 is already net of the mortgage)', () => {
@@ -134,13 +134,13 @@ describe('tutorial.he.json: the sample sentences equal the templates filled with
     expect(s[0].example.footnote).toContain(money(cart.monthlyCashFlow));
     const l = loanTerms(10000);
     expect(s[3].example.fixed).toBe(true);
-    expect(s[3].example.text).toBe(`לוקחים ${money(l.amount)}. כל חודש משלמים ${money(l.monthly)} תוספת, עד שמחזירים את ה-${money(l.amount)}. בשנתיים התוספת היא ${money(l.perPayday)}.`);
+    expect(s[3].example.text).toBe(`לוקחים ${money(l.amount)}. כל חודש משלמים ${money(l.monthly)} תוספת, עד שמחזירים את ה-${money(l.amount)}. בשנה התוספת היא ${money(l.perPayday)}.`);
   });
   it('hint sentences', () => {
     const f = slotsStory();
-    expect(fillSlots(hint('h-summary').variants.positive.text, { monthly: money(flowWith(0)), months: '24', amount: money(flowWith(0) * 24) })).toBe(hint('h-summary').example.sampleText);
+    expect(fillSlots(hint('h-summary').variants.positive.text, { monthly: money(flowWith(0)), months: '12', amount: money(flowWith(0) * 12) })).toBe(hint('h-summary').example.sampleText);
     const inc = hint('h-summary-income');
-    const incSlots = { passive: money(apt.monthlyCashFlow), months: '24', passiveTotal: money(apt.monthlyCashFlow * 24) };
+    const incSlots = { passive: money(apt.monthlyCashFlow), months: '12', passiveTotal: money(apt.monthlyCashFlow * 12) };
     expect(`${inc.textAsset.apartment} ${fillSlots(inc.moreAsset.apartment, incSlots)}`).toBe(inc.example.sampleText);
     // the generic "more" line (the asset kind is unknown) reads the same figures
     expect(fillSlots(inc.more, incSlots)).toContain(money(apt.monthlyCashFlow));
@@ -166,9 +166,9 @@ describe('tutorial.he.json: the sample sentences equal the templates filled with
   });
   it('summary card and HUD examples', () => {
     const sb = raw.summaryBreakdown;
-    const withAsset = { salary: money(T.salary), passive: money(apt.monthlyCashFlow), expenses: money(T.expenses), monthly: money(flowWith(apt.monthlyCashFlow)), months: '24', amount: money(flowWith(apt.monthlyCashFlow) * 24) };
+    const withAsset = { salary: money(T.salary), passive: money(apt.monthlyCashFlow), expenses: money(T.expenses), monthly: money(flowWith(apt.monthlyCashFlow)), months: '12', amount: money(flowWith(apt.monthlyCashFlow) * 12) };
     expect(fillSlots(sb.oneLine, withAsset)).toBe(sb.example.sampleOneLine);
-    expect(fillSlots(sb.oneLine, { ...withAsset, passive: money(0), monthly: money(flowWith(0)), amount: money(flowWith(0) * 24) })).toBe(sb.example.sampleNoAsset);
+    expect(fillSlots(sb.oneLine, { ...withAsset, passive: money(0), monthly: money(flowWith(0)), amount: money(flowWith(0) * 12) })).toBe(sb.example.sampleNoAsset);
     const hud = raw.hudFamily;
     const sample = `כסף שנכנס בחודש: משכורת ${money(T.salary)} + כסף שעובד ${money(apt.monthlyCashFlow)} = ${money(T.salary + apt.monthlyCashFlow)}. כסף שיוצא בחודש: ${money(T.expenses)}. נשאר בחודש ${money(flowWith(apt.monthlyCashFlow))}.`;
     expect(sample).toBe(hud.example.sample);
@@ -188,8 +188,8 @@ describe('tutorial.he.json: the sample sentences equal the templates filled with
 describe('the figures the UI computes equal the educator\'s', () => {
   it('story figures for the teacher', () => {
     const f = storyFigures(teacher, data.cards);
-    expect(f).toMatchObject({ salary: 8800, expenses: 7310, debts: 510, left: 6410, cart: 900, passive: 2600, monthly: 4090, amount: 98160 });
-    expect(f.loan).toEqual({ amount: 10000, monthly: 100, perSummary: 2400, total: 12400 });
+    expect(f).toMatchObject({ salary: 8800, expenses: 7310, debts: 510, left: 6410, cart: 900, passive: 2600, monthly: 4090, amount: 49080 });
+    expect(f.loan).toEqual({ amount: 10000, monthly: 100, perSummary: 1200, total: 11200 });
   });
   it('story figures follow the chosen profession', () => {
     for (const p of data.professions) {
@@ -197,7 +197,7 @@ describe('the figures the UI computes equal the educator\'s', () => {
       const f = storyFigures(s, data.cards);
       expect(f.expenses).toBe(totalExpenses(s));
       expect(f.monthly).toBe(f.salary + 2600 - f.expenses);
-      expect(f.amount).toBe(f.monthly * 24);
+      expect(f.amount).toBe(f.monthly * 12);
       expect(f.left).toBe(Math.max(0, f.expenses - 900));
     }
   });

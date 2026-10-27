@@ -10,14 +10,14 @@
   "notes": {
     "slots": {
       "title": "card title of the deal",
-      "years": "payback phrase with unit (שנה אחת / שנתיים / 4.2 שנים)",
-      "yield": "annual yield with percent sign",
+      "years": "payback PERIOD (תקופת החזר) phrase with unit (שנה אחת / שנתיים / 4.2 שנים) = down payment / (monthly cash flow x 12)",
+      "yield": "annual return on the down payment (החזר השקעה / תשואה) with percent sign = monthly cash flow x 12 / down payment",
       "loss": "absolute monthly loss, formatted",
       "amount": "money, formatted",
       "green": "count of green decisions",
       "total": "count of all rated decisions",
       "n": "count of unlocked concepts",
-      "all": "total concepts available in this mode (13 in full mode, 10 in family mode; read from glossary level)",
+      "all": "total concepts available in this mode (14 in full mode, 11 in family mode since v3 added `roi`; read from glossary level, never typed)",
       "list": "comma-separated concept terms"
     },
     "pick": "Best deal = purchased apartment/business with the shortest payback; worst = longest payback or negative cash flow. Stocks are NOT included (no payback light for stocks, see spec section 5.1). If one deal was bought show only best. A deal counts as worst only if its tier is slow/bad or negative.",
@@ -27,9 +27,9 @@
     "bestDeal": {
       "title": "העסקה הכי טובה",
       "titleOnly": "העסקה שקניתם",
-      "template": "{title}: החזר תוך {years}, תשואה של {yield} בשנה.",
+      "template": "{title}: תקופת החזר של {years}, תשואה של {yield} בשנה.",
       "negativeOnly": "הנכסים שקניתם הפעם לא הכניסו כסף בכל חודש אחרי התשלומים: התזרים שלהם היה אפס או שלילי. אין כאן עסקה מוצלחת להציג, אבל זה בדיוק מה שהמשחק בא ללמד. בפעם הבאה בדקו את התזרים לפני שקונים.",
-      "stocksOnly": "קניתם הפעם רק מניות. למניות אין דירוג החזר במשחק, ובדירות ובעסקים אפשר לראות את שנות ההחזר.",
+      "stocksOnly": "קניתם הפעם רק מניות. למניות אין רמזור תקופת החזר במשחק, ובדירות ובעסקים אפשר לראות את תקופת ההחזר.",
       "empty": "לא קניתם דירות או עסקים הפעם. בפעם הבאה נסו לבדוק עסקה ולהחליט.",
       "conditions": {
         "titleOnly": "exactly one apartment/business bought: use titleOnly instead of title",
@@ -40,7 +40,7 @@
     },
     "worstDeal": {
       "title": "העסקה שאפשר לשפר",
-      "templateSlow": "{title}: החזר תוך {years}. עסקה איטית שתקעה את הכסף.",
+      "templateSlow": "{title}: תקופת החזר של {years}. עסקה איטית שתקעה את הכסף.",
       "templateNegative": "{title}: תזרים של מינוס {loss} בחודש. כדאי לבדוק תזרים לפני קנייה.",
       "empty": "אף עסקה לא הייתה איטית במיוחד או עם תזרים שלילי."
     },
@@ -61,7 +61,7 @@
       },
       "pluralRule": "Pick by green (1 -> one, 2 -> two, else other). total is always >= 2 here, because total = 1 is allGreen or noneGreen.",
       "allGreen": "כל ההחלטות היו ירוקות! עבודה מצוינת.",
-      "noneGreen": "הפעם לא היו החלטות ירוקות. בפעם הבאה בדקו את שנות ההחזר לפני כל קנייה.",
+      "noneGreen": "הפעם לא היו החלטות ירוקות. בפעם הבאה בדקו את תקופת ההחזר לפני כל קנייה.",
       "noData": "עוד לא התקבלו החלטות לדירוג."
     },
     "concepts": {
@@ -72,8 +72,8 @@
         "two": "שני מושגים",
         "other": "{n} מושגים"
       },
-      "countRule": "{count} = the phrase from `count` chosen by n (1 -> one, 2 -> two, else other, with {n} filled). n counts only concepts unlocked in THIS game (state.learn.seenConcepts), not the device-wide seen set; {all} is the number of concepts of the current mode (10 family, 13 full).",
-      "none": "עוד לא נפתחו מושגים. אפשר לראות את כולם במילון של פסיבו.",
+      "countRule": "{count} = the phrase from `count` chosen by n (1 -> one, 2 -> two, else other, with {n} filled). n counts only concepts unlocked in THIS game (state.learn.seenConcepts), not the device-wide seen set; {all} is the number of concepts of the current mode (11 family, 14 full; v3 added roi).",
+      "none": "עוד לא נפתחו מושגים. אפשר לראות את כולם במילון של מקסי.",
       "openDictionary": "לפתיחת המילון"
     },
     "stats": {
@@ -90,17 +90,17 @@
     "tips": {
       "highInterest": "ההלוואות עלו לכם ריבית. בפעם הבאה נסו להחזיק מזומן בצד כדי לא להזדקק להן, או להחזיר הלוואה ברגע שיש מזומן.",
       "noCushion": "נתקעתם בלי מזומן כשהגיעה הוצאה. בפעם הבאה השאירו כרית ביטחון לפני שקונים.",
-      "manyRed": "קניתם כמה עסקאות איטיות או מפסידות. בפעם הבאה בדקו את שנות ההחזר לפני כל קנייה.",
+      "manyRed": "קניתם כמה עסקאות איטיות או מפסידות. בפעם הבאה בדקו את תקופת ההחזר לפני כל קנייה.",
       "noDiversify": "כל הנכסים שלכם היו מאותו סוג. בפעם הבאה נסו לשלב כמה סוגי נכסים.",
       "allGood": {
         "family": "רוב ההחלטות שלכם היו ירוקות. נסו מקצוע אחר או מצב מלא, ובדקו מה משתנה.",
         "full": "רוב ההחלטות שלכם היו ירוקות. נסו מקצוע אחר ובדקו אילו החלטות עובדות גם שם."
       },
-      "fallback": "כל משחק הוא תרגול. בפעם הבאה נסו לבדוק תחילה את התזרים ואת שנות ההחזר."
+      "fallback": "כל משחק הוא תרגול. בפעם הבאה נסו לבדוק תחילה את התזרים ואת תקופת ההחזר."
     }
   },
   "family": {
-    "note": "round 11: במצב משפחה ממזגים (deep merge) את הערכים כאן מעל הערכים הרגילים באותו נתיב, כולל conversation.family. אין בהם: ריבית, תזרים, כרית ביטחון, תשואה, מקדמה, הכנסה פסיבית, משכנתא, החזר השקעה, התחייבות.",
+    "note": "round 11: במצב משפחה ממזגים (deep merge) את הערכים כאן מעל הערכים הרגילים באותו נתיב, כולל conversation.family. אין בהם: ריבית, תזרים, כרית ביטחון, תשואה, מקדמה, הכנסה פסיבית, משכנתא, החזר השקעה, תקופת החזר, התחייבות.",
     "sections": {
       "bestDeal": {
         "template": "{title}: הכסף חוזר תוך {years}, והנכס מכניס {yield} בשנה ממה ששילמתם בהתחלה.",
@@ -116,6 +116,9 @@
         "template": "שילמתם {amount} תוספת על הלוואות מהבנק. זה כסף שהיה יכול להישאר אצלכם.",
         "zero": "לא לקחתם הלוואות מהבנק, ולכן לא שילמתם עליהן תוספת."
       },
+      "greenDecisions": {
+        "noneGreen": "הפעם לא היו החלטות ירוקות. בפעם הבאה בדקו תוך כמה שנים הכסף חוזר, לפני כל קנייה."
+      },
       "stats": {
         "passive": "כסף שעובד",
         "expenses": "הוצאות בחודש"
@@ -130,6 +133,7 @@
           "mortgage": "הלוואה לדירה",
           "yield": "כמה הנכס מכניס בשנה",
           "payback": "תוך כמה שנים הכסף חוזר",
+          "roi": "כמה אחוזים הכסף מרוויח בשנה",
           "interest": "תוספת על ההלוואה",
           "dividend": "חלק מהרווח של החברה",
           "cushion": "כסף בצד לשעת צורך",

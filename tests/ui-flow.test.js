@@ -53,8 +53,7 @@ describe('buy button is truthful', () => {
     expect(he.card.noFundsMax).toBe('אין מספיק כסף, גם עם הלוואה מקסימלית');
     expect(src).toMatch(/purchasePlan\(state, c\.price\)/);
     expect(src).toMatch(/purchasePlan\(state, c\.downPayment\)/);
-    expect(src).toMatch(/'aria-disabled': a\.blocked \? 'true' : null/);
-    expect(src).toMatch(/if \(a\.blocked\) \{ haptic\('error'\); shake\(b\); return; \}/);
+    expect(src).toMatch(/disabled: !!\(a\.disabled \|\| a\.blocked\)/);
     expect(src).toMatch(/blocked: plan\.status === 'blocked'/);
   });
   it('when a loan can cover the gap, tapping buy asks for exactly that loan (buyLoan), then the purchase completes', () => {
@@ -77,7 +76,9 @@ describe('home button', () => {
   });
   it('is an in-page sheet (no native dialogs), saves the whole match, and answers popstate', () => {
     const play = read('src/ui/play.js');
-    expect(play).toMatch(/iconButton\('home', t\('game\.home'\)/);
+    // board-spec 14.3: the home button is the HUD's one menu button (it opens the home sheet, which also carries the settings)
+    expect(play).toMatch(/iconButton\('menu', t\('game\.menu'\), \(\) => askHome\(\)/);
+    expect(play).toMatch(/homeBtn\.dataset\.action = 'home'/);
     expect(play).toMatch(/store\.save\(match\);\s*teardown\(\);[^\n]*\n\s*nav\.menu\(\)/);
     expect(play).toMatch(/addEventListener\('popstate'/);
     for (const f of ['src/ui/play.js', 'src/ui/modals.js', 'src/ui/app.js']) expect(read(f)).not.toMatch(/window\.confirm\(|[^.\w]confirm\(/);

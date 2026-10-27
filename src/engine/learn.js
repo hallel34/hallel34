@@ -5,7 +5,7 @@ import {
   LOAN_COSTLY_PAYMENT_SHARE, INVESTOR_EYE_STREAK, REPORT_MANY_LOANS, REPORT_MANY_RED, REPORT_NO_DIVERSIFY_ASSETS,
   REPORT_ALL_GOOD_SHARE,
 } from './config.js';
-import { paybackYears, paybackTier, loanTerms, loanPaydayImpact, monthlyCashFlow } from './selectors.js';
+import { paybackYears, paybackTier, loanTerms, loanPaydayImpact, monthlyCashFlow, loanRateNow } from './selectors.js';
 
 // ---------- deal rating (spec 2) ----------
 const TIER_NAME = { ok: 'good', slow: 'ok', bad: 'bad' }; // engine paybackTier -> feedback group name
@@ -45,7 +45,7 @@ export const lightOfTier = (tier) => LIGHT_OF[tier] ?? null;
  * summary is judged WITH the asset (its cash flow counts), the same figures the loan dialog shows.
  */
 export function loanRating(s, amount, { card = null, spend = 0, qty = 1 } = {}) {
-  const payment = loanTerms(amount).monthly;
+  const payment = loanTerms(amount, loanRateNow(s)).monthly;
   const risky = loanPaydayImpact(s, amount, spend, purchaseCashFlow(card, qty)).risky;
   if (card) {
     const m = dealMetrics(card);

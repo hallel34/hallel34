@@ -1,4 +1,4 @@
-// Device-level progress of 'המשחק הראשון עם פסיבו' in localStorage (one key): { storyDone, quizDone, hintsSeen: { id: turn }, helpOn }.
+// Device-level progress of 'המשחק הראשון עם מקסי' in localStorage (one key): { storyDone, quizDone, hintsSeen: { id: turn }, helpOn }.
 // Hints are shown once per device (also in hot-seat: the first player who triggers one). 'helpOn' is the settings switch.
 import { readJSON, writeJSON, readRaw } from '../services/storage.js';
 

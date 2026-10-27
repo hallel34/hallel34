@@ -29,11 +29,12 @@ export function feedbackNodes(template, slots) {
  * @param mode      'family' | 'full'
  * @param seed      the player's game seed (a deterministic rotation of the phrasings)
  * @param getState / setState  the active player's engine state (setState also saves the match)
- * @param onActive  (boolean) the note slot is in use
+ * @param onActive  (boolean, item) the note slot is in use
+ * @param onShown   (item) a message reached the screen (the fox guide takes its pose)
  * @param onDismiss the explainer was dismissed with its button (keyboard focus goes back to the roll button)
  */
-export function createLearnFlow({ zone, mode, seed, getState, setState, onActive, onDismiss }) {
-  const notes = createNotes({ zone, onActive, onDismiss });
+export function createLearnFlow({ zone, mode, seed, getState, setState, onActive, onDismiss, onShown }) {
+  const notes = createNotes({ zone, onActive, onDismiss, onShown });
   const counters = {};
   let queue = []; // [{ id, turn, n }]: explainers waiting (see triggers.js pickExplainer)
   const offers = {}; // how many times an unread explainer was offered

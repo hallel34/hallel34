@@ -7,10 +7,10 @@ export const POSE_NAMES = ['tired', 'wave', 'roll', 'hammock', 'tip', 'think', '
 export const REACTIONS = ['think', 'celebrate', 'worried', 'ponder'];
 
 /** Which crop a card category gets in the modal banner. */
-export const CARD_REACTION = { opportunity: 'think', expense: 'worried', baby: 'worried', market: 'ponder', charity: 'celebrate' };
+export const CARD_REACTION = { opportunity: 'think', expense: 'worried', baby: 'worried', market: 'ponder', charity: 'celebrate', decision: 'think', taxAudit: 'ponder' };
 
 /** Board reaction for the square the pawn landed on (shown briefly before its card opens). */
-export const LAND_REACTION = { opportunity: 'think', expense: 'worried', market: 'ponder', baby: 'worried', charity: 'think' };
+export const LAND_REACTION = { opportunity: 'think', expense: 'worried', market: 'ponder', baby: 'worried', charity: 'think', taxAudit: 'ponder' };
 
 /** Number of tip strings (fox.tip1..fox.tipN in the locale files). */
 export const TIP_COUNT = 6;

@@ -1,8 +1,10 @@
 // App shell: screen routing, persistence (save/resume), engine wiring.
+import { loadBoardStyles } from './board-styles.js';
 import { h, clear } from './dom.js';
 import {
-  createEngine, serialize, deserialize, newMatch, rematch, isMultiplayer, currentState, dailySeed, dailyProfessionId, DAILY_MODE,
+  createEngine, serialize, deserialize, newMatch, rematch, isMultiplayer, currentState, dailySeed, dailyProfessionId, DAILY_MODE, seesCoins, isJuniorSetup, JUNIOR_AGE,
 } from '../engine/index.js';
+import { setCoinScale } from './format.js';
 import { loadData } from '../data/index.js';
 import { readRaw, writeRaw, remove } from '../services/storage.js';
 import { createMatchStore } from '../services/match-store.js';
@@ -34,7 +36,7 @@ export function createApp(host) {
   let active = null;
   let mode = readRaw('mode') === 'full' ? 'full' : 'family';
   // Hot-seat setup being built: count, names, and each player's chosen profession.
-  let setup = { count: 1, names: [''], professionIds: [] };
+  let setup = { count: 1, names: [''], ages: [null], professionIds: [] };
 
   // a daily challenge keeps its own slot, so starting it never overwrites a normal game in progress; the slot always comes from the match
   const store = createMatchStore({ write: writeRaw, remove, serialize });
@@ -133,6 +135,7 @@ export function createApp(host) {
   const countGame = () => writeRaw('gamesPlayed', String(gamesPlayed() + 1));
 
   function goStart() {
+    setCoinScale(false);
     const start = createStart({
       save: loadSave(),
       mode,
@@ -154,17 +157,21 @@ export function createApp(host) {
   }
 
   function goPlayers() {
+    setCoinScale(false);
     mount({ el: createPlayers({
-      count: setup.count, names: setup.names,
+      count: setup.count, names: setup.names, ages: setup.ages ?? [], mode,
+      onMode: (m) => { mode = m; writeRaw('mode', m); },
       onBack: () => goStart(),
-      onNext: ({ count, names }) => { setup = { count, names, professionIds: [] }; goPick(0); },
+      onNext: ({ count, names, ages }) => { setup = { count, names, ages, professionIds: [] }; goPick(0); },
     }).el });
   }
 
   function goPick(i) {
     const multi = setup.count > 1;
+    const junior = isJuniorSetup(mode, (setup.ages ?? []).map((age) => ({ age })));
+    setCoinScale(junior && setup.ages?.[i] === JUNIOR_AGE); // this player's own scale
     mount({ el: createPick({
-      engine, mode,
+      engine, mode, junior,
       player: multi ? { name: playerName({ name: setup.names[i] }, i), color: i + 1, n: i + 1, total: setup.count } : null,
       onBack: () => (i === 0 ? goPlayers() : goPick(i - 1)),
       onGo: (professionId) => {
@@ -177,9 +184,10 @@ export function createApp(host) {
   async function startNew() {
     const m = newMatch(engine, {
       mode, seed: nextSeed(),
-      players: setup.professionIds.map((professionId, i) => ({ name: setup.names[i], professionId })),
+      players: setup.professionIds.map((professionId, i) => ({ name: setup.names[i], professionId, age: setup.ages?.[i] ?? null })),
     });
-    // 'המשחק הראשון עם פסיבו': the first family game of this device opens with the five-screen story (lazy chunk, skippable)
+    setCoinScale(seesCoins(m, m.players[0])); // the story of a junior first game is told in coins
+    // 'המשחק הראשון עם מקסי': the first family game of this device opens with the five-screen story (lazy chunk, skippable)
     if (mode === 'family' && !loadTutorial().storyDone) {
       try {
         const { runFirstGameIntro } = await import('./tutorial/index.js');
@@ -189,9 +197,10 @@ export function createApp(host) {
     goPlay(m);
   }
 
-  function goPlay(m, { fresh = false } = {}) {
+  async function goPlay(m, { fresh = false } = {}) {
     store.save(m);
     setLearnMode(m.mode);
+    try { await loadBoardStyles(); } catch (err) { console.warn(err); } // the board is usable (if plainer) even without its v4 stylesheet
     const play = createPlay({ engine, match: m, nav, store, professionIds, fresh });
     mount({ el: play.el, destroy: () => play.destroy() }, { start: () => play.start() });
   }
@@ -206,6 +215,7 @@ export function createApp(host) {
     setup = {
       count: m.players.length,
       names: m.players.map((p, i) => (m.players.length > 1 ? playerName(p, i) : '')),
+      ages: m.players.map((p) => p.age ?? null),
       professionIds: m.players.map((p) => p.professionId),
     };
   }
@@ -215,6 +225,7 @@ export function createApp(host) {
     store.clear(m);
     countGame();
     const multi = isMultiplayer(m);
+    setCoinScale(seesCoins(m, m.players[m.winnerIndex ?? 0])); // the winner's own scale
     const win = createWin({
       match: m,
       onAgain: () => again(m),
@@ -229,6 +240,7 @@ export function createApp(host) {
     store.clear(m);
     countGame();
     const multi = isMultiplayer(m);
+    setCoinScale(!multi && seesCoins(m, m.players[0]));
     const over = createOver({
       match: m,
       onRetry: () => again(m),
