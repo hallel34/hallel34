@@ -3,34 +3,38 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#0F1E46">
+  <meta name="theme-color" content="#0F172A">
   <meta name="color-scheme" content="dark light">
-  <meta name="description" content="פסיבו – משחק הכסף שעובד בשבילך. בונים הכנסה פסיבית ומגיעים לחופש כלכלי">
+  <meta name="description" content="MaxiFox – משחק הכסף שעובד בשבילך. בונים הכנסה פסיבית ומגיעים לחופש כלכלי">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>פסיבו – משחק הכסף שעובד בשבילך</title>
+  <title>MaxiFox – משחק הכסף שעובד בשבילך</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" type="image/png" sizes="32x32" href="./icons/favicon-32.png">
   <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
   <style>
     /* Critical paint: navy backdrop before CSS loads (no flash) */
-    html, body { margin: 0; background: #0F1E46; }
-    #app:empty { min-height: 100dvh; background: linear-gradient(180deg, #091330, #0F1E46 55%, #1D3573); }
+    html, body { margin: 0; background: #0F172A; }
+    #app:empty { min-height: 100dvh; background: #0F172A; }
+    /* splash (fox-usage.md: the MaxiFox logo while the app loads); main.js removes it once the first screen is mounted */
+    #splash { position: fixed; inset: 0; display: grid; place-items: center; background: #0F172A; z-index: 1; pointer-events: none; }
+    #splash img { width: 200px; height: auto; aspect-ratio: 240 / 261; }
   </style>
-  <script type="module" crossorigin src="/hallel34/assets/index-BJXIG7nV.js"></script>
-  <link rel="stylesheet" crossorigin href="/hallel34/assets/index-D8d22njg.css">
+  <script type="module" crossorigin src="/hallel34/assets/index-BDffIV6w.js"></script>
+  <link rel="stylesheet" crossorigin href="/hallel34/assets/index-BxZDKzK0.css">
   <link rel="preload" as="font" type="font/woff2" crossorigin href="/hallel34/assets/rubik-hebrew-700-normal-Da14F88e.woff2">
   <link rel="preload" as="font" type="font/woff2" crossorigin href="/hallel34/assets/rubik-latin-700-normal-D-tMm-eS.woff2">
   <link rel="preload" as="font" type="font/woff2" crossorigin href="/hallel34/assets/rubik-hebrew-900-normal-CNJSgxQA.woff2">
   <link rel="preload" as="font" type="font/woff2" crossorigin href="/hallel34/assets/rubik-latin-900-normal-Cz6GdZLE.woff2">
-  <script>try{var w=!localStorage.getItem('passivo.seenIntro'),u=w?['/hallel34/assets/wave-BiBO1Ywk.webp','/hallel34/assets/wave@2x-4B9N7sF8.webp']:['/hallel34/assets/tired-CuiaP9_L.webp','/hallel34/assets/tired@2x-BMfxRApL.webp'],l=document.createElement('link');l.rel='preload';l.as='image';l.href=u[0];l.setAttribute('imagesrcset',u[0]+' 1x, '+u[1]+' 2x');l.setAttribute('fetchpriority','high');document.head.appendChild(l)}catch(e){}</script>
+  <link rel="preload" as="image" href="/hallel34/assets/maxifox-logo-alpha-1x-C8Qwfj6n.webp" imagesrcset="/hallel34/assets/maxifox-logo-alpha-1x-C8Qwfj6n.webp 1x, /hallel34/assets/maxifox-logo-alpha-2x-BTQZ1b04.webp 2x">
 </head>
 <body>
+  <div id="splash" aria-hidden="true"><img src="/hallel34/assets/maxifox-logo-alpha-1x-C8Qwfj6n.webp" srcset="/hallel34/assets/maxifox-logo-alpha-1x-C8Qwfj6n.webp 1x, /hallel34/assets/maxifox-logo-alpha-2x-BTQZ1b04.webp 2x" width="200" height="218" alt="" fetchpriority="high"></div>
   <main id="app"></main>
   <div id="modal-root"></div>
   <div id="fx-layer" aria-hidden="true"></div>
   <div id="toast-layer"></div>
-  <noscript>פסיבו דורש JavaScript</noscript>
+  <noscript>MaxiFox דורש JavaScript</noscript>
 </body>
 </html>

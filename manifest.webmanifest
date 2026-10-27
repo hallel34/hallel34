@@ -1,6 +1,6 @@
 {
-  "name": "פסיבו – משחק הכסף שעובד בשבילך",
-  "short_name": "פסיבו",
+  "name": "MaxiFox – משחק הכסף שעובד בשבילך",
+  "short_name": "MaxiFox",
   "description": "משחק לוח פיננסי: בונים הכנסה פסיבית ומגיעים לחופש כלכלי. הכסף עובד בשבילך",
   "lang": "he",
   "dir": "rtl",
@@ -9,8 +9,8 @@
   "id": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#0F1E46",
-  "theme_color": "#0F1E46",
+  "background_color": "#0F172A",
+  "theme_color": "#0F172A",
   "categories": ["games", "education", "finance"],
   "icons": [
     { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
