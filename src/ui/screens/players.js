@@ -12,15 +12,19 @@ import { playerToken, playerName } from '../players.js';
  * @param count   initial number of players
  * @param names   initial names (array; may be shorter than count)
  * @param onBack  () => void
- * @param onNext  ({ count, names, ages }) => void   names are final (never empty); a single player has names ['']; ages: band or null.
+ * @param onNext  ({ count, names, ages, bots }) => void   names are final (never empty); a single player has names ['']; ages: band or null.
+ *   bots: per seat null (a person) or a bot policy id ('cautious' | 'sensible' | 'alwaysBuy') - the device plays that seat.
+ *   Bot seats are multiplayer-only, skip the age chips, and get the policy's default name.
  * @param mode    the mode picked on the start screen; onMode(m) switches it (an age under 14 suggests family mode)
  */
 const AGE_KEY = { upTo10: 'players.ageUpTo10', '11to13': 'players.age11to13', '14plus': 'players.age14plus' };
-export function createPlayers({ count = 1, names = [], ages = [], mode = 'family', onMode = null, onBack, onNext }) {
+const BOT_POLICIES = ['cautious', 'sensible', 'alwaysBuy'];
+export function createPlayers({ count = 1, names = [], ages = [], bots = [], mode = 'family', onMode = null, onBack, onNext }) {
   let n = count;
   let curMode = mode;
   const values = Array.from({ length: MAX_PLAYERS }, (_, i) => names[i] || '');
   const agesOf = Array.from({ length: MAX_PLAYERS }, (_, i) => (AGE_BANDS.includes(ages[i]) ? ages[i] : null));
+  const botsOf = Array.from({ length: MAX_PLAYERS }, (_, i) => (BOT_POLICIES.includes(bots[i]) ? bots[i] : null));
   const ageNote = h('p', { class: 'age-note', role: 'status', 'aria-live': 'polite' });
   let suggested = false; // the switch to family mode happened on this screen
   function paintNote() {
@@ -28,6 +32,7 @@ export function createPlayers({ count = 1, names = [], ages = [], mode = 'family
     const lines = [];
     if (suggested) lines.push(t('players.familySuggested'));
     if (junior) lines.push(t('players.juniorOn'), t('players.ageNote', { perCoin: t('coins.perCoin', { value: inShekels(() => moneyText(COIN_VALUE)) }) }));
+    if (botsOf.slice(0, n).some(Boolean)) lines.push(t('players.botNote'));
     ageNote.replaceChildren(...lines.map((l) => h('span', null, l)));
     ageNote.hidden = !lines.length;
   }
@@ -77,12 +82,54 @@ export function createPlayers({ count = 1, names = [], ages = [], mode = 'family
         const nextInput = fields.querySelector(`[data-player="${i + 1}"]`);
         if (nextInput) nextInput.focus(); else finish();
       });
-      fields.append(h('div', { class: 'name-row' }, playerToken(i + 1, { label: t('players.colorLabel', { n: i + 1 }) }), input));
+      const personRow = h('div', { class: 'name-row', 'data-person-row': String(i) }, playerToken(i + 1, { label: t('players.colorLabel', { n: i + 1 }) }), input);
+      fields.append(personRow);
       // one player: the chips live in ageSingle (the name fields are hidden), never twice with the same radio name
       if (n > 1) fields.append(ageChips(i, t('players.ageGroup', { name: playerName({ name: values[i] }, i) })));
+      if (n > 1) fields.append(botChips(i, personRow));
     }
     paintNote();
     next.firstChild.textContent = n === 1 ? t('players.toProfession') : t('players.next');
+  }
+
+  /** Seat i: אדם/בוט chips, and for a bot the policy chips. Bot seats hide the name input and the age chips. */
+  function botChips(i, personRow) {
+    const name = `bot-${i}`;
+    const paintSeat = () => {
+      const isBot = !!botsOf[i];
+      personRow.hidden = isBot;
+      const age = fields.querySelector(`[data-age-for="${i}"]`);
+      if (age) age.hidden = isBot;
+      seat.querySelectorAll('.bot-policy-row').forEach((el) => { el.hidden = !isBot; });
+      const pol = botsOf[i] && seat.querySelector(`[data-policy="${botsOf[i]}"]`);
+      if (isBot && pol) pol.checked = true; // the default policy also shows as picked
+      // a bot seat hides the name input, so it names itself: token + the policy's fox name
+      seatLabel.hidden = !isBot;
+      if (isBot) seatLabel.replaceChildren(playerToken(i + 1, { label: t('players.colorLabel', { n: i + 1 }) }), h('span', null, t(`players.botName.${botsOf[i]}`)));
+    };
+    const seatChip = (kind, labelKey) => {
+      const input = h('input', { type: 'radio', name, value: kind, class: 'age-input', 'data-seat': kind, checked: (kind === 'bot') === !!botsOf[i] || null });
+      input.addEventListener('change', () => {
+        if (!input.checked) return;
+        botsOf[i] = kind === 'bot' ? (botsOf[i] ?? 'sensible') : null;
+        haptic('tap');
+        paintSeat();
+        paintNote();
+      });
+      return h('label', { class: 'age-chip' }, input, h('span', { class: 'age-chip-text' }, t(labelKey)));
+    };
+    const policyChip = (policy) => {
+      const input = h('input', { type: 'radio', name: `${name}-policy`, value: policy, class: 'age-input', 'data-policy': policy, checked: botsOf[i] === policy || null });
+      input.addEventListener('change', () => { if (input.checked) { botsOf[i] = policy; haptic('tap'); paintSeat(); } });
+      return h('label', { class: 'age-chip' }, input, h('span', { class: 'age-chip-text' }, t(`players.botPolicy.${policy}`)));
+    };
+    const seatLabel = h('div', { class: 'bot-seat-name', 'data-bot-name': String(i), hidden: true });
+    const seat = h('div', { class: 'bot-seat', 'data-bot-seat': String(i) },
+      seatLabel,
+      h('div', { class: 'age-chips bot-kind' }, seatChip('human', 'players.humanSeat'), seatChip('bot', 'players.botSeat')),
+      h('div', { class: 'age-chips bot-policy-row', role: 'group', 'aria-label': t('players.botPolicyTitle') }, BOT_POLICIES.map(policyChip)));
+    queueMicrotask(paintSeat);
+    return seat;
   }
 
   const st = stepper({
@@ -94,9 +141,12 @@ export function createPlayers({ count = 1, names = [], ages = [], mode = 'family
   paint();
 
   function finish() {
-    // final names: empty -> the default label, repeats get " 2", " 3" (two players must never share a name)
-    const out = n === 1 ? [''] : uniqueNames(Array.from({ length: n }, (_, i) => (values[i] || '').replace(/\s+/g, ' ').trim().slice(0, NAME_MAX) || playerName({ name: '' }, i)));
-    onNext({ count: n, names: out, ages: agesOf.slice(0, n) });
+    // final names: empty -> the default label (a bot seat -> the policy's name), repeats get " 2", " 3"
+    const out = n === 1 ? [''] : uniqueNames(Array.from({ length: n }, (_, i) => {
+      if (botsOf[i]) return t(`players.botName.${botsOf[i]}`);
+      return (values[i] || '').replace(/\s+/g, ' ').trim().slice(0, NAME_MAX) || playerName({ name: '' }, i);
+    }));
+    onNext({ count: n, names: out, ages: agesOf.slice(0, n).map((age, i) => (botsOf[i] ? null : age)), bots: botsOf.slice(0, n) });
   }
 
   const el = h('section', { class: 'screen screen-players', 'data-screen': 'players' },

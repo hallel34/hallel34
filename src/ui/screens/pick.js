@@ -29,7 +29,8 @@ export function createPick({ engine, mode, onBack, onGo, player = null, junior =
     const row = (l, v, tone = '') => h('div', { class: `st-row${tone ? ` st-${tone}` : ''}` }, h('span', { class: 'st-label' }, l), h('span', { class: 'st-value' }, v));
     // Expenses are itemised behind a tertiary text toggle (no fox on the sheet: spec 4.2 / 5).
     const expenseRows = h('div', { class: 'st-rows', id: 'pick-expense-rows', hidden: true },
-      ...p.expenses.map((e) => row(e.label, money(e.amount))));
+      ...p.expenses.map((e) => row(e.label, money(e.amount))),
+      ...p.liabilities.map((l) => row(l.label, money(l.monthlyPayment))));
     const toggle = h('button', { type: 'button', class: 'st-toggle', 'aria-expanded': 'false', 'aria-controls': 'pick-expense-rows' },
       h('span', null, t('pick.showExpenses')), icon('plus', { size: 20, width: 3 }));
     toggle.addEventListener('click', () => {

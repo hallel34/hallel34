@@ -39,7 +39,8 @@ export const seesCoins = (m, player) => !!m?.junior && cleanAge(player?.age) ===
 
 /**
  * @param engine createEngine(...) result
- * @param players [{ name?, professionId, age? }] 1-4 entries; an empty name means "use the default label" (UI side)
+ * @param players [{ name?, professionId, age?, bot? }] 1-4 entries; an empty name means "use the default label" (UI side).
+ *   `bot` (a BOTS policy name) marks a seat the device plays itself (schema 7).
  */
 export function newMatch(engine, { mode = 'full', players, seed = 1, daily = null } = {}) {
   if (!Array.isArray(players) || players.length < MIN_PLAYERS || players.length > MAX_PLAYERS) {
@@ -60,6 +61,7 @@ export function newMatch(engine, { mode = 'full', players, seed = 1, daily = nul
       color: i + 1, // 1-4: token colour and number badge
       professionId: p.professionId,
       age: daily ? null : cleanAge(p.age), // schema 6
+      bot: typeof p.bot === 'string' && p.bot ? p.bot : null, // schema 7: a seat the device plays itself
       state: engine.newGame({ mode, professionId: p.professionId, seed: seed + i * SEED_STEP, ...(daily ? { daily } : {}), ...(junior ? { junior: true } : {}) }),
     })),
     currentIndex: 0,
@@ -110,10 +112,12 @@ export function canEndTurn(m) {
  *  'out'     the current player is already out          -> run the out flow (announce, hand over, or end the match)
  *  'resolve' the current player has an open decision    -> reopen it
  *  'settle'  the current player rolled and resolved     -> wait for "continue" (or close the turn)
+ *  'auction' a passed deal is out for bidding           -> reopen the auction
  *  'ready'   a fresh turn                               -> roll (hot-seat: confirm whose turn it is first)
  */
 export function resumePlan(m) {
   if (m.status !== 'playing') return 'finish';
+  if (m.auction) return 'auction';
   const s = currentState(m);
   if (s.status === 'lost') return 'out';
   if (s.status !== 'playing') return 'finish';

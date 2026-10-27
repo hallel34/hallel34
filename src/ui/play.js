@@ -1,10 +1,13 @@
 // Board screen + game flow controller. The engine is the source of truth; this file only
 // presents engine events (die, hops, cash) and applies the player's choices through the engine.
+import boardBaseUrl from '../assets/board-premium.webp?url';
+import { BOARD_GEO } from './board-geo.js';
 import { h, html } from './dom.js';
 import { t, tp, tRaw } from '../i18n/index.js';
 import {
   BOARD, EngineError, statement, monthlyCashFlow, currentState, setCurrentState, endTurn, canEndTurn, isMultiplayer, passiveIncome,
   totalExpenses, resumePlan, lastPlayerStanding, nextActiveIndex,
+  botStep, auctionMaxBid, maybeStartAuction, auctionBidderIndex, auctionMinBid, auctionBid, auctionPass, renovationOption,
 } from '../engine/index.js';
 import { icon } from './icons.js';
 import { money, moneyText, moneyIsolated, tn, signedMoney, paydayCalc, numberText, setCoinScale } from './format.js';
@@ -12,7 +15,7 @@ import { button, iconButton, meter, cashDisplay, miniMeter, fitText } from './wi
 import { createDice } from './die.js';
 import { motionOK } from './prefs.js';
 import {
-  haptic, sound, animate, cssMs, cssPx, floatText, coinBurst, shake, pulse, pause, toast,
+  haptic, sound, animate, cssMs, cssPx, coinBurst, shake, pulse, pause, toast,
 } from './fx.js';
 import * as raw from './modals.js';
 import { openStatement } from './statement.js';
@@ -116,6 +119,9 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   const repayDialog = gated(raw.repayDialog);
   const sellSheet = gated(raw.sellSheet);
   const handoffSheet = gated(raw.handoffSheet);
+  const auctionModal = gated(raw.auctionModal);
+  const renovateStyleSheet = gated(raw.renovateStyleSheet);
+  const renovatedDialog = gated(raw.renovatedDialog);
   const summaryCardGated = gated(summaryCard);
   const playerOutModal = gated(raw.playerOutModal);
   const decisionModal = gated(rawDecisionModal);
@@ -197,9 +203,12 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   ensureTileSprite();
   const tiles = BOARD.map((sq, i) => {
     const [col, row] = ringPos(i);
-    // owner override 2026-10-24: the glossy 3D tile art on the board (monoline fallback while a file is missing)
+    const g = BOARD_GEO.tiles[i];
     const tile = boardTile(sq, { mode: state.mode, cls: `tile-${sq}`, attrs: { 'aria-hidden': 'true', 'data-i': i } });
+    tile.classList.add('scene-anchor');
     tile.style.setProperty('--c', col); tile.style.setProperty('--r', row);
+    tile.style.left = `${g.x * 100}%`; tile.style.top = `${g.y * 100}%`;
+    tile.style.inlineSize = `${g.w * 112}%`; tile.style.blockSize = `${g.h * 130}%`;
     return tile;
   });
   // One pawn per player, each with its OWN ground shadow (no filter on the moving pawn). Shared tiles offset the pawns (pawnOffsets).
@@ -211,7 +220,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   const activePawn = () => pawns[match.currentIndex];
   const dice = createDice();
   dice.setValues(state.lastRoll?.dice || [1]);
-  const status = h('p', { class: 'board-status', 'aria-live': 'polite' }, t('game.statusStart'));
+  const status = h('p', { class: 'board-status', 'aria-live': 'polite', hidden: true });
   // "you are here" (idle): icon + "אתם על: הזדמנות" under the status line (merged into it as a prefix chip on the smallest screens)
   const hereIcon = h('span', { class: 'here-icon' });
   const hereText = h('span', { class: 'here-text' });
@@ -230,10 +239,10 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   // owner override 2026-10-24b (board-spec 14.4): the plaza is a flex column. Top row: the flow chip (start) and "?" (end);
   // spacer; die (the landing caption takes its place on a landing); status + "you are here"; spacer; the fox row; the CTA.
   const plazaTop = h('div', { class: 'plaza-top' }, flowChip, legendBtn);
-  const center = h('div', { class: 'board-center' }, plazaTop, h('i', { class: 'plaza-spacer', 'aria-hidden': 'true' }),
+  const center = h('div', { class: 'board-center' }, h('i', { class: 'plaza-spacer', 'aria-hidden': 'true' }),
     h('div', { class: 'plaza-die' }, landCap, dice.el), h('div', { class: 'status-wrap' }, status, hereLine), charityChip, othersBtn,
     h('i', { class: 'plaza-spacer', 'aria-hidden': 'true' }));
-  const board = h('div', { class: `board${multi ? ' board-multi' : ''}`, role: 'group' }, boardSky(), ...tiles, center, othersPanel);
+  const board = h('div', { class: `board${multi ? ' board-multi' : ''}`, role: 'group', style: `background-image:url(${boardBaseUrl})` }, boardSky(), ...tiles, center, othersPanel);
   let currentTile = null;
 
   const rollLabel = h('span', null, t('game.roll'));
@@ -243,7 +252,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
 
   // The fox strip (between the board plate and the roll button): the latest-event chip, the corner fox guide and its bubble.
   // data-pose: 'roll' = idle, 'none' = a turn is playing, 'note' = a bubble is up, 'tip' = a family tip bubble is up.
-  const chip = h('div', { class: 'status-chip glass' }, t('game.noEvents'));
+  const chip = h('div', { class: 'status-chip glass', hidden: true });
   const zone = h('div', { class: 'roll-zone fox-strip', 'data-pose': 'roll' }, chip);
   let flow = null;
   const guide = createFoxGuide({
@@ -263,6 +272,8 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   flow = createLearnFlow({
     zone, mode: state.mode, seed: state.seed,
     getState: () => state,
+    getPlayerKey: () => match.currentIndex,
+    onQuietFeedback: (nodes, tone) => pushLog(nodes, tone === 'good' ? 'good' : tone === 'warn' ? 'bad' : '', { record: false }),
     setState: (next) => { state = next; commit(); },
     onDismiss: () => rollBtn.focus?.({ preventScroll: true }),
     onShown: (item) => {
@@ -405,10 +416,15 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
 
   // What happened in the turn that is being played, for the hot-seat recap (nodes: amounts keep their <bdi>).
   let turnLog = [];
-  function pushLog(text, tone = '', { record = true, payday = false } = {}) {
+  function pushLog(text, tone = '', { record = true, payday = false, present = true } = {}) {
     if (!text) return;
+    if (!present) {
+      if (record) turnLog.push((Array.isArray(text) ? text : [text]).map((n) => n.cloneNode?.(true) ?? document.createTextNode(String(n))));
+      return;
+    }
     chip.querySelector('.payday-chip')?.closePopover?.();
-    chip.replaceChildren(text); // a string or DOM nodes (amounts wrapped in <bdi dir="ltr">)
+    chip.hidden = false;
+    if (Array.isArray(text)) chip.replaceChildren(...text); else chip.replaceChildren(text); // a string or DOM nodes (amounts wrapped in <bdi dir="ltr">)
     chip.classList.toggle('is-payday', payday);
     chip.dataset.tone = tone;
     if (record) turnLog.push([...chip.childNodes].map((n) => n.cloneNode(true)));
@@ -416,9 +432,9 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   }
 
   // the fox row and the CTA live INSIDE the plaza now (14.4 items 7-8); the plate sits under the slim HUD
-  center.append(zone, actions);
+  const dock = h('div', { class: 'play-dock' }, zone, actions);
   const el = h('section', { class: 'screen screen-board board-full', 'data-screen': 'board' },
-    h('h1', { class: 'vh' }, `${t('app.title')} · ${t('game.boardTitle')}`), hud, board);
+    h('h1', { class: 'vh' }, `${t('app.title')} · ${t('game.boardTitle')}`), hud, plazaTop, board, dock);
   // board-spec 14.2: the 6x8 ring fills the screen. JS sets --tile-c (width-bound, clamped 40-60) and the side-column row gap
   // --tile-gap-v (the spare height of a tall phone goes there, capped at c/2; leftover goes above the plate). Height-bound
   // (split screen / landscape): a smaller cell with the 4px gap. Below c = 40 the plate scales down as a whole, never scrolls.
@@ -449,9 +465,16 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     el.dataset.hud = hudMode;
     if (changed) refreshHud(); // the goal caption form follows the bar
     if (f.cell < 50) el.dataset.small = ''; else delete el.dataset.small;
+    const dockH = Math.max(dock.offsetHeight || 0, H < 700 ? 124 : 152);
+    const room = Math.max(190, H - safeT - safeB - Math.max(hud.offsetHeight, H < 700 ? 108 : 138) - 48 - dockH - 24);
+    const sceneW = Math.min(Math.min(innerWidth, 480) - 16, room * BOARD_GEO.aspect);
+    el.style.setProperty('--scene-w', `${sceneW}px`);
+    el.style.setProperty('--scene-ratio', String(BOARD_GEO.aspect));
   }
   sizeBoard();
   requestAnimationFrame(sizeBoard);
+  const dockObserver = new ResizeObserver(() => sizeBoard());
+  dockObserver.observe(dock);
   addEventListener('resize', sizeBoard);
   // The loops (window flicker, ring breathing) start once the board is interactive (idle callback, or 1.5 s), never before.
   let liveTimer = 0;
@@ -576,6 +599,9 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     othersBtn.setAttribute('aria-expanded', String(want));
     if (want) { refreshOthers(); othersClose.focus({ preventScroll: true }); if (motionOK()) animate(othersPanel, [{ opacity: 0, transform: 'scale(.96)' }, { opacity: 1, transform: 'scale(1)' }], { duration: 180, easing: 'ease-out' }); } else othersBtn.focus({ preventScroll: true });
   }
+  // The open statement sheet (if any): repainted from refreshHud whenever the state under it changes
+  // (a payday landing while it is open used to leave it showing the pre-turn figures forever).
+  let stmtLayer = null;
   function refreshHud() {
     const st = statement(state);
     paintPlayer();
@@ -621,6 +647,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     el.dataset.assets = String(state.assets.length);
     el.dataset.mortgages = String(state.assets.filter((a) => a.mortgage > 0).length);
     refreshOthers();
+    if (stmtLayer && !stmtLayer.done && stmtLayer.seenState !== state) { stmtLayer.seenState = state; stmtLayer.refresh?.(); }
   }
   const mqShort = typeof matchMedia === 'function' ? matchMedia(`(max-height: ${tut().goalLine.shortFromHeightPx}px)`) : null;
   const mqMin = typeof matchMedia === 'function' ? matchMedia(`(max-height: ${GOAL_MIN_HEIGHT}px)`) : null;
@@ -635,7 +662,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     store.save(match);
   }
 
-  const setStatus = (text) => { status.replaceChildren(text); };
+  const setStatus = (text) => { status.replaceChildren(text); status.hidden = !text; };
 
   // The primary button always says what is happening: roll / rolling / advancing (disabled).
   const BTN_LABEL = { roll: 'game.roll', rolling: 'game.rolling', working: 'game.advancing' };
@@ -672,6 +699,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     }
     if (multi && state.status === 'playing' && canEndTurn(match) && !lastPlayerStanding(match)) { handOver(); return; }
     setBusy(false);
+    setStatus('');
   }
   /** Status line once a turn has played out: who is next in hot-seat, otherwise the roll prompt. */
   function afterTurnStatus() {
@@ -679,7 +707,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
       const next = nextActiveIndex(match);
       if (next >= 0 && next !== match.currentIndex) return t('game.statusNext', { name: nameOf(next) });
     }
-    return t('game.statusBack');
+    return ''; // The roll button already gives the next action.
   }
 
   const cardTitle = (id) => cardTitleOf(engine.data.cards.find((c) => c.id === id), state.mode);
@@ -802,11 +830,11 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     await summaryCardGated({ figures: f, hint: summaryHintFor(f) });
     if (destroyed) return;
     // spec 4.9 (owner approved 2026-10-25): the log / hand-over recap keeps the one-line form; the fox-row chip shows one of three
-    // phrasings (turn % 3), a tap opens the stacked equation; the float rises inside the board plaza
+    // phrasings (turn % 3); a tap opens the stacked equation without overlaying dice.
     pushLog(tn('game.logPayday', { calc: paydayCalc(f.monthly, f.months, f.amount) }), f.amount >= 0 ? 'good' : 'bad', { payday: true });
     chip.replaceChildren(paydayChip(f, state.turn, { host: zone }));
-    setStatus(tn('game.statusPayday', { calc: paydayCalc(f.monthly, f.months, f.amount) }));
-    floatText(cash.el, h('div', { class: 'float-stack' }, signedMoney(f.amount), h('span', { class: 'float-sub' }, t('game.paydayFloatLabel'))), f.amount >= 0 ? 'income' : 'expense', { within: center });
+    setStatus(t('game.paydayFloatLabel'));
+    // The summary already shows the full calculation. Animate the cash in its own HUD, not over dice and board text.
     pulse(el.querySelector('.hud-cash'), 1.04);
     if (f.amount > 0) react('celebrate');
     await cash.to(cash.value + f.amount, 450);
@@ -820,6 +848,8 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     releaseUnshownHint();
     hints.drop('h-roll'); // the roll hint belongs to the moment before the first roll
     flow.newTurn();
+    chip.querySelector('.payday-chip')?.closePopover?.();
+    chip.hidden = true; // Never carry a previous turn's fact into the next roll.
     hints.newTurn();
     hints.sync(loadTutorial().hintsSeen);
     turnLog = [];
@@ -840,6 +870,8 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     const move = next.events.find((e) => e.type === 'move');
     setStatus(t('game.statusMoving'));
     await dice.roll(move.dice);
+    if (destroyed) return;
+    paintButton('working');
     const paydays = next.events.filter((e) => e.type === 'payday');
     let pi = 0;
     for (const idx of move.path) {
@@ -852,7 +884,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     haptic('land'); sound('land');
     // "נחתתם על: הוצאה לא צפויה" (status, aria-live) + the landing caption in the plaza, then the card opens
     setStatus(t('board.landed', { label: tileLabel(BOARD[move.to]) }));
-    pushLog(t('game.logMove', { steps: move.steps, square: t(`square.${BOARD[move.to]}`) }));
+    pushLog(t('game.logMove', { steps: move.steps, square: t(`square.${BOARD[move.to]}`) }), '', { present: BOARD[move.to] !== 'payday' });
     state = next;
     commit();
     refreshHud();
@@ -890,7 +922,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     cash.set(state.cash);
     dice.setValues(state.lastRoll?.dice || [1]);
     lastPct = (() => { const st = statement(state); return st.totalExpenses > 0 ? st.passiveIncome / st.totalExpenses : 0; })();
-    setStatus(t('game.statusStart'));
+    setStatus('');
     pushLog(t('game.playerTurn', { name: nameOf() }), '', { record: false });
     hideTip();
     toggleOthers(false);
@@ -902,6 +934,103 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     return { who: nameOf(prevIndex), lines, fox: flow.lastFeedbackNodes() };
   }
 
+  // ---------- bots and auctions (owner ideas 2026-10-27) ----------
+  const botSeat = (i = match.currentIndex) => !!match.players[i]?.bot;
+
+  /**
+   * A passed deal goes to auction among the other players (multiplayer only). Human bidders get the auction card,
+   * bot bidders follow their policy. Runs until the match carries no open auction; announces the result.
+   */
+  async function maybeAuction(card) {
+    match = maybeStartAuction(match, card);
+    if (!match.auction) return;
+    store.save(match);
+    pushLog(t('auction.logOpen', { title: cardTitleOf(card, state.mode) }));
+    while (!destroyed && match.auction) {
+      const i = auctionBidderIndex(match);
+      const player = match.players[i];
+      const name = nameOf(i);
+      if (player.bot) {
+        await pause(650);
+        if (destroyed) return;
+        const offer = auctionMaxBid(player.state, match.auction.card, player.bot);
+        if (offer >= auctionMinBid(match)) {
+          match = auctionBid(engine, match, offer);
+          pushLog(tn('auction.logBid', { name, amount: money(offer) }));
+        } else {
+          match = auctionPass(engine, match);
+          pushLog(t('auction.logPass', { name }));
+        }
+      } else {
+        const r = await auctionModal({ match, index: i, nameOf });
+        if (destroyed) return;
+        if (!r || r.action === 'pass') {
+          match = auctionPass(engine, match);
+          pushLog(t('auction.logPass', { name }));
+        } else {
+          match = auctionBid(engine, match, r.amount);
+          pushLog(tn('auction.logBid', { name, amount: money(r.amount) }));
+        }
+      }
+      store.save(match);
+    }
+    const res = match.lastAuction;
+    if (res?.winner !== null && res?.winner !== undefined) {
+      pushLog(tn('auction.logWin', { name: nameOf(res.winner), title: res.title, amount: money(res.price) }), 'good');
+      haptic('win'); sound('win');
+    } else if (res) {
+      pushLog(t('auction.logNoSale', { title: res.title }));
+    }
+    state = currentState(match); // the winner may be the current player; the win check may have ended the match
+    refreshHud();
+  }
+
+  /**
+   * A bot seat's whole turn: roll with the usual dice / pawn animation, then resolve every pending step with the
+   * seat's policy (short pauses, the same log lines and fox notes a human turn produces). No cards open.
+   */
+  async function runBotTurn() {
+    if (destroyed || state.phase !== 'roll' || state.status !== 'playing') return;
+    setBusy(true, 'rolling');
+    setStatus(t('game.botTurn', { name: nameOf() }));
+    flow.newTurn();
+    turnLog = [];
+    priorPrices = { ...state.stockPrices };
+    let next;
+    try { next = engine.roll(state); } catch (e) { console.error(e); setBusy(false); return; }
+    const move = next.events.find((e) => e.type === 'move');
+    if (move) {
+      await dice.roll(move.dice);
+      for (const idx of move.path) {
+        if (destroyed) return;
+        await hopTo(idx);
+      }
+      pushLog(t('game.logMove', { steps: move.steps, square: t(`square.${BOARD[move.to]}`) }), '', { present: true });
+    }
+    state = next;
+    commit();
+    refreshHud();
+    await pause(400);
+    let guard = 0;
+    while (!destroyed && state.status === 'playing' && state.pending && guard++ < 30) {
+      let stepped;
+      try { stepped = botStep(engine, state, match.players[match.currentIndex].bot ?? 'sensible'); } catch (e) { console.error(e); break; }
+      const passedCard = stepped.events?.find((e) => e.type === 'passed' && e.card)?.card;
+      const renoEv = stepped.events?.find((e) => e.type === 'renovated');
+      apply(() => stepped);
+      if (renoEv) { pushLog(t('reno.log', { title: renoEv.title, level: renoEv.level }), 'good'); react('celebrate'); }
+      await syncCash();
+      if (passedCard) await maybeAuction(passedCard);
+      else if (renoEv) { // a bot's renovation skips the drawn deal: the others bid on it
+        const skipped = engine.data.cards.find((c) => c.id === renoEv.cardId);
+        if (skipped) await maybeAuction(skipped);
+      }
+      await pause(600);
+    }
+    if (destroyed) return;
+    await afterTurn();
+  }
+
   let handingOver = false;
   /**
    * The ONE-TAP hand-over: the turn is resolved, so the sheet appears at once (no 'המשיכו' first). It shows the recap and one
@@ -910,10 +1039,11 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
    */
   async function handoverAndRoll({ recap = null, extra = null } = {}) {
     if (destroyed) return;
+    if (botSeat()) { await runBotTurn(); return; } // a bot needs no pass-the-phone sheet: it just plays
     busy = true;
     paintButton('working');
     el.classList.remove('is-busy');
-    const tapped = await handoffSheet({ name: nameOf(), color: colorOf(), recap, extra, onHome: () => askHome() });
+    const tapped = await handoffSheet({ name: nameOf(), color: colorOf(), recap, extra, onHome: () => goHome() });
     if (!tapped || destroyed) return;
     busy = false;
     paintButton('roll');
@@ -1055,12 +1185,26 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
         let tour = null;
         if (isDeal(p.card) && !tourCards.has(p.card.id) && hints.claim('h-card', state.turn)) { tour = cardTourFor(p.card); tourCards.add(p.card.id); }
         else if (tourCards.has(p.card.id)) tour = null;
-        r = await opportunityModal(state, { flip, guess: guessFor(p.card), tour });
+        const renoOpt = renovationOption(state, engine.data.cards);
+        r = await opportunityModal(state, { flip, guess: guessFor(p.card), tour, reno: renoOpt });
         if (tour) flow.trigger('reveal'); // the numbers were shown without a guess: the yield / payback explainers may follow
         if (!r) break; // closed by debug force
         const bought = (qty) => { if (apply((s) => engine.buy(s, qty))) { flow.trigger('purchase', { card: p.card }); if (isDeal(p.card) && !guessEnabled(state.mode)) flow.trigger('reveal'); } };
         if (r.action === 'buy') bought(r.qty);
-        else if (r.action === 'pass') apply((s) => engine.pass(s));
+        else if (r.action === 'pass') { if (apply((s) => engine.pass(s))) await maybeAuction(p.card); }
+        else if (r.action === 'renovate' && renoOpt) {
+          // Renovating instead of deciding on the card. Level 2 asks the style first; cancelling reopens the card.
+          const style = renoOpt.style ? await renovateStyleSheet() : null;
+          if (renoOpt.style && !style) continue;
+          if (apply((s) => engine.renovate(s, renoOpt.assetId, style))) {
+            const ev = state.events.find((e) => e.type === 'renovated');
+            if (ev) {
+              pushLog(t('reno.log', { title: ev.title, level: ev.level }), 'good'); react('celebrate');
+              await renovatedDialog({ title: ev.title, level: ev.level, style: ev.style, gain: ev.gain }); // the business visibly grows
+            }
+            await maybeAuction(p.card); // owner rule 2026-10-27: the skipped deal goes to auction among the others
+          }
+        }
         else if (r.action === 'buyLoan') {
           // Short of cash but one loan covers the gap: ask for exactly that loan, then complete the purchase.
           // Cancelling the loan dialog leaves the card open (the loop below shows it again).
@@ -1144,7 +1288,9 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
         sell: async () => { await sellFlow(); closeIfOver(); },
       },
     });
-    layer.closed.then(() => finishIfOver());
+    stmtLayer = layer;
+    layer.seenState = state;
+    layer.closed.then(() => { if (stmtLayer === layer) stmtLayer = null; finishIfOver(); });
   }
 
   // ?debug=1 only: force-win / force-lose helpers for QA. No effect without the flag.
@@ -1200,6 +1346,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     destroyed = true; // (the coin scale is set by the next screen: app.js)
     clearTimeout(liveTimer);
     document.removeEventListener('visibilitychange', onHidden);
+    dockObserver.disconnect();
     removeEventListener('resize', sizeBoard);
     document.documentElement.removeAttribute('data-flow-pop');
     famHud?.destroy();
@@ -1250,6 +1397,14 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
         store.save(match);
       }
       const plan = resumePlan(match);
+      if (plan === 'auction') { // saved mid-auction: finish the bidding, then the turn that paused for it
+        setBusy(true);
+        await maybeAuction(match.auction.card); // maybeStartAuction sees the open auction and just runs it
+        if (destroyed) return;
+        if (match.status !== 'playing') { setBusy(false); await finishIfOver(); return; }
+        await afterTurn();
+        return;
+      }
       if (plan === 'finish') { setBusy(false); await finishIfOver(); return; }
       if (plan === 'out') { await outFlow(); return; } // the current player is already out: announce it and hand over (or end the match)
       if (plan === 'resolve') {

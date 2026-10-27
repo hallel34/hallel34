@@ -1,0 +1,219 @@
+<!doctype html><html><body style="margin:0">
+<script type="importmap">{"imports":{"three":"/node_modules/three/build/three.module.js","three/addons/":"/node_modules/three/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+
+const SIZE = 1400;
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+renderer.setSize(SIZE, SIZE); renderer.setPixelRatio(1);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.12;
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 100);
+
+scene.add(new THREE.HemisphereLight(0xdfe8ff, 0x1a2440, 0.85));
+const key = new THREE.DirectionalLight(0xfff2dd, 2.6);
+key.position.set(5, 9, 6); key.castShadow = true;
+key.shadow.mapSize.set(2048, 2048); key.shadow.radius = 10;
+key.shadow.camera.left = key.shadow.camera.bottom = -8;
+key.shadow.camera.right = key.shadow.camera.top = 8;
+key.shadow.bias = -0.0004;
+scene.add(key);
+const fill = new THREE.DirectionalLight(0xbdd0ff, 0.5); fill.position.set(-6, 4, -3); scene.add(fill);
+const rim = new THREE.DirectionalLight(0xffd479, 0.35); rim.position.set(-2, 5, 7); scene.add(rim);
+
+const M = (color, rough = 0.38, metal = 0) => new THREE.MeshStandardMaterial({ color, roughness: rough, metalness: metal });
+const S = (mesh) => { mesh.castShadow = true; mesh.receiveShadow = true; return mesh; };
+
+/* ---------- pieces (same geometry language as scripts/piece-scene.html) ---------- */
+function bars() {
+  const g = new THREE.Group(); const hs = [0.55, 0.95, 1.45]; const xs = [-0.55, 0, 0.55];
+  hs.forEach((h, i) => { const b = S(new THREE.Mesh(new RoundedBoxGeometry(0.42, h, 0.42, 4, 0.07), M(0xf7f2e6, 0.32))); b.position.set(xs[i], h / 2, 0); g.add(b); });
+  const base = S(new THREE.Mesh(new RoundedBoxGeometry(1.7, 0.14, 0.6, 3, 0.05), M(0xe8e2d2, 0.4))); base.position.y = 0.07; g.add(base);
+  return g;
+}
+function bolt() {
+  const s = new THREE.Shape();
+  s.moveTo(0.1, 1.0); s.lineTo(-0.42, 0.12); s.lineTo(-0.08, 0.08); s.lineTo(-0.18, -1.0); s.lineTo(0.42, -0.05); s.lineTo(0.08, -0.02); s.closePath();
+  const geo = new THREE.ExtrudeGeometry(s, { depth: 0.34, bevelEnabled: true, bevelThickness: 0.09, bevelSize: 0.09, bevelSegments: 4 });
+  geo.center();
+  const m = S(new THREE.Mesh(geo, M(0xffb52e, 0.3))); m.rotation.y = 0.5; m.position.y = 1.05;
+  const g = new THREE.Group(); g.add(m); return g;
+}
+function heart() {
+  const s = new THREE.Shape();
+  s.moveTo(0, -0.55);
+  s.bezierCurveTo(-0.95, 0.18, -0.62, 0.85, 0, 0.38);
+  s.bezierCurveTo(0.62, 0.85, 0.95, 0.18, 0, -0.55);
+  const geo = new THREE.ExtrudeGeometry(s, { depth: 0.42, bevelEnabled: true, bevelThickness: 0.16, bevelSize: 0.16, bevelSegments: 10, curveSegments: 48 });
+  geo.center();
+  const m = S(new THREE.Mesh(geo, M(0xef7fc4, 0.3))); m.position.y = 0.85; m.rotation.y = -0.35;
+  const g = new THREE.Group(); g.add(m); return g;
+}
+function payday() {
+  const g = new THREE.Group();
+  [-0.28, 0, 0.28].forEach((r, i) => {
+    const b = S(new THREE.Mesh(new RoundedBoxGeometry(0.72, 1.05, 0.07, 2, 0.03), M(0x4fae62, 0.45)));
+    b.position.set(0, 0.55, (i - 1) * 0.11); b.rotation.z = r; b.rotation.y = r * 0.6; g.add(b);
+  });
+  const band = S(new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.34, 0.34), M(0xf2e9c8, 0.5))); band.position.set(0, 0.42, 0); g.add(band);
+  const coin = S(new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.36, 0.1, 40), M(0xf5c13d, 0.25, 0.75)));
+  coin.rotation.x = Math.PI / 2 - 0.25; coin.position.set(0.68, 0.38, 0.42); g.add(coin);
+  const rim2 = S(new THREE.Mesh(new THREE.TorusGeometry(0.36, 0.045, 12, 40), M(0xd9a52e, 0.3, 0.7)));
+  rim2.position.copy(coin.position); rim2.rotation.x = -0.25; g.add(rim2);
+  return g;
+}
+function baby() {
+  const g = new THREE.Group();
+  const head = S(new THREE.Mesh(new THREE.SphereGeometry(0.62, 48, 36), M(0xffd9b8, 0.42))); head.position.y = 0.72; g.add(head);
+  const curl = S(new THREE.Mesh(new THREE.TorusGeometry(0.13, 0.05, 12, 24, Math.PI * 1.4), M(0x7a4a22, 0.5)));
+  curl.position.set(0, 1.3, 0.05); curl.rotation.x = -0.6; g.add(curl);
+  [-0.23, 0.23].forEach(x => { const e = new THREE.Mesh(new THREE.SphereGeometry(0.06, 16, 12), M(0x33231a, 0.3)); e.position.set(x, 0.78, 0.55); g.add(e); });
+  [-0.38, 0.38].forEach(x => { const c = new THREE.Mesh(new THREE.SphereGeometry(0.09, 16, 12), M(0xff9d8a, 0.55)); c.position.set(x, 0.6, 0.45); c.scale.z = 0.4; g.add(c); });
+  const smile = new THREE.Mesh(new THREE.TorusGeometry(0.14, 0.03, 10, 20, Math.PI), M(0x8a4a3a, 0.5));
+  smile.position.set(0, 0.58, 0.56); smile.rotation.x = -0.4; smile.rotation.z = Math.PI; g.add(smile);
+  return g;
+}
+function house() {
+  const g = new THREE.Group();
+  const walls = S(new THREE.Mesh(new RoundedBoxGeometry(1.1, 1.05, 0.9, 3, 0.04), M(0xf6efdd, 0.5))); walls.position.y = 0.525; g.add(walls);
+  const roof = S(new THREE.Mesh(new THREE.CylinderGeometry(0, 0.92, 0.78, 4, 1), M(0xd8443c, 0.42)));
+  roof.rotation.y = Math.PI / 4; roof.scale.set(1.12, 1, 0.95); roof.position.y = 1.44; g.add(roof);
+  const door = S(new THREE.Mesh(new RoundedBoxGeometry(0.26, 0.52, 0.06, 2, 0.03), M(0x8a5a2e, 0.5))); door.position.set(0.14, 0.26, 0.46); g.add(door);
+  const win = S(new THREE.Mesh(new RoundedBoxGeometry(0.28, 0.26, 0.06, 2, 0.03), M(0x9fd4e8, 0.25))); win.position.set(-0.27, 0.6, 0.46); g.add(win);
+  const chim = S(new THREE.Mesh(new RoundedBoxGeometry(0.16, 0.34, 0.16, 2, 0.02), M(0xc9c2b2, 0.5))); chim.position.set(0.3, 1.62, -0.13); g.add(chim);
+  return g;
+}
+function die(scalePips = 1) {
+  const g = new THREE.Group();
+  const d = S(new THREE.Mesh(new RoundedBoxGeometry(1.15, 1.15, 1.15, 5, 0.16), M(0xfafafa, 0.22)));
+  d.position.y = 0.85; d.rotation.set(0.18, 0.6, 0.08); g.add(d);
+  const pip = (x, y, z) => { const p = new THREE.Mesh(new THREE.SphereGeometry(0.085, 14, 10), M(0x22242e, 0.4)); p.position.set(x, y, z); p.scale.set(1, 1, 0.4); p.lookAt(p.position.clone().multiplyScalar(2)); d.add(p); };
+  pip(0, 0.578, 0); pip(-0.26, 0.578, -0.26); pip(0.26, 0.578, 0.26);
+  pip(-0.26, -0.26, 0.578); pip(0, 0, 0.578); pip(0.26, 0.26, 0.578);
+  [[-0.27, -0.27], [0.27, -0.27], [0, 0], [-0.27, 0.27], [0.27, 0.27]].forEach(([y, z]) => pip(0.578, y, z));
+  return g;
+}
+function fox() {
+  const g = new THREE.Group();
+  const orange = M(0xe8702a, 0.42); const cream = M(0xfff0d4, 0.45); const navy = M(0x264a9a, 0.5); const gold = M(0xf2b53a, 0.3, 0.6);
+  const body = S(new THREE.Mesh(new THREE.ConeGeometry(0.44, 0.62, 28), navy)); body.position.y = 0.31; g.add(body);
+  const head = S(new THREE.Mesh(new THREE.SphereGeometry(0.5, 40, 30), orange)); head.position.y = 1.1; g.add(head);
+  const blaze = S(new THREE.Mesh(new THREE.SphereGeometry(0.3, 28, 20), cream)); blaze.scale.set(1.15, 0.8, 0.75); blaze.position.set(0, 1.0, 0.3); g.add(blaze);
+  const nose = S(new THREE.Mesh(new THREE.SphereGeometry(0.055, 14, 10), M(0x0f1e46, 0.4))); nose.position.set(0, 1.06, 0.56); g.add(nose);
+  [-0.24, 0.24].forEach(x => {
+    const ear = S(new THREE.Mesh(new THREE.ConeGeometry(0.15, 0.38, 4, 1), orange));
+    ear.position.set(x * 1.25, 1.58, 0); ear.rotation.z = x > 0 ? -0.35 : 0.35; ear.rotation.y = Math.PI / 4; g.add(ear);
+    const inner = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.22, 4, 1), cream);
+    inner.position.set(x * 1.02, 1.48, 0.05); inner.rotation.z = x > 0 ? -0.3 : 0.3; inner.rotation.y = Math.PI / 4; g.add(inner);
+  });
+  [-0.17, 0.17].forEach(x => {
+    const rimG = new THREE.Mesh(new RoundedBoxGeometry(0.34, 0.22, 0.06, 2, 0.04), gold); rimG.position.set(x * 1.15, 1.2, 0.44); g.add(rimG);
+    const lens = new THREE.Mesh(new RoundedBoxGeometry(0.29, 0.17, 0.07, 2, 0.04), M(0x0a1020, 0.15)); lens.position.set(x * 1.15, 1.2, 0.45); g.add(lens);
+  });
+  const bridge = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.045, 0.045), gold); bridge.position.set(0, 1.2, 0.46); g.add(bridge);
+  return g;
+}
+function taxquiz() {
+  const g = new THREE.Group();
+  const paper = S(new THREE.Mesh(new RoundedBoxGeometry(0.95, 1.2, 0.07, 2, 0.03), M(0xf7f2e6, 0.5)));
+  paper.position.set(-0.12, 0.64, 0); paper.rotation.z = -0.06; g.add(paper);
+  const clip = S(new THREE.Mesh(new RoundedBoxGeometry(0.32, 0.13, 0.1, 2, 0.03), M(0xd8b04a, 0.35, 0.4)));
+  clip.position.set(-0.12, 1.26, 0.02); clip.rotation.z = -0.06; g.add(clip);
+  [0.98, 0.76, 0.54].forEach((y, i) => {
+    const line = new THREE.Mesh(new RoundedBoxGeometry(0.58 - i * 0.12, 0.07, 0.02, 1, 0.01), M(0xb9c4d6, 0.6));
+    line.position.set(-0.18, y, 0.05); line.rotation.z = -0.06; g.add(line);
+  });
+  const ring = S(new THREE.Mesh(new THREE.TorusGeometry(0.27, 0.08, 16, 40), M(0x264a9a, 0.35)));
+  ring.position.set(0.4, 0.46, 0.3); g.add(ring);
+  const lens = new THREE.Mesh(new THREE.CylinderGeometry(0.23, 0.23, 0.03, 32), M(0x9fd4e8, 0.15));
+  lens.rotation.x = Math.PI / 2; lens.position.set(0.4, 0.46, 0.3); g.add(lens);
+  const handle = S(new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.075, 0.52, 16), M(0x264a9a, 0.4)));
+  handle.rotation.z = -0.785; handle.position.set(0.62, 0.14, 0.3); g.add(handle);
+  return g;
+}
+const PIECES = { bars, bolt, heart, payday, baby, house, die, fox, taxquiz };
+
+/* ---------- board ---------- */
+const BOARD = [
+  'payday', 'opportunity', 'expense', 'market', 'payday', 'opportunity',
+  'charity', 'payday', 'opportunity', 'baby', 'payday', 'opportunity',
+  'taxquiz', 'opportunity', 'opportunity', 'market', 'charity', 'payday',
+  'opportunity', 'expense', 'market', 'baby', 'opportunity', 'opportunity',
+];
+const PIECE_FILE = { opportunity: 'house', market: 'bars', expense: 'bolt', charity: 'heart', payday: 'payday', baby: 'baby', taxquiz: 'taxquiz' };
+const SQ_COLOR = { payday: 0xE3A83A, opportunity: 0x3FBF8E, expense: 0xDD4A44, market: 0x3F93E8, taxquiz: 0x2A938C, baby: 0xEF8ABB, charity: 0x8B6BEF };
+function ringPos(i) {
+ if (i <= 5) return [i+1,1];
+ if (i <= 12) return [6,i-4];
+ if (i <= 17) return [18-i,8];
+ return [1,25-i];
+}
+const T = 1.0, GAP = 0.14, PITCH = T + GAP;           // tile + gap
+const SPAN = 6 * T + 5 * GAP;                          // 7.84
+const SLAB = SPAN + 1.15; const DEPTH = 8 * T + 7 * GAP + 1.15;                              // board slab width
+const board = new THREE.Group(); scene.add(board);
+
+// slab: thick navy board with gold rim
+const slab = S(new THREE.Mesh(new RoundedBoxGeometry(SLAB, 0.42, DEPTH, 4, 0.12), M(0x14203C, 0.55)));
+slab.position.y = -0.21; board.add(slab);
+const rimT = 0.07;
+const rimOuter = S(new THREE.Mesh(new RoundedBoxGeometry(SLAB + rimT * 2, 0.18, DEPTH + rimT * 2, 4, 0.09), M(0xC89B2E, 0.35, 0.55)));
+rimOuter.position.y = -0.33; board.add(rimOuter);
+// felt inner field
+const felt = S(new THREE.Mesh(new RoundedBoxGeometry(SPAN + 0.9, 0.06, DEPTH - 0.25, 3, 0.05), M(0x0E1830, 0.85)));
+felt.position.y = 0.02; board.add(felt);
+
+// tiles
+const tileGeoCache = {};
+function tileMesh(color) {
+  const plate = S(new THREE.Mesh(new RoundedBoxGeometry(T, 0.1, T, 3, 0.045), M(0xEFE4C8, 0.5)));
+  plate.position.y = 0.05;
+  const face = S(new THREE.Mesh(new RoundedBoxGeometry(T - 0.13, 0.06, T - 0.13, 3, 0.03), M(color, 0.42)));
+  face.position.y = 0.1;
+  const g = new THREE.Group(); g.add(plate); g.add(face);
+  return g;
+}
+
+const PIECE_SCALE = 0.56;
+const tileAt = {};
+BOARD.forEach((sq, i) => {
+  const [col, row] = ringPos(i);
+  const x = (col - 3.5) * PITCH, z = (row - 4.5) * PITCH;
+  const t = tileMesh(SQ_COLOR[sq]);
+  t.position.set(x, 0, z); board.add(t);
+  const p = PIECES[PIECE_FILE[sq]]();
+  p.scale.setScalar(PIECE_SCALE);
+  // face outward from board centre
+  p.rotation.y = 0.16 + ((i * 37) % 11 - 5) * 0.03; // mostly facing camera, slight variety
+  p.position.set(x, 0.13, z);
+  board.add(p);
+  tileAt[i] = { x, z };
+});
+
+// camera: table angle, slight yaw
+const yaw = 0.035, elev = 0.85, dist = 25.8;
+camera.position.set(Math.sin(yaw) * Math.cos(elev) * dist, Math.sin(elev) * dist, Math.cos(yaw) * Math.cos(elev) * dist);
+camera.lookAt(0, -0.15, 0.35);
+
+window.__geo = () => {
+  const proj = (x, y, z) => { const v = new THREE.Vector3(x, y, z).project(camera); return [(v.x + 1) / 2 * SIZE, (1 - v.y) / 2 * SIZE]; };
+  const tiles = BOARD.map((sq, i) => {
+    const { x, z } = tileAt[i];
+    const [cx, cy] = proj(x, 0.14, z);
+    const [ax] = proj(x + 0.5, 0.14, z); const [, by] = proj(x, 0.14, z + 0.5);
+    return { i, cx, cy, w: Math.abs(ax - cx) * 2, h: Math.abs(by - cy) * 2 };
+  });
+  const slabPts = [[-1, -1], [1, -1], [-1, 1], [1, 1]].map(([a, b]) => proj(a * (SLAB / 2 + 0.1), 0, b * (DEPTH / 2 + 0.1)));
+  const xs = slabPts.map(p => p[0]); const ys = slabPts.map(p => p[1]);
+  const [rcx, rcy] = proj(0, 0.05, 0); const [rrx] = proj(1.85, 0.05, 0);
+  return { tiles, bbox: { x: Math.min(...xs), y: Math.min(...ys), w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys) }, center: { x: rcx, y: rcy }, ringR: Math.abs(rrx - rcx) };
+};
+window.renderBoard = () => { renderer.render(scene, camera); return true; };
+window.__ready = true;
+renderer.render(scene, camera);
+</script></body></html>

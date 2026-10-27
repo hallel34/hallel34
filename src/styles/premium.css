@@ -1,0 +1,135 @@
+/* Physical scene integrated with PR7's live rules and responsive plaza.
+   Tile anchors share the renderer's projection. Text remains live HTML. */
+.screen-board.board-full .board {
+  background-color: transparent; background-size: 100% 100%; background-repeat: no-repeat;
+  border: 0; border-radius: 0; box-shadow: none;
+  filter: drop-shadow(0 12px 22px rgb(0 0 0 / .28));
+}
+.board-full .board > .board-sky { display: none; }
+.board-full .tile.scene-anchor {
+  position: absolute; translate: -50% -50%; grid-area: auto; padding: 0;
+  background: transparent; border: 0; border-radius: 8px; box-shadow: none; aspect-ratio: auto;
+}
+.board-full .tile.scene-anchor > .tile-3d,
+.board-full .tile.scene-anchor > .tile-icon,
+.board-full .tile.scene-anchor::before { display: none; }
+.board-full .tile.scene-anchor.is-current::after {
+  content: ''; position: absolute; inset: 8% 10%; border: 2px solid #ffe099;
+  border-radius: 8px; box-shadow: 0 0 0 3px rgb(15 23 42 / .8), 0 0 14px rgb(242 181 58 / .45);
+}
+.board-full .tile.scene-anchor[data-pawns] { z-index: 32; }
+.board-full .tile.scene-anchor .pawn-slot { inset-block-start: auto; inset-block-end: 20%; }
+.board-full .tile.scene-anchor.is-crowded .pawn-slot { inset-block: 0; margin-block: auto; }
+.board-full .board-center {
+  background: linear-gradient(150deg, rgb(18 29 51 / .97), rgb(12 20 37 / .98));
+  border: 1px solid rgb(241 202 117 / .14); border-radius: 22px;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / .04); margin-inline: 7px;
+}
+.board-full .plaza-top { padding-inline: 4px; }
+.board-full .hud { background: linear-gradient(130deg,var(--surface),var(--surface-2)); }
+.board-full .board-actions { padding-inline: 5px; padding-block-end: 3px; }
+.board-full .btn-roll { border-radius: 18px; box-shadow: 0 4px 0 #8c5c12, 0 8px 20px rgb(0 0 0 / .22); }
+.board-full .hud .meter-track { block-size: 8px; }
+:root[data-theme='light'] .board-full .board-center {
+  background: linear-gradient(150deg,#fff9ed,#f4e7cf); border-color: #c8a969;
+}
+.screen-pick .prof-card { background-image: radial-gradient(ellipse at 50% 12%, rgb(242 181 58 / .12), transparent 60%); }
+.screen-pick .prof-well::after { content: ''; position: absolute; inset-inline: 20%; inset-block-end: 0; block-size: 1px; background: linear-gradient(90deg,transparent,var(--border),transparent); }
+.screen-pick .prof-pocket { border-width: 1px; }
+.stock-symbol { font-weight: 800; letter-spacing: .06em; }
+@media (prefers-reduced-motion: reduce) { .board-full .btn-roll { transition: none; } }
+
+/* A readable, camera-correct board with a separate action dock. */
+.screen-board.board-full { gap: 8px; }
+.screen-board.board-full .board {
+ display: block; flex: 0 0 auto; inline-size: var(--scene-w, 344px); block-size: auto;
+ aspect-ratio: var(--scene-ratio, .87); padding: 0; margin-block: auto; transform: none;
+}
+.board-full .board-center {
+ position: absolute; inset: 18% 24% 20% 25%; grid-area: auto; margin: 0; padding: 8px 3px;
+ border: 0; background: transparent; box-shadow: none; justify-content: center; gap: 4px;
+ color: #f3f5ff;
+}
+:root[data-theme='light'] .board-full .board-center { background: transparent; border: 0; }
+.board-full .board-center .board-status, .board-full .board-center .here-line { color: #f3f5ff; }
+.board-full .board-center .here-line { font-size: .75rem; }
+.board-full .board-center .dice { --die: 54px; --die-half: 27px; }
+.board-full .board-center .plaza-spacer { display: none; }
+.board-full .board-center .board-status { font-size: .875rem; min-block-size: 2.5em; }
+.board-full > .plaza-top { min-block-size: 48px; padding-inline: 8px; }
+.board-full .play-dock { flex: 0 0 152px; display: flex; flex-direction: column; gap: 8px; min-block-size: 0; inline-size: 100%; }
+.board-full .play-dock .fox-strip { flex: 1 1 0; min-block-size: 76px; }
+.board-full .play-dock .board-actions { padding: 0 0 5px; }
+.board-full .play-dock .btn-roll { min-block-size: 56px; }
+.board-full .play-dock .note-panel .note-bubble { background: var(--surface-2); border: 1px solid var(--border); }
+@media (max-height: 699px) {
+ .board-full .play-dock { flex-basis: 136px; }
+ .board-full .play-dock .fox-strip { min-block-size: 64px; --fox-guide: 60px; }
+ .board-full .board-center .dice { --die: 42px; --die-half: 21px; }
+ .board-full .board-center .board-status { font-size: .75rem; }
+ .board-full .board-center .here-line { display: none; }
+}
+
+/* Learning text owns the whole dock when present. The decorative host steps aside. */
+.board-full .play-dock:has(.note-panel) { flex-basis: 192px; }
+.board-full .play-dock .fox-strip:has(.note-panel) .fox-guide-host,
+.board-full .play-dock .fox-strip:has(.note-panel) .status-chip { visibility: hidden; }
+.board-full .play-dock .fox-strip:has(.note-panel) .note-panel { inset: 0; inline-size: 100%; }
+.board-full .play-dock .note-panel:not(.note-explain) .note-bubble { min-block-size: 100%; }
+.board-full .play-dock .note-panel .note-text { text-align: start; }
+.board-full .play-dock .note:not(.note-panel) { inset-inline: calc(var(--fox-guide) + 12px) 0; }
+.board-full .play-dock .note:not(.note-panel) .note-bubble { flex-direction: row-reverse; }
+.board-full .play-dock .note:not(.note-panel) .note-text { padding-inline: 3px; }
+.board-full .play-dock .fox-guide-host { inset-inline: 0 auto; }
+.board-full .play-dock .note-hello .note-bubble { overflow: visible; }
+.board-full .play-dock .fox-strip .note-main { min-inline-size: 0; }
+.board-full .board-center .board-status { max-inline-size: 15em; }
+.board-full .hud { padding-block: 6px; }
+@media (max-height: 699px) { .board-full .play-dock:has(.note-panel) { flex-basis: 170px; } }
+
+.board-full .board-center::before { content: ''; position: absolute; inset: 18% 5%; border: 1px solid rgb(241 202 117 / .12); border-radius: 50%; pointer-events: none; }
+.board-full .board-center::after { content: ''; position: absolute; inset: 21% 9%; border: 1px solid rgb(241 202 117 / .06); border-radius: 50%; pointer-events: none; }
+.board-full .board-center .plaza-die, .board-full .board-center .status-wrap { position: relative; z-index: 1; }
+.board-full .board-center .board-status { font-size: .8125rem; font-weight: 500; color: #c6cddd; }
+.board-full .board-center .here-line { font-size: .8125rem; font-weight: 700; }
+.board-full .plaza-top { min-block-size: 44px; }
+
+.board-full .play-dock .fox-strip:has(.note-panel) .fox-guide-host { display: none; }
+.board-full .tile.scene-anchor .pawn-slot { inline-size: 26px; block-size: 28px; }
+.board-full .tile.scene-anchor .pawn-slot .pawn { inline-size: 26px; }
+.board-full .tile.scene-anchor.is-crowded .pawn-slot { inline-size: 13px; block-size: 13px; }
+@media(max-height:699px){
+ .board-full .hud { padding: 5px 8px; }
+ .board-full .play-dock { flex-basis: 124px; }
+ .board-full .play-dock .fox-strip { min-block-size: 54px; }
+ .board-full .board-center .board-status { font-size: .6875rem; }
+ .board-full .board-center .dice { --die: 36px; --die-half: 18px; }
+ .board-full .flow-popover { padding: 6px 10px; font-size: .75rem; }
+ .board-full .flow-popover .fp-row { margin: 0; }
+}
+.board-full .tile.scene-anchor.is-crowded { min-inline-size: 34px; min-block-size: 34px; }
+.board-full .tile.scene-anchor.is-crowded .pawn-slot { inline-size: 15px; block-size: 15px; }
+.board-full .tile.scene-anchor.is-crowded .pawn-badge { inline-size: 15px; block-size: 15px; inset: 0; }
+.board-full .flow-popover { padding-block: 6px; gap: 2px; }
+@media(max-height:699px){ .board-full .flow-popover { padding-block: 3px; gap: 1px; } }
+
+/* Turn modifiers are a separate row, never an absolute badge over the dice. */
+.board-full .board-center .chip-charity {
+  position: static; flex: none; margin: 0; max-inline-size: 100%;
+  font-size: .6875rem; line-height: 1.25; padding: 3px 6px;
+}
+.board-full .board-center .chip-charity:not([data-active='true']) { display: none; }
+.board-full .board-center:has(.chip-charity[data-active='true']) .here-line { display: none; }
+.board-full .board-center .board-status { margin-block: 2px; min-block-size: 0; }
+.board-full .board-center .status-wrap { flex: 0 1 auto; }
+
+/* An opaque result face covers the underlying pips, avoiding a doubled numeral during the fade. */
+.board-full .die-result-num {
+  display: grid; place-items: center; min-inline-size: 1.1em; min-block-size: 1.05em;
+  background: #111b30; border-radius: 12px; color: #fff4d3;
+  -webkit-text-stroke: 0; font-size: 2.5rem; line-height: 1;
+}
+.board-full .die-result-sum { background: #111b30; padding: 2px 6px; border-radius: 6px; color: #fff4d3; -webkit-text-stroke: 0; }
+
+/* Empty event slots and idle board narration must not leave ghost panels. */
+.board-full .status-chip[hidden], .board-full .board-status[hidden] { display: none; }

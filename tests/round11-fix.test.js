@@ -99,7 +99,7 @@ describe('arming guards (source level; the browser behaviour is in the smoke tes
     const code = src('src/ui/modals.js');
     expect(code).toMatch(/ARM_MS = 700/);
     expect(code).toContain('arm([');
-    expect(src('src/ui/widgets.js')).toContain("b.disabled = true; b.setAttribute('aria-busy', 'true'); b.setAttribute('data-arming', '')");
+    expect(src('src/ui/widgets.js')).toContain("b.disabled = true; b.setAttribute('data-arming', '')");
     expect(code).toContain('btn-handoff-home');
   });
   it('the story takes the Back button; the loan hint sits above the figures; the goal line is never hidden', () => {
