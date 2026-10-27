@@ -7,6 +7,7 @@ import { t, tp, tRaw } from '../i18n/index.js';
 import {
   BOARD, EngineError, statement, monthlyCashFlow, currentState, setCurrentState, endTurn, canEndTurn, isMultiplayer, passiveIncome,
   totalExpenses, resumePlan, lastPlayerStanding, nextActiveIndex,
+  botStep, auctionMaxBid, maybeStartAuction, auctionBidderIndex, auctionMinBid, auctionBid, auctionPass, renovationOption,
 } from '../engine/index.js';
 import { icon } from './icons.js';
 import { money, moneyText, moneyIsolated, tn, signedMoney, paydayCalc, numberText, setCoinScale } from './format.js';
@@ -118,6 +119,9 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   const repayDialog = gated(raw.repayDialog);
   const sellSheet = gated(raw.sellSheet);
   const handoffSheet = gated(raw.handoffSheet);
+  const auctionModal = gated(raw.auctionModal);
+  const renovateStyleSheet = gated(raw.renovateStyleSheet);
+  const renovatedDialog = gated(raw.renovatedDialog);
   const summaryCardGated = gated(summaryCard);
   const playerOutModal = gated(raw.playerOutModal);
   const decisionModal = gated(rawDecisionModal);
@@ -595,6 +599,9 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     othersBtn.setAttribute('aria-expanded', String(want));
     if (want) { refreshOthers(); othersClose.focus({ preventScroll: true }); if (motionOK()) animate(othersPanel, [{ opacity: 0, transform: 'scale(.96)' }, { opacity: 1, transform: 'scale(1)' }], { duration: 180, easing: 'ease-out' }); } else othersBtn.focus({ preventScroll: true });
   }
+  // The open statement sheet (if any): repainted from refreshHud whenever the state under it changes
+  // (a payday landing while it is open used to leave it showing the pre-turn figures forever).
+  let stmtLayer = null;
   function refreshHud() {
     const st = statement(state);
     paintPlayer();
@@ -640,6 +647,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     el.dataset.assets = String(state.assets.length);
     el.dataset.mortgages = String(state.assets.filter((a) => a.mortgage > 0).length);
     refreshOthers();
+    if (stmtLayer && !stmtLayer.done && stmtLayer.seenState !== state) { stmtLayer.seenState = state; stmtLayer.refresh?.(); }
   }
   const mqShort = typeof matchMedia === 'function' ? matchMedia(`(max-height: ${tut().goalLine.shortFromHeightPx}px)`) : null;
   const mqMin = typeof matchMedia === 'function' ? matchMedia(`(max-height: ${GOAL_MIN_HEIGHT}px)`) : null;
@@ -926,6 +934,103 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     return { who: nameOf(prevIndex), lines, fox: flow.lastFeedbackNodes() };
   }
 
+  // ---------- bots and auctions (owner ideas 2026-10-27) ----------
+  const botSeat = (i = match.currentIndex) => !!match.players[i]?.bot;
+
+  /**
+   * A passed deal goes to auction among the other players (multiplayer only). Human bidders get the auction card,
+   * bot bidders follow their policy. Runs until the match carries no open auction; announces the result.
+   */
+  async function maybeAuction(card) {
+    match = maybeStartAuction(match, card);
+    if (!match.auction) return;
+    store.save(match);
+    pushLog(t('auction.logOpen', { title: cardTitleOf(card, state.mode) }));
+    while (!destroyed && match.auction) {
+      const i = auctionBidderIndex(match);
+      const player = match.players[i];
+      const name = nameOf(i);
+      if (player.bot) {
+        await pause(650);
+        if (destroyed) return;
+        const offer = auctionMaxBid(player.state, match.auction.card, player.bot);
+        if (offer >= auctionMinBid(match)) {
+          match = auctionBid(engine, match, offer);
+          pushLog(tn('auction.logBid', { name, amount: money(offer) }));
+        } else {
+          match = auctionPass(engine, match);
+          pushLog(t('auction.logPass', { name }));
+        }
+      } else {
+        const r = await auctionModal({ match, index: i, nameOf });
+        if (destroyed) return;
+        if (!r || r.action === 'pass') {
+          match = auctionPass(engine, match);
+          pushLog(t('auction.logPass', { name }));
+        } else {
+          match = auctionBid(engine, match, r.amount);
+          pushLog(tn('auction.logBid', { name, amount: money(r.amount) }));
+        }
+      }
+      store.save(match);
+    }
+    const res = match.lastAuction;
+    if (res?.winner !== null && res?.winner !== undefined) {
+      pushLog(tn('auction.logWin', { name: nameOf(res.winner), title: res.title, amount: money(res.price) }), 'good');
+      haptic('win'); sound('win');
+    } else if (res) {
+      pushLog(t('auction.logNoSale', { title: res.title }));
+    }
+    state = currentState(match); // the winner may be the current player; the win check may have ended the match
+    refreshHud();
+  }
+
+  /**
+   * A bot seat's whole turn: roll with the usual dice / pawn animation, then resolve every pending step with the
+   * seat's policy (short pauses, the same log lines and fox notes a human turn produces). No cards open.
+   */
+  async function runBotTurn() {
+    if (destroyed || state.phase !== 'roll' || state.status !== 'playing') return;
+    setBusy(true, 'rolling');
+    setStatus(t('game.botTurn', { name: nameOf() }));
+    flow.newTurn();
+    turnLog = [];
+    priorPrices = { ...state.stockPrices };
+    let next;
+    try { next = engine.roll(state); } catch (e) { console.error(e); setBusy(false); return; }
+    const move = next.events.find((e) => e.type === 'move');
+    if (move) {
+      await dice.roll(move.dice);
+      for (const idx of move.path) {
+        if (destroyed) return;
+        await hopTo(idx);
+      }
+      pushLog(t('game.logMove', { steps: move.steps, square: t(`square.${BOARD[move.to]}`) }), '', { present: true });
+    }
+    state = next;
+    commit();
+    refreshHud();
+    await pause(400);
+    let guard = 0;
+    while (!destroyed && state.status === 'playing' && state.pending && guard++ < 30) {
+      let stepped;
+      try { stepped = botStep(engine, state, match.players[match.currentIndex].bot ?? 'sensible'); } catch (e) { console.error(e); break; }
+      const passedCard = stepped.events?.find((e) => e.type === 'passed' && e.card)?.card;
+      const renoEv = stepped.events?.find((e) => e.type === 'renovated');
+      apply(() => stepped);
+      if (renoEv) { pushLog(t('reno.log', { title: renoEv.title, level: renoEv.level }), 'good'); react('celebrate'); }
+      await syncCash();
+      if (passedCard) await maybeAuction(passedCard);
+      else if (renoEv) { // a bot's renovation skips the drawn deal: the others bid on it
+        const skipped = engine.data.cards.find((c) => c.id === renoEv.cardId);
+        if (skipped) await maybeAuction(skipped);
+      }
+      await pause(600);
+    }
+    if (destroyed) return;
+    await afterTurn();
+  }
+
   let handingOver = false;
   /**
    * The ONE-TAP hand-over: the turn is resolved, so the sheet appears at once (no 'המשיכו' first). It shows the recap and one
@@ -934,6 +1039,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
    */
   async function handoverAndRoll({ recap = null, extra = null } = {}) {
     if (destroyed) return;
+    if (botSeat()) { await runBotTurn(); return; } // a bot needs no pass-the-phone sheet: it just plays
     busy = true;
     paintButton('working');
     el.classList.remove('is-busy');
@@ -1079,12 +1185,26 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
         let tour = null;
         if (isDeal(p.card) && !tourCards.has(p.card.id) && hints.claim('h-card', state.turn)) { tour = cardTourFor(p.card); tourCards.add(p.card.id); }
         else if (tourCards.has(p.card.id)) tour = null;
-        r = await opportunityModal(state, { flip, guess: guessFor(p.card), tour });
+        const renoOpt = renovationOption(state, engine.data.cards);
+        r = await opportunityModal(state, { flip, guess: guessFor(p.card), tour, reno: renoOpt });
         if (tour) flow.trigger('reveal'); // the numbers were shown without a guess: the yield / payback explainers may follow
         if (!r) break; // closed by debug force
         const bought = (qty) => { if (apply((s) => engine.buy(s, qty))) { flow.trigger('purchase', { card: p.card }); if (isDeal(p.card) && !guessEnabled(state.mode)) flow.trigger('reveal'); } };
         if (r.action === 'buy') bought(r.qty);
-        else if (r.action === 'pass') apply((s) => engine.pass(s));
+        else if (r.action === 'pass') { if (apply((s) => engine.pass(s))) await maybeAuction(p.card); }
+        else if (r.action === 'renovate' && renoOpt) {
+          // Renovating instead of deciding on the card. Level 2 asks the style first; cancelling reopens the card.
+          const style = renoOpt.style ? await renovateStyleSheet() : null;
+          if (renoOpt.style && !style) continue;
+          if (apply((s) => engine.renovate(s, renoOpt.assetId, style))) {
+            const ev = state.events.find((e) => e.type === 'renovated');
+            if (ev) {
+              pushLog(t('reno.log', { title: ev.title, level: ev.level }), 'good'); react('celebrate');
+              await renovatedDialog({ title: ev.title, level: ev.level, style: ev.style, gain: ev.gain }); // the business visibly grows
+            }
+            await maybeAuction(p.card); // owner rule 2026-10-27: the skipped deal goes to auction among the others
+          }
+        }
         else if (r.action === 'buyLoan') {
           // Short of cash but one loan covers the gap: ask for exactly that loan, then complete the purchase.
           // Cancelling the loan dialog leaves the card open (the loop below shows it again).
@@ -1168,7 +1288,9 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
         sell: async () => { await sellFlow(); closeIfOver(); },
       },
     });
-    layer.closed.then(() => finishIfOver());
+    stmtLayer = layer;
+    layer.seenState = state;
+    layer.closed.then(() => { if (stmtLayer === layer) stmtLayer = null; finishIfOver(); });
   }
 
   // ?debug=1 only: force-win / force-lose helpers for QA. No effect without the flag.
@@ -1275,6 +1397,14 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
         store.save(match);
       }
       const plan = resumePlan(match);
+      if (plan === 'auction') { // saved mid-auction: finish the bidding, then the turn that paused for it
+        setBusy(true);
+        await maybeAuction(match.auction.card); // maybeStartAuction sees the open auction and just runs it
+        if (destroyed) return;
+        if (match.status !== 'playing') { setBusy(false); await finishIfOver(); return; }
+        await afterTurn();
+        return;
+      }
       if (plan === 'finish') { setBusy(false); await finishIfOver(); return; }
       if (plan === 'out') { await outFlow(); return; } // the current player is already out: announce it and hand over (or end the match)
       if (plan === 'resolve') {
