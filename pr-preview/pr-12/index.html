@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="he" dir="rtl" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0F172A">
+  <meta name="color-scheme" content="dark light">
+  <meta name="description" content="MaxiFox – משחק הכסף שעובד בשבילך. בונים הכנסה פסיבית ומגיעים לחופש כלכלי">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>MaxiFox – משחק הכסף שעובד בשבילך</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="32x32" href="./icons/favicon-32.png">
+  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+  <style>
+    /* Critical paint: navy backdrop before CSS loads (no flash) */
+    html, body { margin: 0; background: #0F172A; }
+    #app:empty { min-height: 100dvh; background: #0F172A; }
+    /* splash (fox-usage.md: the MaxiFox logo while the app loads); main.js removes it once the first screen is mounted */
+    #splash { position: fixed; inset: 0; display: grid; place-items: center; background: #0F172A; z-index: 1; pointer-events: none; }
+    #splash img { width: 200px; height: auto; aspect-ratio: 240 / 261; }
+  </style>
+  <script type="module" crossorigin src="/hallel34/pr-preview/pr-12/assets/game-Bh6eYEBg.js"></script>
+  <link rel="modulepreload" crossorigin href="/hallel34/pr-preview/pr-12/assets/scene-CCfmL3NB.js">
+  <link rel="stylesheet" crossorigin href="/hallel34/pr-preview/pr-12/assets/scene-DNAnLOw2.css">
+  <link rel="stylesheet" crossorigin href="/hallel34/pr-preview/pr-12/assets/game-CTVfINqB.css">
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="/hallel34/pr-preview/pr-12/assets/rubik-hebrew-700-normal-Da14F88e.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="/hallel34/pr-preview/pr-12/assets/rubik-latin-700-normal-D-tMm-eS.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="/hallel34/pr-preview/pr-12/assets/rubik-hebrew-900-normal-CNJSgxQA.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="/hallel34/pr-preview/pr-12/assets/rubik-latin-900-normal-Cz6GdZLE.woff2">
+  <link rel="preload" as="image" href="/hallel34/pr-preview/pr-12/assets/maxifox-logo-alpha-1x-C8Qwfj6n.webp" imagesrcset="/hallel34/pr-preview/pr-12/assets/maxifox-logo-alpha-1x-C8Qwfj6n.webp 1x, /hallel34/pr-preview/pr-12/assets/maxifox-logo-alpha-2x-BTQZ1b04.webp 2x">
+</head>
+<body>
+  <div id="splash" aria-hidden="true"><img src="/hallel34/pr-preview/pr-12/assets/maxifox-logo-alpha-1x-C8Qwfj6n.webp" srcset="/hallel34/pr-preview/pr-12/assets/maxifox-logo-alpha-1x-C8Qwfj6n.webp 1x, /hallel34/pr-preview/pr-12/assets/maxifox-logo-alpha-2x-BTQZ1b04.webp 2x" width="200" height="218" alt="" fetchpriority="high"></div>
+  <main id="app"></main>
+  <div id="modal-root"></div>
+  <div id="fx-layer" aria-hidden="true"></div>
+  <div id="toast-layer"></div>
+  <noscript>MaxiFox דורש JavaScript</noscript>
+</body>
+</html>
