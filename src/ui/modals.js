@@ -435,7 +435,7 @@ function finishOpportunity({ state, c, body, qtyGetter, plan, ctl = null, deferr
   const promise = cardShell({
     type: 'opportunity', kind: null, headChip: categoryChip(c, { size: 40, on: 'cream' }), headLabel: cat.label, headVar: cat.neutral ? '--card-muted' : cat.inkVar,
     title: cardTitle(c, state.mode), text: cardText(c, state.mode),
-    body: [...body, ...(reno ? [renoBlock(reno)] : [])], foot: deferred ? null : [tourUi?.strip, warn], actions: deferred ? [] : actions, ctl: ctl ?? tourCtl,
+    body: [...(reno ? [renoBlock(reno)] : []), ...body], foot: deferred ? null : [tourUi?.strip, warn], actions: deferred ? [] : actions, ctl: ctl ?? tourCtl,
     data: {
       afford: String(plan.status === 'ok'), buy: plan.status, kind: c.type, cost: String(plan.cost), category: cat.id,
       payback: c.type === 'stock' ? '' : String(Math.round(c.downPayment / Math.max(1, c.monthlyCashFlow))),

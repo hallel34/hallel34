@@ -101,6 +101,8 @@ export function createPlayers({ count = 1, names = [], ages = [], bots = [], mod
       const age = fields.querySelector(`[data-age-for="${i}"]`);
       if (age) age.hidden = isBot;
       seat.querySelectorAll('.bot-policy-row').forEach((el) => { el.hidden = !isBot; });
+      const pol = botsOf[i] && seat.querySelector(`[data-policy="${botsOf[i]}"]`);
+      if (isBot && pol) pol.checked = true; // the default policy also shows as picked
     };
     const seatChip = (kind, labelKey) => {
       const input = h('input', { type: 'radio', name, value: kind, class: 'age-input', 'data-seat': kind, checked: (kind === 'bot') === !!botsOf[i] || null });
