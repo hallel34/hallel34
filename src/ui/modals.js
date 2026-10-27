@@ -21,7 +21,7 @@ import {
   monthlyCashFlow, passiveIncome, maxLoan, loanCap, loanLimits, saleValue, canSell, loanPaydayImpact,
   paybackTier, PAYDAY_MONTHS, MONTHS_PER_YEAR, purchasePlan, loanTerms, dealMetrics, balanceSheet, assetLoanPayment, loanRateNow,
 } from '../engine/index.js';
-import { loanStep, TIMED_EFFECT_KINDS as TIMED_EFFECTS } from '../engine/index.js';
+import { loanStep, TIMED_EFFECT_KINDS as TIMED_EFFECTS, auctionStep, auctionMinBid } from '../engine/index.js';
 import { cardTitle, cardText, assetTitle } from './card-view.js';
 import hourglassSvg from '../assets/verdict/hourglass.svg?raw';
 import { tileLabelChip } from './tiles.js';
@@ -178,6 +178,79 @@ function stockNote(c) {
     h('p', { class: 'stock-links' }, termButton('dividend', conceptById('dividend')?.term ?? ''), termButton('diversification', conceptById('diversification')?.term ?? '')));
 }
 
+// ---------- renovation: the level-2 style choice (מרפסת או טייק אוויי) ----------
+/** Resolves 'terrace' | 'takeaway' | null (cancelled: the opportunity card stays open). */
+export function renovateStyleSheet() {
+  let layer;
+  const pick = (style) => (titleKey, lineKey, glyph) => h('button', {
+    type: 'button', class: 'reno-style-btn', 'data-style': style,
+    onClick: () => { haptic('tap'); layer.close(style); },
+  },
+  h('span', { class: 'reno-style-glyph', 'aria-hidden': 'true' }, glyph),
+  h('b', null, t(titleKey)), h('small', null, t(lineKey)));
+  const content = h('div', { class: 'sheet reno-style' },
+    h('h2', { class: 'dialog-title' }, t('reno.styleTitle')),
+    h('p', { class: 'dialog-text' }, t('reno.styleText')),
+    pick('terrace')('reno.terrace', 'reno.terraceLine', '☂'),
+    pick('takeaway')('reno.takeaway', 'reno.takeawayLine', '☕'),
+    button(t('reno.styleCancel'), { variant: 'text', 'data-action': 'reno-cancel', onClick: () => layer.close(null) }));
+  layer = openLayer(content, { kind: 'sheet', label: t('reno.styleTitle'), dismissable: true, cls: 'layer-sheet' });
+  return layer.closed;
+}
+
+// ---------- auction of a passed deal ----------
+/**
+ * One bidder's turn in an open ascending auction (match.auction). Chips raise by whole steps from the minimum;
+ * the primary button bids the chosen amount. Resolves { action: 'bid', amount } or { action: 'pass' }.
+ */
+export function auctionModal({ match, index, nameOf }) {
+  const a = match.auction;
+  const c = a.card;
+  const st = match.players[index].state;
+  const step = auctionStep(match);
+  const min = auctionMinBid(match);
+  const max = Math.floor(st.cash / step) * step;
+  const canBid = max >= min;
+  const cat = categoryOf(c);
+  const ctl = {};
+  const stp = stepper({
+    min, max: canBid ? max : min, step, value: min,
+    render: (v) => moneyText(v),
+    onChange: () => paint(),
+    decLabel: t('loan.less'), incLabel: t('loan.more'),
+  });
+  const actions = () => [
+    { id: 'pass', label: t('auction.pass'), variant: 'secondary', value: { action: 'pass' } },
+    {
+      id: 'bid', variant: 'primary', autofocus: canBid, blocked: !canBid,
+      label: t('auction.bid', { amount: moneyText(stp.value) }),
+      getValue: () => ({ action: 'bid', amount: stp.value }),
+    },
+  ];
+  const paint = () => ctl.setActions?.(actions());
+  const leader = a.winner !== null ? nameOf(a.winner) : null;
+  const promise = cardShell({
+    type: 'opportunity', kind: null,
+    headChip: categoryChip(c, { size: 40, on: 'cream' }), headLabel: cat.label, headVar: cat.neutral ? '--card-muted' : cat.inkVar,
+    title: t('auction.title', { title: cardTitle(c, st.mode) }),
+    text: t('auction.text', { name: nameOf(a.fromIndex) }),
+    body: [
+      dealKeys(
+        statTile(t('auction.monthly'), money(c.monthlyCashFlow, { sign: true }), { tone: c.monthlyCashFlow > 0 ? 'income' : 'expense', big: true, caption: t('card.perMonthCaption'), cls: 'stat-hero', minScale: HERO_MIN }),
+        null,
+        [statTile(t('auction.listPrice'), money(c.price), { big: true, cls: 'stat-key', minScale: KEY_MIN }),
+         statTile(t('auction.currentBid'), a.currentBid ? h('bdi', null, `${moneyText(a.currentBid)} · ${leader}`) : t('auction.noBids'), { big: true, cls: 'stat-key', minScale: KEY_MIN })]),
+      h('p', { class: 'muted', 'data-auction-cash': '' }, tn('auction.yourCash', { amount: money(st.cash) })),
+      canBid ? h('div', { class: 'stepper-wrap', 'data-auction-stepper': '' }, stp.el) : null,
+    ].filter(Boolean),
+    actions: actions(), ctl,
+    data: { kind: c.type, category: cat.id, auction: String(a.currentBid) },
+  });
+  paint();
+  return promise;
+}
+
+
 // ---------- opportunity ----------
 /** 'down payment + loan = price' as three label/value columns: the debt that comes with the deal stays visible. */
 function priceEquation(c, scope) {
@@ -195,7 +268,7 @@ function priceEquation(c, scope) {
  * `prior`: the guess already made for this open card (a reload shows the numbers straight away).
  * (`flip` is accepted for the callers and ignored: the card fades in, there is no flip any more.)
  */
-export function opportunityModal(state, { guess = null, tour = null } = {}) {
+export function opportunityModal(state, { guess = null, tour = null, reno = null } = {}) {
   const c = state.pending.card;
   const passive = passiveIncome(state);
   const scope = createTermScope();
@@ -228,7 +301,7 @@ export function opportunityModal(state, { guess = null, tour = null } = {}) {
       stockNote(c),
       realWorldForCard(c),
     ].filter(Boolean);
-    return finishOpportunity({ state, c, body, qtyGetter: () => st.value, plan: purchasePlan(state, c.price), tour: null, tier: dealBadgeModel(c)?.tier ?? 'speculative' });
+    return finishOpportunity({ state, c, body, qtyGetter: () => st.value, plan: purchasePlan(state, c.price), tour: null, tier: dealBadgeModel(c)?.tier ?? 'speculative', reno });
   }
 
   const m = dealMetrics(c);
@@ -266,13 +339,13 @@ export function opportunityModal(state, { guess = null, tour = null } = {}) {
   // ---- no guess: the numbers straight away (full mode default) ----
   if (!guess?.enabled) {
     const n = cardNumbers();
-    return finishOpportunity({ state, c, body: [n.key, ...n.quiet], qtyGetter: () => 1, plan, tour, tier });
+    return finishOpportunity({ state, c, body: [n.key, ...n.quiet], qtyGetter: () => 1, plan, tour, tier, reno });
   }
 
   // ---- the guess flow (family mode): prompt first, numbers after ----
   const { guess: ui } = learnContent();
   const ctl = {};
-  const opts = finishOpportunity({ state, c, body: [], qtyGetter: () => 1, plan, ctl, deferred: true, guessState: 'ask' });
+  const opts = finishOpportunity({ state, c, body: [], qtyGetter: () => 1, plan, ctl, deferred: true, guessState: 'ask', reno });
   const reveal = (pick, prior = null) => {
     const eye = prior ? guess.eye?.() : guess.onGuess(pick, m.light);
     const result = resultModel(m.light, pick, { seed: guess.seed });
@@ -319,7 +392,15 @@ function breakdown(c, scope) {
     }, { scope })));
 }
 
-function finishOpportunity({ state, c, body, qtyGetter, plan, ctl = null, deferred = false, guessState = 'off', tour = null, tier = null }) {
+/** The 'שיפוץ אפשרי' section of an opportunity card, when the player owns a coffee business they can upgrade now. */
+function renoBlock(reno) {
+  return h('section', { class: 'reno-block', 'data-reno': String(reno.level) },
+    h('h3', { class: 'reno-title' }, t('reno.blockTitle', { title: t(`reno.level${reno.level}`) })),
+    h('p', null, tn('reno.blockLine', { cost: money(reno.cost), gain: money(reno.gain, { sign: true }) })),
+    h('p', { class: 'reno-or' }, t('reno.blockOr')));
+}
+
+function finishOpportunity({ state, c, body, qtyGetter, plan, ctl = null, deferred = false, guessState = 'off', tour = null, tier = null, reno = null }) {
   // plan.status: 'ok' (cash covers it) | 'loan' (one loan covers the gap) | 'blocked' (short even after the maximum loan)
   const hintId = 'buy-hint';
   const cap = loanCap(state);
@@ -335,6 +416,10 @@ function finishOpportunity({ state, c, body, qtyGetter, plan, ctl = null, deferr
       : null;
   const actions = [
     { id: 'pass', label: t('card.pass'), variant: 'secondary', value: { action: 'pass' } },
+    ...(reno ? [{
+      id: 'renovate', variant: 'secondary', value: { action: 'renovate' },
+      label: [h('span', null, t('reno.action')), h('span', { class: 'btn-tag' }, t('reno.tag', { cost: moneyText(reno.cost), gain: `+${moneyText(reno.gain)}` }))],
+    }] : []),
     {
       // 'blocked' = a real `disabled` (50%); the banner above says why and 'pass' stays the one live action
       id: 'buy', label: plan.status === 'blocked' ? [h('span', null, t('card.buy')), h('span', { class: 'btn-tag' }, t('card.unavailable'))] : t('card.buy'), variant: 'primary', autofocus: plan.status !== 'blocked', haptic: 'purchase',
@@ -350,7 +435,7 @@ function finishOpportunity({ state, c, body, qtyGetter, plan, ctl = null, deferr
   const promise = cardShell({
     type: 'opportunity', kind: null, headChip: categoryChip(c, { size: 40, on: 'cream' }), headLabel: cat.label, headVar: cat.neutral ? '--card-muted' : cat.inkVar,
     title: cardTitle(c, state.mode), text: cardText(c, state.mode),
-    body, foot: deferred ? null : [tourUi?.strip, warn], actions: deferred ? [] : actions, ctl: ctl ?? tourCtl,
+    body: [...body, ...(reno ? [renoBlock(reno)] : [])], foot: deferred ? null : [tourUi?.strip, warn], actions: deferred ? [] : actions, ctl: ctl ?? tourCtl,
     data: {
       afford: String(plan.status === 'ok'), buy: plan.status, kind: c.type, cost: String(plan.cost), category: cat.id,
       payback: c.type === 'stock' ? '' : String(Math.round(c.downPayment / Math.max(1, c.monthlyCashFlow))),

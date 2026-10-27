@@ -2,6 +2,9 @@
 import { maxLoan, monthlyCashFlow, totalExpenses, loanRateNow, bankLoanPrincipal, loanStep } from './selectors.js';
 import { decisionCanPass, isFreeOption, PASS_OPTION } from './engine.js';
 import { act, canEndTurn, endTurn } from './match.js';
+import { renovationOption } from './renovation.js';
+import { maybeStartAuction, runAuction } from './auction.js';
+import { LOAN_STEP, JUNIOR_LOAN_STEP } from './config.js';
 
 // reserveMonths: cash buffer (in months of expenses) kept after a purchase.
 // maxPayback: reject deals whose down payment takes longer than this many months of cash flow.
@@ -95,6 +98,15 @@ export function step(engine, s, bot) {
   if (p.kind === 'opportunity') {
     const c = p.card;
     const reserve = cfg.reserveMonths * totalExpenses(s);
+    // Renovation of an owned coffee business: an alternative to the card, judged by the same payback rule.
+    // The reckless bots renovate whenever they can pay; alwaysPass never does.
+    const reno = renovationOption(s, engine.data.cards);
+    if (reno && cfg.maxPayback >= 0) {
+      const renoPayback = reno.gain > 0 ? reno.cost / reno.gain : Infinity;
+      const cardPayback = c.type !== 'stock' && c.monthlyCashFlow > 0 ? c.downPayment / c.monthlyCashFlow : Infinity;
+      const wants = cfg.maxPayback === Infinity || (renoPayback <= cfg.maxPayback && renoPayback <= cardPayback);
+      if (wants) return engine.renovate(s, reno.assetId, reno.style ? 'terrace' : null);
+    }
     if (c.type === 'stock') {
       const afford = Math.floor((s.cash - reserve) / c.price);
       const qty = Math.min(afford, c.maxQty ?? 1000);
@@ -142,16 +154,41 @@ export function playGame(engine, state, bot, maxTurns = 200) {
 }
 
 /**
- * Plays a whole hot-seat match with one bot policy per player (bots: ['sensible', ...]).
- * Stops at the first winner, when everyone is out, or after `maxTurns` completed turns. Returns the final match.
+ * The highest bid a policy puts on an auctioned deal (0 = sit out): the same payback ceiling it buys with
+ * (cost / monthly cash flow in months), kept inside its cash reserve. The reckless bots (no payback limit) go
+ * up to the card's full price; for a money-losing deal they offer at most its down payment. Cash only.
+ */
+export function auctionMaxBid(state, card, bot) {
+  const cfg = BOTS[bot] ?? bot;
+  if (!card || cfg.maxPayback < 0) return 0;
+  const reserve = cfg.reserveMonths * totalExpenses(state);
+  const budget = Math.max(0, state.cash - reserve);
+  let ceiling;
+  if (card.monthlyCashFlow > 0) {
+    ceiling = cfg.maxPayback === Infinity ? card.price : cfg.maxPayback * card.monthlyCashFlow;
+  } else {
+    ceiling = cfg.maxPayback === Infinity ? card.downPayment : 0;
+  }
+  const step = state.junior ? JUNIOR_LOAN_STEP : LOAN_STEP;
+  return Math.max(0, Math.floor(Math.min(budget, ceiling) / step) * step);
+}
+
+/**
+ * Plays a whole hot-seat match with one bot policy per player (bots: ['sensible', ...]; a seat's own `bot` field wins).
+ * A passed deal goes to auction: every bidder plays its own policy's ceiling. Stops at the first winner, when everyone
+ * is out, or after `maxTurns` completed turns. Returns the final match.
  */
 export function playMatch(engine, match, bots, maxTurns = 2000) {
   let m = match;
   let guard = 0;
+  const policy = (i) => m.players[i].bot ?? bots[i % bots.length];
   while (m.status === 'playing' && m.turns < maxTurns && guard++ < maxTurns * 60) {
+    if (m.auction) { m = runAuction(engine, m, (st, card, i) => auctionMaxBid(st, card, policy(i))); continue; }
     if (canEndTurn(m)) { m = endTurn(m); continue; }
-    const bot = bots[m.currentIndex % bots.length];
+    const bot = policy(m.currentIndex);
     m = act(m, (s) => step(engine, s, bot));
+    const passed = m.players[m.currentIndex].state.events?.find((e) => e.type === 'passed' && e.card);
+    if (passed) m = maybeStartAuction(m, passed.card);
   }
   return m;
 }

@@ -115,7 +115,9 @@ export function openStatement({ getState, ops, title = t('statement.title') }) {
     const assetRows = s.assets.length
       ? s.assets.map((a) => h('div', { class: 'st-row st-asset st-asset-row', 'data-category': categoryChip(a, { size: 32, on: 'dark' }).dataset.category },
         categoryChip(a, { size: 32, on: 'dark' }),
-        h('span', { class: 'st-label' }, assetTitle(a, s.mode)),
+        h('span', { class: 'st-label' }, assetTitle(a, s.mode), a.renovations
+          ? h('span', { class: 'st-reno', 'data-reno': String(a.renovations.level) }, ` · ${t(a.renovations.level === 2 ? (a.renovations.style === 'takeaway' ? 'reno.assetLevel2takeaway' : 'reno.assetLevel2terrace') : `reno.assetLevel${a.renovations.level}`)}`)
+          : null),
         h('span', { class: 'st-value' }, money(a.monthlyCashFlow, { sign: true })),
         h('span', { class: 'st-sub', 'data-asset': a.id },
           a.type === 'stock'
