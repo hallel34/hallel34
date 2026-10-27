@@ -1017,6 +1017,10 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
       if (renoEv) { pushLog(t('reno.log', { title: renoEv.title, level: renoEv.level }), 'good'); react('celebrate'); }
       await syncCash();
       if (passedCard) await maybeAuction(passedCard);
+      else if (renoEv) { // a bot's renovation skips the drawn deal: the others bid on it
+        const skipped = engine.data.cards.find((c) => c.id === renoEv.cardId);
+        if (skipped) await maybeAuction(skipped);
+      }
       await pause(600);
     }
     if (destroyed) return;
@@ -1194,6 +1198,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
               pushLog(t('reno.log', { title: ev.title, level: ev.level }), 'good'); react('celebrate');
               await renovatedDialog({ title: ev.title, level: ev.level, style: ev.style, gain: ev.gain }); // the business visibly grows
             }
+            await maybeAuction(p.card); // owner rule 2026-10-27: the skipped deal goes to auction among the others
           }
         }
         else if (r.action === 'buyLoan') {

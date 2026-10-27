@@ -1,4 +1,4 @@
-// Auction of a declined opportunity among the other players (owner idea, 2026-10-27: "אם אחד ויתר על הזדמנות צריך
+// Auction of a declined or renovation-skipped opportunity among the other players (owner idea, 2026-10-27: "אם אחד ויתר על הזדמנות צריך
 // להציע את זה למכרז בין שאר השחקנים"). Match-level: the bidding lives on the match, not in one player's state.
 // Only apartment / business deals go to auction (a stock card is a personal buy offer, not an asset to win).
 // The player who passed does not bid. Open ascending bids in loan steps (10,000 in a junior game), cash only
@@ -30,7 +30,7 @@ export function maybeStartAuction(m, card, fromIndex = m.currentIndex, rules = {
   if (m.auction || !auctionable(card)) return m;
   const order = auctionOrder(m, fromIndex);
   if (!order.length) return m;
-  // Default floor (provisional, pending owner review 2026-10-27): half the printed down payment, so a passed deal
+  // Default floor (owner-approved 2026-10-27): half the printed down payment, so a passed deal
   // sells often enough to matter but never as a steal. rules.floor overrides (0 = no floor).
   const floorRule = rules.floor ?? ((c) => Math.round((c.downPayment ?? 0) / 2));
   const floor = Math.max(0, Math.round(typeof floorRule === 'function' ? floorRule(card) : floorRule));

@@ -607,9 +607,10 @@ export function createEngine(data, { validate = true } = {}) {
 
   // ---------- renovation (an owned coffee business, on an opportunity square) ----------
   /**
-   * Renovates the owned coffee business `assetId` one level up instead of deciding on the drawn card (the card is
-   * discarded). Level 2 needs `style` ('terrace' / 'takeaway'); the styles play identically. Costs cash, adds the
-   * level's monthly cash flow to the business.
+   * Renovates the owned coffee business `assetId` one level up instead of deciding on the drawn card. The card is
+   * not lost: the match layer auctions it among the other players (owner-approved 2026-10-27), using the cardId the
+   * 'renovated' event records. Level 2 needs `style` ('terrace' / 'takeaway'); the styles play identically.
+   * Costs cash, adds the level's monthly cash flow to the business.
    */
   function renovate(state, assetId, style = null) {
     const d = begin(state);
@@ -623,7 +624,7 @@ export function createEngine(data, { validate = true } = {}) {
     if (d.cash < next.cost) fail('not enough cash');
     if (next.style && !RENOVATION_STYLES.includes(style)) fail('choose a style');
     logAction(d, 'renovate', assetId, next.level, style);
-    const cardId = d.pending.card.id; // the discarded card, for the log
+    const cardId = d.pending.card.id; // the skipped card: the match layer auctions it among the other players
     d.cash -= next.cost;
     asset.monthlyCashFlow += next.gain;
     asset.renovations = { level: next.level, style: style ?? asset.renovations?.style ?? null };

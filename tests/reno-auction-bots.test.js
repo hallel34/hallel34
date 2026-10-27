@@ -48,7 +48,7 @@ describe('renovation', () => {
     const noCafe = { ...s, assets: s.assets.filter((a) => a.id !== 'asset-cafe') };
     expect(renovationOption(noCafe, engine.data.cards)).toBeNull(); // nothing to renovate
   });
-  it('renovate pays the cost, adds the monthly gain, records the level and discards the drawn card', () => {
+  it('renovate pays the cost, adds the monthly gain, and records the skipped card for the auction', () => {
     const s = withCafeAndCard(engine);
     const before = passiveIncome(s);
     const n = engine.renovate(s, 'asset-cafe');
@@ -58,7 +58,8 @@ describe('renovation', () => {
     expect(a.renovations).toEqual({ level: 1, style: null });
     expect(passiveIncome(n)).toBe(before + RENOVATION_LEVELS[0].gain);
     expect(n.pending).toBeNull(); // the renovation replaces the card decision
-    expect(n.events.find((e) => e.type === 'renovated')).toMatchObject({ level: 1, cost: RENOVATION_LEVELS[0].cost });
+    // the skipped drawn card rides the event so the match layer can auction it among the others (owner rule 2026-10-27)
+    expect(n.events.find((e) => e.type === 'renovated')).toMatchObject({ level: 1, cost: RENOVATION_LEVELS[0].cost, cardId: apt.id });
   });
   it('level 2 needs a style and keeps it; level 3 is the last', () => {
     let s = withCafeAndCard(engine);
@@ -196,6 +197,24 @@ describe('bot seats', () => {
     const bad = { ...card, monthlyCashFlow: -100 };
     expect(auctionMaxBid(s, bad, 'sensible')).toBe(0);
     expect(auctionMaxBid(s, bad, 'alwaysBuy')).toBe(20000); // the down payment at most
+  });
+  it('a bot renovation sends the skipped deal to auction among the others (owner rule)', () => {
+    const badCard = { ...apt, id: 'opp-bad', monthlyCashFlow: 100 }; // payback 200 months > the renovation's 50
+    const e2 = mk([apt, cafe, badCard]);
+    let m = newMatch(e2, { mode: 'full', players: [
+      { professionId: 'test', bot: 'sensible' }, { professionId: 'test', bot: 'cautious' }, { professionId: 'test', bot: 'sensible' },
+    ], seed: 7 });
+    // player 0: owns a cafe, draws the bad deal - sensible renovates instead of buying it
+    m.players[0].state = withCafeAndCard(e2, badCard, 500000);
+    const stats = { auctions: 0, sold: 0, bids: [] };
+    m = playMatch(e2, m, ['sensible'], 1, { stats });
+    expect(m.players[0].state.assets.find((a) => a.id === 'asset-cafe')?.renovations?.level).toBe(1);
+    expect(stats.auctions).toBe(1); // exactly the renovation-skipped card's auction
+    expect(m.lastAuction).toMatchObject({ cardId: 'opp-bad' });
+    expect(m.lastAuction.winner).not.toBe(0); // the renovator does not bid
+    expect(m.lastAuction.winner).not.toBeNull();
+    const winner = m.players[m.lastAuction.winner].state;
+    expect(winner.assets.find((a) => a.cardId === 'opp-bad')).toMatchObject({ auctioned: true, downPayment: m.lastAuction.price });
   });
   it('a bot match with auctions still finishes (mixed policies)', () => {
     const m = newMatch(engine, { mode: 'full', players: [

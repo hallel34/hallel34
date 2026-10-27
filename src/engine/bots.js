@@ -175,8 +175,8 @@ export function auctionMaxBid(state, card, bot) {
 
 /**
  * Plays a whole hot-seat match with one bot policy per player (bots: ['sensible', ...]; a seat's own `bot` field wins).
- * A passed deal goes to auction: every bidder plays its own policy's ceiling. Stops at the first winner, when everyone
- * is out, or after `maxTurns` completed turns. Returns the final match.
+ * A passed or renovation-skipped deal goes to auction: every bidder plays its own policy's ceiling. Stops at the first
+ * winner, when everyone is out, or after `maxTurns` completed turns. Returns the final match.
  */
 export function playMatch(engine, match, bots, maxTurns = 2000, opts = {}) {
   let m = match;
@@ -199,8 +199,15 @@ export function playMatch(engine, match, bots, maxTurns = 2000, opts = {}) {
     if (canEndTurn(m)) { m = endTurn(m); continue; }
     const bot = policy(m.currentIndex);
     m = act(m, (s) => step(engine, s, bot));
-    const passed = m.players[m.currentIndex].state.events?.find((e) => e.type === 'passed' && e.card);
+    const evs = m.players[m.currentIndex].state.events;
+    const passed = evs?.find((e) => e.type === 'passed' && e.card);
     if (passed && opts.auctions !== false) m = maybeStartAuction(m, passed.card, m.currentIndex, opts.auctionRules ?? {});
+    // A renovation skips the drawn deal: the others bid on it (owner rule 2026-10-27). The event carries its cardId.
+    const renovated = evs?.find((e) => e.type === 'renovated' && e.cardId);
+    if (!passed && renovated && opts.auctions !== false) {
+      const skipped = engine.data.cards.find((c) => c.id === renovated.cardId);
+      if (skipped) m = maybeStartAuction(m, skipped, m.currentIndex, opts.auctionRules ?? {});
+    }
   }
   return m;
 }
