@@ -73,7 +73,7 @@ export default defineConfig({
   define: { __APP_VERSION__: JSON.stringify(pkg.version) },
   plugins: [pruneLearnPlugin(), pwaPlugin()],
   // the 3D board tiles stay real files (cacheable, preloadable, srcset), never base64 inside the JS bundle
-  build: { target: 'es2020', assetsInlineLimit: (file) => (/[\\/]tile3d[\\/]/.test(file) ? false : undefined) },
+  build: { rollupOptions: { input: { game: 'index.html', businessDemo: 'business-demo.html' } }, target: 'es2020', assetsInlineLimit: (file) => (/[\\/]tile3d[\\/]/.test(file) ? false : undefined) },
   test: {
     environment: 'node',
     include: ['tests/**/*.test.js'],

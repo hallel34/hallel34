@@ -15,6 +15,7 @@ import {
 } from './selectors.js';
 import { emptyLearn, recordDecision, buyRecord, passRecord, loanRating, isDeal } from './learn.js';
 import { dailyDie, dailyPick, DAILY_TURN_CAP } from './daily.js';
+import { renovationLevel, renovationLevelsFor, RENOVATION_STYLES } from './renovation.js';
 
 export class EngineError extends Error {}
 
@@ -577,7 +578,7 @@ export function createEngine(data, { validate = true } = {}) {
       d.cash -= card.downPayment;
       d.seq += 1;
       d.assets.push({
-        id: `asset-${d.seq}`, cardId: card.id, type: card.type, title: card.title,
+        id: `asset-${d.seq}`, cardId: card.id, type: card.type, title: card.title, category: card.category,
         price: card.price, downPayment: card.downPayment, mortgage: card.mortgage,
         monthlyCashFlow: card.monthlyCashFlow,
         ...(Number.isFinite(card.rent) ? { rent: card.rent } : {}), // a rent card changes the flow by rent x pct
@@ -598,8 +599,67 @@ export function createEngine(data, { validate = true } = {}) {
     requirePending(d, 'opportunity');
     logAction(d, 'pass');
     recordDecision(d, passRecord(d.pending.card, d.cash));
+    d.events.push({ type: 'passed', card: d.pending.card });
     d.pending = null;
-    d.events.push({ type: 'passed' });
+    settle(d);
+    return d;
+  }
+
+  // ---------- renovation (an owned coffee business, on an opportunity square) ----------
+  /**
+   * Renovates the owned coffee business `assetId` one level up instead of deciding on the drawn card. The card is
+   * not lost: the match layer auctions it among the other players (owner-approved 2026-10-27), using the cardId the
+   * 'renovated' event records. Level 2 needs `style` ('terrace' / 'takeaway'); the styles play identically.
+   * Costs cash, adds the level's monthly cash flow to the business.
+   */
+  function renovate(state, assetId, style = null) {
+    const d = begin(state);
+    requirePending(d, 'opportunity');
+    const asset = d.assets.find((a) => a.id === assetId);
+    const category = asset?.category ?? data.cards.find((c) => c.id === asset?.cardId)?.category;
+    if (!asset || asset.type !== 'business' || category !== 'coffee') fail('no coffee business to renovate');
+    const lvl = renovationLevel(asset);
+    const next = renovationLevelsFor(d)[lvl];
+    if (!next) fail('already fully renovated');
+    if (d.cash < next.cost) fail('not enough cash');
+    if (next.style && !RENOVATION_STYLES.includes(style)) fail('choose a style');
+    logAction(d, 'renovate', assetId, next.level, style);
+    const cardId = d.pending.card.id; // the skipped card: the match layer auctions it among the other players
+    d.cash -= next.cost;
+    asset.monthlyCashFlow += next.gain;
+    asset.renovations = { level: next.level, style: style ?? asset.renovations?.style ?? null };
+    recordDecision(d, { kind: 'renovation', cardId: asset.cardId, title: asset.title, level: next.level, cost: next.cost, gain: next.gain, green: null });
+    d.events.push({ type: 'renovated', assetId, cardId, title: asset.title, level: next.level, style: asset.renovations.style, cost: next.cost, gain: next.gain });
+    d.pending = null;
+    settle(d);
+    return d;
+  }
+
+  // ---------- auction (a passed opportunity, multiplayer; the match layer runs the bidding) ----------
+  /**
+   * Gives the auction winner the passed card at their bid: the bid is paid in cash as the effective down payment, the
+   * card's own financing (mortgage and its payment) comes with it unchanged, so the recorded price = bid + mortgage,
+   * the balance sheet and a later sale stay consistent, and no financing value appears or disappears.
+   */
+  function auctionWin(state, card, price) {
+    const d = begin(state);
+    if (!['apartment', 'business'].includes(card?.type)) fail('only a deal can be auctioned');
+    if (!Number.isInteger(price) || price <= 0) fail('bad bid');
+    if (d.cash < price) fail('not enough cash');
+    logAction(d, 'auctionWin', card.id, price);
+    d.cash -= price;
+    d.seq += 1;
+    d.assets.push({
+      id: `asset-${d.seq}`, cardId: card.id, type: card.type, title: card.title, category: card.category,
+      price: price + (card.mortgage ?? 0), downPayment: price, mortgage: card.mortgage ?? 0,
+      monthlyCashFlow: card.monthlyCashFlow,
+      ...(Number.isFinite(card.rent) ? { rent: card.rent } : {}),
+      ...(Number.isFinite(card.loanPayment) ? { loanPayment: card.loanPayment } : {}),
+      auctioned: true,
+    });
+    recordDecision(d, { kind: 'auctionWin', cardId: card.id, title: card.title, type: card.type, cf: card.monthlyCashFlow, down: price, green: null });
+    d.stats.dealsBought += 1;
+    d.events.push({ type: 'auctionWin', cardId: card.id, cost: price });
     settle(d);
     return d;
   }
@@ -760,7 +820,7 @@ export function createEngine(data, { validate = true } = {}) {
   }
 
   return {
-    data, newGame, debugForce, forfeit, roll, buy, pass, acceptOffer, declineOffer, donate,
+    data, newGame, debugForce, forfeit, roll, buy, pass, renovate, auctionWin, acceptOffer, declineOffer, donate,
     declineCharity, takeLoan, repayLoan, sellAsset, decide, decisionOptions, answerAudit,
   };
 }

@@ -1203,33 +1203,23 @@ async function testPhaseA(page) {
   check(card.bottom <= card.ih + 1 && card.top >= card.hudBottom - 4, `summary card stays inside the viewport and below the HUD (top ${Math.round(card.top)} / hud ${Math.round(card.hudBottom)})`);
   await noHScroll(page, 'summary card');
   await page.screenshot({ path: `${OUT}/summary-card-${HEIGHT}.png` });
+  const shownSummary = await page.locator('.summary-card').elementHandle();
   await page.locator('[data-action="summary-ok"]').click();
-  await page.waitForSelector('.float-text', { timeout: 15000 });
-  const f = await page.evaluate(() => {
-    const r = (e) => { const b = e.getBoundingClientRect(); return { top: b.top, bottom: b.bottom, left: b.left, right: b.right }; };
-    const hud = r(document.querySelector('.hud'));
-    const plaza = r(document.querySelector('.board-center'));
-    const fl = r(document.querySelector('.float-text'));
-    const texts = [...document.querySelectorAll('.hud-prof, .hud-sub, .hud-id, .hud-btns, .hud-cash, .meter-labels')].map(r);
-    return {
-      hud, fl, plaza, overlapsHud: texts.some((t) => fl.top < t.bottom && fl.bottom > t.top && fl.left < t.right && fl.right > t.left),
-      floatBdi: document.querySelectorAll('.float-text bdi').length,
-    };
-  });
+  // A long roll can immediately open a second yearly summary. Wait for THIS card to close.
+  await page.waitForFunction((card) => !card.isConnected, shownSummary);
+  const f = await page.evaluate(() => ({ floatCount: document.querySelectorAll('.float-text').length }));
   const seen = await page.evaluate(() => window.__seen);
   const chipMsg = seen.find((x) => x.key === 'chip' && x.text.includes('סיכום שנתי'));
   const statusMsg = seen.find((x) => x.key === 'status' && x.text.includes('סיכום שנתי'));
   f.chip = chipMsg?.text ?? ''; f.chipBdi = chipMsg?.bdi ?? 0;
   f.statusText = statusMsg?.text ?? ''; f.statusBdi = statusMsg?.bdi ?? 0;
-  check(!f.overlapsHud, `B2: the payday float does not overlap any HUD text (float top ${Math.round(f.fl.top)}, hud bottom ${Math.round(f.hud.bottom)})`);
-  // owner approved spec 4.9 (2026-10-25): the float rises inside the board plaza; the fox-row chip is the 3-variant payday chip
-  // whose tap opens the stacked equation; the status line keeps the one-line maths
-  check(f.fl.top >= f.plaza.top - 1 && f.fl.bottom <= f.plaza.bottom + 1 && f.fl.left >= f.plaza.left - 1 && f.fl.right <= f.plaza.right + 1, `B2: the payday float stays inside the board plaza (${JSON.stringify(f.fl)} in ${JSON.stringify(f.plaza)})`);
+  // Payday figures belong to the summary and tappable chip, not a duplicate overlay across dice.
+  check(f.floatCount === 0, 'B2: payday does not layer a duplicate money float over board or HUD');
   const pc = await page.evaluate(() => window.__pc ?? null);
   check(!!pc && ['a', 'b', 'c'].includes(pc.variant) && pc.bdi >= 1 && pc.h >= 47.5, `B1: the payday chip (variant ${pc?.variant}) has its amount in <bdi> and is a 48px target (${JSON.stringify(pc)})`);
   check(!!pc && pc.eq.includes(`${PAYDAY_MONTHS} חודשים`) && pc.eq.includes('=') && pc.eq.includes('×'), `N3: the chip opens the stacked equation ("${pc?.eq}")`);
-  check(f.statusBdi >= 2 && f.floatBdi >= 1, `B1: payday amounts are wrapped in <bdi> (status ${f.statusBdi}, float ${f.floatBdi})`);
-  check(f.statusText.includes('סיכום שנתי') && f.statusText.includes(`× ${PAYDAY_MONTHS}`) && /×.*=/.test(f.statusText), `N3: the status line shows the maths ("${f.statusText}")`);
+  check(f.statusBdi === 0 && !/×|=/.test(f.statusText), `B1: board status avoids duplicated amounts ("${f.statusText}")`);
+  check(f.statusText.trim() === 'סיכום שנתי', `N3: status is a short yearly-summary label ("${f.statusText}")`);
   check(!/יום משכורת/.test(f.chip + f.statusText), 'N3: no "יום משכורת" left in the payday messages');
   await page.waitForTimeout(1500);
 

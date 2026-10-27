@@ -57,6 +57,16 @@ const migrations = {
       ? m.players.map((p) => (p?.state ? { ...p, age: p.age ?? null, state: { ...p.state, schemaVersion: 6 } } : p))
       : m.players,
   }),
+
+  // 6 -> 7 (bots + auctions + renovations): every player gets `bot` (null = a human seat). Old games have no bot
+  // seats, no open auction and no renovations; they play on exactly as before.
+  6: (m) => ({
+    ...m,
+    schemaVersion: 7,
+    players: Array.isArray(m.players)
+      ? m.players.map((p) => (p?.state ? { ...p, bot: p.bot ?? null, state: { ...p.state, schemaVersion: 7 } } : p))
+      : m.players,
+  }),
 };
 
 export function serialize(match) {

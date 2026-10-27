@@ -88,19 +88,14 @@ export function createDice() {
     resultSum.textContent = values.length > 1 ? t('board.dieSum', { a: numberText(values[0]), b: numberText(values[1]) }) : '';
     resultSum.hidden = values.length < 2;
     result.hidden = false;
+    cubesHost.style.visibility = 'hidden';
     const total = cssMs('--dur-die-result', RESULT.pop + RESULT.hold + RESULT.fade);
     const popAt = RESULT.pop / total;
     const fadeAt = (RESULT.pop + RESULT.hold) / total;
-    const kf = motion
-      ? [
-        { opacity: 0, transform: 'scale(.6)', easing: cssVar('--ease-bounce', 'cubic-bezier(.34,1.56,.64,1)') },
-        { opacity: 1, transform: 'scale(1)', offset: popAt },
-        { opacity: 1, transform: 'scale(1)', offset: fadeAt, easing: cssVar('--ease-in', 'ease-in') },
-        { opacity: 0, transform: 'scale(1)' },
-      ]
-      : [{ opacity: 0 }, { opacity: 1, offset: popAt }, { opacity: 1, offset: fadeAt }, { opacity: 0 }];
+    // The result is information, not a second toss: fixed position/size with a quiet fade only.
+    const kf = [{ opacity: 0 }, { opacity: 1, offset: popAt }, { opacity: 1, offset: fadeAt }, { opacity: 0 }];
     resultAnim = animate(result, kf, { duration: total, fill: 'none' });
-    resultAnim.finished?.then(() => { result.hidden = true; }, () => {});
+    resultAnim.finished?.then(() => { result.hidden = true; cubesHost.style.visibility = ''; }, () => {});
   }
 
   async function roll(values) {

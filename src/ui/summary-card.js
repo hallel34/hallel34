@@ -110,16 +110,8 @@ export function summaryCard({ figures: f, hint = null }) {
   layer.panel.setAttribute('aria-describedby', descId);
   layer.closed.then(() => armer.cancel());
 
-  // ---- entrance: three rows at 150ms steps, then the result (count-up) and the cash line; reduced motion: everything fades together ----
-  const nodes = [...rows, h('i'), leftRow, band, caption];
-  if (!motionOK()) {
-    animate(card, [{ opacity: 0 }, { opacity: 1 }], { duration: 120 });
-  } else {
-    [rows[0], rows[1], rows[2], leftRow, band, caption].forEach((n, i) => {
-      animate(n, [{ opacity: 0, transform: 'translateY(12px)' }, { opacity: 1, transform: 'translateY(0)' }], { duration: 150, delay: 90 + i * 150, easing: 'cubic-bezier(.16,1,.3,1)' });
-    });
-  }
-  void nodes;
+  // All figures are visible immediately. A short fade avoids a blank, apparently loading calculation.
+  if (motionOK()) animate(card, [{ opacity: 0 }, { opacity: 1 }], { duration: 120, fill: 'none' });
 
   // ---- first-time hint: the ring lands after the card has settled ----
   if (hint) {

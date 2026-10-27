@@ -87,6 +87,8 @@ const APPLY = {
   forfeit: (e, s) => e.forfeit(s),
   decide: (e, s, optionId) => e.decide(s, optionId),
   answerAudit: (e, s, answer) => e.answerAudit(s, answer),
+  renovate: (e, s, assetId, level, style) => e.renovate(s, assetId, style ?? undefined),
+  auctionWin: (e, s, card, price) => e.auctionWin(s, card, price),
 };
 
 /** Re-runs a daily game from its date and action log. The server-side check of a score is exactly this. */

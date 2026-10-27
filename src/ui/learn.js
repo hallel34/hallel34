@@ -83,7 +83,7 @@ export function openDictionary({ termId = null } = {}) {
           icon('arrow', { size: 20, width: 2.6 }))))),
       // v4 stage 4 (full mode): the Israeli money rules of israel.he.json as their own group under the game concepts (real-world
       // facts, "נכון ל-2026" + link); the glossary list and its counts are unchanged
-      israelGroup(), guideGroup());
+      ...[israelGroup(), guideGroup()].filter(Boolean));
     scroll.scrollTop = 0;
     (scroll.querySelector(`[data-concept="${focusId}"]`) ?? scroll).focus?.({ preventScroll: true });
   }

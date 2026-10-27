@@ -3,3 +3,7 @@ dist
 test-results
 vite.config.js.timestamp-*
 tmp/
+
+shots/
+tests/e2e/.bounded-*
+tests/e2e/.daily-*

@@ -143,12 +143,12 @@ describe('v2 phase A: amounts, payday copy, no typed numbers', () => {
     expect(moneyText(-7200, { sign: true })).toBe('-₪7,200');
     expect(moneyText(0, { sign: true })).toBe('₪0');
   });
-  it('payday messages (log, status, float, statement) are built from <bdi dir=ltr> nodes, never from sign-bearing plain strings', () => {
+  it('payday amounts stay isolated in log and statement; board status is a short label', () => {
     const play = src('ui/play.js');
     const fx = play.slice(play.indexOf('async function paydayFx'), play.indexOf('// ---------- turn ----------'));
     expect(fx).toContain("tn('game.logPayday'");
-    expect(fx).toContain("tn('game.statusPayday'");
-    expect(fx).toContain('signedMoney(f.amount)');
+    expect(fx).toContain("setStatus(t('game.paydayFloatLabel'))");
+    expect(fx).not.toContain("tn('game.statusPayday'");
     expect(fx).not.toMatch(/moneyText\(/);
     const fmt = src('ui/format.js');
     expect(fmt).toContain("h('bdi', { class: `money");
@@ -160,8 +160,11 @@ describe('v2 phase A: amounts, payday copy, no typed numbers', () => {
     expect(play).toContain('chip.replaceChildren(text)');
     expect(play).toContain('status.replaceChildren(text)');
   });
-  it('B2: the payday float is confined to the board plaza, never over the HUD (owner approved spec 4.9, 2026-10-25)', () => {
-    expect(src('ui/play.js')).toContain("{ within: center }");
+  it('B2: payday does not layer a duplicate money float over dice; generic float containment remains', () => {
+    const play = src('ui/play.js');
+    const payday = play.slice(play.indexOf('async function paydayFx'), play.indexOf('// ---------- turn ----------'));
+    expect(payday).not.toContain('floatText(');
+    expect(payday).toContain('cash.to(cash.value + f.amount');
     const fx = src('ui/fx.js');
     expect(fx).toContain('within.getBoundingClientRect()');
   });
