@@ -204,7 +204,7 @@ describe('the engine records every decision (state.learn)', () => {
 
 describe('save schema 3 and migration', () => {
   it('the schema is 5 and a round trip keeps the learn record', () => {
-    expect(SCHEMA_VERSION).toBe(6);
+    expect(SCHEMA_VERSION).toBe(7);
     let m = newMatch(engine, { mode: 'family', seed: 3, players: [{ professionId: 'teacher' }] });
     m = { ...m, players: [{ ...m.players[0], state: unlockConcept(markShown(engine.buy(withCard('opp-apt-001')), 'x'), 'yield') }] };
     const back = deserialize(serialize(m));
@@ -218,7 +218,7 @@ describe('save schema 3 and migration', () => {
     old.schemaVersion = 2;
     for (const p of old.players) { delete p.state.learn; p.state.schemaVersion = 2; }
     const back = deserialize(JSON.stringify(old));
-    expect(back.schemaVersion).toBe(6);
+    expect(back.schemaVersion).toBe(7);
     expect(back.players.map((p) => p.state.learn)).toEqual([emptyLearn(), emptyLearn()]);
     expect(back.players[0].state.profession.id).toBe('teacher');
   });
@@ -227,7 +227,7 @@ describe('save schema 3 and migration', () => {
     const v1 = { ...s, schemaVersion: 1 };
     delete v1.learn;
     const back = deserialize(JSON.stringify(v1));
-    expect(back.schemaVersion).toBe(6);
+    expect(back.schemaVersion).toBe(7);
     expect(back.players[0].state.learn).toEqual(emptyLearn());
   });
   it('an old game that has no interestPaid still reports without that section', () => {

@@ -48,21 +48,21 @@ const bad = (s) => amounts(s).filter(([, v]) => !Number.isInteger(v) || v % COIN
 
 describe('age picker: schema 6 and the junior flag', () => {
   it('a v2.5 save (schema 3) migrates to 6: age unknown, no junior flag, the game plays on as before', () => {
-    expect(SCHEMA_VERSION).toBe(6);
+    expect(SCHEMA_VERSION).toBe(7);
     const fixture = readFileSync(new URL('./fixtures/save-v2.5-schema3.json', import.meta.url), 'utf8');
     const m = deserialize(fixture);
-    expect(m.schemaVersion).toBe(6);
+    expect(m.schemaVersion).toBe(7);
     expect(m.junior).toBeUndefined();
     for (const p of m.players) {
       expect(p.age).toBeNull();
-      expect(p.state.schemaVersion).toBe(6);
+      expect(p.state.schemaVersion).toBe(7);
       expect(p.state.junior).toBeUndefined();
       expect(seesCoins(m, p)).toBe(false);
     }
     let n = m;
     for (let k = 0; k < 60 && n.status === 'playing'; k++) n = canEndTurn(n) ? endTurn(n) : act(n, (s) => botStep(engine, s, 'sensible'));
     const back = deserialize(serialize(n));
-    expect(back.schemaVersion).toBe(6);
+    expect(back.schemaVersion).toBe(7);
     expect(back.players.map((p) => p.age)).toEqual(m.players.map(() => null));
   });
   it('a schema 5 save gets age null', () => {

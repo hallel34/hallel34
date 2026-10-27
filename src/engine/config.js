@@ -1,11 +1,14 @@
 // Tunable rule constants. Pure data, no DOM.
+// 7 (owner idea 2026-10-27): a player may carry `bot` (a BOTS policy name = a seat the device plays itself), and the
+// match may carry an `auction` (a passed deal out for bids) / `lastAuction` (its result). Assets may carry
+// `renovations` ({ level, style }) from the coffee-business renovation; older assets simply have none.
 // 6 (owner 2026-10-26): every player carries `age` (an AGE_BANDS id or null = not given: today's rules and ₪), and a game with a
 // player of 10 or under is a 'צעירים' game: every player's state carries `junior: true` (round rules, see JUNIOR_* below).
 // 5 (v4 stage 4): every player's state carries `milestones` (25 / 50% celebrated once per game) and `taxAudit` (quiz points).
 // 4: every player's state carries `lap` (board laps completed, drives price inflation) and `effects` (timed market effects).
 // 3: every player's state carries a `learn` record (decisions, guesses, concepts). 2: saves hold a whole match (1-4 players).
 // Version 1 saves were a single game state; 1 -> 2 -> 3 -> 4 migrate step by step on load.
-export const SCHEMA_VERSION = 6;
+export const SCHEMA_VERSION = 7;
 export const MIN_PLAYERS = 1;
 export const MAX_PLAYERS = 4;
 export const NAME_MAX = 12;

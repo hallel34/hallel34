@@ -38,7 +38,7 @@ export function createApp(host) {
   let active = null;
   let mode = readRaw('mode') === 'full' ? 'full' : 'family';
   // Hot-seat setup being built: count, names, and each player's chosen profession.
-  let setup = { count: 1, names: [''], ages: [null], professionIds: [] };
+  let setup = { count: 1, names: [''], ages: [null], bots: [null], professionIds: [] };
 
   // a daily challenge keeps its own slot, so starting it never overwrites a normal game in progress; the slot always comes from the match
   const store = createMatchStore({ write: writeRaw, remove, serialize });
@@ -161,14 +161,17 @@ export function createApp(host) {
   function goPlayers() {
     setCoinScale(false);
     mount({ el: createPlayers({
-      count: setup.count, names: setup.names, ages: setup.ages ?? [], mode,
+      count: setup.count, names: setup.names, ages: setup.ages ?? [], bots: setup.bots ?? [], mode,
       onMode: (m) => { mode = m; writeRaw('mode', m); },
       onBack: () => goStart(),
-      onNext: ({ count, names, ages }) => { setup = { count, names, ages, professionIds: [] }; goPick(0); },
+      onNext: ({ count, names, ages, bots }) => { setup = { count, names, ages, bots, professionIds: [] }; goPick(0); },
     }).el });
   }
 
+  /** A bot seat picks no profession on screen: it gets one at random. */
+  const botProfession = () => professionIds[Math.floor(Math.random() * professionIds.length)];
   function goPick(i) {
+    if (setup.bots?.[i]) { setup.professionIds[i] = botProfession(); goPick(i + 1); return; }
     const multi = setup.count > 1;
     const junior = isJuniorSetup(mode, (setup.ages ?? []).map((age) => ({ age })));
     setCoinScale(junior && setup.ages?.[i] === JUNIOR_AGE); // this player's own scale
@@ -186,7 +189,7 @@ export function createApp(host) {
   async function startNew() {
     const m = newMatch(engine, {
       mode, seed: nextSeed(),
-      players: setup.professionIds.map((professionId, i) => ({ name: setup.names[i], professionId, age: setup.ages?.[i] ?? null })),
+      players: setup.professionIds.map((professionId, i) => ({ name: setup.names[i], professionId, age: setup.ages?.[i] ?? null, bot: setup.bots?.[i] ?? null })),
     });
     setCoinScale(seesCoins(m, m.players[0])); // the story of a junior first game is told in coins
     // 'המשחק הראשון עם מקסי': the first family game of this device opens with the five-screen story (lazy chunk, skippable)
@@ -217,8 +220,9 @@ export function createApp(host) {
     mode = m.mode;
     setup = {
       count: m.players.length,
-      names: m.players.map((p, i) => (m.players.length > 1 ? playerName(p, i) : '')),
+      names: m.players.map((p, i) => (m.players.length > 1 && !p.bot ? playerName(p, i) : '')),
       ages: m.players.map((p) => p.age ?? null),
+      bots: m.players.map((p) => p.bot ?? null),
       professionIds: m.players.map((p) => p.professionId),
     };
   }
