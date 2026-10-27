@@ -22,6 +22,7 @@ import {
   paybackTier, PAYDAY_MONTHS, MONTHS_PER_YEAR, purchasePlan, loanTerms, dealMetrics, balanceSheet, assetLoanPayment, loanRateNow,
 } from '../engine/index.js';
 import { loanStep, TIMED_EFFECT_KINDS as TIMED_EFFECTS, auctionStep, auctionMinBid } from '../engine/index.js';
+import { cafeScene } from './cafe-scene.js';
 import { cardTitle, cardText, assetTitle } from './card-view.js';
 import hourglassSvg from '../assets/verdict/hourglass.svg?raw';
 import { tileLabelChip } from './tiles.js';
@@ -180,6 +181,18 @@ function stockNote(c) {
 
 // ---------- renovation: the level-2 style choice (מרפסת או טייק אוויי) ----------
 /** Resolves 'terrace' | 'takeaway' | null (cancelled: the opportunity card stays open). */
+/** The celebration after a renovation: the business visibly grows (the demo's scene), plus the monthly gain. */
+export function renovatedDialog({ title, level, style, gain }) {
+  let layer;
+  const content = h('div', { class: 'dialog reno-win' },
+    h('h2', { class: 'dialog-title' }, t('reno.doneTitle')),
+    h('div', { class: 'reno-scene' }, cafeScene(level, style)),
+    h('p', { class: 'dialog-text' }, tn('reno.done', { title, gain: money(gain, { sign: true }) })),
+    h('div', { class: 'dialog-actions' }, button(t('game.continue'), { variant: 'primary', size: 'lg', 'data-action': 'ok', 'data-autofocus': '', onClick: () => { haptic('tap'); layer.close({ action: 'ok' }); } })));
+  layer = openLayer(content, { kind: 'modal', label: t('reno.doneTitle'), dismissable: false, cls: 'layer-dialog' });
+  return layer.closed;
+}
+
 export function renovateStyleSheet() {
   let layer;
   const pick = (style) => (titleKey, lineKey, glyph) => h('button', {
@@ -239,7 +252,7 @@ export function auctionModal({ match, index, nameOf }) {
         statTile(t('auction.monthly'), money(c.monthlyCashFlow, { sign: true }), { tone: c.monthlyCashFlow > 0 ? 'income' : 'expense', big: true, caption: t('card.perMonthCaption'), cls: 'stat-hero', minScale: HERO_MIN }),
         null,
         [statTile(t('auction.listPrice'), money(c.price), { big: true, cls: 'stat-key', minScale: KEY_MIN }),
-         statTile(t('auction.currentBid'), a.currentBid ? h('bdi', null, `${moneyText(a.currentBid)} · ${leader}`) : t('auction.noBids'), { big: true, cls: 'stat-key', minScale: KEY_MIN })]),
+         statTile(t('auction.currentBid'), a.currentBid ? money(a.currentBid) : t('auction.noBids'), { big: true, cls: 'stat-key', minScale: KEY_MIN, caption: a.currentBid && leader ? leader : null })]), // the bidder's name gets its own line - it must never be clipped
       h('p', { class: 'muted', 'data-auction-cash': '' }, tn('auction.yourCash', { amount: money(st.cash) })),
       canBid ? h('div', { class: 'stepper-wrap', 'data-auction-stepper': '' }, stp.el) : null,
     ].filter(Boolean),
@@ -395,6 +408,7 @@ function breakdown(c, scope) {
 /** The 'שיפוץ אפשרי' section of an opportunity card, when the player owns a coffee business they can upgrade now. */
 function renoBlock(reno) {
   return h('section', { class: 'reno-block', 'data-reno': String(reno.level) },
+    h('div', { class: 'reno-scene' }, cafeScene(reno.level - 1, reno.assetStyle)),
     h('h3', { class: 'reno-title' }, t('reno.blockTitle', { title: t(reno.level === 3 && reno.assetStyle ? `reno.level3${reno.assetStyle}` : `reno.level${reno.level}`) })),
     h('p', null, tn('reno.blockLine', { cost: money(reno.cost), gain: money(reno.gain, { sign: true }) })),
     h('p', { class: 'reno-or' }, t('reno.blockOr')));

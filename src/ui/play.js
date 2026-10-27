@@ -121,6 +121,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   const handoffSheet = gated(raw.handoffSheet);
   const auctionModal = gated(raw.auctionModal);
   const renovateStyleSheet = gated(raw.renovateStyleSheet);
+  const renovatedDialog = gated(raw.renovatedDialog);
   const summaryCardGated = gated(summaryCard);
   const playerOutModal = gated(raw.playerOutModal);
   const decisionModal = gated(rawDecisionModal);
@@ -1189,7 +1190,10 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
           if (renoOpt.style && !style) continue;
           if (apply((s) => engine.renovate(s, renoOpt.assetId, style))) {
             const ev = state.events.find((e) => e.type === 'renovated');
-            if (ev) { pushLog(t('reno.log', { title: ev.title, level: ev.level }), 'good'); react('celebrate'); }
+            if (ev) {
+              pushLog(t('reno.log', { title: ev.title, level: ev.level }), 'good'); react('celebrate');
+              await renovatedDialog({ title: ev.title, level: ev.level, style: ev.style, gain: ev.gain }); // the business visibly grows
+            }
           }
         }
         else if (r.action === 'buyLoan') {

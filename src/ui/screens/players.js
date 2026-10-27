@@ -103,6 +103,9 @@ export function createPlayers({ count = 1, names = [], ages = [], bots = [], mod
       seat.querySelectorAll('.bot-policy-row').forEach((el) => { el.hidden = !isBot; });
       const pol = botsOf[i] && seat.querySelector(`[data-policy="${botsOf[i]}"]`);
       if (isBot && pol) pol.checked = true; // the default policy also shows as picked
+      // a bot seat hides the name input, so it names itself: token + the policy's fox name
+      seatLabel.hidden = !isBot;
+      if (isBot) seatLabel.replaceChildren(playerToken(i + 1, { label: t('players.colorLabel', { n: i + 1 }) }), h('span', null, t(`players.botName.${botsOf[i]}`)));
     };
     const seatChip = (kind, labelKey) => {
       const input = h('input', { type: 'radio', name, value: kind, class: 'age-input', 'data-seat': kind, checked: (kind === 'bot') === !!botsOf[i] || null });
@@ -117,10 +120,12 @@ export function createPlayers({ count = 1, names = [], ages = [], bots = [], mod
     };
     const policyChip = (policy) => {
       const input = h('input', { type: 'radio', name: `${name}-policy`, value: policy, class: 'age-input', 'data-policy': policy, checked: botsOf[i] === policy || null });
-      input.addEventListener('change', () => { if (input.checked) { botsOf[i] = policy; haptic('tap'); } });
+      input.addEventListener('change', () => { if (input.checked) { botsOf[i] = policy; haptic('tap'); paintSeat(); } });
       return h('label', { class: 'age-chip' }, input, h('span', { class: 'age-chip-text' }, t(`players.botPolicy.${policy}`)));
     };
+    const seatLabel = h('div', { class: 'bot-seat-name', 'data-bot-name': String(i), hidden: true });
     const seat = h('div', { class: 'bot-seat', 'data-bot-seat': String(i) },
+      seatLabel,
       h('div', { class: 'age-chips bot-kind' }, seatChip('human', 'players.humanSeat'), seatChip('bot', 'players.botSeat')),
       h('div', { class: 'age-chips bot-policy-row', role: 'group', 'aria-label': t('players.botPolicyTitle') }, BOT_POLICIES.map(policyChip)));
     queueMicrotask(paintSeat);
