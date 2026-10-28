@@ -22,7 +22,9 @@ User replied "כן" to adding the next short missions. Work continues on
 - Verification so far: 663 unit tests / 33 files passed; production build passed;
   both mission browser suites passed against the production build, including
   320×568 home, 375px/1440px decisions, denied storage and isolated rematches.
-  Full regular/daily/business regressions are running before final handoff.
+  Full regular, extended daily and business-demo regressions also passed.
+  Deployed preview was verified in a fresh cloud browser: three lessons, actual
+  repayment figures, expense financing and explicit unsaved freeplay all work.
 
 ## Implemented
 - Fixed, explicitly labelled family-mode practice scenario using the original

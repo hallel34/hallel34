@@ -64,3 +64,17 @@ existing executable, set `CHROMIUM_PATH`. Both mission suites run in PR CI.
 - Corrupt metadata recovery and explicit unsaved play when storage is blocked.
 - Responsive chooser, previews and results at mobile and desktop sizes.
 - Existing first-asset suite and short-phone daily-result home regression.
+
+## Final verification
+
+- 663 tests passed in 33 unit-test files; production build passed.
+- Both mission smoke suites passed against the built app at 375px and 1440px,
+  including the existing 320×568 daily-result home regression.
+- Full ordinary-game smoke passed, including start-to-win, multiplayer,
+  glossary, light theme, service-worker/offline and zero console/request errors.
+- Extended daily suite passed, including normal/daily slot isolation and next-day behavior.
+- Business-demo suite passed at 320px, 393px and 480px in both styles.
+- Screenshots inspected: dark mobile, light desktop, aligned choice comparisons.
+- Fresh deployed-preview browser confirmed all three entries, repayment values,
+  expense financing and explicit unsaved freeplay under blocked localStorage.
+- `npm audit --omit=dev`: zero findings. The pre-existing build-size warning remains.

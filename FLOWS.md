@@ -11,6 +11,9 @@
 - Mission history persists on this device without extra badges, money, pressure, or collecting personal data.
 - Blocked storage allows explicit unsaved exit/freeplay; invalid saves never crash the chooser.
 - Check chooser, offers, results and the home daily-result case at 320/375px and desktop in both themes.
+- Final results: 663 unit tests passed; both mission suites passed against the
+  built app; full regular/daily/business browser regressions passed. A fresh
+  deployed-preview check confirmed the chooser and both new decisions.
 
 Original request: תמשיך את הפיתוח
 
