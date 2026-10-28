@@ -143,8 +143,13 @@ try {
   assert.equal(await b.locator('.screen-mission').count(), 1, 'failed save does not pretend success');
   await b.getByRole('button', { name: 'יציאה בלי שמירה', exact: true }).click();
   await b.locator('.screen-start').waitFor();
+  await openMission(b);
+  await b.locator('[data-action="mission-buy"]').click();
+  await b.getByRole('button', { name: 'ממשיכים לשחק בלי שמירה', exact: true }).click();
+  await b.locator('.screen-board').waitFor();
+  assert.match(await b.locator('.screen-board').innerText(), /900/);
   await blocked.close();
-  console.log('PASS blocked storage: honest error, explicit unsaved exit');
+  console.log('PASS blocked storage: honest error, explicit unsaved exit and freeplay');
   assert.deepEqual(errors, [], 'no JS errors');
   console.log('FIRST ASSET SMOKE PASSED');
 } finally { await browser.close(); }

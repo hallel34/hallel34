@@ -15,6 +15,7 @@ Do not merge to main without approval.
   retry and exit, plus freeplay with the actual purchased asset and debt.
 - Device-level cosmetic purchase badge, no financial reward.
 - Honest failure messages for blocked storage and an explicit unsaved exit.
+- Explicit unsaved freeplay option for storage-restricted preview environments.
 - Freeplay rematches retain the mission slot rather than replacing a normal save.
 - CI smoke coverage and configurable Chromium path in the business-demo smoke.
 

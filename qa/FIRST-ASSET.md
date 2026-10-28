@@ -34,7 +34,7 @@ Neither `passivo.save` nor `passivo.dailySave` is replaced or cleared by the
 mission. The cosmetic `first-asset` badge uses the existing device badge store.
 All data is device/browser-local, not account-synced.
 
-The smoke tests failed persistence, explicit unsaved exit, invalid JSON recovery,
+The smoke tests failed persistence, explicit unsaved exit/freeplay, invalid JSON recovery,
 double-click purchase, save/load idempotency, refusal/retry, badge persistence,
 freeplay and a freeplay win/rematch without replacing a normal save.
 

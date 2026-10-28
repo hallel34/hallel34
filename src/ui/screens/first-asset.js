@@ -94,7 +94,10 @@ export function createFirstAsset({ engine, match: initial, store, onMenu, onCont
     }
     actions.append(button(text('saveExit'), { variant: 'secondary', onClick: exit }));
     // Storage failures never trap a player. Leaving without saving is explicit.
-    if (notice.textContent) actions.append(button(text('leaveUnsaved'), { variant: 'secondary', onClick: onMenu }));
+    if (notice.textContent) {
+      if (result) actions.append(button(text('continueUnsaved'), { variant: 'secondary', onClick: () => onContinue(match) }));
+      actions.append(button(text('leaveUnsaved'), { variant: 'secondary', onClick: onMenu }));
+    }
     content.append(notice, actions);
     el.append(content);
   }
