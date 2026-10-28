@@ -36,7 +36,7 @@ const SKY = `<svg class="sky" aria-hidden="true" focusable="false" viewBox="0 0 
 <g class="windows" opacity=".9"><rect x="42" y="672" width="4" height="5"/><rect x="48" y="686" width="4" height="5"/><rect x="112" y="656" width="4" height="5"/><rect x="120" y="674" width="4" height="5"/><rect x="252" y="664" width="4" height="5"/><rect x="258" y="682" width="4" height="5"/><rect x="326" y="682" width="4" height="5"/><rect x="340" y="700" width="4" height="5"/></g>
 </svg>`;
 
-export function createStart({ save, mode: initialMode, gamesPlayed = 0, daily = null, onPlay, onResume, onMode, onDaily, onDailyReset, onRefresh, onMission, missionSaved = false }) {
+export function createStart({ save, mode: initialMode, gamesPlayed = 0, daily = null, onPlay, onResume, onMode, onDaily, onDailyReset, onRefresh, onMission }) {
   let mode = initialMode;
   setLearnMode(mode);
   let alive = true;
@@ -99,7 +99,7 @@ export function createStart({ save, mode: initialMode, gamesPlayed = 0, daily = 
       modeBtn('family', t('menu.modeFamily'), t('menu.modeFamilyDesc')),
       modeBtn('full', t('menu.modeFull'), t('menu.modeFullDesc'))),
     dailyCard, dailyReset,
-    onMission ? button(t(missionSaved ? 'mission.resume' : 'mission.entry'), {
+    onMission ? button(t('missions.entry'), {
       variant: 'secondary', cls: 'mission-entry', 'data-action': 'first-asset', onClick: onMission,
     }) : null,
     hasBadge(FIRST_ASSET_BADGE) ? h('p', { class: 'mission-home-badge' }, t('mission.badge')) : null,
