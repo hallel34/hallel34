@@ -28,6 +28,8 @@ import { initTermButtons } from './learn.js';
 import { setLearnMode } from '../learn/context.js';
 import { loadTutorial } from '../learn/tutorial-store.js';
 import { setSession } from './session.js';
+import { newFirstAsset, firstAssetPurchase, continueFirstAsset, FIRST_ASSET_ID } from '../engine/first-asset.js';
+import { createFirstAsset } from './screens/first-asset.js';
 
 export function createApp(host) {
   const data = loadData(getLocale());
@@ -67,6 +69,40 @@ export function createApp(host) {
     const results = loadResults();
     const hasSave = !results.byDate[today] && !!loadDailySave(today);
     return { date: today, status: dailyStatus({ results, hasSave }, today), entry: results.byDate[today] ?? null, streak: streakView(loadStreak(), today) };
+  }
+
+  function loadMission() {
+    try {
+      const m = deserialize(readRaw('missionSave'));
+      if (!m || m.daily || m.players.length !== 1 || m.currentIndex !== 0 || m.mode !== 'family'
+        || m.mission?.id !== FIRST_ASSET_ID
+        || !['offer', 'complete', 'declined', 'freeplay'].includes(m.mission.stage)) return null;
+      const s = currentState(m);
+      if (s.profession?.id !== 'teacher' || !Array.isArray(s.assets) || !Array.isArray(s.liabilities)) return null;
+      if (m.mission.stage === 'offer') {
+        if (s.pending?.card?.id !== 'opp-biz-006') return null;
+        // A malformed scenario must not crash the home screen's resume check.
+        firstAssetPurchase(engine, m);
+      }
+      if (m.mission.stage === 'complete' && ![
+        'gross', 'businessPayment', 'assetNet', 'bankLoan', 'bankPayment', 'netChange',
+        'beforeFlow', 'afterFlow', 'beforeProgress', 'afterProgress',
+      ].every((k) => Number.isFinite(m.mission.feedback?.[k]))) return null;
+      return m;
+    } catch { return null; }
+  }
+
+  function goMission() {
+    const m = loadMission() ?? newFirstAsset(engine);
+    if (m.mission.stage === 'freeplay') {
+      if (m.status === 'won') goWin(m); else if (m.status === 'lost') goOver(m); else goPlay(m);
+      return;
+    }
+    const screen = createFirstAsset({
+      engine, match: m, store, onMenu: goStart,
+      onContinue: (saved) => goPlay(continueFirstAsset(saved)),
+    });
+    mount(screen);
   }
 
   function goDaily() {
@@ -143,6 +179,8 @@ export function createApp(host) {
       mode,
       gamesPlayed: gamesPlayed(),
       daily: dailyInfo(),
+      onMission: goMission,
+      missionSaved: !!loadMission(),
       onDaily: () => goDaily(),
       onDailyReset: () => { resetDay(dayKey()); goStart(); },
       onRefresh: () => goStart(),
@@ -213,7 +251,13 @@ export function createApp(host) {
 
   /** Same players, mode and professions, new seed. */
   function again(m) {
-    goPlay(rematch(engine, m, nextSeed()), { fresh: true });
+    let next = rematch(engine, m, nextSeed());
+    // Retrying after a practice freeplay win/loss must not overwrite a
+    // separately saved ordinary game.
+    if (m.mission?.id === FIRST_ASSET_ID) {
+      next = { ...next, mission: { id: FIRST_ASSET_ID, stage: 'freeplay' } };
+    }
+    goPlay(next, { fresh: true });
   }
 
   function settingsOf(m) {

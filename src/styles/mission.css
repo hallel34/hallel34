@@ -1,0 +1,40 @@
+/* Preserve MaxiFox's navy/gold language, with a readable, scrollable lesson. */
+.screen-mission {
+  display: block;
+  height: auto;
+  min-height: 100dvh;
+  overflow: visible;
+  padding: clamp(20px, 4vw, 48px) 20px;
+}
+.mission-content {
+  max-width: 620px;
+  margin-inline: auto;
+  padding-bottom: max(24px, env(safe-area-inset-bottom));
+  line-height: 1.65;
+}
+.mission-content h1 { font-size: clamp(24px, 4vw, 32px); margin: 8px 0 16px; }
+.mission-content h2 { font-size: clamp(19px, 3vw, 24px); margin: 24px 0 8px; }
+.mission-eyebrow, .mission-badge { color: var(--amber-ink, var(--text)); font-weight: 700; }
+.mission-intro { margin-bottom: 20px; }
+.mission-figures {
+  border-block: 1px solid currentColor;
+  padding-block: 12px;
+  margin-block: 20px;
+}
+.mission-row { display: flex; gap: 16px; justify-content: space-between; padding-block: 6px; }
+.mission-row dt { flex: 1; }
+.mission-row dd { margin: 0; white-space: nowrap; font-variant-numeric: tabular-nums; font-weight: 700; }
+.mission-net { font-weight: 700; font-size: clamp(18px, 3vw, 22px); }
+.mission-detail { font-size: max(14px, .9rem); margin-block: 12px; }
+.mission-content progress { width: 100%; height: 18px; accent-color: #f2b53a; }
+.mission-actions { display: grid; gap: 12px; margin-top: 24px; }
+.mission-actions .btn { min-height: 48px; white-space: normal; }
+.mission-notice:empty { display: none; }
+.mission-notice { margin-block: 12px; }
+.mission-entry { white-space: normal; text-align: start; }
+.mission-home-badge { text-align: center; font-size: max(14px, .875rem); margin: 0; }
+@media (max-height: 700px) {
+  /* Added mission controls must not squeeze the logo over the navigation. */
+  .screen-start:has(.mission-entry) { block-size: auto; }
+  .screen-start:has(.mission-entry) .start-hero { min-block-size: 176px; padding-block: 0; }
+}
