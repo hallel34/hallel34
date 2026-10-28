@@ -3,10 +3,11 @@
 // so a call that forgets its argument can never fall back to the normal slot.
 export const SLOT_NORMAL = 'save';
 export const SLOT_DAILY = 'dailySave';
+export const SLOT_MISSION = 'missionSave';
 
 export const slotOf = (match) => {
   if (!match || typeof match !== 'object') throw new Error('match-store: a match is required to pick the save slot');
-  return match.daily ? SLOT_DAILY : SLOT_NORMAL;
+  return match.daily ? SLOT_DAILY : match.mission ? SLOT_MISSION : SLOT_NORMAL;
 };
 
 /** @param io { write(key, text), remove(key) }  @param serialize match -> string */

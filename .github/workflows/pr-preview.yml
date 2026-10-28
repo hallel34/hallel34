@@ -31,6 +31,16 @@ jobs:
         run: npm run smoke:business
       - name: Full-flow smoke test (360x800, start to win)
         run: npm run smoke
+      - name: First-asset mission smoke test
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 4182 &
+          PREVIEW_PID=$!
+          trap 'kill "$PREVIEW_PID"' EXIT
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:4182/ >/dev/null; then break; fi
+            sleep 1
+          done
+          MISSION_URL=http://127.0.0.1:4182/ npm run smoke:mission
 
   preview:
     needs: [verify]
