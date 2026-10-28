@@ -6,6 +6,26 @@ Use existing engine rules and original deal data, isolated mission persistence,
 clear net financing feedback, a cosmetic first-purchase badge and voluntary exit.
 Do not merge to main without approval.
 
+## Follow-up: additional short missions
+User replied "כן" to adding the next short missions. Work continues on
+`maxifox-short-missions`, based on PR 13, without merging it.
+
+- Added an optional three-lesson chooser, original first-asset save compatibility,
+  credit-card repayment practice and unexpected-expense funding practice.
+- Each new lesson uses the actual engine and a separate save slot.
+- No new badges or financial rewards; no universally correct-choice claims,
+  locks, countdowns, account data or retention claims.
+- Added informational device history and confirmed, cancel-safe lesson retries.
+- Added 14 unit cases and a browser suite for both new lessons and all choices.
+- Updated the original lesson suite to navigate through the chooser.
+- Details and reproducible commands: `qa/SHORT-MISSIONS.md`.
+- Verification so far: 663 unit tests / 33 files passed; production build passed;
+  both mission browser suites passed against the production build, including
+  320×568 home, 375px/1440px decisions, denied storage and isolated rematches.
+  Full regular, extended daily and business-demo regressions also passed.
+  Deployed preview was verified in a fresh cloud browser: three lessons, actual
+  repayment figures, expense financing and explicit unsaved freeplay all work.
+
 ## Implemented
 - Fixed, explicitly labelled family-mode practice scenario using the original
   popcorn-cart card and teacher finances. No extra cash or modified rules.

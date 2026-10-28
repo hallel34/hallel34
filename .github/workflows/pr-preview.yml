@@ -41,6 +41,7 @@ jobs:
             sleep 1
           done
           MISSION_URL=http://127.0.0.1:4182/ npm run smoke:mission
+          MISSION_URL=http://127.0.0.1:4182/ npm run smoke:missions
 
   preview:
     needs: [verify]

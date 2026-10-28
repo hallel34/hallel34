@@ -17,7 +17,8 @@
     "smoke:r11": "node tests/e2e/round11-smoke.mjs",
     "smoke:r12": "node tests/e2e/round12-smoke.mjs",
     "smoke:business": "node tests/e2e/business-demo-smoke.mjs",
-    "smoke:mission": "node tests/e2e/first-asset-smoke.mjs"
+    "smoke:mission": "node tests/e2e/first-asset-smoke.mjs",
+    "smoke:missions": "node tests/e2e/short-missions-smoke.mjs"
   },
   "devDependencies": {
     "playwright": "^1.56.1",

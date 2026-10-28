@@ -1,5 +1,20 @@
 # Main flows and first-asset acceptance checks
 
+## Additional short missions: acceptance checks
+- Home → mission chooser → first asset, debt repayment or unexpected expense.
+- No lock, countdown, new reward mechanism, or financial advice asserting a universally correct choice.
+- Original first-asset save still resumes unchanged after switching to the chooser.
+- Repay credit-card principal 5,000: cash 4,000, debt 18,000, monthly flow 1,640; keeping cash changes no finances.
+- Pay expense 4,500 from cash: cash 4,500, no new debt; financing: cash 9,500, added debt 5,000, monthly flow 1,440.
+- Every decision uses the actual engine, commits once under double click, and restores after reload.
+- All three mission saves, normal save and daily save are independent, including freeplay rematches.
+- Mission history persists on this device without extra badges, money, pressure, or collecting personal data.
+- Blocked storage allows explicit unsaved exit/freeplay; invalid saves never crash the chooser.
+- Check chooser, offers, results and the home daily-result case at 320/375px and desktop in both themes.
+- Final results: 663 unit tests passed; both mission suites passed against the
+  built app; full regular/daily/business browser regressions passed. A fresh
+  deployed-preview check confirmed the chooser and both new decisions.
+
 Original request: תמשיך את הפיתוח
 
 ## Existing flows

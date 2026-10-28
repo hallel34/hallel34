@@ -6,7 +6,7 @@ import { newFirstAsset, firstAssetPurchase, declineFirstAsset, FIRST_ASSET_BADGE
 import { hasBadge, earnBadge } from '../../learn/store.js';
 import { t } from '../../i18n/index.js';
 
-export function createFirstAsset({ engine, match: initial, store, onMenu, onContinue }) {
+export function createFirstAsset({ engine, match: initial, store, onMenu, onContinue, onMissions }) {
   let match = initial;
   let alive = true;
   let acting = false;
@@ -85,6 +85,9 @@ export function createFirstAsset({ engine, match: initial, store, onMenu, onCont
         button(text('pass'), { variant: 'secondary', onClick: () => change(() => declineFirstAsset(engine, match)) }),
       );
     } else {
+      if (onMissions) actions.append(button(t('missions.chooseAnother'), {
+        variant: 'secondary', 'data-action': 'other-missions', onClick: () => { if (save()) onMissions(); else render(); },
+      }));
       actions.append(button(text(done ? 'freeplay' : 'freeplayWithoutAsset'), {
         'data-action': 'mission-continue', onClick: () => { if (save()) onContinue(match); else render(); },
       }));
