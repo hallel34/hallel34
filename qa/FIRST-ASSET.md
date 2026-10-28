@@ -44,6 +44,16 @@ freeplay and a freeplay win/rematch without replacing a normal save.
 - Practice always uses family rules and shekels, independently of the chosen
   normal-game mode. The entry and introduction label this as separate practice.
 - Cosmetic badge only; no money, penalty, countdown or pressure loop.
-- No deployment to the live GitHub Pages branch without owner approval.
+- No merge to the default branch (`ccr-1d500e6e-hred4o` at the time of this
+  milestone) or deployment to live GitHub Pages without owner approval.
 - Existing development-dependency audit findings and build-size warning remain
   outside this milestone; production dependency audit reports zero findings.
+
+## Final local results
+
+649 unit tests passed. The regular full-flow smoke, business-demo smoke, extended
+daily smoke and mission smoke all passed. The daily suite initially caught Start
+falling below a 320×568 viewport after a daily result; the short-phone hero minimum
+was corrected, the exact regression added to mission CI, and the entire daily
+suite rerun successfully. The storage-restricted preview also has an explicit
+continue-without-saving path, covered by the mission browser smoke.

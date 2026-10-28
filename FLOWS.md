@@ -33,4 +33,5 @@ Original request: תמשיך את הפיתוח
 - Mission freeplay win/rematch: normal save stays unchanged.
 - Dark mobile and light desktop: screenshots visually inspected.
 - Extended daily suite found a short-phone daily-result home regression. Fixed;
-  its exact 320×568 case now passes the mission suite. Full rerun in progress.
+  its exact 320×568 case now passes the mission suite. The full daily rerun
+  finished with `DAILY SMOKE PASSED`.

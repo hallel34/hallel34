@@ -35,10 +35,10 @@ Do not merge to main without approval.
 - Extended daily smoke found a single regression: Start fell below the viewport
   after a daily result at 320×568. Tightened only the short-phone hero minimum,
   added a mission-suite regression, and verified Start and non-overlapping logo.
-  The full extended daily suite is now being rerun against the final build;
-  do not call that rerun passed until its final summary confirms completion.
+  The full extended daily suite was rerun after the fix and finished with
+  `DAILY SMOKE PASSED`, including 320×568, save isolation and the next day.
 
 ## Remaining roadmap
 - Additional short missions, progressive feature unlocks, and a returning-player
   home screen are not included in this first milestone.
-- No main-branch merge or production-site deployment is authorized or performed.
+- No default-branch merge or production-site deployment is authorized or performed.
