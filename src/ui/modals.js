@@ -7,7 +7,7 @@ import { icon } from './icons.js';
 import { foxImg } from './fox.js';
 import { playerToken, withName } from './players.js';
 import { hintStrip, showRing } from './hint-ui.js';
-import { money, moneyText, moneyIsolated, setMoney, tn, numberText, signedMoney, coinScale } from './format.js';
+import { money, moneyText, moneyIsolated, setMoney, tn, numberText, signedMoney, coinScale, scaleTypedMoney } from './format.js';
 import { createTermScope, termButton } from './rich.js';
 import { realWorldForCard, realWorldForPlace } from './realworld.js';
 import { learnContent, conceptById } from '../learn/content.js';
@@ -38,7 +38,10 @@ import { toggleRow } from './settings.js';
  * An action with `run` does something and keeps the card open (the guess buttons); the others close it with their value.
  * A `blocked` / `disabled` action is a real `disabled` button (the reason is the banner above it).
  */
-export function cardShell({ type, kind, headChip, headLabel = null, headVar = null, title, text, body = [], actions, label, data = {}, foot = null, ctl = null }) {
+export function cardShell({ type, kind, headChip, headLabel = null, headVar = null, title: rawTitle, text: rawText, body = [], actions, label, data = {}, foot = null, ctl = null }) {
+  // 'צעירים': every typed ₪ figure of a card's title and story reads as coins (a no-op otherwise, and for built nodes)
+  const title = scaleTypedMoney(rawTitle);
+  const text = scaleTypedMoney(rawText);
   let layer;
   const done = (v) => layer.close(v);
   const bar = h('div', { class: 'card-actions' });
