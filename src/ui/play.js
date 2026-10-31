@@ -962,7 +962,10 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
           pushLog(t('auction.logPass', { name }));
         }
       } else {
+        // the auction card is the BIDDER's: their own scale (a 'צעירים' bidder sees coins, a grown-up shekels), then the turn's again
+        setCoinScale(seesCoins(match, player));
         const r = await auctionModal({ match, index: i, nameOf });
+        applyScale();
         if (destroyed) return;
         if (!r || r.action === 'pass') {
           match = auctionPass(engine, match);

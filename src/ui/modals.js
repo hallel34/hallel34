@@ -229,6 +229,9 @@ export function auctionModal({ match, index, nameOf }) {
   const canBid = max >= min;
   const cat = categoryOf(c);
   const ctl = {};
+  // QA r18 (PR 10 auctions in kids' games): family wording, and a 'צעירים' bidder never sees the list price or the loan sum
+  const family = st.mode === 'family';
+  const junior = coinScale();
   const stp = stepper({
     min, max: canBid ? max : min, step, value: min,
     render: (v) => moneyText(v),
@@ -252,11 +255,12 @@ export function auctionModal({ match, index, nameOf }) {
     text: t('auction.text', { name: nameOf(a.fromIndex) }),
     body: [
       dealKeys(
-        statTile(t('auction.monthly'), money(c.monthlyCashFlow, { sign: true }), { tone: c.monthlyCashFlow > 0 ? 'income' : 'expense', big: true, caption: t('card.perMonthCaption'), cls: 'stat-hero', minScale: HERO_MIN }),
+        statTile(t(family ? 'auction.monthlyFamily' : 'auction.monthly'), money(c.monthlyCashFlow, { sign: true }), { tone: c.monthlyCashFlow > 0 ? 'income' : 'expense', big: true, caption: t('card.perMonthCaption'), cls: 'stat-hero', minScale: HERO_MIN }),
         null,
-        [statTile(t('auction.listPrice'), money(c.price), { big: true, cls: 'stat-key', minScale: KEY_MIN }),
-         statTile(t('auction.currentBid'), a.currentBid ? money(a.currentBid) : t('auction.noBids'), { big: true, cls: 'stat-key', minScale: KEY_MIN, caption: a.currentBid && leader ? leader : null })]), // the bidder's name gets its own line - it must never be clipped
-      c.mortgage > 0 ? h('p', { class: 'muted', 'data-auction-mortgage': '' }, tn('auction.inheritsMortgage', { mortgage: money(c.mortgage) })) : null, // the winner takes on the card's financing - say so before the final bid
+        [junior ? null : statTile(t('auction.listPrice'), money(c.price), { big: true, cls: 'stat-key', minScale: KEY_MIN }),
+         statTile(t('auction.currentBid'), a.currentBid ? money(a.currentBid) : t('auction.noBids'), { big: true, cls: 'stat-key', minScale: KEY_MIN, caption: a.currentBid && leader ? leader : null })].filter(Boolean)), // the bidder's name gets its own line - it must never be clipped
+      // the winner takes on the card's financing - say so before the final bid (family: "הלוואה", not "משכנתא"; junior: no 4-5 digit sum)
+      c.mortgage > 0 ? h('p', { class: 'muted', 'data-auction-mortgage': '' }, junior ? t('auction.inheritsLoanJunior') : tn(family ? 'auction.inheritsLoanFamily' : 'auction.inheritsMortgage', { mortgage: money(c.mortgage) })) : null,
       h('p', { class: 'muted', 'data-auction-cash': '' }, tn('auction.yourCash', { amount: money(st.cash) })),
       canBid ? h('div', { class: 'stepper-wrap', 'data-auction-stepper': '' }, stp.el) : null,
     ].filter(Boolean),

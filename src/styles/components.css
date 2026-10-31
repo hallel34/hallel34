@@ -527,3 +527,5 @@
 .limit-row > span:first-child { white-space: nowrap; }
 .limit-row [data-limit="junior"] { flex: 1 1 auto; min-inline-size: 0; text-align: end; }
 .limit-step { white-space: nowrap; }
+/* the auction card is cream in both themes: its notes use the card's muted ink, never the theme's (dark theme: 1.9:1 before) */
+.card [data-auction-cash], .card [data-auction-mortgage], .card [data-auction-cash] .money { color: var(--card-muted); }
