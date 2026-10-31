@@ -146,7 +146,7 @@ export function createApp(host) {
       onDaily: () => goDaily(),
       onDailyReset: () => { resetDay(dayKey()); goStart(); },
       onRefresh: () => goStart(),
-      onMode: (m) => { mode = m; writeRaw('mode', m); },
+      onMode: (m) => { mode = m; writeRaw('mode', m); setLearnMode(m); }, // an age under 14 -> family: the kid vocabulary too (QA r18 P2-2)
       onPlay: (m) => { mode = m; writeRaw('mode', m); goPlayers(); },
       onResume: () => {
         const m = loadSave();
@@ -162,7 +162,7 @@ export function createApp(host) {
     setCoinScale(false);
     mount({ el: createPlayers({
       count: setup.count, names: setup.names, ages: setup.ages ?? [], bots: setup.bots ?? [], mode,
-      onMode: (m) => { mode = m; writeRaw('mode', m); },
+      onMode: (m) => { mode = m; writeRaw('mode', m); setLearnMode(m); }, // an age under 14 -> family: the kid vocabulary too (QA r18 P2-2)
       onBack: () => goStart(),
       onNext: ({ count, names, ages, bots }) => { setup = { count, names, ages, bots, professionIds: [] }; goPick(0); },
     }).el });
@@ -172,6 +172,7 @@ export function createApp(host) {
   const botProfession = () => professionIds[Math.floor(Math.random() * professionIds.length)];
   function goPick(i) {
     if (setup.bots?.[i]) { setup.professionIds[i] = botProfession(); goPick(i + 1); return; }
+    setLearnMode(mode); // the pick sheet speaks the mode it shows (family: the children's words, QA r18 P2-2)
     const multi = setup.count > 1;
     const junior = isJuniorSetup(mode, (setup.ages ?? []).map((age) => ({ age })));
     setCoinScale(junior && setup.ages?.[i] === JUNIOR_AGE); // this player's own scale

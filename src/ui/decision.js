@@ -4,12 +4,15 @@
 // a real disabled button tagged "לא זמין" with its reason (strings-proposals O4). The numbers come from an engine dry run.
 import { h } from './dom.js';
 import { t } from '../i18n/index.js';
-import { money, tn } from './format.js';
+import { money, tn, coinScale, scaleTypedMoney } from './format.js';
 import { cardShell } from './modals.js';
 import { PASS_OPTION, decisionCanPass, isFreeOption, monthlyCashFlow, PAYDAY_MONTHS } from '../engine/index.js';
 
-const label = (o, mode) => (mode === 'family' && o.labelFamily) || o.label;
-export const foxLine = (o, mode) => (mode === 'family' && o.foxFamily) || o.fox;
+// The wording a player reads: a 'צעירים' game takes `<key>Junior` (its figures fit the coin cap), family `<key>Family`, then the
+// plain key. Typed ₪ figures read as coins in a junior game (format.js scaleTypedMoney; a no-op otherwise).
+const worded = (obj, key, mode) => scaleTypedMoney((coinScale() && obj?.[`${key}Junior`]) || (mode === 'family' && obj?.[`${key}Family`]) || obj?.[key]);
+const label = (o, mode) => worded(o, 'label', mode);
+export const foxLine = (o, mode) => worded(o, 'fox', mode);
 
 /** What an option does (a dry run on the live state; with unlimited cash when it is not available, to still show its size). */
 function optionDelta(engine, state, id) {
@@ -48,13 +51,13 @@ export function decisionModal(state, engine) {
     const d = o.free ? null : optionDelta(engine, state, o.id);
     const nums = d
       ? h('span', { class: 'dec-nums' },
-        h('span', { class: 'dec-num' }, h('span', { class: 'dec-num-label' }, t('decision.cash')), ' ', money(d.cash, { sign: true })),
-        h('span', { class: 'dec-num' }, h('span', { class: 'dec-num-label' }, t('decision.monthly')), ' ', money(d.monthly, { sign: true })))
+        h('span', { class: 'dec-num', 'data-num': 'cash' }, h('span', { class: 'dec-num-label' }, t('decision.cash')), ' ', money(d.cash, { sign: true })),
+        h('span', { class: 'dec-num', 'data-num': 'monthly' }, h('span', { class: 'dec-num-label' }, t('decision.monthly')), ' ', money(d.monthly, { sign: true })))
       : h('span', { class: 'dec-nums dec-none' }, t('decision.none'));
     const why = o.available ? null : h('span', { class: 'dec-reason', id: `dec-why-${o.id}` }, `${t('decision.unavailable')}: ${reasonText(o.reason)}`);
     return h('li', { class: 'dec-row', 'data-option': o.id, 'data-available': String(o.available) }, h('span', { class: 'dec-label' }, o.label), nums, why);
   });
-  const teaches = (mode === 'family' && card.teachesFamily) || card.teaches;
+  const teaches = worded(card, 'teaches', mode);
   const body = [
     h('p', { class: 'dec-choose' }, t('decision.choose')),
     h('ul', { class: 'dec-list', role: 'list' }, rows),
@@ -75,7 +78,8 @@ export function decisionModal(state, engine) {
     describedBy: o.available ? null : `dec-why-${o.id}`,
   }));
   return cardShell({
-    type: card.square, kind: t('decision.kicker'), headChip: null, title: card.title, text: card.text, body, actions,
+    // card.title / card.text are already the family wording (engine card view); a junior game may carry its own
+    type: card.square, kind: t('decision.kicker'), headChip: null, title: (coinScale() && card.titleJunior) || card.title, text: (coinScale() && card.textJunior) || card.text, body, actions,
     data: { decision: card.id },
   });
 }

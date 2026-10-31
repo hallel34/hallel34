@@ -35,7 +35,7 @@ function decisionErrors(c, w) {
     ids.add(o.id);
     if (!isStr(o.label)) e.push(`${ow}: label`);
     if (!isStr(o.fox)) e.push(`${ow}: fox line`);
-    for (const k of ['labelFamily', 'foxFamily']) if (o[k] !== undefined && !isStr(o[k])) e.push(`${ow}: ${k}`);
+    for (const k of ['labelFamily', 'foxFamily', 'labelJunior', 'foxJunior']) if (o[k] !== undefined && !isStr(o[k])) e.push(`${ow}: ${k}`);
     const fx = o.effects;
     if (!fx || typeof fx !== 'object') { e.push(`${ow}: effects`); continue; }
     for (const k of Object.keys(fx)) if (!EFFECT_KEYS.includes(k)) e.push(`${ow}: unknown effect ${k}`);
@@ -117,6 +117,8 @@ export function validateCards(list) {
     if (!ALL_DECKS.includes(c.deck)) errors.push(`${w}: deck`);
     if (!isStr(c.title) || !isStr(c.text)) errors.push(`${w}: title/text`);
     for (const k of ['titleFamily', 'textFamily']) if (c[k] != null && !isStr(c[k])) errors.push(`${w}: ${k}`); // optional family-mode wording (display only)
+    // optional 'צעירים' wording (display only): figures that fit the coin cap where the family text names big shekel amounts
+    for (const k of ['titleJunior', 'textJunior', 'teachesJunior']) if (c[k] != null && !isStr(c[k])) errors.push(`${w}: ${k}`);
     if (!Array.isArray(c.modes) || !c.modes.length || c.modes.some((m) => !MODES.includes(m))) {
       errors.push(`${w}: modes`);
     }

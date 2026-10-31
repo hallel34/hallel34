@@ -433,7 +433,14 @@
 .summary-card .eq-rule { background-color: var(--card-border); }
 .summary-card .eq-monthly .eq-val, .summary-card .eq-total .eq-val { color: var(--income-ink); }
 .summary-card .eq.is-neg .eq-monthly .eq-val, .summary-card .eq.is-neg .eq-total .eq-val { color: var(--negative-ink); }
-@media (max-height: 640px) { .eq-months { display: none; } }
+/* QA r18 P2-1: the "× 12 חודשים" row stays at every height (it is the 'why' of the total); short screens compact the equation instead.
+   The board's small payday popover keeps its own rule (board.css). */
+@media (max-height: 640px) {
+  .eq-monthly .eq-val { font-size: 1.25rem; line-height: 1.15; }
+  .eq-months .eq-val { font-size: .8125rem; line-height: 1.15; }
+  .eq-total .eq-val { font-size: 1.5rem; line-height: 1.15; }
+  .eq-rule { margin-block: 1px; }
+}
 @media (max-width: 340px) { .eq-total .eq-val { font-size: 1.5rem; } }
 
 /* ===== Payday chip (roll zone) + its popover ===== */
@@ -513,3 +520,12 @@
 .bot-seat-name{display:flex;align-items:center;gap:8px;font-weight:var(--fw-medium)}
 .bot-seat .age-chips{display:flex;gap:8px}
 [data-auction-stepper]{margin-top:10px}
+/* QA r18 P3: one coin in the HUD cash. The HUD's coin medallion already says "coins", so the amount's own icon steps aside there
+   (its screen-reader word "מטבעות" stays) */
+.hud .cash-num.is-coins .cur { display: none; }
+/* 'צעירים' loan cap line (QA r18 P2-3): the label keeps one line, the "עוד N פעמים" text takes the rest and wraps on its own */
+.limit-row > span:first-child { white-space: nowrap; }
+.limit-row [data-limit="junior"] { flex: 1 1 auto; min-inline-size: 0; text-align: end; }
+.limit-step { white-space: nowrap; }
+/* the auction card is cream in both themes: its notes use the card's muted ink, never the theme's (dark theme: 1.9:1 before) */
+.card [data-auction-cash], .card [data-auction-mortgage], .card [data-auction-cash] .money { color: var(--card-muted); }

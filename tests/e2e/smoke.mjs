@@ -5,7 +5,7 @@ import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import {
-  createEngine, newMatch, act, serialize, purchasePlan, currentState, maxLoan, loanTerms, PAYDAY_MONTHS,
+  createEngine, newMatch, act, serialize, purchasePlan, currentState, maxLoan, loanTerms, PAYDAY_MONTHS, endTurn, renovationOption,
 } from '../../src/engine/index.js';
 
 const require = createRequire(import.meta.url);
@@ -1377,22 +1377,40 @@ async function moreOpensFull(page, label, tested) {
  * 'צעירים' (owner 2026-10-26): every number over 999 under `root`, read from ALL its text nodes (hidden ones included), except
  * inside `allow`; and every hidden element under `root` that still carries digits (a hidden figure must not be in the DOM at all).
  */
-const JUNIOR_SCAN = ([root, allow]) => {
+const JUNIOR_SCAN = ([root, allow, words = []]) => {
   const top = typeof root === 'string' ? document.querySelector(root) : root;
-  if (!top) return { missing: true, big: [], leaks: [] };
-  const big = [];
+  if (!top) return { missing: true, big: [], leaks: [], shekel: [], adult: [] };
+  const big = []; const shekel = []; const adult = [];
+  // QA r18: every text node (visible, `.vh` screen-reader text and hidden ones) plus every aria-label is read for ₪ and adult words
+  const said = (txt, where) => {
+    if (txt.includes('₪')) shekel.push(`${txt.trim().slice(0, 40)} in "${where}"`);
+    for (const w of words) if (txt.includes(w)) adult.push(`${w} in "${where}": ${txt.trim().slice(0, 40)}`);
+  };
   const walk = document.createTreeWalker(top, NodeFilter.SHOW_TEXT);
   for (let n = walk.nextNode(); n; n = walk.nextNode()) {
+    said(n.data, n.parentElement?.className ?? '');
     if (allow && n.parentElement?.closest(allow)) continue;
     for (const m of n.data.matchAll(/\d{1,3}(?:,\d{3})+|\d+/g)) if (Number(m[0].replace(/,/g, '')) > 999) big.push(`${m[0]} in "${n.parentElement?.className}"`);
   }
+  for (const e of [top, ...top.querySelectorAll('[aria-label]')]) if (e.getAttribute?.('aria-label')) said(e.getAttribute('aria-label'), `aria-label of ${e.className || e.tagName}`);
   const leaks = [...top.querySelectorAll('*')].filter((e) => {
     if (!/\d/.test(e.textContent) || e.children.length) return false;
     const cs = getComputedStyle(e);
     return e.closest('[hidden]') || cs.display === 'none' || cs.visibility === 'hidden' || (e.getClientRects().length === 0);
   }).map((e) => `${e.className || e.tagName}: ${e.textContent.trim().slice(0, 30)}`);
-  return { big, leaks };
+  return { big, leaks, shekel, adult };
 };
+// the family words a kid must never meet (tests/kid-vocabulary.test.js FORBIDDEN, read from the file: it imports vitest)
+const KID_FORBIDDEN = JSON.parse(`[${readFileSync(new URL('../kid-vocabulary.test.js', import.meta.url), 'utf8').match(/export const FORBIDDEN = \[([\s\S]*?)\];/)[1].replace(/'/g, '"').replace(/,\s*$/, '')}]`);
+/** One junior check of a screen part: no ₪, no adult word, no number over 999 outside `allow`, no hidden figure. */
+// Every text node counts, hidden ones too (a closed disclosure the kid can open must be clean as well). `noHidden`: the simplified
+// junior screens (deal card, payday, statement) may not even HOLD a hidden figure (what they drop is not built).
+async function juniorScan(page, root, allow, label, { noHidden = false } = {}) {
+  const r = await page.evaluate(JUNIOR_SCAN, [root, allow, KID_FORBIDDEN]);
+  const leaks = noHidden ? r.leaks : [];
+  check(!r.missing && !r.big.length && !leaks.length && !r.shekel.length && !r.adult.length, `junior ${label}: no ₪, no adult word, no number over 999${allow ? ` (outside ${allow})` : ''}${noHidden ? ', no hidden figure' : ''} ${r.missing ? 'MISSING' : JSON.stringify({ big: r.big, leaks, shekel: r.shekel, adult: r.adult })}`);
+  return r;
+}
 /**
  * Owner 2026-10-26: the age picker and a 'צעירים' player (age band "עד 10", age 9) at 360x800. The chips are 48px radio buttons; an
  * age under 14 switches a full-mode start to family; a junior player sees coins and never a ₪ on the HUD, the cards and the payday
@@ -1422,14 +1440,26 @@ async function testJunior(browser) {
   const pickText = await page.locator('section[data-screen="pick"]').innerText();
   check(!/₪/.test(pickText) && /\d/.test(pickText), 'junior pick screen: amounts without ₪');
   await page.locator('.prof-card[data-prof="teacher"]').click();
+  // QA r18 P2-2: started from full mode, the age switched it to family: the pick sheet speaks the children's words too
+  await page.waitForSelector('[data-action="go"]');
+  await page.waitForTimeout(400);
+  const sheet = await page.evaluate(() => document.querySelector('#modal-root .layer:last-child')?.textContent ?? '');
+  check(!/תזרים|הכנסה פסיבית/.test(sheet), `junior pick sheet (full -> family by age): no "תזרים" / "הכנסה פסיבית" (${sheet.replace(/\s+/g, ' ').slice(0, 90)})`);
+  await juniorScan(page, '#modal-root .layer:last-child', null, 'pick sheet');
   await page.locator('[data-action="go"]').click();
   await page.waitForSelector('[data-screen="board"]');
   await page.waitForTimeout(600);
+  await juniorScan(page, '#app', '.hud .cash-num', 'board and HUD');
   const hud = await page.evaluate(() => ({ text: document.querySelector('.hud')?.innerText ?? '', coins: document.querySelectorAll('.hud .money.is-coins').length, cash: document.querySelector('.hud .cash-num')?.textContent ?? '', die: document.querySelectorAll('.btn-roll img, .btn-roll .btn-die').length }));
   check(hud.coins > 0 && !/₪/.test(hud.text), `junior HUD: coins, no ₪ (${hud.text.replace(/\s+/g, ' ').slice(0, 90)})`);
   check(/^\d{1,3}\s*מטבעות$/.test(hud.cash.trim()), `junior HUD cash: a coin number of at most 3 digits (${hud.cash.trim()})`);
   check(hud.die === 0, 'the roll button has no die icon (the plaza die stays)');
   await page.screenshot({ path: `${OUT}/junior-board.png` });
+  // the rest of the run plays at 320x568 (QA r18: the "× 12" row and the one HUD coin are checked on the smallest screen)
+  await page.setViewportSize({ width: 320, height: 568 });
+  await page.waitForTimeout(500);
+  const hudCoins = await page.evaluate(() => [...document.querySelectorAll('.hud .hud-cash img, .hud .hud-cash svg')].filter((e) => e.checkVisibility() && e.getBoundingClientRect().width > 0).length);
+  check(hudCoins === 1, `junior HUD at 320: one coin icon by the cash (${hudCoins})`);
   // play until a card and a payday summary were seen: never a ₪ on them
   let card = false; let payday = false;
   for (let k = 0; k < 160 && !(card && payday); k++) {
@@ -1448,8 +1478,9 @@ async function testJunior(browser) {
       await page.waitForTimeout(400);
       check(!/₪/.test(seen.text) && seen.coins > 0, `junior payday summary: coins, no ₪ (${seen.text.replace(/\s+/g, ' ').slice(0, 80)})`);
       // only the cash line ('הכסף מגיע למזומן') may grow past 3 digits
-      const scan = await page.evaluate(JUNIOR_SCAN, ['#modal-root .layer:last-child .summary-card', '.sc-cash']);
-      check(!scan.missing && scan.big.length === 0 && scan.leaks.length === 0, `junior payday: no number over 999 (cash aside) and no hidden figure ${JSON.stringify(scan)}`);
+      // only the cash line ('הכסף מגיע למזומן') may grow past 3 digits; the "× 12 חודשים" row is there (QA r18 P2-1)
+      await juniorScan(page, '#modal-root .layer:last-child .summary-card', '.sc-cash', 'payday', { noHidden: true });
+      check(await page.locator('#modal-root .layer:last-child .summary-card .eq-months').isVisible(), 'junior payday shows the "× 12 חודשים" row');
       await page.screenshot({ path: `${OUT}/junior-payday.png` });
     }
     const d = await page.evaluate(decide, 'sensible');
@@ -1493,21 +1524,111 @@ async function testJunior(browser) {
     check(parts.gone.length === 0, `junior deal card (${tag}): no price equation, debt total, monthly breakdown or banner (${parts.gone.join(', ')})`);
     check(/חסרים לכם/.test(parts.hint) && /מטבע/.test(parts.hint) && !/₪/.test(parts.text), `junior deal card (${tag}): the loan hint stays, in coins ("${parts.hint}")`);
     // the first payment and the loan hint are the only amounts allowed past 3 digits (a junior down payment is 400-7,560 coins)
-    const scan = await page.evaluate(JUNIOR_SCAN, ['.card[data-card="opportunity"]', '[data-tut="downPayment"], #buy-hint']);
-    check(scan.big.length === 0 && scan.leaks.length === 0, `junior deal card (${tag}): no other number over 999 and no hidden figure ${JSON.stringify(scan)}`);
+    await juniorScan(page, '.card[data-card="opportunity"]', '[data-tut="downPayment"], #buy-hint', `deal card (${tag})`, { noHidden: true });
     if (!guess) await page.screenshot({ path: `${OUT}/junior-deal-card.png` });
   }
-  // statement: cash, income, expenses and the month; debts and net worth only behind 'להורים' (built on open, never hidden)
-  await page.locator('.card [data-action="pass"]').click();
+  // QA r18 P1: the decision cards whose stories name big shekel figures (dec-001, dec-005, dec-008, dec-009f), as a junior player sees them
+  for (const id of ['dec-001', 'dec-005', 'dec-008', 'dec-009f']) {
+    let dm = null;
+    for (let seed = 1; seed < 3000 && !dm; seed++) {
+      for (const die of [1, 2, 3, 4, 5, 6]) {
+        // dec-005 needs a bank loan of 40,000 first (its 'requires'): a real 10,000-step junior loan
+        const m0 = act(newMatch(eng, { mode: 'family', players: [{ name: 'נועה', professionId: 'teacher', age: 'upTo10' }], seed }), (st) => eng.roll(id === 'dec-005' ? eng.takeLoan(st, 40000) : st, [die]));
+        if (currentState(m0).pending?.kind === 'decision' && currentState(m0).pending.card.id === id) { dm = m0; break; }
+      }
+    }
+    check(!!dm, `junior decision ${id}: a scenario was found`);
+    if (!dm) continue;
+    await page.goto(`${URL_BASE}?seed=3`);
+    await page.waitForSelector('[data-screen="start"]');
+    await page.evaluate((j) => localStorage.setItem('passivo.save', j), serialize(dm));
+    await page.goto(`${URL_BASE}?seed=3`);
+    await page.locator('[data-action="resume"]').click();
+    await page.waitForSelector(`.card[data-decision="${id}"]`);
+    await page.waitForTimeout(600);
+    // the cash cell of an option is cash (a deal's first payment: allowed past 3 digits, docs/decisions.md 2026-10-26)
+    await juniorScan(page, '#modal-root .layer:last-child', '[data-num="cash"]', `decision card ${id} (title, story, options, "מה זה מלמד")`);
+    if (id === 'dec-001') await page.screenshot({ path: `${OUT}/junior-decision.png` });
+  }
+  await page.setViewportSize({ width: 360, height: 800 });
+  // PR 10 in a junior game: the renovation offer (an owned coffee business) and an auction card (hot-seat, two junior players)
+  const nextDeal = (m0) => { // from a match whose turn just ended: the first die that lands on an apartment / business deal
+    for (const die of [1, 2, 3, 4, 5, 6]) {
+      const m1 = act(m0, (st) => eng.roll(st, [die]));
+      const pnd = currentState(m1).pending;
+      if (pnd?.kind === 'opportunity' && ['apartment', 'business'].includes(pnd.card.type)) return m1;
+    }
+    return null;
+  };
+  let renoM = null;
+  for (let seed = 1; seed < 3000 && !renoM; seed++) {
+    let m0 = act(newMatch(eng, { mode: 'family', players: [{ name: 'נועה', professionId: 'teacher', age: 'upTo10' }], seed }), (st) => eng.roll({ ...st, cash: 150000 }, [1]));
+    if (currentState(m0).pending?.card?.id !== 'opp-biz-002') continue;
+    m0 = endTurn(act(m0, (st) => eng.buy(st)));
+    const m1 = nextDeal(m0);
+    if (m1 && renovationOption(currentState(m1), eng.data.cards)) renoM = m1;
+  }
+  check(!!renoM, 'junior renovation scenario found (owns the coffee business, lands on a deal)');
+  if (renoM) {
+    await page.goto(`${URL_BASE}?seed=3`);
+    await page.waitForSelector('[data-screen="start"]');
+    await page.evaluate((j) => localStorage.setItem('passivo.save', j), serialize(renoM));
+    await page.goto(`${URL_BASE}?seed=3`);
+    await page.locator('[data-action="resume"]').click();
+    await page.waitForSelector('.card[data-card="opportunity"] [data-reno]');
+    await page.waitForTimeout(600);
+    await juniorScan(page, '#modal-root .layer:last-child', '[data-tut="downPayment"], #buy-hint', 'deal card with the renovation offer');
+  }
+  let aucM = null;
+  for (let seed = 1; seed < 800 && !aucM; seed++) {
+    const m0 = act(newMatch(eng, { mode: 'family', players: [{ name: 'נועה', professionId: 'teacher', age: 'upTo10' }, { name: 'יואב', professionId: 'nurse', age: 'upTo10' }], seed }), (st) => eng.roll(st, [1]));
+    if (['apartment', 'business'].includes(currentState(m0).pending?.card?.type)) aucM = { ...m0, players: m0.players.map((pl, k) => (k === 1 ? { ...pl, state: { ...pl.state, cash: 300000 } } : pl)) };
+  }
+  check(!!aucM, 'junior auction scenario found');
+  if (aucM) {
+    await page.goto(`${URL_BASE}?seed=3`);
+    await page.waitForSelector('[data-screen="start"]');
+    await page.evaluate((j) => localStorage.setItem('passivo.save', j), serialize(aucM));
+    await guessPref(page, false); // the card's numbers at once: its pass button is there
+    await page.goto(`${URL_BASE}?seed=3`);
+    await page.locator('[data-action="resume"]').click();
+    await page.waitForSelector('.card[data-card="opportunity"] [data-action="pass"]');
+    await page.waitForTimeout(500);
+    await page.locator('.card [data-action="pass"]').click(); // player 1 passes: the deal goes to auction, player 2 bids
+    await page.waitForSelector('.card[data-auction]', { timeout: 10000 });
+    await page.waitForTimeout(600);
+    // the bid, the bid button and the bidder's cash are cash (a bid is paid as the deal's first payment)
+    await juniorScan(page, '#modal-root .layer:last-child', '[data-auction-cash], [data-auction-stepper], .card-actions, .stat-key', 'auction card');
+    const auc = await page.evaluate(() => { const c = document.querySelector('.card[data-auction]'); return { listPrice: /מחיר מקורי/.test(c.innerText), loanLine: c.querySelector('[data-auction-mortgage]')?.textContent ?? '' }; });
+    check(!auc.listPrice, `junior auction card: no list price (${JSON.stringify(auc)})`);
+    await page.screenshot({ path: `${OUT}/junior-auction.png` });
+    await page.locator('.card[data-auction] [data-action="pass"]').click();
+    await page.waitForTimeout(800);
+  }
+  // the loan dialog: the cap line counts the "+" taps that are left, never "X מתוך 1,000" (QA r18 P2-3)
+  await page.goto(`${URL_BASE}?seed=3`);
+  await page.waitForSelector('[data-screen="start"]');
+  await page.evaluate((j) => localStorage.setItem('passivo.save', j), serialize(deal));
+  await guessPref(page, false);
+  await page.goto(`${URL_BASE}?seed=3`);
+  await page.locator('[data-action="resume"]').click();
+  await page.waitForSelector('.card[data-card="opportunity"]');
+  await page.locator('.card [data-action="buy"]').click();
+  await page.waitForSelector('.layer-dialog .limit');
+  await page.waitForTimeout(500);
+  const capLine = await page.locator('.layer-dialog [data-limit="junior"]').innerText().catch(() => '');
+  check(/אפשר להוסיף עוד \d{1,2} פעמים|הגעתם לתקרה/.test(capLine) && !/מתוך/.test(capLine), `junior loan dialog: the cap line counts the taps left ("${capLine}")`);
+  await juniorScan(page, '#modal-root .layer:last-child', null, 'loan dialog');
+  await page.locator('.layer-dialog [data-action="take"]').click();
   await page.waitForSelector('.card', { state: 'detached' });
-  await page.waitForTimeout(600);
+  await page.waitForTimeout(900);
+  // statement: cash, income, expenses and the month; debts and net worth only behind 'להורים' (built on open, never hidden)
   await page.locator('[data-action="statement"]').click();
   await page.waitForSelector('[data-action="parents"]');
   await page.waitForTimeout(600);
   const stClosed = await page.evaluate(() => { const sh = document.querySelector('#modal-root .layer:last-child'); return { nw: !!sh.querySelector('.nw, .st-sec-liability, .st-sec-networth'), expanded: sh.querySelector('[data-action="parents"]').getAttribute('aria-expanded'), income: !!sh.querySelector('.st-sec-income'), expense: !!sh.querySelector('.st-sec-expense'), cash: !!sh.querySelector('.st-cash'), shekel: /₪/.test(sh.innerText) }; });
   check(!stClosed.nw && stClosed.expanded === 'false' && stClosed.income && stClosed.expense && stClosed.cash && !stClosed.shekel, `junior statement: cash, income and expenses; no debts or net worth until 'להורים' ${JSON.stringify(stClosed)}`);
-  const stScan = await page.evaluate(JUNIOR_SCAN, ['#modal-root .layer:last-child', '.st-cash']);
-  check(stScan.big.length === 0 && stScan.leaks.length === 0, `junior statement: no number over 999 (cash aside) and no hidden figure ${JSON.stringify(stScan)}`);
+  await juniorScan(page, '#modal-root .layer:last-child', '.st-cash', 'statement', { noHidden: true });
   await page.locator('[data-action="parents"]').click();
   await page.waitForTimeout(300);
   const stOpen = await page.evaluate(() => { const sh = document.querySelector('#modal-root .layer:last-child'); return { nw: !!sh.querySelector('.nw'), liab: !!sh.querySelector('.st-sec-liability'), expanded: sh.querySelector('[data-action="parents"]').getAttribute('aria-expanded') }; });
