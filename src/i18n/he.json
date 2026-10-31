@@ -456,6 +456,8 @@
     "capBlocked": "תקרת ההלוואות לקנייה היא {salaries} משכורות.",
     "limit": "תקרת הלוואות",
     "limitUsed": "{amount} מתוך {max}",
+    "limitLeftJunior": { "one": "אפשר להוסיף עוד פעם אחת {step}", "other": "אפשר להוסיף עוד {n} פעמים {step}" },
+    "limitFullJunior": "הגעתם לתקרה: אי אפשר ללוות יותר",
     "repayTitle": "החזר הלוואה",
     "repayText": "כל החזר מקטין את התשלום החודשי. מזומן זמין: {cash}",
     "repayAmount": "סכום להחזר",

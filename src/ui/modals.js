@@ -650,7 +650,8 @@ function dialogShell({ title, text, body, actions, label }) {
 /** Why the loan limit is what it is, when the 12-salary ceiling on borrowing to buy is the binding one (else null). Same numbers the engine enforces. */
 function capNote(state) {
   const cap = loanCap(state);
-  if (!cap.capBinds) return null;
+  // 'צעירים': the cap in coins has 4 digits; the junior cap line ("אפשר להוסיף עוד N פעמים") already says when it is reached
+  if (!cap.capBinds || coinScale()) return null;
   return h('p', { class: 'limit-cap', 'data-loan': 'cap' }, tn('loan.capNote', { salaries: ltr(numberText(cap.salaries)), amount: money(cap.total) }));
 }
 
@@ -679,6 +680,9 @@ export function loanDialog(state, { required = 0, gain = null, hint = null } = {
   const limitBar = h('div', { class: 'limit-bar', 'aria-hidden': 'true' }, barFill);
   const usedChosen = h('bdi', { class: 'money', dir: 'ltr' });
   const usedMax = money(max);
+  // 'צעירים' (QA r18 P2-3): the cap is up to 1,700 coins, so the line counts the "+" taps that are left (each one LOAN_STEP), never
+  // "X מתוך 1,000"; the bar above it still shows how full it is
+  const juniorLimit = coinScale() ? h('span', { 'data-limit': 'junior' }) : null;
   const flowRow = h('div', { class: 'kv', 'data-loan': 'flow' }, h('span', null, t(purchase ? 'loan.newFlowPurchase' : 'loan.newFlow')), flowOut);
   const paydayRow = h('div', { class: 'kv', 'data-loan': 'payday' }, h('span', null, t('loan.nextSummary')), paydayOut);
   const warnAmount = h('bdi', { class: 'money', dir: 'ltr' });
@@ -727,6 +731,12 @@ export function loanDialog(state, { required = 0, gain = null, hint = null } = {
     barFill.style.setProperty('--fill', String(max ? to / max : 0));
     limitBar.dataset.high = String(max > 0 && to / max >= 0.9);
     setMoney(usedChosen, to);
+    if (juniorLimit) {
+      const left = Math.max(0, Math.round((max - to) / LOAN_STEP));
+      // the step ("100 מטבעות") never splits across lines
+      const [before = '', after = ''] = left ? tp('loan.limitLeftJunior', left, { step: '\u0001' }).split('\u0001') : [];
+      juniorLimit.replaceChildren(...(left ? [before, h('span', { class: 'limit-step' }, moneyText(LOAN_STEP)), after] : [t('loan.limitFullJunior')]));
+    }
   };
 
   const st = max === 0 ? null : stepper({
@@ -756,7 +766,7 @@ export function loanDialog(state, { required = 0, gain = null, hint = null } = {
       warn,
       // the limit stays visible (one 8px bar + one line): the number shown is the one the engine enforces (loanCap)
       h('div', { class: 'limit' }, limitBar,
-        h('div', { class: 'limit-row' }, h('span', null, t('loan.limit')), h('span', null, tn('loan.limitUsed', { amount: usedChosen, max: usedMax })))),
+        h('div', { class: 'limit-row' }, h('span', null, t('loan.limit')), juniorLimit ?? h('span', null, tn('loan.limitUsed', { amount: usedChosen, max: usedMax })))),
       toggleSlot,
       detailsSlot,
     ].filter(Boolean);
