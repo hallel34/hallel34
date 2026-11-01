@@ -12,7 +12,7 @@ import { motionOK } from './prefs.js';
 import { assetTitle } from './card-view.js';
 import { statement, maxLoan, PAYDAY_MONTHS, LOAN_PAYMENT_RATE } from '../engine/index.js';
 import { learnContent } from '../learn/content.js';
-import { asOfLine } from './tax-audit.js';
+import { asOfLine } from './as-of.js';
 import { stackedEquation } from './payday.js';
 
 const textOf = (x) => (typeof x === 'string' ? x : [x].flat().map((n) => (typeof n === 'string' ? n : n?.textContent ?? '')).join(''));

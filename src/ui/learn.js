@@ -14,7 +14,7 @@ import { factsForConcept, realWorldView, publishedFigure } from '../learn/rw.js'
 const figureLine = (f, asOf) => (f ? h('p', { class: 'guide-figure', 'data-verified': f.verified ?? '' }, h('b', null, f.text), ' ', h('span', { class: 'asof-tag' }, asOf)) : null);
 import { seenConcepts, markConceptSeen } from '../learn/store.js';
 import { getPrefs } from './prefs.js';
-import { asOfLine } from './tax-audit.js';
+import { asOfLine } from './as-of.js';
 import { LOAN_APR_NOMINAL, LOAN_PAYMENT_RATE } from '../engine/index.js';
 
 // The game screen registers what to do when a concept is unlocked (it records it in the player's state for the report).
