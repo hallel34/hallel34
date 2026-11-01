@@ -1,0 +1,4 @@
+/* The board's stylesheets, in their cascade order (premium overrides board). One lazy chunk: not render-blocking on the home
+   screen; src/ui/board-styles.js fetches it at idle time and the board waits for it (QA round 19 perf: a993eba had made both eager). */
+@import './board.css';
+@import './premium.css';

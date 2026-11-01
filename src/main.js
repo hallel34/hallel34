@@ -6,11 +6,9 @@ import './styles/screens.css';
 import './styles/fox.css';
 import './styles/learn.css';
 import './styles/tutorial.css';
-import './styles/board.css';
-import './styles/premium.css';
 import { setLocale, t } from './i18n/index.js';
 import { applyPrefs, getPrefs, setPref } from './ui/prefs.js';
-import { createApp } from './ui/app.js';
+import { createApp, loadPlay } from './ui/app.js';
 import { registerServiceWorker } from './services/pwa.js';
 import { preloadTiles } from './ui/tiles.js';
 import { loadBoardStyles } from './ui/board-styles.js';
@@ -35,6 +33,13 @@ try {
 registerServiceWorker();
 // the board is the main screen: its 3D tile art is preloaded at idle time after the first paint (never ahead of the home screen's LCP)
 preloadTiles();
-prepareBoardImage().catch(() => {});
-// the board stylesheet is a separate chunk (not render-blocking on the home screen): fetched at idle time, awaited by the board
-(globalThis.requestIdleCallback ?? ((f) => setTimeout(f, 1200)))(() => loadBoardStyles().catch(() => {}), { timeout: 2500 });
+// the board stylesheets are one chunk (not render-blocking on the home screen), fetched at idle time; the board awaits them (app.js)
+const idle = globalThis.requestIdleCallback ?? ((f) => setTimeout(f, 1200));
+idle(() => loadBoardStyles().catch(() => {}), { timeout: 2500 });
+// the board's script chunk and its 90 KB image are warmed up well after the home screen's largest paint (they shared the bandwidth
+// with the start screen's fonts and script before: QA round 19 perf); a fast tap on play just starts them in goPlay, which awaits both
+const warmBoard = () => setTimeout(() => idle(() => {
+  loadPlay().catch(() => {});
+  prepareBoardImage().catch(() => {});
+}, { timeout: 2000 }), 1500);
+if (document.readyState === 'complete') warmBoard(); else addEventListener('load', warmBoard, { once: true });

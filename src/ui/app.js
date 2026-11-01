@@ -14,7 +14,6 @@ import { createStart } from './screens/start.js';
 import { createPick } from './screens/pick.js';
 import { createPlayers } from './screens/players.js';
 import { playerName } from './players.js';
-import { createPlay } from './play.js';
 import { createWin, createOver } from './screens/end.js';
 import { createDailyResult } from './screens/daily.js';
 import { dayKey } from '../daily/calendar.js';
@@ -28,6 +27,11 @@ import { initTermButtons } from './learn.js';
 import { setLearnMode } from '../learn/context.js';
 import { loadTutorial } from '../learn/tutorial-store.js';
 import { setSession } from './session.js';
+
+// The board (play.js: board, cards, bots, auctions, renovation, learning flow) is its own chunk, off the home screen's critical
+// path (QA round 19 perf). main.js warms it up at idle time; the service worker precaches it, so it opens offline too.
+let playChunk = null;
+export const loadPlay = () => (playChunk ??= import('./play.js').catch((err) => { playChunk = null; throw err; }));
 
 export function createApp(host) {
   const data = loadData(getLocale());
@@ -146,7 +150,7 @@ export function createApp(host) {
       onDaily: () => goDaily(),
       onDailyReset: () => { resetDay(dayKey()); goStart(); },
       onRefresh: () => goStart(),
-      onMode: (m) => { mode = m; writeRaw('mode', m); },
+      onMode: (m) => { mode = m; writeRaw('mode', m); setLearnMode(m); }, // an age under 14 -> family: the kid vocabulary too (QA r18 P2-2)
       onPlay: (m) => { mode = m; writeRaw('mode', m); goPlayers(); },
       onResume: () => {
         const m = loadSave();
@@ -162,7 +166,7 @@ export function createApp(host) {
     setCoinScale(false);
     mount({ el: createPlayers({
       count: setup.count, names: setup.names, ages: setup.ages ?? [], bots: setup.bots ?? [], mode,
-      onMode: (m) => { mode = m; writeRaw('mode', m); },
+      onMode: (m) => { mode = m; writeRaw('mode', m); setLearnMode(m); }, // an age under 14 -> family: the kid vocabulary too (QA r18 P2-2)
       onBack: () => goStart(),
       onNext: ({ count, names, ages, bots }) => { setup = { count, names, ages, bots, professionIds: [] }; goPick(0); },
     }).el });
@@ -172,6 +176,7 @@ export function createApp(host) {
   const botProfession = () => professionIds[Math.floor(Math.random() * professionIds.length)];
   function goPick(i) {
     if (setup.bots?.[i]) { setup.professionIds[i] = botProfession(); goPick(i + 1); return; }
+    setLearnMode(mode); // the pick sheet speaks the mode it shows (family: the children's words, QA r18 P2-2)
     const multi = setup.count > 1;
     const junior = isJuniorSetup(mode, (setup.ages ?? []).map((age) => ({ age })));
     setCoinScale(junior && setup.ages?.[i] === JUNIOR_AGE); // this player's own scale
@@ -207,6 +212,8 @@ export function createApp(host) {
     setLearnMode(m.mode);
     try { await loadBoardStyles(); } catch (err) { console.warn(err); } // the board is usable (if plainer) even without its v4 stylesheet
     try { await prepareBoardImage(); } catch (err) { console.error(err); toast(t('app.loadError'), 4000); return; }
+    let createPlay;
+    try { ({ createPlay } = await loadPlay()); } catch (err) { console.error(err); toast(t('app.loadError'), 4000); return; }
     const play = createPlay({ engine, match: m, nav, store, professionIds, fresh });
     mount({ el: play.el, destroy: () => play.destroy() }, { start: () => play.start() });
   }

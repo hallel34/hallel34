@@ -1,0 +1,3 @@
+/* The demo's own copy of the game fonts (inlined by Vite's CSS @import): importing src/styles/fonts.css from both entries made it
+   a shared chunk with its own render-blocking stylesheet on the game's home screen (QA round 19 perf). */
+@import '../src/styles/fonts.css';

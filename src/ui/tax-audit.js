@@ -11,8 +11,10 @@ import { icon } from './icons.js';
 import { haptic } from './fx.js';
 import { readJSON, writeJSON } from '../services/storage.js';
 import { earnBadge, hasBadge } from '../learn/store.js';
+import { asOfLine } from './as-of.js';
 
-const fill = (s, slots) => String(s).replace(/\{(\w+)\}/g, (m, k) => (k in slots ? String(slots[k]) : m));
+export { asOfLine }; // moved to as-of.js (kept here for its callers)
+
 
 /** The questions of a mode: full = every question; family = the family variants (same id, ref and asOf). */
 export function auditPool(quiz, mode) {
@@ -40,12 +42,6 @@ export function shuffledOptions(options, pick) {
 }
 
 /** "נכון ל-2026" + the source link (opens a new tab). */
-export function asOfLine(ui, { asOf, ref }) {
-  return h('p', { class: 'audit-meta' },
-    h('span', { class: 'asof-tag' }, fill(ui.asOfLabel, { asOf })),
-    ref?.url ? h('a', { class: 'src-link', href: ref.url, target: '_blank', rel: 'noopener noreferrer', 'aria-label': t('taxAudit.linkA11y', { name: `${ui.sourceLabel}: ${ref.name}` }) }, `${ui.sourceLabel}: ${ref.name}`) : null);
-}
-
 const TAX_CORRECT_KEY = 'learn.taxCorrect';
 /** Device-level count of correct answers; the badge comes at reward.badge.goal (in total, not in a row). Returns the earned text or null. */
 export function countCorrect(quiz, mode) {

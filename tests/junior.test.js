@@ -187,6 +187,26 @@ describe('junior texts: every typed ₪ figure a junior player can read is whole
     expect(dealt.length).toBeGreaterThan(0);
     for (const c of dealt) expect(oddTyped(JSON.stringify(c)), c.id).toEqual([]);
   });
+  it('QA r18 P1: every card a junior game deals reads with no ₪ and no number over 999 (its junior / family wording, as coins)', () => {
+    const shown = (o, k) => o[`${k}Junior`] ?? o[`${k}Family`] ?? o[k];
+    setCoinScale(true);
+    try {
+      for (const c of data.cards.filter((x) => x.modes.includes('family') && !juniorSkips(x))) {
+        const texts = [shown(c, 'title'), shown(c, 'text'), shown(c, 'teaches'), ...(c.options ?? []).flatMap((o) => [shown(o, 'label'), shown(o, 'fox')])].filter(Boolean);
+        for (const raw of texts) {
+          const out = scaleTypedMoney(raw);
+          expect(out.includes('₪'), `${c.id}: ${out}`).toBe(false);
+          const big = [...out.matchAll(/\d{1,3}(?:,\d{3})+|\d+/g)].map((m) => Number(m[0].replace(/,/g, ''))).filter((n) => n > 999);
+          expect(big, `${c.id}: ${out}`).toEqual([]);
+        }
+      }
+    } finally { setCoinScale(false); }
+  });
+  it('QA r18 P1: the junior wordings pass the kid-vocabulary scan', () => {
+    const jr = data.cards.flatMap((c) => [c.titleJunior, c.textJunior, c.teachesJunior, ...(c.options ?? []).flatMap((o) => [o.labelJunior, o.foxJunior])]).filter(Boolean);
+    expect(jr.length).toBeGreaterThan(0);
+    for (const w of jr) for (const f of FORBIDDEN) expect(w.includes(f), `${w} has "${f}"`).toBe(false);
+  });
   it('family cards (opportunity, expense, market) dealt in a junior game', () => {
     for (const c of data.cards.filter((x) => x.deck !== 'decision' && x.modes.includes('family') && !juniorSkips(x))) {
       expect(oddTyped(`${c.titleFamily ?? c.title} ${c.textFamily ?? c.text ?? ''}`), c.id).toEqual([]);
