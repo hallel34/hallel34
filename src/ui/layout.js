@@ -37,3 +37,21 @@ export function pawnOffsets(count) {
 
 /** Compact player progress (0-1, capped) used by the others strip. */
 export const progressPct = (passive, expenses) => (expenses > 0 ? Math.max(0, Math.min(1, passive / expenses)) : 0);
+
+/**
+ * The paydays of one roll, split by what the pawn does on them (owner bug report 2026-11-01): `passes` are only crossed (the pawn
+ * never stops there: a non-blocking float, the summary card after the landing), `landing` is the payday it stops on (or null).
+ * `paydays` = the roll's payday events in path order (the engine pays one per payday square on the path, landing included).
+ */
+export function paydayStops(path, board, paydays) {
+  const passes = [];
+  let landing = null;
+  let pi = 0;
+  path.forEach((idx, step) => {
+    if (board[idx] !== 'payday' || !paydays[pi]) return;
+    const pd = paydays[pi++];
+    if (step === path.length - 1) landing = { step, idx, pd };
+    else passes.push({ step, idx, pd });
+  });
+  return { passes, landing };
+}

@@ -15,12 +15,12 @@ import { button, iconButton, meter, cashDisplay, miniMeter, fitText } from './wi
 import { createDice } from './die.js';
 import { motionOK } from './prefs.js';
 import {
-  haptic, sound, animate, cssMs, cssPx, coinBurst, shake, pulse, pause, toast,
+  haptic, sound, animate, cssMs, cssPx, coinBurst, shake, pulse, pause, toast, floatText,
 } from './fx.js';
 import * as raw from './modals.js';
 import { openStatement } from './statement.js';
 import { openSettings } from './settings.js';
-import { ringPos, avatarColor, pawnOffsets, progressPct, CROWD_FROM } from './layout.js';
+import { ringPos, avatarColor, pawnOffsets, progressPct, CROWD_FROM, paydayStops } from './layout.js';
 import { playerToken, playerName, nameBdi } from './players.js';
 import { closeAllLayers, destroyAllLayers, closeTopLayer } from './modal.js';
 import { debugEnabled, mountDebugTools } from './debug.js';
@@ -821,12 +821,22 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   }
 
   /**
-   * 'סיכום שנתיים': the itemised card (blocking but quick: one tap), then the cash arrives (float text, count-up) and the one-line
-   * form stays in the log. The figures are the engine's own payday event over the player's state.
+   * 'סיכום שנתיים': the itemised card (blocking but quick: one tap), then the cash arrives (count-up) and the one-line
+   * form stays in the log. The figures are the engine's own payday event over the player's state. Used when the pawn LANDS on it.
    */
   async function paydayFx(pd) {
     const f = summaryFigures(state, pd, cash.value);
     haptic('land'); sound('payday');
+    await paydaySummary(f);
+    if (destroyed) return;
+    // The summary already shows the full calculation. Animate the cash in its own HUD, not over dice and board text.
+    pulse(el.querySelector('.hud-cash'), 1.04);
+    if (f.amount > 0) react('celebrate');
+    await cash.to(cash.value + f.amount, 450);
+  }
+
+  /** The learning moment of one payday: the itemised card, then its one-line form in the log and the fox-row chip. */
+  async function paydaySummary(f) {
     await summaryCardGated({ figures: f, hint: summaryHintFor(f) });
     if (destroyed) return;
     // spec 4.9 (owner approved 2026-10-25): the log / hand-over recap keeps the one-line form; the fox-row chip shows one of three
@@ -834,13 +844,26 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     pushLog(tn('game.logPayday', { calc: paydayCalc(f.monthly, f.months, f.amount) }), f.amount >= 0 ? 'good' : 'bad', { payday: true });
     chip.replaceChildren(paydayChip(f, state.turn, { host: zone }));
     setStatus(t('game.paydayFloatLabel'));
-    // The summary already shows the full calculation. Animate the cash in its own HUD, not over dice and board text.
-    pulse(el.querySelector('.hud-cash'), 1.04);
-    if (f.amount > 0) react('celebrate');
-    await cash.to(cash.value + f.amount, 450);
   }
 
   // ---------- turn ----------
+  /**
+   * Owner bug report 2026-11-01: a payday the pawn only CROSSES never stops it. Nothing here is awaited: a short "+₪X" (coins in
+   * junior) rises from that tile and the HUD cash counts up while the pawn keeps hopping. The engine already paid it (pay on pass).
+   * Returns the figures: the itemised card for it opens after the landing (see playTurn), before the landing square's own card.
+   */
+  function paydayPassFx(pd, idx) {
+    const f = summaryFigures(state, pd, cash.value);
+    haptic('tick'); sound('payday');
+    const tile = tiles[idx];
+    tile.dataset.paid = 'pass';
+    setTimeout(() => { delete tile.dataset.paid; }, 900);
+    floatText(tile, money(f.amount, { sign: true }), f.amount >= 0 ? 'income' : 'expense', { duration: 900 });
+    pulse(el.querySelector('.hud-cash'), 1.04);
+    cash.to(cash.value + f.amount, 450); // cash.value becomes the target at once, so a second payday in the same roll adds on top
+    return f;
+  }
+
   let priorPrices = {};
   async function turn() {
     if (busy || destroyed || state.phase !== 'roll' || state.status !== 'playing') return;
@@ -872,13 +895,24 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     await dice.roll(move.dice);
     if (destroyed) return;
     paintButton('working');
-    const paydays = next.events.filter((e) => e.type === 'payday');
-    let pi = 0;
-    for (const idx of move.path) {
+    const stops = paydayStops(move.path, BOARD, next.events.filter((e) => e.type === 'payday'));
+    const passAt = new Map(stops.passes.map((p) => [p.step, p]));
+    const crossed = [];
+    for (const [k, idx] of move.path.entries()) {
       if (destroyed) return;
       await hopTo(idx);
-      if (BOARD[idx] === 'payday' && paydays[pi]) { const pd = paydays[pi++]; flow.trigger('summary'); await paydayFx(pd); }
+      const p = passAt.get(k);
+      if (p) crossed.push(paydayPassFx(p.pd, p.idx)); // non-blocking: the pawn keeps moving
     }
+    if (destroyed) return;
+    // The pawn stands on its square: now the summary card of every payday it crossed (already counted into the cash), then the
+    // landing payday as before. All of it comes before the landing caption and the square's own card.
+    for (const f of crossed) {
+      flow.trigger('summary');
+      await paydaySummary(f);
+      if (destroyed) return;
+    }
+    if (stops.landing) { flow.trigger('summary'); await paydayFx(stops.landing.pd); }
     if (destroyed) return;
     paintButton('working'); // the dice have stopped; the label now says we are moving on (cards, payday) instead of rolling
     haptic('land'); sound('land');
@@ -1004,15 +1038,19 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     const move = next.events.find((e) => e.type === 'move');
     if (move) {
       await dice.roll(move.dice);
-      for (const idx of move.path) {
+      const passAt = new Map(paydayStops(move.path, BOARD, next.events.filter((e) => e.type === 'payday')).passes.map((p) => [p.step, p]));
+      for (const [k, idx] of move.path.entries()) {
         if (destroyed) return;
         await hopTo(idx);
+        const p = passAt.get(k);
+        if (p) paydayPassFx(p.pd, p.idx); // a bot shows no card: the same passing float + count-up, never a stop
       }
       pushLog(t('game.logMove', { steps: move.steps, square: t(`square.${BOARD[move.to]}`) }), '', { present: true });
     }
     state = next;
     commit();
     refreshHud();
+    syncCash(); // the HUD lands on the engine's cash (a payday landed on, after the ones counted up on the way)
     await pause(400);
     let guard = 0;
     while (!destroyed && state.status === 'playing' && state.pending && guard++ < 30) {
