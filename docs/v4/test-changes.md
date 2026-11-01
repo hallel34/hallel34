@@ -180,3 +180,5 @@ The owner approved these changes on 2026-10-26: the age picker, save schema 6 an
 - **Not the cause.** Board-CSS idle loading: its failure is caught and the board mounts anyway. Notes and handoff: single player, help off, the guess off.
 - **The other smokes.** `loadMatch`, testPhaseA and the round11/round12 `resume()` already go to the start screen before writing. That is the same pattern as the fix.
 
+
+| tests/commentary-variants.test.js | (new tests, QA r19 L3) | - | Every full-mode commentary group has at least 3 distinct short variants that use only its GROUP_SLOTS; the picker never returns the same filled line twice in a row for a group, skips a variant whose filled text equals the last one, and keeps a single-line group. No existing test was changed (L3 in smoke.mjs is untouched). | QA round 19 P2 (L3) |
