@@ -73,7 +73,9 @@ export default defineConfig({
   define: { __APP_VERSION__: JSON.stringify(pkg.version) },
   plugins: [pruneLearnPlugin(), pwaPlugin()],
   // the 3D board tiles stay real files (cacheable, preloadable, srcset), never base64 inside the JS bundle
-  build: { rollupOptions: { input: { game: 'index.html', businessDemo: 'business-demo.html' } }, target: 'es2020', assetsInlineLimit: (file) => (/[\\/]tile3d[\\/]/.test(file) ? false : undefined) },
+  // modulePreload polyfill off: it was the only module both entries shared, so it became a separate render-path script on the home
+  // screen (QA round 19 perf); every browser the app targets supports <link rel=modulepreload> natively
+  build: { modulePreload: { polyfill: false }, rollupOptions: { input: { game: 'index.html', businessDemo: 'business-demo.html' } }, target: 'es2020', assetsInlineLimit: (file) => (/[\\/]tile3d[\\/]/.test(file) ? false : undefined) },
   test: {
     environment: 'node',
     include: ['tests/**/*.test.js'],

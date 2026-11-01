@@ -1,4 +1,4 @@
-import '../src/styles/fonts.css';
+import './fonts.css';
 import './style.css';
 import { UPGRADES, TILES, EVENTS, initialState, roll, upgrade, remaining } from './model.js';
 import { scene } from './scene.js';
