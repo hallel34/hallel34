@@ -1,15 +1,15 @@
 // The learning layer inside one game screen: queues the explainers (L1), shows the fox feedback after a decision (L3)
 // and keeps the per-game record in sync. Pure rules live in src/learn and src/engine/learn.js; this file only wires them to the UI.
 import { h } from './dom.js';
-import { t, tRaw } from '../i18n/index.js';
+import { t, rawString } from '../i18n/index.js';
 import { createNotes } from './notes.js';
 import { openDictionary, recordSeen, explainEnabled } from './learn.js';
 import { learnContent, conceptById, glossaryUi, termName, hasKidName, kidOf } from '../learn/content.js';
 import { conceptsForTrigger, enqueueAt, pickExplainer, EXPLAINER_MAX_OFFERS } from '../learn/triggers.js';
-import { renderFeedback } from '../learn/feedback.js';
+import { renderFeedback, linesFor } from '../learn/feedback.js';
 import { seenConcepts } from '../learn/store.js';
 import { markShown } from '../engine/learn.js';
-import { createCommentaryGate } from './commentary.js';
+import { createCommentaryGate, createCommentaryPicker, commentaryVariants } from './commentary.js';
 import { fillSlots } from '../learn/slots.js';
 import { getPrefs } from './prefs.js';
 
@@ -39,6 +39,8 @@ export function createLearnFlow({ zone, mode, seed, getState, setState, onActive
   const notes = createNotes({ zone, onActive, onDismiss, onShown });
   const counters = {};
   const allowComment = createCommentaryGate();
+  const pickNote = createCommentaryPicker(); // the bubbles: never the same line twice in a row per group
+  const pickQuiet = createCommentaryPicker(); // the chip line of a paced (quiet) comment
   let queue = []; // [{ id, turn, n }]: explainers waiting (see triggers.js pickExplainer)
   const offers = {}; // how many times an unread explainer was offered
   let shownThisTurn = false;
@@ -64,12 +66,17 @@ export function createLearnFlow({ zone, mode, seed, getState, setState, onActive
       if (rq.group === 'buy.diversify') trigger('diversified');
       if (!r) continue;
       turnFeedback.push({ template: r.template, slots: r.slots, plain: r.text });
-      const key = 'commentary.' + rq.group.replaceAll('.', '_');
-      const template = tRaw(key) === key ? r.template : tRaw(key);
+      // a84d118: full mode speaks in terse commentary lines (adult terms: never in family mode, which keeps its kid lines)
+      const m = state().mode ?? mode;
+      const terse = m === 'full' ? commentaryVariants(rq.group, (k) => rawString(k)) : [];
+      const variants = terse.length ? terse : linesFor(learnContent().feedback, rq.group, mode); // the rotation renderFeedback used
+      const fill = (tpl) => fillSlots(tpl, r.slots);
+      const start = terse.length ? 0 : r.index;
       if (!allowComment(rq, { player: getPlayerKey(), turn: state().turn ?? 0 })) {
-        onQuietFeedback?.(feedbackNodes(template, r.slots), rq.tone);
+        onQuietFeedback?.(feedbackNodes(pickQuiet(rq.group, variants, fill, start) ?? r.template, r.slots), rq.tone);
         continue;
       }
+      const template = pickNote(rq.group, variants, fill, start) ?? r.template;
       notes.push({ kind: 'feedback', group: rq.group, pose: rq.pose, tone: rq.tone, plain: fillSlots(template, r.slots), body: feedbackNodes(template, r.slots) });
     }
   }
