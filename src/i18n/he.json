@@ -294,6 +294,7 @@
     "botSeat": "בוט",
     "humanSeat": "שחקן",
     "botNote": "הבוט משחק לבד בתורו, וגם מציע במכרזים.",
+    "needHuman": "לפחות אחד צריך להיות שחקן ולא בוט.",
     "botPolicyTitle": "איזה בוט?",
     "botPolicy": { "cautious": "זהיר", "sensible": "מאוזן", "alwaysBuy": "נועז" },
     "botName": { "cautious": "שועל זהיר", "sensible": "שועל מאוזן", "alwaysBuy": "שועל נועז" }

@@ -7,6 +7,7 @@ import { haptic } from '../fx.js';
 import { MIN_PLAYERS, MAX_PLAYERS, NAME_MAX, uniqueNames, AGE_BANDS, JUNIOR_AGE, FAMILY_SUGGESTED_AGES, COIN_VALUE } from '../../engine/index.js';
 import { inShekels, moneyText } from '../format.js';
 import { playerToken, playerName } from '../players.js';
+import { BOT_POLICIES, initialSeats, canBeBot, playableBots } from '../seats.js';
 
 /**
  * @param count   initial number of players
@@ -15,16 +16,20 @@ import { playerToken, playerName } from '../players.js';
  * @param onNext  ({ count, names, ages, bots }) => void   names are final (never empty); a single player has names ['']; ages: band or null.
  *   bots: per seat null (a person) or a bot policy id ('cautious' | 'sensible' | 'alwaysBuy') - the device plays that seat.
  *   Bot seats are multiplayer-only, skip the age chips, and get the policy's default name.
+ *   Seat 1 is the device owner: a person by default, at the top; extra seats (people or bots) come below it (owner 2026-11-02).
+ *   It may become a bot only while another seat is a person. Fewer players drop seats from the bottom.
  * @param mode    the mode picked on the start screen; onMode(m) switches it (an age under 14 suggests family mode)
  */
 const AGE_KEY = { upTo10: 'players.ageUpTo10', '11to13': 'players.age11to13', '14plus': 'players.age14plus' };
-const BOT_POLICIES = ['cautious', 'sensible', 'alwaysBuy'];
 export function createPlayers({ count = 1, names = [], ages = [], bots = [], mode = 'family', onMode = null, onBack, onNext }) {
   let n = count;
   let curMode = mode;
-  const values = Array.from({ length: MAX_PLAYERS }, (_, i) => names[i] || '');
-  const agesOf = Array.from({ length: MAX_PLAYERS }, (_, i) => (AGE_BANDS.includes(ages[i]) ? ages[i] : null));
-  const botsOf = Array.from({ length: MAX_PLAYERS }, (_, i) => (BOT_POLICIES.includes(bots[i]) ? bots[i] : null));
+  // a setup that comes back with a bot in seat 1 opens with the people first (seats keep their own name, age and policy)
+  const seats = initialSeats({ count, names, ages, bots, max: MAX_PLAYERS, ageBands: AGE_BANDS, isDefaultName: (nm, i) => nm === playerName({ name: '' }, i) });
+  const values = seats.names;
+  const agesOf = seats.ages;
+  const botsOf = seats.bots;
+  let needHuman = false; // a switch to bot was refused: it would have left no person to play
   const ageNote = h('p', { class: 'age-note', role: 'status', 'aria-live': 'polite' });
   let suggested = false; // the switch to family mode happened on this screen
   function paintNote() {
@@ -33,6 +38,7 @@ export function createPlayers({ count = 1, names = [], ages = [], bots = [], mod
     if (suggested) lines.push(t('players.familySuggested'));
     if (junior) lines.push(t('players.juniorOn'), t('players.ageNote', { perCoin: t('coins.perCoin', { value: inShekels(() => moneyText(COIN_VALUE)) }) }));
     if (botsOf.slice(0, n).some(Boolean)) lines.push(t('players.botNote'));
+    if (needHuman) lines.push(t('players.needHuman'));
     ageNote.replaceChildren(...lines.map((l) => h('span', null, l)));
     ageNote.hidden = !lines.length;
   }
@@ -111,6 +117,15 @@ export function createPlayers({ count = 1, names = [], ages = [], bots = [], mod
       const input = h('input', { type: 'radio', name, value: kind, class: 'age-input', 'data-seat': kind, checked: (kind === 'bot') === !!botsOf[i] || null });
       input.addEventListener('change', () => {
         if (!input.checked) return;
+        if (kind === 'bot' && !canBeBot(botsOf, i, n)) {
+          // the last person cannot become a bot: the chip goes back to "שחקן" and the note says why
+          seat.querySelector('[data-seat="human"]').checked = true;
+          needHuman = true;
+          haptic('tap');
+          paintNote();
+          return;
+        }
+        needHuman = false;
         botsOf[i] = kind === 'bot' ? (botsOf[i] ?? 'sensible') : null;
         haptic('tap');
         paintSeat();
@@ -135,18 +150,25 @@ export function createPlayers({ count = 1, names = [], ages = [], bots = [], mod
   const st = stepper({
     min: MIN_PLAYERS, max: MAX_PLAYERS, step: 1, value: n,
     render: (v) => h('span', { dir: document.documentElement.dir }, v === 1 ? t('players.one') : t('players.many', { n: v })),
-    onChange: (v) => { n = v; haptic('tap'); paint(); },
+    onChange: (v) => {
+      n = v; // seats come and go at the bottom; the ones above keep their name, age and type
+      if (n > 1 && botsOf.slice(0, n).every(Boolean)) botsOf[0] = null; // fewer seats left only bots: seat 1 is the person again
+      needHuman = false;
+      haptic('tap');
+      paint();
+    },
     decLabel: t('players.fewer'), incLabel: t('players.more'),
   });
   paint();
 
   function finish() {
     // final names: empty -> the default label (a bot seat -> the policy's name), repeats get " 2", " 3"
+    const seatBots = playableBots(botsOf, n);
     const out = n === 1 ? [''] : uniqueNames(Array.from({ length: n }, (_, i) => {
-      if (botsOf[i]) return t(`players.botName.${botsOf[i]}`);
+      if (seatBots[i]) return t(`players.botName.${seatBots[i]}`);
       return (values[i] || '').replace(/\s+/g, ' ').trim().slice(0, NAME_MAX) || playerName({ name: '' }, i);
     }));
-    onNext({ count: n, names: out, ages: agesOf.slice(0, n).map((age, i) => (botsOf[i] ? null : age)), bots: botsOf.slice(0, n) });
+    onNext({ count: n, names: out, ages: agesOf.slice(0, n).map((age, i) => (seatBots[i] ? null : age)), bots: seatBots });
   }
 
   const el = h('section', { class: 'screen screen-players', 'data-screen': 'players' },
