@@ -826,13 +826,16 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
    */
   async function paydayFx(pd) {
     const f = summaryFigures(state, pd, cash.value);
+    // Snapshot the count-up target BEFORE the modal: re-reading live cash.value after the await could add the
+    // amount on top of a baseline that already includes it (v0.4 hardening of the double-payday display).
+    const target = cash.value + f.amount;
     haptic('land'); sound('payday');
     await paydaySummary(f);
     if (destroyed) return;
     // The summary already shows the full calculation. Animate the cash in its own HUD, not over dice and board text.
     pulse(el.querySelector('.hud-cash'), 1.04);
     if (f.amount > 0) react('celebrate');
-    await cash.to(cash.value + f.amount, 450);
+    await cash.to(target, 450);
   }
 
   /** The learning moment of one payday: the itemised card, then its one-line form in the log and the fox-row chip. */

@@ -1,6 +1,8 @@
-// Owner bug report 2026-11-01: a roll that only CROSSES 'סיכום שנתי' never halts the pawn there. The engine still pays on pass
-// (once per payday square on the path); the board shows a non-blocking float + count-up while hopping, and the itemised card only
+// Owner bug report 2026-11-01: a roll that only CROSSES 'סיכום שנתי' never halts the pawn there. The engine still pays on pass;
+// the board shows a non-blocking float + count-up while hopping, and the itemised card only
 // after the pawn has landed, before the landing square's own card (docs/decisions.md 2026-11-01).
+// v0.4 (owner decision 2026-11-02, QA P0): at most ONE annual summary is credited per turn, even when one roll
+// crosses several payday squares (they sit 3 apart: 4, 7, 10) — the first one on the path settles the turn.
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { createEngine, BOARD } from '../src/engine/index.js';
@@ -27,26 +29,39 @@ describe('passing payday: credited once, the pawn does not stop', () => {
     expect(stops.landing).toBeNull();
     expect(stops.passes).toEqual([{ step: 0, idx: 4, pd: pds[0] }]);
   });
-  it('charity (2 dice) crossing two paydays: one event each, the sum reaches the cash once, both are passes', () => {
+  it('REGRESSION (QA P0, 2026-11-02): charity (2 dice) crossing several paydays credits the annual summary only once', () => {
     const s = game({ position: 3, charityTurns: 2 });
     const next = engine.roll(s, [4, 4]); // path 4..11: paydays 4, 7, 10, lands on 11
     const move = next.events.find((e) => e.type === 'move');
     const pds = paydaysOf(next);
-    expect(pds).toHaveLength(3);
-    expect(next.cash - s.cash).toBe(pds.reduce((a, p) => a + p.amount, 0));
+    expect(pds).toHaveLength(1);
+    expect(next.cash - s.cash).toBe(pds[0].amount);
+    expect(next.stats.paydays - s.stats.paydays).toBe(1);
     const stops = paydayStops(move.path, BOARD, pds);
-    expect(stops.passes.map((p) => p.idx)).toEqual([4, 7, 10]);
+    expect(stops.passes.map((p) => p.idx)).toEqual([4]);
     expect(stops.landing).toBeNull();
   });
-  it('landing on payday is the landing stop (behaviour as before), a crossed one before it stays a pass', () => {
+  it('crossing a payday and landing on another in the same roll: only the first settles, as a pass', () => {
     const s = game({ position: 3, charityTurns: 1 });
     const next = engine.roll(s, [3, 1]); // path 4..7: crosses 4, lands on 7
     const move = next.events.find((e) => e.type === 'move');
     const pds = paydaysOf(next);
+    expect(pds).toHaveLength(1);
     const stops = paydayStops(move.path, BOARD, pds);
     expect(stops.passes.map((p) => p.idx)).toEqual([4]);
-    expect(stops.landing).toEqual({ step: 3, idx: 7, pd: pds[1] });
-    expect(next.cash - s.cash).toBe(pds[0].amount + pds[1].amount);
+    expect(stops.landing).toBeNull();
+    expect(next.cash - s.cash).toBe(pds[0].amount);
+  });
+  it('a roll whose only payday is the landing square still settles it as the landing stop', () => {
+    const s = game({ position: 5 });
+    const next = engine.roll(s, [2]); // path 6, 7: lands on payday 7, crosses none before it
+    const move = next.events.find((e) => e.type === 'move');
+    const pds = paydaysOf(next);
+    expect(pds).toHaveLength(1);
+    const stops = paydayStops(move.path, BOARD, pds);
+    expect(stops.passes).toEqual([]);
+    expect(stops.landing).toEqual({ step: 1, idx: 7, pd: pds[0] });
+    expect(next.cash - s.cash).toBe(pds[0].amount);
   });
 });
 

@@ -298,11 +298,16 @@ export function createEngine(data, { validate = true } = {}) {
     const steps = dice.reduce((a, b) => a + b, 0);
     const from = d.position;
     const path = [];
+    // v0.4 (owner decision 2026-11-02, QA P0): at most ONE annual summary per turn. Payday squares sit 3 apart
+    // (indices 4, 7, 10), so one roll — above all a charity roll with 2 dice — could cross two of them and credit
+    // the annual flow twice in a single turn. The first payday square on the path settles the turn; any further
+    // payday square on the same path is crossed/landed on without another credit.
+    let paydaySettled = false;
     for (let i = 0; i < steps; i++) {
       d.position = (d.position + 1) % BOARD.length;
       path.push(d.position);
       if (d.position === 0) d.lap = (d.lap ?? 0) + 1;
-      if (BOARD[d.position] === 'payday') payday(d); // passing or landing
+      if (!paydaySettled && BOARD[d.position] === 'payday') { payday(d); paydaySettled = true; } // passing or landing, once per turn
     }
     d.lastRoll = { dice, steps };
     d.events.push({ type: 'move', from, to: d.position, dice, steps, path });
