@@ -263,6 +263,13 @@
     "assetLevel3terrace": "עם גינת גג",
     "assetLevel3takeaway": "עם מטבח משלוחים"
   },
+  "dealChoice": {
+    "title": "שתי עסקאות על השולחן",
+    "text": "בחרו את העסקה שתרצו לבחון מקרוב, או דלגו על שתיהן.",
+    "choose": "בחינת העסקה: {title}",
+    "skipBoth": "דילוג על שתיהן",
+    "monthly": "בחודש"
+  },
   "auction": {
     "title": "מכרז: {title}",
     "text": "{name} ויתר על ההזדמנות, ועכשיו היא פתוחה להצעות של כולם. המציע הגבוה ביותר מקבל אותה.",
@@ -314,6 +321,7 @@
     "payback": "[[term:payback|תקופת החזר]]: {years}",
     "paybackNever": "[[term:payback|תקופת החזר]]: אף פעם",
     "newPassive": "[[term:passive_income|ההכנסה הפסיבית]] שלכם תעלה ל-{amount} לחודש",
+    "freedomGain": "{pct} בדרך לחופש כלכלי",
     "negativeFlow": "שימו לב: הנכס הזה יעלה לכם {amount} בכל חודש",
     "newPassiveStock": "הדיבידנד יוסיף {amount} לחודש",
     "getLoan": "הלוואה",

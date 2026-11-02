@@ -149,6 +149,27 @@ export function createEngine(data, { validate = true } = {}) {
     }
   }
 
+  // v0.4 deal choice: the second deal offered alongside the drawn one on an opportunity square. It is a PEEK at
+  // the next apartment/business in the opportunity pile (not the drawn card, `requires` met), priced exactly like
+  // a drawn deal (lap inflation, junior rounding). The card is NOT removed from the pile: the main card stream —
+  // and with it the game's balance and every seeded sequence — stays exactly as before, and a deal the player
+  // did not pick simply comes up again as a later offer (or goes to auction when the picked one is bought).
+  // Returns null when the pile holds no second deal — the square then plays as a classic single-deal card.
+  // The daily challenge never offers a choice: its card stream stays (seed, turn)-determined for everyone.
+  function drawAltDeal(d, first) {
+    if (d.daily) return null;
+    if (!d.decks.opportunity.length) d.decks.opportunity = shuffle(d, eligible('opportunity', d.mode, !!d.junior));
+    const id = d.decks.opportunity.find((candidate) => {
+      const c = cardById.get(candidate);
+      return c && c.id !== first.id && (c.type === 'apartment' || c.type === 'business') && (!c.requires || meetsRequires(d, c.requires));
+    });
+    if (!id) return null;
+    const card = clone(view(cardById.get(id), d.mode));
+    inflateDeal(card, priceFactor(d));
+    if (d.junior) juniorDeal(card);
+    return card;
+  }
+
   // ---------- setup ----------
   function newGame({ mode = 'full', professionId, seed = 1, daily = null, junior = false } = {}) {
     if (mode !== 'family' && mode !== 'full') fail(`unknown mode ${mode}`);
@@ -325,7 +346,9 @@ export function createEngine(data, { validate = true } = {}) {
         if (card.deck === 'decision') { startDecision(d, card); break; }
         if (card.type === 'stock') card.price = stockPrice(d, card.symbol, card.price);
         else { inflateDeal(card, priceFactor(d)); if (d.junior) juniorDeal(card); }
-        d.pending = { kind: 'opportunity', card };
+        // v0.4: a deal (apartment/business) comes with a second deal to choose between — see drawAltDeal.
+        const alt = card.type === 'stock' ? null : drawAltDeal(d, card);
+        d.pending = { kind: 'opportunity', card, ...(alt ? { alt } : {}) };
         break;
       }
       case 'expense': {
@@ -554,6 +577,28 @@ export function createEngine(data, { validate = true } = {}) {
   }
 
   // ---------- opportunities ----------
+  /**
+   * v0.4 deal choice: pick which of the two offered deals (pending.card / pending.alt) the player wants to
+   * decide on. The picked one becomes pending.card; the other stays pending.alt — when the picked deal is
+   * bought, the unchosen one is emitted as a 'passed' card so the match layer can auction it (see buy()).
+   * The pending decision stays open; this only swaps the cards.
+   */
+  function chooseDeal(state, cardId) {
+    const d = begin(state);
+    requirePending(d, 'opportunity');
+    if (!d.pending.alt) fail('no deal choice offered');
+    if (cardId === d.pending.alt.id) {
+      const first = d.pending.card;
+      d.pending.card = d.pending.alt;
+      d.pending.alt = first;
+    } else if (cardId !== d.pending.card.id) fail('unknown deal');
+    d.pending.chosen = true;
+    logAction(d, 'chooseDeal', d.pending.card.id);
+    d.events.push({ type: 'dealChoice', cardId: d.pending.card.id, altId: d.pending.alt.id });
+    settle(d);
+    return d;
+  }
+
   function buy(state, qty = 1) {
     const d = begin(state);
     requirePending(d, 'opportunity');
@@ -594,6 +639,9 @@ export function createEngine(data, { validate = true } = {}) {
     logAction(d, 'buy', card.type === 'stock' ? qty : 1);
     recordDecision(d, buyRecord(card, card.type === 'stock' ? qty : 1));
     d.stats.dealsBought += 1;
+    // v0.4: the deal that was offered alongside and not chosen goes to the other players, exactly like a
+    // passed deal — the match layer auctions it off the 'passed' event (bots and UI already listen for it).
+    if (d.pending.alt) d.events.push({ type: 'passed', card: d.pending.alt, viaChoice: true });
     d.pending = null;
     settle(d);
     return d;
@@ -825,7 +873,7 @@ export function createEngine(data, { validate = true } = {}) {
   }
 
   return {
-    data, newGame, debugForce, forfeit, roll, buy, pass, renovate, auctionWin, acceptOffer, declineOffer, donate,
+    data, newGame, debugForce, forfeit, roll, buy, pass, chooseDeal, renovate, auctionWin, acceptOffer, declineOffer, donate,
     declineCharity, takeLoan, repayLoan, sellAsset, decide, decisionOptions, answerAudit,
   };
 }

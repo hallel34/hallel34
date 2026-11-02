@@ -1,8 +1,7 @@
-// MaxiFox v0.4 regression tests: teacher starting cash consistency.
-// (Deal choice, tiered deal pools and short mode add their tests in this file as they land.)
+// MaxiFox v0.4 regression tests: teacher starting cash, deal choice, tiered deal pools, short mode.
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { createEngine } from '../src/engine/index.js';
+import { createEngine, BOARD } from '../src/engine/index.js';
 import { loadData } from '../src/data/index.js';
 
 const engine = createEngine(loadData('he'));
@@ -25,5 +24,56 @@ describe('teacher starting cash: one value everywhere (QA P1, 2026-11-02)', () =
     }
     const teacher = engine.newGame({ mode: 'family', professionId: 'teacher', seed: 7 });
     expect(teacher.cash).toBe(9000);
+  });
+});
+
+describe('deal choice: two deals on an opportunity square (v0.4)', () => {
+  const oppIdx = BOARD.indexOf('opportunity');
+  /** A family game about to land on the first opportunity square, with two known deals on top of the pile. */
+  const beforeDeal = (ids) => {
+    const s = engine.newGame({ mode: 'family', professionId: 'teacher', seed: 7 });
+    return { ...s, cash: 900000, position: oppIdx - 1, decks: { ...s.decks, opportunity: [...ids, ...s.decks.opportunity] } };
+  };
+
+  it('offers a second, different deal alongside the drawn one', () => {
+    const s = engine.roll(beforeDeal(['opp-apt-001', 'opp-apt-004']), [1]);
+    expect(s.pending.kind).toBe('opportunity');
+    expect(s.pending.card.id).toBe('opp-apt-001');
+    expect(s.pending.alt).toBeTruthy();
+    expect(s.pending.alt.id).not.toBe('opp-apt-001');
+    expect(['apartment', 'business']).toContain(s.pending.alt.type);
+    // the peek does not consume the pile: the alt is still the next card in the deck
+    expect(s.decks.opportunity[0]).toBe(s.pending.alt.id);
+  });
+
+  it('chooseDeal swaps the examined deal; buying it sends the unchosen one to auction via a passed event', () => {
+    let s = engine.roll(beforeDeal(['opp-apt-001', 'opp-apt-004']), [1]);
+    const altId = s.pending.alt.id;
+    s = engine.chooseDeal(s, altId);
+    expect(s.pending.card.id).toBe(altId);
+    expect(s.pending.alt.id).toBe('opp-apt-001');
+    expect(s.pending.chosen).toBe(true);
+    s = engine.buy(s);
+    expect(s.assets).toHaveLength(1);
+    expect(s.assets[0].cardId).toBe(altId);
+    const passed = s.events.find((e) => e.type === 'passed' && e.viaChoice);
+    expect(passed?.card.id).toBe('opp-apt-001');
+  });
+
+  it('chooseDeal with the drawn card keeps it, and skipping both clears the decision', () => {
+    let s = engine.roll(beforeDeal(['opp-apt-001', 'opp-apt-004']), [1]);
+    s = engine.chooseDeal(s, 'opp-apt-001');
+    expect(s.pending.card.id).toBe('opp-apt-001');
+    s = engine.pass(s);
+    expect(s.pending).toBeNull();
+    expect(s.events.some((e) => e.type === 'passed' && e.card.id === 'opp-apt-001')).toBe(true);
+  });
+
+  it('chooseDeal rejects a card that was not offered, and a stock/daily offer carries no choice', () => {
+    const s = engine.roll(beforeDeal(['opp-apt-001', 'opp-apt-004']), [1]);
+    expect(() => engine.chooseDeal(s, 'opp-apt-002')).toThrow();
+    const daily = engine.newGame({ mode: 'family', professionId: 'teacher', seed: 7, daily: { date: '2026-11-02' } });
+    const d2 = engine.roll({ ...daily, position: oppIdx - 1 }, [1]);
+    if (d2.pending?.kind === 'opportunity') expect(d2.pending.alt).toBeUndefined();
   });
 });

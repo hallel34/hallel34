@@ -109,6 +109,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     return fn(...args);
   };
   const opportunityModal = gated(raw.opportunityModal);
+  const dealChoiceModal = gated(raw.dealChoiceModal);
   const expenseModal = gated(raw.expenseModal);
   const shortfallModal = gated(raw.shortfallModal);
   const charityModal = gated(raw.charityModal);
@@ -1224,6 +1225,14 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
       first = false;
       let r;
       if (p.kind === 'opportunity') {
+        // v0.4 deal choice: two deals are on the table — first pick which one to examine (or skip both).
+        if (p.alt && !p.chosen) {
+          const choice = await dealChoiceModal(state);
+          if (!choice) break; // closed by debug force
+          if (choice.action === 'pass') { if (apply((s) => engine.pass(s))) await maybeAuction(p.card); continue; }
+          if (choice.action === 'choose') { if (!apply((s) => engine.chooseDeal(s, choice.cardId))) break; continue; }
+          continue;
+        }
         flow.trigger('opportunity', { card: p.card });
         // first apartment / business card of the first game: a 3-step tour instead of the guess window
         let tour = null;
@@ -1233,8 +1242,15 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
         r = await opportunityModal(state, { flip, guess: guessFor(p.card), tour, reno: renoOpt });
         if (tour) flow.trigger('reveal'); // the numbers were shown without a guess: the yield / payback explainers may follow
         if (!r) break; // closed by debug force
-        const bought = (qty) => { if (apply((s) => engine.buy(s, qty))) { flow.trigger('purchase', { card: p.card }); if (isDeal(p.card) && !guessEnabled(state.mode)) flow.trigger('reveal'); } };
-        if (r.action === 'buy') bought(r.qty);
+        const bought = async (qty) => {
+          if (!apply((s) => engine.buy(s, qty))) return;
+          flow.trigger('purchase', { card: p.card });
+          if (isDeal(p.card) && !guessEnabled(state.mode)) flow.trigger('reveal');
+          // v0.4: the deal that was offered alongside and not chosen goes to auction among the other players
+          const altPassed = state.events.find((e) => e.type === 'passed' && e.viaChoice);
+          if (altPassed) await maybeAuction(altPassed.card);
+        };
+        if (r.action === 'buy') await bought(r.qty);
         else if (r.action === 'pass') { if (apply((s) => engine.pass(s))) await maybeAuction(p.card); }
         else if (r.action === 'renovate' && renoOpt) {
           // Renovating instead of deciding on the card. Level 2 asks the style first; cancelling reopens the card.
@@ -1252,7 +1268,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
         else if (r.action === 'buyLoan') {
           // Short of cash but one loan covers the gap: ask for exactly that loan, then complete the purchase.
           // Cancelling the loan dialog leaves the card open (the loop below shows it again).
-          if (await loanFlow(r.need, { card: p.card, qty: r.qty })) bought(r.qty);
+          if (await loanFlow(r.need, { card: p.card, qty: r.qty })) await bought(r.qty);
         }
       } else if (p.kind === 'expense') {
         flow.trigger('expense');

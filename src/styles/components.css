@@ -213,6 +213,10 @@
 .banner-warn > .icon { color: var(--negative); }
 .banner-warn .btn-mini { margin-inline-start: auto; }
 .banner-info { background: transparent; }
+/* v0.4: the freedom-gain line on a deal card and the two panels of the deal-choice card */
+.freedom-gain { font-weight: var(--fw-bold); color: var(--positive, var(--text)); margin-block: 4px; }
+.deal-choice-panel { border: 1px solid var(--card-border, var(--border)); border-radius: 14px; padding: 12px; margin-block-end: 10px; }
+.deal-choice-title { margin-block: 0 8px; font-size: 1rem; }
 .card .banner { border-color: var(--card-border); color: var(--card-text); }
 .card .banner > .icon { color: var(--card-muted); }
 .card .banner-warn { background-color: var(--card-warn-bg); border-color: var(--card-warn-border); color: var(--card-warn-text); }

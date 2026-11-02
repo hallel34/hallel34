@@ -18,7 +18,7 @@ import { button, stepper, statTile, arm } from './widgets.js';
 import { haptic, countUp } from './fx.js';
 import { categoryOf, categoryChip, categoryIcon } from './categories.js';
 import {
-  monthlyCashFlow, passiveIncome, maxLoan, loanCap, loanLimits, saleValue, canSell, loanPaydayImpact,
+  monthlyCashFlow, passiveIncome, totalExpenses, maxLoan, loanCap, loanLimits, saleValue, canSell, loanPaydayImpact,
   paybackTier, PAYDAY_MONTHS, MONTHS_PER_YEAR, purchasePlan, loanTerms, dealMetrics, balanceSheet, assetLoanPayment, loanRateNow,
 } from '../engine/index.js';
 import { loanStep, TIMED_EFFECT_KINDS as TIMED_EFFECTS, auctionStep, auctionMinBid } from '../engine/index.js';
@@ -273,6 +273,45 @@ export function auctionModal({ match, index, nameOf }) {
 
 
 // ---------- opportunity ----------
+/** v0.4: how much of the road to financial freedom one deal covers, in percent: its monthly cash flow over the
+ * player's total monthly expenses. Shown on the deal card and on the deal-choice card, before any purchase. */
+export function freedomGainPct(state, card) {
+  const exp = totalExpenses(state);
+  return exp > 0 && Number.isFinite(card?.monthlyCashFlow) ? (card.monthlyCashFlow / exp) * 100 : 0;
+}
+const freedomGainText = (state, card) => {
+  const pct = freedomGainPct(state, card);
+  return tn('card.freedomGain', { pct: pct >= 0 ? `+${pctText(pct)}` : pctText(pct) });
+};
+const freedomGainLine = (state, card) => h('p', { class: 'freedom-gain', 'data-freedom-gain': String(Math.round(freedomGainPct(state, card) * 10) / 10) }, freedomGainText(state, card));
+
+/**
+ * v0.4 deal choice: two deals are on the table (pending.card and pending.alt). The player picks the one to
+ * examine closely (the regular opportunity card opens for it, guess and all) or skips both. Numbers needed for
+ * the choice — monthly cash flow, down payment, freedom gain, badge — are visible here, before any purchase.
+ */
+export function dealChoiceModal(state) {
+  const panel = (c) => h('section', { class: 'deal-choice-panel', 'data-deal-choice': c.id },
+    h('h3', { class: 'deal-choice-title' }, cardTitle(c, state.mode)),
+    h('div', { class: 'stat-grid' },
+      statTile(t('card.monthlyCashFlow'), money(c.monthlyCashFlow, { sign: true }), { tone: c.monthlyCashFlow <= 0 ? 'expense' : 'income', big: true }),
+      statTile(t('card.downPayment'), money(c.downPayment), { big: true })),
+    freedomGainLine(state, c),
+    dealBadge(c, { mode: state.mode }));
+  const { card: a, alt: b } = state.pending;
+  return cardShell({
+    type: 'opportunity', kind: null,
+    title: t('dealChoice.title'), text: t('dealChoice.text'),
+    body: [panel(a), panel(b)],
+    actions: [
+      { id: 'choose-a', label: tn('dealChoice.choose', { title: cardTitle(a, state.mode) }), variant: 'primary', value: { action: 'choose', cardId: a.id } },
+      { id: 'choose-b', label: tn('dealChoice.choose', { title: cardTitle(b, state.mode) }), variant: 'primary', value: { action: 'choose', cardId: b.id } },
+      { id: 'skip-both', label: t('dealChoice.skipBoth'), variant: 'secondary', value: { action: 'pass' } },
+    ],
+    data: { kind: 'choice' },
+  });
+}
+
 /** 'down payment + loan = price' as three label/value columns: the debt that comes with the deal stays visible. */
 function priceEquation(c, scope) {
   const cell = (cls, label, value) => { const tile = statTile(label, value); tile.classList.add('pe-cell', cls); return tile; };
@@ -342,7 +381,8 @@ export function opportunityModal(state, { guess = null, tour = null, reno = null
       [statTile(t('card.downPayment'), money(c.downPayment), { big: true, tut: 'downPayment', cls: 'stat-key', minScale: KEY_MIN }), paybackTile]);
     // 'צעירים' (owner 2026-10-26): the hero, the first payment, the payback and the badge only. No price equation, no debt total,
     // no monthly breakdown (their 4-5 digit coin amounts and the loan inside the price are for grown-ups). The buy hint stays.
-    if (coinScale()) return { key, quiet: [] };
+    // v0.4 exception: the freedom-gain line is a percent (scale-free, no money amount), so juniors see it too.
+    if (coinScale()) return { key, quiet: [freedomGainLine(state, c)] };
     const debt = balanceSheet(state).liabilitiesTotal + c.mortgage + (plan.status === 'loan' ? plan.need : 0);
     const quiet = [
       priceEquation(c, scope),
@@ -351,6 +391,7 @@ export function opportunityModal(state, { guess = null, tour = null, reno = null
       c.monthlyCashFlow < 0
         ? h('div', { class: 'banner banner-warn' }, icon('expense', { size: 20 }), h('span', null, tn('card.negativeFlow', { amount: money(-c.monthlyCashFlow) })))
         : banner(tn('card.newPassive', { amount: money(passive + c.monthlyCashFlow) }, { scope })),
+      freedomGainLine(state, c),
       realWorldForCard(c),
     ].filter(Boolean);
     return { key, quiet };
