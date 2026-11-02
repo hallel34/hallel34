@@ -14,6 +14,10 @@ export function createFirstAsset({ engine, match: initial, store, onMenu, onCont
   const el = h('section', { class: 'screen screen-mission', 'data-screen': 'first-asset' });
   const text = (key, args) => t(`mission.${key}`, args);
   const amount = (n) => moneyText(n);
+  // a double tap on a choice must not also press the result's button that renders under the finger (found in the QA r22
+  // integration): the second click of a double click / double tap (event.detail 2+) right after a decision is ignored
+  let settled = -Infinity;
+  const guarded = (fn) => (e) => { if (!(e?.detail > 1 && performance.now() - settled < 1000)) fn(); };
   const notice = h('p', { class: 'mission-notice', role: 'status', 'aria-live': 'polite' });
   const row = (label, value) => h('div', { class: 'mission-row' }, h('dt', null, text(label)), h('dd', { dir: 'auto' }, amount(value)));
 
@@ -33,6 +37,7 @@ export function createFirstAsset({ engine, match: initial, store, onMenu, onCont
       // Commit the complete state first. A reload cannot reapply a purchase.
       save();
       badge();
+      settled = performance.now();
       render();
     } catch {
       notice.textContent = text('actionFailed');
@@ -86,20 +91,20 @@ export function createFirstAsset({ engine, match: initial, store, onMenu, onCont
       );
     } else {
       if (onMissions) actions.append(button(t('missions.chooseAnother'), {
-        variant: 'secondary', 'data-action': 'other-missions', onClick: () => { if (save()) onMissions(); else render(); },
+        variant: 'secondary', 'data-action': 'other-missions', onClick: guarded(() => { if (save()) onMissions(); else render(); }),
       }));
       actions.append(button(text(done ? 'freeplay' : 'freeplayWithoutAsset'), {
-        'data-action': 'mission-continue', onClick: () => { if (save()) onContinue(match); else render(); },
+        'data-action': 'mission-continue', onClick: guarded(() => { if (save()) onContinue(match); else render(); }),
       }));
       if (declined) actions.append(button(text('retry'), {
-        variant: 'secondary', onClick: () => change(() => newFirstAsset(engine, { age: match.players[0].age ?? null })),
+        variant: 'secondary', onClick: guarded(() => change(() => newFirstAsset(engine, { age: match.players[0].age ?? null }))),
       }));
     }
-    actions.append(button(text('saveExit'), { variant: 'secondary', onClick: exit }));
+    actions.append(button(text('saveExit'), { variant: 'secondary', onClick: guarded(exit) }));
     // Storage failures never trap a player. Leaving without saving is explicit.
     if (notice.textContent) {
-      if (result) actions.append(button(text('continueUnsaved'), { variant: 'secondary', onClick: () => onContinue(match) }));
-      actions.append(button(text('leaveUnsaved'), { variant: 'secondary', onClick: onMenu }));
+      if (result) actions.append(button(text('continueUnsaved'), { variant: 'secondary', onClick: guarded(() => onContinue(match)) }));
+      actions.append(button(text('leaveUnsaved'), { variant: 'secondary', onClick: guarded(onMenu) }));
     }
     content.append(notice, actions);
     el.append(content);

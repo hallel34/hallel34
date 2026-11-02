@@ -18,6 +18,10 @@ export function createShortMission({ engine, match: initial, store, onMenu, onCo
   const facts = Object.fromEntries(Object.entries(shortMissionFacts(engine, match)).map(([k, v]) => [k, moneyIsolated(v)]));
   const text = (name, args) => t(`missions.${name}`, { ...facts, ...args });
   const el = h('section', { class: 'screen screen-mission', 'data-screen': 'short-mission' });
+  // a double tap on a choice must not also press the result's button that renders under the finger (found in the QA r22
+  // integration): the second click of a double click / double tap (event.detail 2+) right after a decision is ignored
+  let settled = -Infinity;
+  const guarded = (fn) => (e) => { if (!(e?.detail > 1 && performance.now() - settled < 1000)) fn(); };
   const notice = h('p', { class: 'mission-notice', role: 'status', 'aria-live': 'polite' });
   const row = (label, value) => h('div', { class: 'mission-row' },
     h('dt', null, text(label)), h('dd', { dir: 'ltr' }, moneyText(value)));
@@ -40,6 +44,7 @@ export function createShortMission({ engine, match: initial, store, onMenu, onCo
       match = resolveShortMission(engine, match, choice);
       save();
       record();
+      settled = performance.now();
       render();
     } catch { notice.textContent = t('mission.actionFailed'); }
     finally { acting = false; }
@@ -88,12 +93,12 @@ export function createShortMission({ engine, match: initial, store, onMenu, onCo
     }
     const actions = h('div', { class: 'mission-actions' });
     if (done) actions.append(button(text('freeplay'), {
-      'data-action': 'short-continue', onClick: () => { if (save()) onContinue(match); else render(); },
+      'data-action': 'short-continue', onClick: guarded(() => { if (save()) onContinue(match); else render(); }),
     }));
-    actions.append(button(text('backSaved'), { variant: 'secondary', onClick: exit }));
+    actions.append(button(text('backSaved'), { variant: 'secondary', onClick: guarded(exit) }));
     if (notice.textContent) {
-      if (done) actions.append(button(t('mission.continueUnsaved'), { variant: 'secondary', onClick: () => onContinue(match) }));
-      actions.append(button(t('mission.leaveUnsaved'), { variant: 'secondary', onClick: onMenu }));
+      if (done) actions.append(button(t('mission.continueUnsaved'), { variant: 'secondary', onClick: guarded(() => onContinue(match)) }));
+      actions.append(button(t('mission.leaveUnsaved'), { variant: 'secondary', onClick: guarded(onMenu) }));
     }
     content.append(notice, actions);
     el.append(content);
