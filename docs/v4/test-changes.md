@@ -190,3 +190,4 @@ The owner approved these changes on 2026-10-26: the age picker, save schema 6 an
 | File | Test | Old | New | Why |
 |---|---|---|---|---|
 | tests/e2e/first-asset-smoke.mjs, tests/e2e/short-missions-smoke.mjs | the daily save written next to the mission saves | `daily: { date: '2026-10-28' }` | `daily: { date: dayKey() }` (src/daily/calendar.js, the app's own day key) | QA r22 P1: the app drops a daily save from an earlier day, so after 2026-10-28 the "ordinary, daily and first-asset saves are byte-identical" check failed on the calendar, not on the code |
+| tests/e2e/first-asset-smoke.mjs (`openMission`), tests/e2e/short-missions-smoke.mjs (`openHub`) | the home entry to the missions | `[data-action="first-asset"]` | `[data-action="missions"]` | QA r22 P3: the home button opens the mission chooser (three missions), not the first-asset mission; renamed in start.js, forced by the integration |

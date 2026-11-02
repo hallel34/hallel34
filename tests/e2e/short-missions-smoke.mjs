@@ -18,7 +18,7 @@ const browser = await chromium.launch({
   headless: true, ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : { channel: 'chromium' }),
 });
 const errors = [];
-const openHub = async (p) => { await p.locator('[data-action=first-asset]').click(); await p.locator('.screen-mission[data-screen=missions]').waitFor(); };
+const openHub = async (p) => { await p.locator('[data-action=missions]').click(); await p.locator('.screen-mission[data-screen=missions]').waitFor(); };
 const enter = (p, id) => p.locator(`[data-mission="${id}"]`).click();
 const back = (p) => p.getByRole('button', { name: 'שומרים וחוזרים למשימות', exact: true }).click();
 const saved = (p, id) => p.evaluate((id) => JSON.parse(localStorage.getItem(`passivo.missionSave.${id}`)), id);

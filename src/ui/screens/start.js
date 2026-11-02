@@ -100,7 +100,7 @@ export function createStart({ save, mode: initialMode, gamesPlayed = 0, daily = 
       modeBtn('full', t('menu.modeFull'), t('menu.modeFullDesc'))),
     dailyCard, dailyReset,
     onMission ? button(t('missions.entry'), {
-      variant: 'secondary', cls: 'mission-entry', 'data-action': 'first-asset', onClick: onMission,
+      variant: 'secondary', cls: 'mission-entry', 'data-action': 'missions', onClick: onMission,
     }) : null,
     hasBadge(FIRST_ASSET_BADGE) ? h('p', { class: 'mission-home-badge' }, t('mission.badge')) : null,
     button([t('menu.start'), icon('arrow', { size: 24, width: 3 })], { variant: 'primary', size: 'lg', 'data-action': 'start', onClick: () => onPlay(mode) }),

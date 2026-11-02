@@ -20,7 +20,7 @@ const checkFit = async (page) => {
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, 'no horizontal overflow');
 };
 const openMission = async (page) => {
-  await page.locator('[data-action="first-asset"]').click();
+  await page.locator('[data-action="missions"]').click();
   await page.locator('[data-mission="first-asset-v1"]').click();
 };
 const save = (page) => page.evaluate(() => JSON.parse(localStorage.getItem('passivo.missionSave')));
