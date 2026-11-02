@@ -1,0 +1,9 @@
+/* The missions' entry on the home screen (eager: the start screen shows it). The mission screens' own sheet, mission.css,
+   is a lazy chunk (ui/mission-styles.js) so it never blocks the home screen's first paint. */
+.mission-entry { white-space: normal; text-align: start; }
+.mission-home-badge { text-align: center; font-size: max(14px, .875rem); margin: 0; }
+@media (max-height: 700px) {
+  /* Added mission controls must not squeeze the logo over the navigation. */
+  .screen-start:has(.mission-entry) { block-size: auto; }
+  .screen-start:has(.mission-entry) .start-hero { min-block-size: 176px; padding-block: 0; }
+}
