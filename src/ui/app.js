@@ -275,6 +275,7 @@ export function createApp(host) {
   /** A bot seat picks no profession on screen: it gets one at random. */
   const botProfession = () => professionIds[Math.floor(Math.random() * professionIds.length)];
   function goPick(i) {
+    if (i >= setup.count) { startNew(); return; } // the last seats were bots (they sit at the end): every pick is done
     if (setup.bots?.[i]) { setup.professionIds[i] = botProfession(); goPick(i + 1); return; }
     setLearnMode(mode); // the pick sheet speaks the mode it shows (family: the children's words, QA r18 P2-2)
     const multi = setup.count > 1;
@@ -283,7 +284,12 @@ export function createApp(host) {
     mount({ el: createPick({
       engine, mode, junior,
       player: multi ? { name: playerName({ name: setup.names[i] }, i), color: i + 1, n: i + 1, total: setup.count } : null,
-      onBack: () => (i === 0 ? goPlayers() : goPick(i - 1)),
+      onBack: () => {
+        // back to the previous person's pick; bot seats pick nothing on screen (going "back" onto one would bounce forward again)
+        let j = i - 1;
+        while (j >= 0 && setup.bots?.[j]) j--;
+        if (j < 0) goPlayers(); else goPick(j);
+      },
       onGo: (professionId) => {
         setup.professionIds[i] = professionId;
         if (i + 1 < setup.count) goPick(i + 1); else startNew();
