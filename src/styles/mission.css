@@ -31,8 +31,6 @@
 .mission-actions .btn { min-height: 48px; white-space: normal; }
 .mission-notice:empty { display: none; }
 .mission-notice { margin-block: 12px; }
-.mission-entry { white-space: normal; text-align: start; }
-.mission-home-badge { text-align: center; font-size: max(14px, .875rem); margin: 0; }
 .mission-tile { padding: 20px 0; border-top: 1px solid var(--border, #52617d); }
 .mission-tile h2 { margin-top: 0; }
 .mission-tile .btn { margin-top: 16px; inline-size: 100%; min-block-size: 48px; }
@@ -45,9 +43,4 @@
 @media (min-width: 561px) {
   .mission-choice h2 { min-block-size: 3.3em; }
   .mission-choice p { margin-block-end: 16px; }
-}
-@media (max-height: 700px) {
-  /* Added mission controls must not squeeze the logo over the navigation. */
-  .screen-start:has(.mission-entry) { block-size: auto; }
-  .screen-start:has(.mission-entry) .start-hero { min-block-size: 176px; padding-block: 0; }
 }

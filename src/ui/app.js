@@ -36,6 +36,7 @@ import { isShortMission, practiceSlot, newShortMission, continueShortMission, va
 import { completedShortMissions } from '../services/mission-progress.js';
 import { createMissions } from './screens/missions.js';
 import { createShortMission } from './screens/short-mission.js';
+import { loadMissionStyles } from './mission-styles.js';
 
 // The board (play.js: board, cards, bots, auctions, renovation, learning flow) is its own chunk, off the home screen's critical
 // path (QA round 19 perf). main.js warms it up at idle time; the service worker precaches it, so it opens offline too.
@@ -107,7 +108,11 @@ export function createApp(host) {
     } catch { return null; }
   }
 
-  function goMissions() {
+  /** The mission screens' stylesheet is a lazy chunk (home perf); a failed load still opens the (plainer) screen. */
+  const missionStyles = () => loadMissionStyles().catch((err) => console.warn(err));
+
+  async function goMissions() {
+    await missionStyles();
     mount(createMissions({
       saved: loadMission,
       completed: [...completedShortMissions(), ...(hasBadge(FIRST_ASSET_BADGE) ? [FIRST_ASSET_ID] : [])],
@@ -127,13 +132,14 @@ export function createApp(host) {
     if (await layer.closed) goMission(id, { fresh: true });
   }
 
-  function goMission(id = FIRST_ASSET_ID, { fresh = false } = {}) {
+  async function goMission(id = FIRST_ASSET_ID, { fresh = false } = {}) {
     const short = isShortMission(id);
     const m = (!fresh && loadMission(id)) || (short ? newShortMission(engine, id) : newFirstAsset(engine));
     if (m.mission.stage === 'freeplay') {
       if (m.status === 'won') goWin(m); else if (m.status === 'lost') goOver(m); else goPlay(m);
       return;
     }
+    await missionStyles();
     const screen = (short ? createShortMission : createFirstAsset)({
       engine, match: m, store, onMenu: short ? goMissions : goStart, onMissions: goMissions,
       onContinue: (saved) => goPlay(short ? continueShortMission(saved) : continueFirstAsset(saved)),
