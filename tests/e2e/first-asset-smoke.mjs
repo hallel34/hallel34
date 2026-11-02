@@ -3,12 +3,13 @@ import { chromium } from 'playwright';
 import assert from 'node:assert/strict';
 import { mkdirSync, readFileSync } from 'node:fs';
 import { createEngine, newMatch, serialize } from '../../src/engine/index.js';
+import { dayKey } from '../../src/daily/calendar.js';
 
 const base = process.env.MISSION_URL || 'http://127.0.0.1:5173/';
 const readData = (name) => JSON.parse(readFileSync(new URL(`../../src/data/${name}.he.json`, import.meta.url), 'utf8'));
 const engine = createEngine({ professions: readData('professions'), cards: readData('cards') });
 const normalSave = serialize(newMatch(engine, { mode: 'full', seed: 100, players: [{ professionId: 'engineer' }] }));
-const dailySave = serialize(newMatch(engine, { mode: 'family', seed: 101, players: [{ professionId: 'teacher' }], daily: { date: '2026-10-28' } }));
+const dailySave = serialize(newMatch(engine, { mode: 'family', seed: 101, players: [{ professionId: 'teacher' }], daily: { date: dayKey() } /* today: the app drops an earlier day's daily save */ }));
 const out = 'test-results/first-asset';
 mkdirSync(out, { recursive: true });
 const browser = await chromium.launch({

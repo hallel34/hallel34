@@ -2,6 +2,7 @@ import { chromium } from 'playwright';
 import assert from 'node:assert/strict';
 import { mkdirSync, readFileSync } from 'node:fs';
 import { createEngine, newMatch, serialize } from '../../src/engine/index.js';
+import { dayKey } from '../../src/daily/calendar.js';
 import { newFirstAsset } from '../../src/engine/first-asset.js';
 
 const base = process.env.MISSION_URL || 'http://127.0.0.1:5173/';
@@ -9,7 +10,7 @@ const readData = (name) => JSON.parse(readFileSync(new URL(`../../src/data/${nam
 const engine = createEngine({ professions: readData('professions'), cards: readData('cards') });
 const repayId = 'repay-debt-v1', bufferId = 'cash-buffer-v1';
 const normal = serialize(newMatch(engine, { mode: 'full', seed: 11, players: [{ professionId: 'engineer' }] }));
-const daily = serialize(newMatch(engine, { mode: 'family', seed: 12, players: [{ professionId: 'teacher' }], daily: { date: '2026-10-28' } }));
+const daily = serialize(newMatch(engine, { mode: 'family', seed: 12, players: [{ professionId: 'teacher' }], daily: { date: dayKey() } /* today: the app drops an earlier day's daily save */ }));
 const first = serialize(newFirstAsset(engine));
 const out = 'test-results/short-missions';
 mkdirSync(out, { recursive: true });
