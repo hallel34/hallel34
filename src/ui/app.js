@@ -138,14 +138,15 @@ export function createApp(host) {
   }
 
   async function restartMission(id) {
-    const layer = openLayer(h('div', { class: 'mission-content' },
+    // the game's dialog surface (components.css .dialog): without it the text sat on the scrim, over the chooser (QA r22 axe)
+    const layer = openLayer(h('div', { class: 'dialog mission-content' },
       h('h2', null, t('missions.restartTitle')),
       h('p', null, t('missions.restartWarning')),
       h('div', { class: 'mission-actions' },
         button(t('missions.cancelRestart'), { variant: 'secondary', 'data-action': 'cancel-restart', onClick: () => layer.close(false) }),
         button(t('missions.confirmRestart'), { 'data-action': 'confirm-restart', onClick: () => layer.close(true) }),
       ),
-    ), { label: t('missions.restartTitle') });
+    ), { label: t('missions.restartTitle'), cls: 'layer-dialog' });
     if (await layer.closed) goMission(id, { fresh: true });
   }
 
