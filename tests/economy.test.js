@@ -290,7 +290,7 @@ describe('save schema 4: a v2.5 save (schema 3) loads and plays on', () => {
       expect(p.state.schemaVersion).toBe(8);
       expect(p.state.lap).toBe(0);
       expect(p.state.effects).toEqual([]);
-      const { lap, effects, schemaVersion, milestones, taxAudit, ...rest } = p.state;
+      const { lap, effects, schemaVersion, milestones, taxAudit, rerollTokens, ...rest } = p.state;
       const { schemaVersion: oldVersion, ...oldRest } = old.players[i].state;
       expect(rest).toEqual(oldRest);
     });

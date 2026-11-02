@@ -329,7 +329,7 @@
     "paybackNever": "[[term:payback|תקופת החזר]]: אף פעם",
     "newPassive": "[[term:passive_income|ההכנסה הפסיבית]] שלכם תעלה ל-{amount} לחודש",
     "freedomGain": "{pct} בדרך לחופש כלכלי",
-    "guessDiscountLog": "הניחוש הנכון השתלם: חסכתם {amount} מהמקדמה — הנחה של 10%",
+    "guessDiscountLog": "הניחוש הנכון השתלם: שילמתם {amount} פחות על העסקה — הנחה של 10%",
     "negativeFlow": "שימו לב: הנכס הזה יעלה לכם {amount} בכל חודש",
     "newPassiveStock": "הדיבידנד יוסיף {amount} לחודש",
     "getLoan": "הלוואה",

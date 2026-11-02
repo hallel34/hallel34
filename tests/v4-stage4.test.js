@@ -200,17 +200,17 @@ describe('milestones 25% / 50% (once per game, kept in the save)', () => {
     expect(back.players[0].state.milestones).toEqual([25]);
   });
   it('schema 5: the v2.5 fixture (schema 3) migrates through 4 to 5 with milestones and an empty tax-audit record', () => {
-    expect(SCHEMA_VERSION).toBe(7);
+    expect(SCHEMA_VERSION).toBe(8);
     const fixture = readFileSync(new URL('./fixtures/save-v2.5-schema3.json', import.meta.url), 'utf8');
     const old = JSON.parse(fixture);
     const m = deserialize(fixture);
-    expect(m.schemaVersion).toBe(7);
+    expect(m.schemaVersion).toBe(8);
     m.players.forEach((p, i) => {
-      expect(p.state.schemaVersion).toBe(7);
+      expect(p.state.schemaVersion).toBe(8);
       expect(p.state.taxAudit).toEqual({ points: 0, asked: [] });
       const ratio = passiveIncome(p.state) / totalExpenses(p.state);
       expect(p.state.milestones).toEqual(MILESTONES.filter((x) => ratio * 100 >= x)); // already passed = already shown
-      const { lap, effects, milestones, taxAudit, schemaVersion, ...rest } = p.state;
+      const { lap, effects, milestones, taxAudit, schemaVersion, rerollTokens, ...rest } = p.state;
       const { schemaVersion: v, ...oldRest } = old.players[i].state;
       expect(rest).toEqual(oldRest);
     });
