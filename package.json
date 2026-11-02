@@ -19,7 +19,8 @@
     "smoke:business": "node tests/e2e/business-demo-smoke.mjs",
     "smoke:payday": "node tests/e2e/payday-pass-smoke.mjs",
     "smoke:mission": "node tests/e2e/first-asset-smoke.mjs",
-    "smoke:missions": "node tests/e2e/short-missions-smoke.mjs"
+    "smoke:missions": "node tests/e2e/short-missions-smoke.mjs",
+    "smoke:players": "node tests/e2e/players-seats-smoke.mjs"
   },
   "devDependencies": {
     "playwright": "^1.56.1",
