@@ -1,0 +1,23 @@
+{
+  "BUSINESS_IDEA": "",
+  "FOCUS_AREA": "",
+  "TARGET_MARKET": "Israel",
+  "BUDGET_USD": 50,
+  "OUTPUT_LANGUAGE": "Hebrew",
+
+  "ADVANCED": {
+    "TOP_N_DISCOVERY": 10,
+    "VALIDATE_TOP": 3,
+    "MAX_QUOTES_PER_IDEA": 12,
+    "REQUEST_DELAY_SECONDS": 1.0,
+    "LLM_MODEL": "claude-haiku-5-5",
+    "LLM_PRICE_USD_PER_MTOK_IN": 1.0,
+    "LLM_PRICE_USD_PER_MTOK_OUT": 5.0,
+    "ASSUMPTIONS": {
+      "price_per_month_usd": null,
+      "variable_cost_per_customer_usd": 3,
+      "acquisition_cost_per_customer_usd": 15,
+      "fixed_costs_per_month_usd": 300
+    }
+  }
+}
