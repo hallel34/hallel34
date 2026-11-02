@@ -19,9 +19,10 @@ import { playerToken, playerName } from '../players.js';
  */
 const AGE_KEY = { upTo10: 'players.ageUpTo10', '11to13': 'players.age11to13', '14plus': 'players.age14plus' };
 const BOT_POLICIES = ['cautious', 'sensible', 'alwaysBuy'];
-export function createPlayers({ count = 1, names = [], ages = [], bots = [], mode = 'family', onMode = null, onBack, onNext }) {
+export function createPlayers({ count = 1, names = [], ages = [], bots = [], mode = 'family', length = 'standard', onMode = null, onBack, onNext }) {
   let n = count;
   let curMode = mode;
+  let gameLength = length === 'short' ? 'short' : 'standard';
   const values = Array.from({ length: MAX_PLAYERS }, (_, i) => names[i] || '');
   const agesOf = Array.from({ length: MAX_PLAYERS }, (_, i) => (AGE_BANDS.includes(ages[i]) ? ages[i] : null));
   const botsOf = Array.from({ length: MAX_PLAYERS }, (_, i) => (BOT_POLICIES.includes(bots[i]) ? bots[i] : null));
@@ -55,6 +56,16 @@ export function createPlayers({ count = 1, names = [], ages = [], bots = [], mod
   }
 
   const fields = h('div', { class: 'name-fields', role: 'group', 'aria-label': t('players.namesTitle') });
+  // v0.4 short mode: a game-length radio group in the same chip language as the age bands
+  const lengthGroup = h('fieldset', { class: 'age-group', 'data-length-group': '' },
+    h('legend', { class: 'age-legend' }, t('players.lengthTitle')),
+    h('div', { class: 'age-chips' }, ['standard', 'short'].map((kind) => {
+      const input = h('input', { type: 'radio', name: 'game-length', value: kind, class: 'age-input', 'data-length': kind, checked: gameLength === kind || null });
+      input.addEventListener('change', () => { if (input.checked) { gameLength = kind; haptic('tap'); paintLengthNote(); } });
+      return h('label', { class: 'age-chip' }, input, h('span', { class: 'age-chip-text' }, t(kind === 'short' ? 'players.lengthShort' : 'players.lengthStandard')));
+    })),
+    h('p', { class: 'age-note', 'data-length-note': '', hidden: true }, t('players.lengthShortNote')));
+  const paintLengthNote = () => { const note = lengthGroup.querySelector('[data-length-note]'); if (note) note.hidden = gameLength !== 'short'; };
   const next = button(t('players.next'), { variant: 'primary', size: 'lg', 'data-action': 'players-next', onClick: () => finish() });
 
   const ageSingle = h('div', { class: 'age-single' });
@@ -89,6 +100,7 @@ export function createPlayers({ count = 1, names = [], ages = [], bots = [], mod
       if (n > 1) fields.append(botChips(i, personRow));
     }
     paintNote();
+    paintLengthNote();
     next.firstChild.textContent = n === 1 ? t('players.toProfession') : t('players.next');
   }
 
@@ -146,7 +158,7 @@ export function createPlayers({ count = 1, names = [], ages = [], bots = [], mod
       if (botsOf[i]) return t(`players.botName.${botsOf[i]}`);
       return (values[i] || '').replace(/\s+/g, ' ').trim().slice(0, NAME_MAX) || playerName({ name: '' }, i);
     }));
-    onNext({ count: n, names: out, ages: agesOf.slice(0, n).map((age, i) => (botsOf[i] ? null : age)), bots: botsOf.slice(0, n) });
+    onNext({ count: n, names: out, ages: agesOf.slice(0, n).map((age, i) => (botsOf[i] ? null : age)), bots: botsOf.slice(0, n), length: gameLength });
   }
 
   const el = h('section', { class: 'screen screen-players', 'data-screen': 'players' },
@@ -158,6 +170,7 @@ export function createPlayers({ count = 1, names = [], ages = [], bots = [], mod
       st.el,
       ageSingle,
       fields,
+      lengthGroup,
       ageNote),
     h('div', { class: 'players-cta' }, next));
   return { el };

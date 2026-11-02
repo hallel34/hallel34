@@ -608,10 +608,14 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     paintPlayer();
     const turnText = state.turn ? t('game.turn', { turn: state.turn }) : t('game.yourTurn');
     // hot-seat: the number of the turn being played (the next one until the player has rolled)
+    // v0.4 short mode: the HUD counts rounds against the cap ("סיבוב X מתוך 12") for every seat, single player too
+    const roundNow = match.roundCap ? Math.min(match.roundCap, state.turn > match.turnMark ? state.turn : state.turn + 1) : null;
     if (multi) {
       profEl.textContent = state.profession.title;
-      turnEl.textContent = `· ${t('game.turnShort', { turn: state.turn > match.turnMark ? state.turn : state.turn + 1 })}`;
-    } else turnEl.textContent = isDaily ? (state.turn ? t('daily.turnOf', { turn: state.turn, cap: state.daily.turnCap }) : t('game.yourTurn')) : turnText;
+      turnEl.textContent = match.roundCap
+        ? `· ${t('game.roundOf', { turn: roundNow, cap: match.roundCap })}`
+        : `· ${t('game.turnShort', { turn: state.turn > match.turnMark ? state.turn : state.turn + 1 })}`;
+    } else turnEl.textContent = isDaily ? (state.turn ? t('daily.turnOf', { turn: state.turn, cap: state.daily.turnCap }) : t('game.yourTurn')) : match.roundCap ? t('game.roundOf', { turn: roundNow, cap: match.roundCap }) : turnText;
     if (famHud) famHud.refresh(state, { goal: goalLineVisible(tutorialDevice()) });
     else {
       flowChip.replaceChildren(tn('game.perMonth', { amount: money(st.monthlyCashFlow, { sign: true }) }));

@@ -67,6 +67,16 @@ const migrations = {
       ? m.players.map((p) => (p?.state ? { ...p, bot: p.bot ?? null, state: { ...p.state, schemaVersion: 7 } } : p))
       : m.players,
   }),
+
+  // 7 -> 8 (v0.4 short mode): a match may carry `roundCap` (null = a standard game). Old games are standard games.
+  7: (m) => ({
+    ...m,
+    schemaVersion: 8,
+    roundCap: m.roundCap ?? null,
+    players: Array.isArray(m.players)
+      ? m.players.map((p) => (p?.state ? { ...p, state: { ...p.state, schemaVersion: 8 } } : p))
+      : m.players,
+  }),
 };
 
 export function serialize(match) {

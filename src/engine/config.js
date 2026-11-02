@@ -8,10 +8,12 @@
 // 4: every player's state carries `lap` (board laps completed, drives price inflation) and `effects` (timed market effects).
 // 3: every player's state carries a `learn` record (decisions, guesses, concepts). 2: saves hold a whole match (1-4 players).
 // Version 1 saves were a single game state; 1 -> 2 -> 3 -> 4 migrate step by step on load.
-export const SCHEMA_VERSION = 7;
+// 8 (v0.4): a match may carry `roundCap` (short mode: the match ends after that many rounds, highest freedom % wins).
+export const SCHEMA_VERSION = 8;
 export const MIN_PLAYERS = 1;
 export const MAX_PLAYERS = 4;
 export const NAME_MAX = 12;
+export const SHORT_ROUNDS = 12; // v0.4 short mode: rounds in a short game (plan: a full, satisfying arc in 12 rounds)
 // Display only: the monthly payment shown for an asset's mortgage / business loan. The asset's monthlyCashFlow is
 // already net of it, so it never enters the game maths (win check, payday, loan limit).
 // 0.0055 of the principal per month = a ~25-year mortgage at ~4.5%. Business loans: 72 months at ~8% = 1.75%.

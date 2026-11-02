@@ -1,7 +1,7 @@
 // MaxiFox v0.4 regression tests: teacher starting cash, deal choice, tiered deal pools, short mode.
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { createEngine, BOARD, totalExpenses } from '../src/engine/index.js';
+import { createEngine, BOARD, totalExpenses, newMatch, playMatch, standings, rematch, serialize, deserialize, SHORT_ROUNDS } from '../src/engine/index.js';
 import { loadData } from '../src/data/index.js';
 
 const engine = createEngine(loadData('he'));
@@ -108,5 +108,47 @@ describe('tiered deal pools: offers grow with the player stage (v0.4)', () => {
     const s0 = engine.newGame({ mode: 'family', professionId: 'teacher', seed: 7 });
     const s = engine.roll(withDeck(s0, [trap.id]), [1]);
     expect(s.pending.card.id).toBe(trap.id);
+  });
+});
+
+describe('short mode: 12 rounds, highest freedom % wins (v0.4)', () => {
+  const twoPlayers = [{ name: 'א', professionId: 'teacher' }, { name: 'ב', professionId: 'engineer' }];
+
+  it('SHORT_ROUNDS is 12 and a standard match carries no cap', () => {
+    expect(SHORT_ROUNDS).toBe(12);
+    const m = newMatch(engine, { mode: 'family', players: twoPlayers, seed: 11 });
+    expect(m.roundCap).toBeUndefined();
+    const short = newMatch(engine, { mode: 'family', players: twoPlayers, seed: 11, roundCap: SHORT_ROUNDS });
+    expect(short.roundCap).toBe(12);
+  });
+
+  it('a short match ends after the cap round with the freedom leader as winner', () => {
+    let m = newMatch(engine, { mode: 'family', players: twoPlayers, seed: 11, roundCap: 3 });
+    m = playMatch(engine, m, ['sensible', 'sensible'], 500);
+    expect(m.status).toBe('won');
+    expect(m.shortFinish).toBe(true);
+    expect(m.players.every((p) => p.state.turn <= 3)).toBe(true);
+    const top = standings(m)[0];
+    expect(m.winnerIndex).toBe(top.index);
+  });
+
+  it('a single-player short game also ends at the cap', () => {
+    let m = newMatch(engine, { mode: 'family', players: [{ name: '', professionId: 'teacher' }], seed: 3, roundCap: 2 });
+    m = playMatch(engine, m, ['sensible'], 500);
+    expect(m.status).toBe('won');
+    expect(m.shortFinish).toBe(true);
+    expect(m.winnerIndex).toBe(0);
+    expect(m.players[0].state.turn).toBeLessThanOrEqual(2);
+  });
+
+  it('rematch keeps the cap, and a schema-7 save migrates to a standard (uncapped) game', () => {
+    const short = newMatch(engine, { mode: 'family', players: twoPlayers, seed: 11, roundCap: SHORT_ROUNDS });
+    expect(rematch(engine, short, 99).roundCap).toBe(SHORT_ROUNDS);
+    const old = JSON.parse(serialize(newMatch(engine, { mode: 'family', players: twoPlayers, seed: 11 })));
+    old.schemaVersion = 7;
+    for (const p of old.players) p.state.schemaVersion = 7;
+    const loaded = deserialize(JSON.stringify(old));
+    expect(loaded.schemaVersion).toBe(8);
+    expect(loaded.roundCap).toBeNull();
   });
 });

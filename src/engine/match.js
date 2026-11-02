@@ -42,10 +42,11 @@ export const seesCoins = (m, player) => !!m?.junior && cleanAge(player?.age) ===
  * @param players [{ name?, professionId, age?, bot? }] 1-4 entries; an empty name means "use the default label" (UI side).
  *   `bot` (a BOTS policy name) marks a seat the device plays itself (schema 7).
  */
-export function newMatch(engine, { mode = 'full', players, seed = 1, daily = null } = {}) {
+export function newMatch(engine, { mode = 'full', players, seed = 1, daily = null, roundCap = null } = {}) {
   if (!Array.isArray(players) || players.length < MIN_PLAYERS || players.length > MAX_PLAYERS) {
     fail(`a match needs ${MIN_PLAYERS}-${MAX_PLAYERS} players`);
   }
+  if (roundCap !== null && (!Number.isInteger(roundCap) || roundCap < 1)) fail('bad round cap');
   const names = uniqueNames(players.map((p) => p.name));
   const junior = !daily && isJuniorSetup(mode, players);
   return {
@@ -54,6 +55,7 @@ export function newMatch(engine, { mode = 'full', players, seed = 1, daily = nul
     mode,
     seed,
     ...(daily ? { daily: { date: String(daily.date) } } : {}), // a daily challenge (one player); normal matches carry no such field
+    ...(roundCap && !daily ? { roundCap } : {}), // schema 8: a short game ends after this many rounds (the daily has its own cap)
     ...(junior ? { junior: true } : {}), // schema 6: a 'צעירים' game (round rules for everyone)
     players: players.map((p, i) => ({
       id: `p${i + 1}`,
@@ -143,7 +145,19 @@ export function endTurn(m) {
   if (!canEndTurn(m)) fail('turn is not finished');
   const i = nextActiveIndex(m);
   if (i < 0) return { ...m, status: 'lost' };
-  return { ...m, turns: m.turns + 1, currentIndex: i, turnMark: m.players[i].state.turn };
+  const next = { ...m, turns: m.turns + 1, currentIndex: i, turnMark: m.players[i].state.turn };
+  // v0.4 short mode: once every surviving player has completed `roundCap` rounds, the match ends here and the
+  // leader on the road to freedom wins (standings rank by progress, then net worth). A player who reached 100%
+  // earlier already ended the match in setCurrentState — the cap only decides games nobody finished.
+  if (next.roundCap && next.players.every((p) => p.state.status !== 'playing' || p.state.turn >= next.roundCap)) {
+    const top = standings(next)[0];
+    if (top && top.status !== 'lost') {
+      next.status = 'won';
+      next.winnerIndex = top.index;
+      next.shortFinish = true;
+    }
+  }
+  return next;
 }
 
 /** Per-player summary, best first (winner, then closest to freedom). */
@@ -165,10 +179,10 @@ export function standings(m) {
     .map(({ r }, place) => ({ ...r, place: place + 1 }));
 }
 
-/** Same players, mode and professions; a new seed. */
+/** Same players, mode and professions; a new seed. A short game stays short. */
 export function rematch(engine, m, seed) {
   return newMatch(engine, {
-    mode: m.mode, seed,
+    mode: m.mode, seed, roundCap: m.roundCap ?? null,
     players: m.players.map((p) => ({ name: p.name, professionId: p.professionId, age: p.age ?? null })),
   });
 }
