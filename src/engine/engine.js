@@ -11,7 +11,7 @@ import { cardView } from './card-view.js';
 import {
   monthlyCashFlow, hasWon, maxLoan, saleValue, stockPrice, totalIncome,
   passiveIncome, canSell, loanMonthlyPayment, loanRateNow, priceFactor, expenseFactor, loanLimits, loanPayments, bankLoanPrincipal,
-  passiveRatio, loanStep,
+  passiveRatio, loanStep, totalExpenses,
 } from './selectors.js';
 import { emptyLearn, recordDecision, buyRecord, passRecord, loanRating, isDeal } from './learn.js';
 import { dailyDie, dailyPick, DAILY_TURN_CAP } from './daily.js';
@@ -144,9 +144,47 @@ export function createEngine(data, { validate = true } = {}) {
     for (let tries = 0; ; tries++) {
       if (!d.decks[deck].length) d.decks[deck] = shuffle(d, eligible(deck, d.mode, !!d.junior));
       const card = cardById.get(d.decks[deck].shift());
-      if (!card.requires || meetsRequires(d, card.requires) || tries > 64) return view(card, d.mode);
+      if (!card.requires || meetsRequires(d, card.requires) || tries > 64) {
+        // v0.4 tiered deal pools: an out-of-tier deal is swapped with the first in-tier deal still in the pile
+        // (the out-of-tier card takes its slot — nothing is removed, the pile's size and order otherwise stand).
+        if (deck === 'opportunity' && isDealCard(card) && !dealFitsTier(d, card)) {
+          const idx = d.decks[deck].findIndex((id) => {
+            const c = cardById.get(id);
+            return c && c.id !== card.id && isDealCard(c) && dealFitsTier(d, c) && (!c.requires || meetsRequires(d, c.requires));
+          });
+          if (idx !== -1) {
+            const swapId = d.decks[deck][idx];
+            d.decks[deck][idx] = card.id;
+            return view(cardById.get(swapId), d.mode);
+          }
+        }
+        return view(card, d.mode);
+      }
       d.decks[deck].push(card.id);
     }
+  }
+
+  // v0.4 tiered deal pools (improvement plan, axis 1): the deals a player is offered grow with their stage.
+  // A deal's size is its monthly cash flow RELATIVE to that player's own total monthly expenses, and the bands
+  // are calibrated to the existing catalogue (positive flows run ₪500–₪8,500 against expenses of ₪5,600–₪11,400,
+  // so the plan's literal percentages were widened to the catalogue's real spread — the intent is unchanged:
+  // small deals early, big deals late, per player, never a global rubber band). Negative-flow trap deals always
+  // "fit": they are judgement tests, not sized deals. The daily challenge is exempt (drawn deterministically).
+  const DEAL_TIERS = [
+    { maxStage: 0.25, min: 0, max: 0.4 },
+    { maxStage: 0.5, min: 0.12, max: 0.55 },
+    { maxStage: 0.75, min: 0.22, max: 0.75 },
+    { maxStage: Infinity, min: 0.32, max: Infinity },
+  ];
+  const isDealCard = (c) => c && (c.type === 'apartment' || c.type === 'business') && Number.isFinite(c.monthlyCashFlow);
+  function dealFitsTier(d, card) {
+    if (!isDealCard(card) || card.monthlyCashFlow <= 0) return true;
+    const exp = totalExpenses(d);
+    if (!exp) return true;
+    const stage = passiveRatio(d);
+    const tier = DEAL_TIERS.find((t) => stage < t.maxStage) ?? DEAL_TIERS.at(-1);
+    const ratio = card.monthlyCashFlow / exp;
+    return ratio >= tier.min && ratio <= tier.max;
   }
 
   // v0.4 deal choice: the second deal offered alongside the drawn one on an opportunity square. It is a PEEK at
@@ -159,10 +197,12 @@ export function createEngine(data, { validate = true } = {}) {
   function drawAltDeal(d, first) {
     if (d.daily) return null;
     if (!d.decks.opportunity.length) d.decks.opportunity = shuffle(d, eligible('opportunity', d.mode, !!d.junior));
-    const id = d.decks.opportunity.find((candidate) => {
+    const candidates = d.decks.opportunity.filter((candidate) => {
       const c = cardById.get(candidate);
       return c && c.id !== first.id && (c.type === 'apartment' || c.type === 'business') && (!c.requires || meetsRequires(d, c.requires));
     });
+    // the offered alternative follows the same tiering as the main draw, with any deal as the fallback
+    const id = candidates.find((candidate) => dealFitsTier(d, cardById.get(candidate))) ?? candidates[0];
     if (!id) return null;
     const card = clone(view(cardById.get(id), d.mode));
     inflateDeal(card, priceFactor(d));
