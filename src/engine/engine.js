@@ -234,6 +234,8 @@ export function createEngine(data, { validate = true } = {}) {
       kids: 0,
       position: 0,
       turn: 0,
+      rerollTokens: 0, // schema 8 (v0.4): 'גלגול שוב' tokens earned by investor's-eye guess streaks (max 2)
+      rerollArmed: false, // a token armed for the next roll: two dice sets are rolled, the higher total moves
       lap: 0, // passes of square 0 (price inflation reads it)
       effects: [], // timed market effects: { kind, pct | rate, turnsLeft, cardId }
       milestones: [], // schema 5: passive-income milestones (MILESTONES, % of expenses) already celebrated in this game
@@ -347,6 +349,22 @@ export function createEngine(data, { validate = true } = {}) {
     d.events.push({ type: 'payday', amount, monthly, months: PAYDAY_MONTHS, interest });
   }
 
+  /**
+   * v0.4: arm (or disarm) a reroll token for the next roll. Arming is free and reversible until the roll;
+   * the roll itself consumes the token. The daily challenge cannot arm one — its dice are (seed, turn)-fixed,
+   * so a second set would be the same dice.
+   */
+  function armReroll(state) {
+    const d = begin(state);
+    if (d.phase !== 'roll') fail('cannot arm a reroll now');
+    if (d.daily) fail('no reroll in the daily challenge');
+    if (!d.rerollArmed && !(d.rerollTokens > 0)) fail('no reroll token');
+    d.rerollArmed = !d.rerollArmed;
+    d.events.push({ type: 'rerollArmed', armed: d.rerollArmed });
+    settle(d);
+    return d;
+  }
+
   function roll(state, forcedDice) {
     const d = begin(state);
     if (d.phase !== 'roll') fail('cannot roll now');
@@ -355,7 +373,17 @@ export function createEngine(data, { validate = true } = {}) {
     tickEffects(d);
     const diceCount = d.charityTurns > 0 ? 2 : 1;
     if (d.charityTurns > 0) d.charityTurns -= 1;
-    const dice = forcedDice ?? Array.from({ length: diceCount }, (_, k) => (d.daily ? dailyDie(d.seed, d.turn, k) : 1 + randInt(d, 6)));
+    const rollSet = () => forcedDice ?? Array.from({ length: diceCount }, (_, k) => (d.daily ? dailyDie(d.seed, d.turn, k) : 1 + randInt(d, 6)));
+    let dice = rollSet();
+    // v0.4: an armed reroll token rolls a second set and keeps the higher total (the token is spent either way)
+    if (d.rerollArmed && d.rerollTokens > 0 && !d.daily) {
+      const second = rollSet();
+      const total = (set) => set.reduce((a, b) => a + b, 0);
+      d.rerollTokens -= 1;
+      d.events.push({ type: 'reroll', kept: total(second) > total(dice) ? second : dice, dropped: total(second) > total(dice) ? dice : second });
+      if (total(second) > total(dice)) dice = second;
+    }
+    d.rerollArmed = false;
     const steps = dice.reduce((a, b) => a + b, 0);
     const from = d.position;
     const path = [];
@@ -664,17 +692,23 @@ export function createEngine(data, { validate = true } = {}) {
       }
       d.events.push({ type: 'bought', cardId: card.id, cost, qty });
     } else {
-      if (d.cash < card.downPayment) fail('not enough cash');
-      d.cash -= card.downPayment;
+      // v0.4 guess stakes: a correct 'עסקה טובה?' guess on this very card this turn takes 10% off the down
+      // payment (rounded to ₪10, or to a whole coin for juniors). The asset's price drops by the same amount,
+      // so price = down payment + mortgage still holds; the mortgage and the monthly flow are untouched.
+      const guessedRight = (d.learn?.guesses ?? []).some((g) => g.cardId === card.id && g.turn === d.turn && g.correct);
+      const discount = guessedRight ? Math.round((card.downPayment * 0.1) / (d.junior ? JUNIOR_ROUND : 10)) * (d.junior ? JUNIOR_ROUND : 10) : 0;
+      const cost = card.downPayment - discount;
+      if (d.cash < cost) fail('not enough cash');
+      d.cash -= cost;
       d.seq += 1;
       d.assets.push({
         id: `asset-${d.seq}`, cardId: card.id, type: card.type, title: card.title, category: card.category,
-        price: card.price, downPayment: card.downPayment, mortgage: card.mortgage,
+        price: card.price - discount, downPayment: cost, mortgage: card.mortgage,
         monthlyCashFlow: card.monthlyCashFlow,
         ...(Number.isFinite(card.rent) ? { rent: card.rent } : {}), // a rent card changes the flow by rent x pct
         ...(Number.isFinite(card.loanPayment) ? { loanPayment: card.loanPayment } : {}),
       });
-      d.events.push({ type: 'bought', cardId: card.id, cost: card.downPayment, qty: 1 });
+      d.events.push({ type: 'bought', cardId: card.id, cost, qty: 1, ...(discount ? { discount } : {}) });
     }
     logAction(d, 'buy', card.type === 'stock' ? qty : 1);
     recordDecision(d, buyRecord(card, card.type === 'stock' ? qty : 1));
@@ -913,7 +947,7 @@ export function createEngine(data, { validate = true } = {}) {
   }
 
   return {
-    data, newGame, debugForce, forfeit, roll, buy, pass, chooseDeal, renovate, auctionWin, acceptOffer, declineOffer, donate,
+    data, newGame, debugForce, forfeit, roll, armReroll, buy, pass, chooseDeal, renovate, auctionWin, acceptOffer, declineOffer, donate,
     declineCharity, takeLoan, repayLoan, sellAsset, decide, decisionOptions, answerAudit,
   };
 }

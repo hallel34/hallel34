@@ -1,7 +1,7 @@
 // MaxiFox v0.4 regression tests: teacher starting cash, deal choice, tiered deal pools, short mode.
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { createEngine, BOARD, totalExpenses, newMatch, playMatch, standings, rematch, serialize, deserialize, SHORT_ROUNDS } from '../src/engine/index.js';
+import { createEngine, BOARD, totalExpenses, newMatch, playMatch, standings, rematch, serialize, deserialize, SHORT_ROUNDS, recordGuess } from '../src/engine/index.js';
 import { loadData } from '../src/data/index.js';
 
 const engine = createEngine(loadData('he'));
@@ -150,5 +150,71 @@ describe('short mode: 12 rounds, highest freedom % wins (v0.4)', () => {
     const loaded = deserialize(JSON.stringify(old));
     expect(loaded.schemaVersion).toBe(8);
     expect(loaded.roundCap).toBeNull();
+  });
+});
+
+describe('guess stakes: discount and reroll tokens (v0.4)', () => {
+  const oppIdx = BOARD.indexOf('opportunity');
+  const beforeDeal = (ids) => {
+    const s = engine.newGame({ mode: 'family', professionId: 'teacher', seed: 7 });
+    return { ...s, cash: 900000, position: oppIdx - 1, decks: { ...s.decks, opportunity: [...ids, ...s.decks.opportunity] } };
+  };
+
+  it('a correct guess on the card this turn takes 10% off the down payment', () => {
+    let s = engine.roll(beforeDeal(['opp-biz-013', 'opp-apt-008']), [1]);
+    const card = s.pending.card;
+    const withGuess = {
+      ...s,
+      learn: { ...s.learn, guesses: [{ turn: s.turn, cardId: card.id, light: 'green', guess: 'good', correct: true }] },
+    };
+    const bought = engine.buy(withGuess);
+    const expectedDiscount = Math.round((card.downPayment * 0.1) / 10) * 10;
+    expect(expectedDiscount).toBeGreaterThan(0);
+    expect(bought.assets[0].downPayment).toBe(card.downPayment - expectedDiscount);
+    expect(bought.assets[0].price).toBe(card.price - expectedDiscount);
+    expect(bought.cash).toBe(withGuess.cash - (card.downPayment - expectedDiscount));
+    expect(bought.events.find((e) => e.type === 'bought').discount).toBe(expectedDiscount);
+    // and without the guess the same buy pays full price
+    const full = engine.buy(s);
+    expect(full.assets[0].downPayment).toBe(card.downPayment);
+    expect(full.events.find((e) => e.type === 'bought').discount).toBeUndefined();
+  });
+
+  it('a full investor-eye streak earns a reroll token (max 2); a wrong guess breaks the streak', () => {
+    let s = engine.newGame({ mode: 'family', professionId: 'teacher', seed: 7 });
+    const good = (st, id) => recordGuess(st, { cardId: id, light: 'green', guess: 'good' });
+    s = good(good(good(s, 'a'), 'b'), 'c');
+    expect(s.rerollTokens).toBe(1);
+    s = recordGuess(s, { cardId: 'd', light: 'green', guess: 'bad' }); // wrong: streak resets, no token
+    expect(s.rerollTokens).toBe(1);
+    s = good(good(good(s, 'e'), 'f'), 'g');
+    expect(s.rerollTokens).toBe(2);
+    s = good(good(good(s, 'h'), 'i'), 'j');
+    expect(s.rerollTokens).toBe(2); // capped
+  });
+
+  it('an armed token is spent by the roll, which keeps the better of two sets; arming needs a token', () => {
+    let s = engine.newGame({ mode: 'family', professionId: 'teacher', seed: 7 });
+    expect(() => engine.armReroll(s)).toThrow();
+    s = { ...s, rerollTokens: 1 };
+    s = engine.armReroll(s);
+    expect(s.rerollArmed).toBe(true);
+    const before = s.cash;
+    s = engine.roll(s, [3]);
+    expect(s.rerollTokens).toBe(0);
+    expect(s.rerollArmed).toBe(false);
+    expect(s.events.some((e) => e.type === 'reroll')).toBe(true);
+    expect(s.cash).toBeGreaterThanOrEqual(before); // a teacher's monthly flow is positive; nothing was lost by rerolling
+  });
+});
+
+describe('idle-cash mirror on the annual summary (v0.4, plan §2.1)', () => {
+  it('the play controller computes the mirror and the summary card renders it (no penalty anywhere)', () => {
+    const play = readFileSync(new URL('../src/ui/play.js', import.meta.url), 'utf8');
+    const card = readFileSync(new URL('../src/ui/summary-card.js', import.meta.url), 'utf8');
+    expect(play).toContain('function attachIdleLine(f)');
+    expect(play).toContain('avgYield');
+    expect(card).toContain("tn('payday.idle'");
+    expect(card).toContain("'data-idle': ''");
   });
 });

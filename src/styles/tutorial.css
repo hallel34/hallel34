@@ -90,6 +90,7 @@
 .sc-passive.has-loss .sc-amt { color: var(--amber-ink); }
 .sc-losstag { display: block; font-size: .75rem; font-weight: var(--fw-bold); color: var(--amber-ink); }
 .sc-note { font-size: .8125rem; font-weight: var(--fw-medium); color: var(--card-muted); }
+.sc-idle { font-size: .8125rem; font-weight: var(--fw-medium); color: var(--card-muted); margin-block: 6px 0; }
 .sc-cash { margin: 0; text-align: center; font-size: .8125rem; line-height: 1.3; color: var(--card-muted); }
 .sc-arrow { display: inline-block; margin-inline: 4px; }
 .sc-pair { display: inline-block; white-space: nowrap; }

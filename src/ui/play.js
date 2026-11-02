@@ -249,7 +249,19 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   const rollLabel = h('span', null, t('game.roll'));
   // owner 2026-10-26: no die icon inside the button (the plaza die above it is the die)
   const rollBtn = button([rollLabel], { variant: 'primary', cls: 'btn-roll', 'data-action': 'roll', onClick: () => turn() });
-  const actions = h('div', { class: 'board-actions' }, rollBtn);
+  // v0.4: the reroll-token toggle sits under the roll button — visible only while a token is held and a roll is due
+  const rerollBtn = button('', { variant: 'secondary', cls: 'btn-reroll', 'data-action': 'reroll', hidden: true, onClick: () => { if (apply((s) => engine.armReroll(s))) refreshRerollBtn(); } });
+  const actions = h('div', { class: 'board-actions' }, rollBtn, rerollBtn);
+  function refreshRerollBtn() {
+    const n = state.rerollTokens ?? 0;
+    const show = n > 0 && state.phase === 'roll' && state.status === 'playing' && !state.daily && !busy;
+    rerollBtn.hidden = !show;
+    if (show) {
+      rerollBtn.replaceChildren(state.rerollArmed ? t('game.rerollArmed') : t('game.rerollArm', { n }));
+      rerollBtn.dataset.armed = state.rerollArmed ? 'true' : '';
+      rerollBtn.setAttribute('aria-pressed', state.rerollArmed ? 'true' : 'false');
+    }
+  }
 
   // The fox strip (between the board plate and the roll button): the latest-event chip, the corner fox guide and its bubble.
   // data-pose: 'roll' = idle, 'none' = a turn is playing, 'note' = a bubble is up, 'tip' = a family tip bubble is up.
@@ -616,6 +628,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
         ? `· ${t('game.roundOf', { turn: roundNow, cap: match.roundCap })}`
         : `· ${t('game.turnShort', { turn: state.turn > match.turnMark ? state.turn : state.turn + 1 })}`;
     } else turnEl.textContent = isDaily ? (state.turn ? t('daily.turnOf', { turn: state.turn, cap: state.daily.turnCap }) : t('game.yourTurn')) : match.roundCap ? t('game.roundOf', { turn: roundNow, cap: match.roundCap }) : turnText;
+    refreshRerollBtn();
     if (famHud) famHud.refresh(state, { goal: goalLineVisible(tutorialDevice()) });
     else {
       flowChip.replaceChildren(tn('game.perMonth', { amount: money(st.monthlyCashFlow, { sign: true }) }));
@@ -677,6 +690,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     rollBtn.disabled = mode === 'rolling' || mode === 'working';
     rollBtn.dataset.action = 'roll';
     el.dataset.btn = mode;
+    refreshRerollBtn(); // the reroll toggle follows the same busy rhythm as the roll button
   }
   function setBusy(b, mode = 'working') {
     const was = busy;
@@ -843,8 +857,23 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     await cash.to(target, 450);
   }
 
+  /**
+   * v0.4 (plan §2.1): idle cash gets a friendly mirror, never a penalty. When a meaningful sum sat in the till
+   * through the year, Maxi's line on the summary card says what an average deal would have made of it — the gain
+   * is the cash times the catalogue's average monthly yield on a down payment, rounded to ₪10.
+   */
+  function attachIdleLine(f) {
+    if (f.negative || f.idle) return;
+    const deals = engine.data.cards.filter((c) => c.deck === 'opportunity' && c.monthlyCashFlow > 0 && c.downPayment > 0);
+    if (!deals.length) return;
+    const avgYield = deals.reduce((a, c) => a + c.monthlyCashFlow / c.downPayment, 0) / deals.length;
+    const gain = Math.round((f.cashBefore * avgYield) / 10) * 10;
+    if (f.cashBefore >= 15000 && gain >= 100) f.idle = { cash: f.cashBefore, gain };
+  }
+
   /** The learning moment of one payday: the itemised card, then its one-line form in the log and the fox-row chip. */
   async function paydaySummary(f) {
+    attachIdleLine(f);
     await summaryCardGated({ figures: f, hint: summaryHintFor(f) });
     if (destroyed) return;
     // spec 4.9 (owner approved 2026-10-25): the log / hand-over recap keeps the one-line form; the fox-row chip shows one of three
@@ -1248,6 +1277,9 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
         if (!r) break; // closed by debug force
         const bought = async (qty) => {
           if (!apply((s) => engine.buy(s, qty))) return;
+          // v0.4: a correct guess paid off in cash — say so in the log, the discount is already in the price paid
+          const bev = state.events.find((e) => e.type === 'bought');
+          if (bev?.discount) pushLog(tn('card.guessDiscountLog', { amount: money(bev.discount) }), 'good');
           flow.trigger('purchase', { card: p.card });
           if (isDeal(p.card) && !guessEnabled(state.mode)) flow.trigger('reveal');
           // v0.4: the deal that was offered alongside and not chosen goes to auction among the other players

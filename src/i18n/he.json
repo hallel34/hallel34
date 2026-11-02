@@ -91,6 +91,8 @@
     "playerTurn": "תור של {name}",
     "turnShort": "תור {turn}",
     "roundOf": "סיבוב {turn} מתוך {cap}",
+    "rerollArm": "גלגול שוב ({n} אסימונים): הפעילו לפני ההטלה",
+    "rerollArmed": "גלגול שוב פעיל — שתי הטלות, הטובה מנצחת. לחיצה תבטל",
     "pawnLabel": "הדמות של {name}",
     "others": "שחקנים אחרים",
     "othersOpen": "הצגת כל השחקנים",
@@ -327,6 +329,7 @@
     "paybackNever": "[[term:payback|תקופת החזר]]: אף פעם",
     "newPassive": "[[term:passive_income|ההכנסה הפסיבית]] שלכם תעלה ל-{amount} לחודש",
     "freedomGain": "{pct} בדרך לחופש כלכלי",
+    "guessDiscountLog": "הניחוש הנכון השתלם: חסכתם {amount} מהמקדמה — הנחה של 10%",
     "negativeFlow": "שימו לב: הנכס הזה יעלה לכם {amount} בכל חודש",
     "newPassiveStock": "הדיבידנד יוסיף {amount} לחודש",
     "getLoan": "הלוואה",
@@ -377,6 +380,7 @@
     "cost": "עלות התרומה"
   },
   "payday": {
+    "idle": "מקסי מזכיר: {cash} שישבו בקופה עשו 0. בעסקה ממוצעת הם היו מכניסים עוד {gain} בכל חודש. כסף שעובד מנצח כסף שיושב.",
     "a": {
       "kicker": "נשארו בחודש",
       "months": "{months} חודשים"

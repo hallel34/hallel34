@@ -68,13 +68,14 @@ const migrations = {
       : m.players,
   }),
 
-  // 7 -> 8 (v0.4 short mode): a match may carry `roundCap` (null = a standard game). Old games are standard games.
+  // 7 -> 8 (v0.4 short mode + reroll tokens): a match may carry `roundCap` (null = a standard game; old games are
+  // standard games), and every player's state carries `rerollTokens` (0 for old games — they simply have none yet).
   7: (m) => ({
     ...m,
     schemaVersion: 8,
     roundCap: m.roundCap ?? null,
     players: Array.isArray(m.players)
-      ? m.players.map((p) => (p?.state ? { ...p, state: { ...p.state, schemaVersion: 8 } } : p))
+      ? m.players.map((p) => (p?.state ? { ...p, state: { ...p.state, schemaVersion: 8, rerollTokens: p.state.rerollTokens ?? 0 } } : p))
       : m.players,
   }),
 };
