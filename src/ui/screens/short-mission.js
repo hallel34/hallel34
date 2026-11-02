@@ -1,19 +1,22 @@
 import { h, clear } from '../dom.js';
 import { button } from '../widgets.js';
 import { t } from '../../i18n/index.js';
-import { moneyText, setCoinScale } from '../format.js';
-import { currentState } from '../../engine/index.js';
-import { REPAY_MISSION, resolveShortMission } from '../../engine/short-missions.js';
+import { moneyText, moneyIsolated, setCoinScale } from '../format.js';
+import { currentState, seesCoins } from '../../engine/index.js';
+import { REPAY_MISSION, resolveShortMission, shortMissionFacts } from '../../engine/short-missions.js';
 import { recordShortMission, completedShortMissions } from '../../services/mission-progress.js';
 
 export function createShortMission({ engine, match: initial, store, onMenu, onContinue }) {
   let match = initial;
   let alive = true;
   let acting = false;
-  setCoinScale(false);
+  // the mission's own scale: a junior variant (a 'צעירים' match, QA r22 P2) reads in coins, every other one in shekels
+  setCoinScale(seesCoins(match, match.players[0]));
   const repay = match.mission.id === REPAY_MISSION;
   const key = repay ? 'repay' : 'buffer';
-  const text = (name, args) => t(`missions.${name}`, args);
+  // the figures the texts name come from the scenario's real rules (shekels, or a junior variant's whole coins)
+  const facts = Object.fromEntries(Object.entries(shortMissionFacts(engine, match)).map(([k, v]) => [k, moneyIsolated(v)]));
+  const text = (name, args) => t(`missions.${name}`, { ...facts, ...args });
   const el = h('section', { class: 'screen screen-mission', 'data-screen': 'short-mission' });
   const notice = h('p', { class: 'mission-notice', role: 'status', 'aria-live': 'polite' });
   const row = (label, value) => h('div', { class: 'mission-row' },

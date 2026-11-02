@@ -1,7 +1,7 @@
 import { h, clear } from '../dom.js';
 import { button } from '../widgets.js';
 import { moneyText, setCoinScale } from '../format.js';
-import { currentState } from '../../engine/index.js';
+import { currentState, seesCoins } from '../../engine/index.js';
 import { newFirstAsset, firstAssetPurchase, declineFirstAsset, FIRST_ASSET_BADGE } from '../../engine/first-asset.js';
 import { hasBadge, earnBadge } from '../../learn/store.js';
 import { t } from '../../i18n/index.js';
@@ -10,7 +10,7 @@ export function createFirstAsset({ engine, match: initial, store, onMenu, onCont
   let match = initial;
   let alive = true;
   let acting = false;
-  setCoinScale(false);
+  setCoinScale(seesCoins(match, match.players[0])); // a junior variant ('צעירים' match, QA r22 P2) reads in coins
   const el = h('section', { class: 'screen screen-mission', 'data-screen': 'first-asset' });
   const text = (key, args) => t(`mission.${key}`, args);
   const amount = (n) => moneyText(n);
@@ -92,7 +92,7 @@ export function createFirstAsset({ engine, match: initial, store, onMenu, onCont
         'data-action': 'mission-continue', onClick: () => { if (save()) onContinue(match); else render(); },
       }));
       if (declined) actions.append(button(text('retry'), {
-        variant: 'secondary', onClick: () => change(() => newFirstAsset(engine)),
+        variant: 'secondary', onClick: () => change(() => newFirstAsset(engine, { age: match.players[0].age ?? null })),
       }));
     }
     actions.append(button(text('saveExit'), { variant: 'secondary', onClick: exit }));

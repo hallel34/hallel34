@@ -1,10 +1,12 @@
 import { h } from '../dom.js';
 import { button } from '../widgets.js';
 import { t } from '../../i18n/index.js';
+import { moneyIsolated } from '../format.js';
 import { FIRST_ASSET_ID } from '../../engine/first-asset.js';
 import { REPAY_MISSION, BUFFER_MISSION } from '../../engine/short-missions.js';
 
-export function createMissions({ saved, completed, onSelect, onMenu, onRestart }) {
+/** @param cash the starting cash of every mission (the player's variant: shekels, or coins for a junior player) */
+export function createMissions({ saved, completed, onSelect, onMenu, onRestart, cash }) {
   const el = h('section', { class: 'screen screen-mission', 'data-screen': 'missions' });
   const items = [[FIRST_ASSET_ID, 'first'], [REPAY_MISSION, 'repay'], [BUFFER_MISSION, 'buffer']];
   const content = h('div', { class: 'mission-content' },
@@ -27,7 +29,7 @@ export function createMissions({ saved, completed, onSelect, onMenu, onRestart }
       }) : null,
     ));
   }
-  content.append(h('p', { class: 'mission-detail' }, t('missions.independent')),
+  content.append(h('p', { class: 'mission-detail' }, t('missions.independent', { cash: moneyIsolated(cash) })),
     button(t('missions.home'), { variant: 'secondary', onClick: onMenu }));
   el.append(content);
   return { el };

@@ -9,8 +9,10 @@ export const SLOT_MISSION = 'missionSave';
 export const slotOf = (match) => {
   if (!match || typeof match !== 'object') throw new Error('match-store: a match is required to pick the save slot');
   if (match.daily) return SLOT_DAILY;
-  if (isShortMission(match.mission?.id)) return practiceSlot(match.mission.id);
-  return match.mission ? SLOT_MISSION : SLOT_NORMAL;
+  // a junior mission variant ('צעירים' match) keeps its own slot next to the shekel one
+  if (isShortMission(match.mission?.id)) return practiceSlot(match.mission.id, { junior: !!match.junior });
+  if (match.mission) return match.junior ? `${SLOT_MISSION}.junior` : SLOT_MISSION;
+  return SLOT_NORMAL;
 };
 
 /** @param io { write(key, text), remove(key) }  @param serialize match -> string */

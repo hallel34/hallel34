@@ -2,19 +2,26 @@
 import { newMatch, currentState, setCurrentState } from './match.js';
 import { cardView } from './card-view.js';
 import { purchasePlan, monthlyCashFlow, passiveRatio, loanPayments } from './selectors.js';
+import { juniorDeal } from './engine.js';
 
 export const FIRST_ASSET_ID = 'first-asset-v1';
 export const FIRST_ASSET_BADGE = 'first-asset';
 
-export function newFirstAsset(engine) {
+/**
+ * @param age the player's age band (engine AGE_BANDS) or null. 'upTo10' (JUNIOR_AGE) is the junior variant: the same scenario
+ *   on the junior round rules (a 'צעירים' game: whole coins, 10,000 loan steps), so the coin display is exact.
+ */
+export function newFirstAsset(engine, { age = null } = {}) {
   const match = newMatch(engine, {
-    mode: 'family', seed: 34001, players: [{ professionId: 'teacher' }],
+    mode: 'family', seed: 34001, players: [{ professionId: 'teacher', age }],
   });
   const card = engine.data.cards.find((c) => c.id === 'opp-biz-006');
   if (!card) throw new Error('First-asset opportunity is missing');
+  const view = structuredClone(cardView(card, 'family'));
+  if (match.junior) juniorDeal(view); // the dealt-card rule of a junior game (its figures are already whole coins)
   const state = {
     ...currentState(match), phase: 'decision',
-    pending: { kind: 'opportunity', card: cardView(card, 'family') },
+    pending: { kind: 'opportunity', card: view },
   };
   return {
     ...setCurrentState(match, state),

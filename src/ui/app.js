@@ -4,7 +4,7 @@ import { prepareBoardImage } from './board-ready.js';
 import { h, clear } from './dom.js';
 import { toast } from './fx.js';
 import {
-  createEngine, serialize, deserialize, newMatch, rematch, isMultiplayer, currentState, dailySeed, dailyProfessionId, DAILY_MODE, seesCoins, isJuniorSetup, JUNIOR_AGE,
+  createEngine, serialize, deserialize, newMatch, rematch, isMultiplayer, currentState, dailySeed, dailyProfessionId, DAILY_MODE, seesCoins, isJuniorSetup, JUNIOR_AGE, cleanAge,
 } from '../engine/index.js';
 import { setCoinScale } from './format.js';
 import { loadData } from '../data/index.js';
@@ -32,7 +32,8 @@ import { newFirstAsset, firstAssetPurchase, continueFirstAsset, FIRST_ASSET_ID }
 import { createFirstAsset } from './screens/first-asset.js';
 import { FIRST_ASSET_BADGE } from '../engine/first-asset.js';
 import { hasBadge } from '../learn/store.js';
-import { isShortMission, practiceSlot, newShortMission, continueShortMission, validShortMission } from '../engine/short-missions.js';
+import { isShortMission, practiceSlot, newShortMission, continueShortMission, validShortMission, REPAY_MISSION } from '../engine/short-missions.js';
+import { SLOT_MISSION } from '../services/match-store.js';
 import { completedShortMissions } from '../services/mission-progress.js';
 import { createMissions } from './screens/missions.js';
 import { createShortMission } from './screens/short-mission.js';
@@ -83,14 +84,26 @@ export function createApp(host) {
     return { date: today, status: dailyStatus({ results, hasSave }, today), entry: results.byDate[today] ?? null, streak: streakView(loadStreak(), today) };
   }
 
-  function loadMission(id = FIRST_ASSET_ID) {
+  /**
+   * The player's age band for the practice missions (QA r22 P2, CEO): the age last chosen on the players screen (kept on the
+   * device), else the age stored with the saved game's first human player, else none. 'עד 10' plays the junior variant (coins).
+   */
+  function missionAge() {
+    const last = readRaw('lastAge');
+    if (last != null) return cleanAge(last);
+    return cleanAge(loadSave()?.players.find((p) => !p.bot)?.age);
+  }
+  const missionJunior = () => missionAge() === JUNIOR_AGE;
+
+  /** A saved mission of the variant `junior` (each variant has its own slot), or null. */
+  function loadMission(id = FIRST_ASSET_ID, junior = missionJunior()) {
     if (isShortMission(id)) {
-      const m = deserialize(readRaw(practiceSlot(id)));
-      return validShortMission(engine, m, id) ? m : null;
+      const m = deserialize(readRaw(practiceSlot(id, { junior })));
+      return validShortMission(engine, m, id) && !!m.junior === junior ? m : null;
     }
     try {
-      const m = deserialize(readRaw('missionSave'));
-      if (!m || m.daily || m.players.length !== 1 || m.currentIndex !== 0 || m.mode !== 'family'
+      const m = deserialize(readRaw(junior ? `${SLOT_MISSION}.junior` : SLOT_MISSION));
+      if (!m || m.daily || !!m.junior !== junior || m.players.length !== 1 || m.currentIndex !== 0 || m.mode !== 'family'
         || m.mission?.id !== FIRST_ASSET_ID
         || !['offer', 'complete', 'declined', 'freeplay'].includes(m.mission.stage)) return null;
       const s = currentState(m);
@@ -113,8 +126,12 @@ export function createApp(host) {
 
   async function goMissions() {
     await missionStyles();
+    const junior = missionJunior();
+    setLearnMode('family'); // the missions run on the family rules: the family vocabulary layer (QA r22 P1)
+    setCoinScale(junior); // a junior player reads the chooser in coins (QA r22 P2)
     mount(createMissions({
-      saved: loadMission,
+      saved: (id) => loadMission(id, junior),
+      cash: currentState(newShortMission(engine, REPAY_MISSION, { age: missionAge() })).cash,
       completed: [...completedShortMissions(), ...(hasBadge(FIRST_ASSET_BADGE) ? [FIRST_ASSET_ID] : [])],
       onSelect: goMission, onMenu: goStart, onRestart: restartMission,
     }));
@@ -134,12 +151,14 @@ export function createApp(host) {
 
   async function goMission(id = FIRST_ASSET_ID, { fresh = false } = {}) {
     const short = isShortMission(id);
-    const m = (!fresh && loadMission(id)) || (short ? newShortMission(engine, id) : newFirstAsset(engine));
+    const age = missionAge();
+    const m = (!fresh && loadMission(id, age === JUNIOR_AGE)) || (short ? newShortMission(engine, id, { age }) : newFirstAsset(engine, { age }));
     if (m.mission.stage === 'freeplay') {
       if (m.status === 'won') goWin(m); else if (m.status === 'lost') goOver(m); else goPlay(m);
       return;
     }
     await missionStyles();
+    setLearnMode('family');
     const screen = (short ? createShortMission : createFirstAsset)({
       engine, match: m, store, onMenu: short ? goMissions : goStart, onMissions: goMissions,
       onContinue: (saved) => goPlay(short ? continueShortMission(saved) : continueFirstAsset(saved)),
@@ -243,7 +262,12 @@ export function createApp(host) {
       count: setup.count, names: setup.names, ages: setup.ages ?? [], bots: setup.bots ?? [], mode,
       onMode: (m) => { mode = m; writeRaw('mode', m); setLearnMode(m); }, // an age under 14 -> family: the kid vocabulary too (QA r18 P2-2)
       onBack: () => goStart(),
-      onNext: ({ count, names, ages, bots }) => { setup = { count, names, ages, bots, professionIds: [] }; goPick(0); },
+      onNext: ({ count, names, ages, bots }) => {
+        setup = { count, names, ages, bots, professionIds: [] };
+        // the practice missions follow the last chosen age band (QA r22 P2): the first human player's ('' = none given)
+        writeRaw('lastAge', ages.find((a, i) => !bots?.[i]) ?? '');
+        goPick(0);
+      },
     }).el });
   }
 
