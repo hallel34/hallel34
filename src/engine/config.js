@@ -15,6 +15,8 @@ export const SCHEMA_VERSION = 9;
 // v0.5: the first daily-challenge date (a 'YYYY-MM-DD' day key, docs/RNG.md) played on rngVersion 2. Every earlier date keeps
 // its v2.5 keyed streams byte-identical (streaks, shared results and stored records stay fair). Set to the first day after the
 // v0.5 release; a date in the past at release time would change a day some players already played.
+// TODO(v0.5 release): placeholder (owner 2026-11-03). Set to the first day after the release date before shipping. Note:
+// the day key is the device's local date (src/daily/calendar.js), not Asia/Jerusalem.
 export const DAILY_RNG_V2_FROM = '2026-11-17';
 export const MIN_PLAYERS = 1;
 export const MAX_PLAYERS = 4;

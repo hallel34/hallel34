@@ -3,8 +3,12 @@
 Goal (spec v0.5 step 1, §0): two players on the same seed face the same dice and the same cards, whatever they decide.
 That is what friend challenges by link (0.5.1) and live rooms (0.5.2) need.
 
-Status: done for dice, squares and the tax audit. Cards are 97.6-99.4% the same for players in the same deal tier. **One
-item is flagged**: the card-draw choice trades fairness against v0.4's balance. See "Card draws" and "Flagged".
+Status: done. Dice and the tax audit are 100% the same for both players, squares are the same until a movement changer, and
+cards are 97.9-99.4% the same for players in the same deal tier. The owner decided the flagged items on 2026-11-03:
+- turn-keyed draws, with the v2 family tier bands recalibrated (docs/BALANCE.md, "v0.4 baseline and v0.5 keyed RNG");
+- charity's bonus die and reroll tokens are off in challenge mode (0.5.1);
+- the daily switch date stays a placeholder with a TODO.
+See §9.
 
 All numbers below come from `node scripts/rng-fairness.js --seeds=500`, `node scripts/rng-fairness.js --lengths` and
 `npm run simulate -- --games=300 --rng=v1|turn|positional`. They were measured on branch `maxifox-v05-rng`.
@@ -80,7 +84,7 @@ The option is set by `V2_DRAW_SCHEME` (rng.js). `createEngine(data, { drawScheme
 other option. Saves do not record the scheme, so it must not change once v2 games exist; a change after that needs a new
 rngVersion.
 
-### Fairness (500 seeds per row, both players on the same profession and seed)
+### Fairness (500 seeds per row, both players on the same profession and seed; family rows on the recalibrated v2 bands)
 
 "dice" = every die both players rolled matches. "card" = the same card on turns when both stood on a tile of the same deck.
 "same tile" = they also stood on the same square. "same tier" = same-deck opportunity turns where both were in the same deal
@@ -95,21 +99,21 @@ charity column is the label for "not a reroll".
 | v1 | full | alwaysBuy vs cautious | 86.5 | 83.4 | 73.9 | 76.9 | 86.3 | 45.2 | 25.6 | 25.6 / 0.0 |
 | v1 | full | sensible vs alwaysPass | 44.5 | 31.8 | 61.3 | 81.9 | 79.2 | 48.6 | 93.8 | 93.8 / 0.0 |
 | v1 | full | sensible+reroll vs sensible | 24.4 | 7.6 | 30.4 | 53.6 | 37.5 | 40.9 | 100.0 | 6.0 / 94.0 |
-| **turn** | family | alwaysBuy vs cautious | **100.0** | 91.2 | 86.6 | 87.0 | **97.6** | 46.0 | 18.8 | 18.8 / 0.0 |
-| **turn** | family | sensible vs alwaysPass | **100.0** | 35.6 | 81.5 | 87.6 | **98.5** | 52.0 | 91.4 | 91.4 / 0.0 |
-| **turn** | family | sensible+reroll vs sensible | **100.0** | 40.1 | 94.2 | 98.8 | **99.0** | 19.9 | 68.0 | 0.0 / 68.0 |
+| **turn** | family | alwaysBuy vs cautious | **100.0** | 91.5 | 90.2 | 90.6 | **97.9** | 45.0 | 17.4 | 17.4 / 0.0 |
+| **turn** | family | sensible vs alwaysPass | **100.0** | 36.4 | 87.0 | 91.7 | **98.6** | 51.1 | 89.8 | 89.8 / 0.0 |
+| **turn** | family | sensible+reroll vs sensible | **100.0** | 39.8 | 95.9 | 99.0 | **99.4** | 19.8 | 68.0 | 0.0 / 68.0 |
 | **turn** | full | alwaysBuy vs cautious | **100.0** | 85.5 | 88.4 | 89.0 | **98.5** | 45.7 | 26.8 | 26.8 / 0.0 |
 | **turn** | full | sensible vs alwaysPass | **100.0** | 31.5 | 84.9 | 90.6 | **98.7** | 45.7 | 94.6 | 94.6 / 0.0 |
 | **turn** | full | sensible+reroll vs sensible | **100.0** | 42.5 | 94.8 | 98.4 | **99.4** | 18.6 | 68.0 | 0.0 / 68.0 |
-| positional | family | alwaysBuy vs cautious | 100.0 | 90.7 | 73.8 | 75.2 | 92.0 | 47.9 | 19.2 | 19.2 / 0.0 |
-| positional | family | sensible vs alwaysPass | 100.0 | 37.6 | 61.8 | 79.5 | 81.1 | 50.6 | 90.2 | 90.2 / 0.0 |
-| positional | family | sensible+reroll vs sensible | 100.0 | 40.3 | 74.4 | 92.8 | 80.8 | 17.1 | 68.0 | 0.0 / 68.0 |
+| positional | family | alwaysBuy vs cautious | 100.0 | 90.9 | 75.9 | 77.3 | 91.5 | 46.5 | 18.0 | 18.0 / 0.0 |
+| positional | family | sensible vs alwaysPass | 100.0 | 37.2 | 63.0 | 80.8 | 81.0 | 50.3 | 90.8 | 90.8 / 0.0 |
+| positional | family | sensible+reroll vs sensible | 100.0 | 40.8 | 75.3 | 93.3 | 81.6 | 17.1 | 68.0 | 0.0 / 68.0 |
 | positional | full | alwaysBuy vs cautious | 100.0 | 83.8 | 74.4 | 77.0 | 89.0 | 44.8 | 26.0 | 26.0 / 0.0 |
 | positional | full | sensible vs alwaysPass | 100.0 | 32.1 | 59.4 | 80.7 | 76.8 | 46.8 | 93.8 | 93.8 / 0.0 |
 | positional | full | sensible+reroll vs sensible | 100.0 | 40.3 | 72.7 | 91.2 | 78.4 | 16.6 | 68.0 | 0.0 / 68.0 |
 
 Why the same-tile card is not 100% under turn-keyed draws:
-- **The tiers differ in 46-52% of shared opportunity turns** (players who decide differently progress differently). Out of
+- **The tiers differ in 45-51% of shared opportunity turns** (players who decide differently progress differently). Out of
   tier, the swap legitimately gives another deal.
 - **A tier fit is relative to the player's own expenses.** Kids and loans change those expenses, so two players in the same
   tier can still have different fit sets.
@@ -147,11 +151,15 @@ minimum. Reckless bots buy only bigger deals, borrow more and go bankrupt more o
 schemes give the same balance (family alwaysBuy 19% vs 21%, overBorrow 25% vs 27%). The pile is not the cause either:
 capping the keyed pile at the depth v1 would have left did not move the numbers (29% / 40%).
 
-**Choice: option 2 (turn-keyed), on fairness, as the plan asks.** Same tile and same tier give the same card 97.6-99.4% of the
-time, against 76.8-92.0% for positional. Positional rebuilds a whole cycle from each player's own predicates, so any
-difference in loans or kids anywhere in the cycle compounds. After a desync it also drifts, because the draw counts differ.
-Positional is the scheme that keeps v0.4's balance, though. This conflicts with the "no balance change" rule, so it is
-**flagged, not decided** (F1 below).
+**Choice (owner, 2026-11-03): option 2 (turn-keyed), with recalibrated tier bands.** Same tile and same tier give the same
+card 97.9-99.4% of the time, against 76.8-91.5% for positional. Positional rebuilds a whole cycle from each player's own
+predicates, so any difference in loans or kids anywhere in the cycle compounds; after a desync it also drifts, because the
+draw counts differ.
+
+The balance drift above is fixed with tier bands, not with the draws: rngVersion-2 family games use `DEAL_TIERS_V2.family`.
+Only the lower bounds changed, from 0.12 / 0.22 / 0.32 to 0.08 / 0.15 / 0.22. Family reckless bankruptcy is back at
+27 / 31 / 28% (v0.4: 23 / 28 / 25%), and sensible play is within noise (mean 24.6 vs 24.5). Full mode keeps the v0.4 bands,
+since it was already within noise. v1 games are untouched. Tables: docs/BALANCE.md, "v0.4 baseline and v0.5 keyed RNG".
 
 ## 4. Movement changers
 
@@ -166,12 +174,11 @@ Nothing else moves a pawn (`state.position` is written in one place, the hop loo
 Charity breaks position sync often: in 19-27% of games when both players use the same charity rule (alwaysBuy vs cautious),
 and in 90-95% when one player never donates. A single reroll desyncs 68% of the games in which a player holds 2 tokens. After
 a desync the dice stay identical and the squares stay apart by a fixed offset. Cards still match on any turn when both land
-on a tile of the same deck (turn-keyed: 81-95% of those turns).
+on a tile of the same deck (turn-keyed: 85-96% of those turns).
 
-**Proposal for Hallel (not implemented).** In a friend challenge, charity gives its 3 turns of a second die to both
-comparisons equally, or is off. The simplest rule: in a challenge, a charity square gives the "giving" feedback and points
-but no bonus die, and reroll tokens are not offered. Squares then stay 100% in sync, and so do the cards whenever the tiers
-match. The alternative is to keep both and show "צעדים נוספים מתרומה" in the replay so the difference is visible.
+**Decided (owner, 2026-11-03), to build in 0.5.1, not in this step:** in challenge mode, charity gives no bonus die and
+reroll tokens are not offered. Both players' squares then stay 100% in sync, and so do the cards whenever the tiers match.
+Normal games keep both rules unchanged.
 
 ## 5. Replay and the dispatch seam
 
@@ -233,8 +240,8 @@ Encoded length of whole games (`node scripts/rng-fairness.js --lengths`, 500 gam
 
 | mode | log | median turns | median actions | **median chars** | p95 turns | p95 actions | **p95 chars** | max chars |
 |---|---|---|---|---|---|---|---|---|
-| family | bot | 24 | 38 | **110** | 41 | 62 | **158** | 222 |
-| family | player (guess on every deal + deal choice examined) | 24 | 52 | **260** | 40 | 84 | **367** | 535 |
+| family | bot | 24 | 37 | **108** | 39 | 58 | **150** | 227 |
+| family | player (guess on every deal + deal choice examined) | 23 | 51 | **256** | 38 | 78 | **360** | 534 |
 | full | bot | 28 | 44 | **116** | 51 | 76 | **176** | 290 |
 | full | player | 28 | 59 | **286** | 50 | 101 | **419** | 680 |
 
@@ -263,36 +270,24 @@ challenge is a single-player game on one seed: the link carries that seed. A liv
 the same dice must give every seat the **same** seed (not `seed + i * 7919`), or derive the keys from the room seed and the
 turn only. That is a match-layer choice for 0.5.2; the engine already supports it.
 
-## 9. Flagged (decisions needed, not guessed)
+## 9. Flagged items and the owner's answers (2026-11-03)
 
-- **F1. Card-draw option vs balance.**
-  - Turn-keyed draws (shipped) are the fair option, but they make v0.4's tier filter strict. Family over-borrowing
-    bankruptcy rises from 23/28/25% to 33/43/36%, and overBorrow and overBorrowLite leave the 15-35% target band.
-  - Positional keeps the balance but loses 7-22 points of same-tier card agreement.
-  - Options:
-    - (a) accept turn-keyed and re-tune the tier bands in data (a balance pass, out of this step's scope);
-    - (b) ship positional;
-    - (c) a keyed "out-of-tier pass" chance to mimic v1's soft tiers (a new rule with a constant).
-  - `V2_DRAW_SCHEME` switches between (a) and (b) in one line, before any v2 game is in the wild.
-- **F2. "Same tile + turn ⇒ same card: 100%"** cannot hold with per-player deal tiers and `requires`. Measured: 87-91% on the
-  same tile, 97.6-99.4% in the same tier, 100% when the players' tier fit and requirements match (tested).
-- **F3. Daily boundary time zone and date.**
-  - The spec says Asia/Jerusalem, but the app's day key is the device's local date (`calendar.js dayKey`), so a device
-    abroad switches at its own midnight.
-  - The release date is unknown, so `2026-11-17` is a placeholder: set it to the first day after the v0.5 release.
-- **F4. docs/BALANCE.md has no v0.4 section.** Its last tables (21 / 26 sensible medians) predate v0.4's tiers and deal choice;
-  v0.4 itself measures 24 / 29. The comparison above is against a fresh v1 run of the same script, not against BALANCE.md.
+- **F1. Card-draw option vs balance: decided.** Turn-keyed draws were kept, and the v2 family tier bands were recalibrated
+  (§3, docs/BALANCE.md). Full mode is within noise on the v0.4 bands; v1 games keep v0.4's bands.
+- **F2. "Same tile + turn ⇒ same card: 100%"** cannot hold with per-player deal tiers and `requires`. Measured: 89-92% on the
+  same tile, 97.9-99.4% in the same tier, 100% when the players' tier fit and requirements match (tested). Challenges turn
+  off the movement changers (§4), which removes the square desync but not the tier differences.
+- **F3. Daily boundary: placeholder kept.** `2026-11-17` stays, with a TODO in config.js to set it to the first day after the
+  release. The day key is the device's local date (`calendar.js dayKey`), not Asia/Jerusalem.
+- **F4. docs/BALANCE.md: closed.** It now has the v0.4 baseline and the v0.5 before/after tables.
 - **F5. `auctionWin` carries a card object.** It only occurs in hot-seat matches. A single-player challenge verifier must
-  reject it, or check the card against the data; the action log encodes it as JSON.
-- **F6. Smokes red before this work** (origin/maxifox-v04-review and the merge a9f8483):
-  - v0.4's deal-choice card, its game-length chips and its one-payday-per-turn rule were never taught to the smokes. family,
-    full, 640, 2p, r11, r12 and payday timed out or failed there on the merge commit, with the RNG untouched. These are fixed
+  reject it, or check the card against the data; the action log encodes it as JSON. Open for 0.5.1.
+- **F6. Smokes: green.**
+  - v0.4's deal-choice card, game-length chips and one-payday-per-turn rule were never taught to the smokes. They are fixed
     test-side (docs/v4/test-changes.md 28-33).
-  - Still red, the same on the merge commit with the fixed smokes (v1 engine) as on this branch:
-    - 2p: the players screen puts its CTA at 816 px in an 800 px viewport after the PR 17 merge (seats + game length).
-    - 2p: L3 repeat in the `decision` feedback group. `decision.passFox` is a single line, and an option's fox line has no
-      variants, so two passes in a row repeat. v1 showed 1 repeat in that run, v2 showed 3: turn-keyed draws let the same
-      decision card come back sooner than a v1 pile cycle did.
-  - Both are UI / content items for the designer or developer, not RNG.
+  - The 2p players screen's start button (816 px in an 800 px viewport after the PR 17 merge) is pinned to the bottom over a
+    fade.
+  - The decision pass line has 3 variants, rotated by the commentary picker, and a decision line that would repeat the last
+    one is not shown again (QA L3).
 - **F7. Repeats.** Turn-keyed draws are with replacement. Within one game, a card can come back before the eligible list is
   exhausted, which a v1 pile cycle prevented. This is part of F1 (positional keeps the cycles).
