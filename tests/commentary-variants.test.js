@@ -34,3 +34,25 @@ describe('round 19 L3: terse full-mode commentary never repeats the last line', 
     expect(pick('none', [], (x) => x)).toBeNull();
   });
 });
+
+describe('v0.5 QA L3 (2p): the decision fox line never repeats twice in a row', () => {
+  it('the pass line has at least 3 distinct short variants in he.json', () => {
+    const v = Object.keys(he.decision).filter((k) => /^passFox(_\d+)?$/.test(k)).map((k) => he.decision[k]);
+    expect(v.length).toBeGreaterThanOrEqual(3);
+    expect(new Set(v).size).toBe(v.length);
+    for (const s of v) expect(s.length).toBeLessThanOrEqual(70);
+  });
+  it('play.js rotates the decision lines and drops a line that would repeat the last one', () => {
+    const play = readFileSync(new URL('../src/ui/play.js', import.meta.url), 'utf8');
+    expect(play).toMatch(/pickDecisionLine\('decision', decisionFoxVariants\(/);
+    expect(play).toMatch(/if \(text && text !== lastDecisionLine\) flow\.notes\.push/);
+    const dec = readFileSync(new URL('../src/ui/decision.js', import.meta.url), 'utf8');
+    expect(dec).toMatch(/decision\.passFox_\$\{i\}/);
+  });
+  it('three passes in a row with the picker: three different lines', () => {
+    const pick = createCommentaryPicker();
+    const v = Object.keys(he.decision).filter((k) => /^passFox(_\d+)?$/.test(k)).map((k) => he.decision[k]);
+    const seen = [0, 1, 2].map(() => pick('decision', v, (x) => x));
+    expect(new Set(seen).size).toBe(3);
+  });
+});

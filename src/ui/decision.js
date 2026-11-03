@@ -3,7 +3,7 @@
 // "מה זה מלמד" line, and the option buttons (two in a row at most; three or more stack). An option the player cannot take now is
 // a real disabled button tagged "לא זמין" with its reason (strings-proposals O4). The numbers come from an engine dry run.
 import { h } from './dom.js';
-import { t } from '../i18n/index.js';
+import { t, rawString } from '../i18n/index.js';
 import { money, tn, coinScale, scaleTypedMoney } from './format.js';
 import { cardShell } from './modals.js';
 import { PASS_OPTION, decisionCanPass, isFreeOption, monthlyCashFlow, PAYDAY_MONTHS } from '../engine/index.js';
@@ -86,4 +86,15 @@ export function decisionModal(state, engine) {
 
 export const decisionLabel = (card, optionId, mode) => (optionId === PASS_OPTION ? t('decision.pass') : label(card.options.find((o) => o.id === optionId), mode));
 export const decisionFox = (card, optionId, mode) => (optionId === PASS_OPTION ? t('decision.passFox') : foxLine(card.options.find((o) => o.id === optionId), mode));
+/**
+ * The fox lines an option may say: the pass line has variants (`decision.passFox`, `_2`, `_3`, ... in the locale file, so adding
+ * one is a JSON edit); a card option has its own single line. The play screen rotates them and never shows the same line twice
+ * in a row (QA L3).
+ */
+export function decisionFoxVariants(card, optionId, mode) {
+  if (optionId !== PASS_OPTION) return [decisionFox(card, optionId, mode)];
+  const out = [t('decision.passFox')];
+  for (let i = 2; typeof rawString(`decision.passFox_${i}`) === 'string'; i++) out.push(t(`decision.passFox_${i}`));
+  return out;
+}
 export const decisionLog = (card, optionId, mode) => tn('decision.logChose', { label: decisionLabel(card, optionId, mode) });
