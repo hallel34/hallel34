@@ -75,6 +75,7 @@
 
   /* backgrounds + glass. v3.1: only a SUBTLE tonal shift; "solid" ones are linear-gradient(X, X) so they work in background and background-image */
   --grad-night: linear-gradient(180deg, #0C1324 0%, #0F172A 55%, #131C33 100%);
+  --grad-night-end: #131C33; /* the last stop of --grad-night: a pinned footer fades into it */
   --grad-sky: linear-gradient(180deg, #0C1324 0%, #0F172A 50%, #141E37 100%);
   --grad-sunburst: linear-gradient(180deg, #131C33 0%, #182238 100%);        /* win screen: calm; the gold halo comes from the fox */
   --grad-card-modal: linear-gradient(180deg, #0F172A, #0F172A);              /* solid */
@@ -262,6 +263,7 @@
   --scrim: rgb(15 23 42 / .72);
 
   --grad-night: linear-gradient(180deg, #FBF3E1 0%, #F7EBD0 100%);
+  --grad-night-end: #F7EBD0;
   --grad-sky: linear-gradient(180deg, #FBF3E1 0%, #F7EBD0 100%);
   --grad-sunburst: linear-gradient(180deg, #FBF3E1 0%, #F4E6C6 100%);
   --grad-card-modal: linear-gradient(180deg, #FBF3E1, #FBF3E1);
