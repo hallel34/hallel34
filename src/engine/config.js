@@ -9,7 +9,13 @@
 // 3: every player's state carries a `learn` record (decisions, guesses, concepts). 2: saves hold a whole match (1-4 players).
 // Version 1 saves were a single game state; 1 -> 2 -> 3 -> 4 migrate step by step on load.
 // 8 (v0.4): a match may carry `roundCap` (short mode: the match ends after that many rounds, highest freedom % wins).
-export const SCHEMA_VERSION = 8;
+// 9 (v0.5): every player's state carries `rngVersion` (1 = the single mulberry32 stream + deck arrays: every save up to
+// v0.4 keeps it; 2 = keyed decision-independent values, docs/RNG.md) and `log` (the dispatched actions, replay).
+export const SCHEMA_VERSION = 9;
+// v0.5: the first daily-challenge date (a 'YYYY-MM-DD' day key, docs/RNG.md) played on rngVersion 2. Every earlier date keeps
+// its v2.5 keyed streams byte-identical (streaks, shared results and stored records stay fair). Set to the first day after the
+// v0.5 release; a date in the past at release time would change a day some players already played.
+export const DAILY_RNG_V2_FROM = '2026-11-17';
 export const MIN_PLAYERS = 1;
 export const MAX_PLAYERS = 4;
 export const NAME_MAX = 12;

@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import {
   createEngine, newMatch, currentState, setCurrentState, endTurn, canEndTurn, resumePlan, lastPlayerStanding, uniqueNames,
-  serialize, deserialize, activeCount, nextActiveIndex,
+  serialize, deserialize, activeCount, nextActiveIndex, botStep,
 } from '../src/engine/index.js';
 import { tp } from '../src/i18n/index.js';
 import { pawnOffsets, CROWD_FROM } from '../src/ui/layout.js';
@@ -87,6 +87,7 @@ function passAny(s) {
   if (k === 'opportunity') return engine.pass(s);
   if (k === 'charity') return engine.declineCharity(s);
   if (k === 'offer') return engine.declineOffer(s);
+  if (k === 'decision' || k === 'taxAudit') return botStep(engine, s, 'alwaysPass'); // v0.5: a v2 draw may deal a decision card
   return engine.takeLoan(s, 1000);
 }
 

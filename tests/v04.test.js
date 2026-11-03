@@ -5,6 +5,10 @@ import { createEngine, BOARD, totalExpenses, newMatch, playMatch, standings, rem
 import { loadData } from '../src/data/index.js';
 
 const engine = createEngine(loadData('he'));
+// v0.5 (docs/v4/test-changes.md): these cases put chosen cards on top of the v1 deck arrays (state.decks), so their games
+// are rngVersion 1 (the single stream + piles, what every pre-v0.5 save keeps). rngVersion 2 draws: tests/rng.test.js.
+const newGameV2 = engine.newGame;
+engine.newGame = (opts = {}) => newGameV2({ rngVersion: 1, ...opts });
 const professions = JSON.parse(readFileSync(new URL('../src/data/professions.he.json', import.meta.url), 'utf8'));
 
 describe('teacher starting cash: one value everywhere (QA P1, 2026-11-02)', () => {
@@ -148,7 +152,7 @@ describe('short mode: 12 rounds, highest freedom % wins (v0.4)', () => {
     old.schemaVersion = 7;
     for (const p of old.players) p.state.schemaVersion = 7;
     const loaded = deserialize(JSON.stringify(old));
-    expect(loaded.schemaVersion).toBe(8);
+    expect(loaded.schemaVersion).toBe(9);
     expect(loaded.roundCap).toBeNull();
   });
 });

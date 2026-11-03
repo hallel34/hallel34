@@ -66,7 +66,7 @@ function finish(engine, m, a) {
   const { card, winner, currentBid, history } = a;
   const base = { ...m, auction: null, lastAuction: { cardId: card.id, title: card.title, winner, price: currentBid, history } };
   if (winner === null) return base; // everyone passed: the card is gone
-  const state = engine.auctionWin(m.players[winner].state, card, currentBid);
+  const state = engine.dispatch(m.players[winner].state, { type: 'auctionWin', card, price: currentBid });
   const next = { ...base, players: base.players.map((p, i) => (i === winner ? { ...p, state } : p)) };
   if (state.status === 'won') { next.status = 'won'; next.winnerIndex = winner; }
   return next;

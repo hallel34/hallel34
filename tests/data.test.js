@@ -204,16 +204,18 @@ describe('full games with real data', () => {
       }
     });
     it(`sensible bot averages roughly 12-30 turns to win in ${mode} mode`, () => {
+      // v0.5 (docs/v4/test-changes.md): the median of 120 games. v0.4's full-mode mean is 29.8 (npm run simulate), right at
+      // the bound, so the mean of 40 seeds passed or failed on which random stream those 40 seeds happened to draw.
       const turns = [];
-      for (let g = 0; g < 40; g++) {
+      for (let g = 0; g < 120; g++) {
         const p = data.professions[g % data.professions.length].id;
         const s = playGame(e, e.newGame({ mode, professionId: p, seed: 500 + g }), 'sensible', 300);
         if (s.status === 'won') turns.push(s.turn);
       }
-      expect(turns.length).toBeGreaterThan(30);
-      const avg = turns.reduce((a, b) => a + b, 0) / turns.length;
-      expect(avg).toBeGreaterThan(12);
-      expect(avg).toBeLessThan(30);
+      expect(turns.length).toBeGreaterThan(90);
+      const median = [...turns].sort((a, b) => a - b)[Math.floor(turns.length / 2)];
+      expect(median).toBeGreaterThan(12);
+      expect(median).toBeLessThan(30);
     });
   }
   it('always-buy clearly loses to the sensible bot (>=15% lost, or much slower, or >=10% lost and slower)', () => {

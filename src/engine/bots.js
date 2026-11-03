@@ -1,4 +1,5 @@
 // Bots used by the balance simulation (and handy for QA / demo mode).
+// Every move a bot makes goes through engine.dispatch (logged, replayable); the option scoring in decideBot only previews.
 import { maxLoan, monthlyCashFlow, totalExpenses, loanRateNow, bankLoanPrincipal, loanStep } from './selectors.js';
 import { decisionCanPass, isFreeOption, PASS_OPTION } from './engine.js';
 import { act, canEndTurn, endTurn } from './match.js';
@@ -23,7 +24,7 @@ function coverShortfall(engine, s, need) {
   // Take the smallest loan(s) that cover `need` extra cash, if allowed.
   while (need > 0 && maxLoan(s) > 0) {
     const amt = Math.min(maxLoan(s), Math.ceil(need / loanStep(s)) * loanStep(s));
-    s = engine.takeLoan(s, amt);
+    s = engine.dispatch(s, { type: 'takeLoan', amount: amt });
     need -= amt;
   }
   return s;
@@ -49,8 +50,8 @@ function decideBot(engine, s, cfg) {
     return { id, gain, used, borrowed, n };
   });
   if (cfg.maxPayback < 0) { // alwaysPass
-    if (free) return engine.decide(s, free);
-    return engine.decide(s, scored.sort((a, b) => a.borrowed - b.borrowed)[0].id);
+    if (free) return engine.dispatch(s, { type: 'decide', option: free });
+    return engine.dispatch(s, { type: 'decide', option: scored.sort((a, b) => a.borrowed - b.borrowed)[0].id });
   }
   const ok = scored.filter((x) => {
     if (x.borrowed > 0 && !cfg.borrow && card.square !== 'expense') return false;
@@ -64,16 +65,16 @@ function decideBot(engine, s, cfg) {
     // pay from cash when the reserve allows it, else the cheapest loan
     const cashFirst = ok.filter((x) => x.borrowed === 0 && x.n.cash >= reserve);
     const pick = cashFirst[0] ?? ok.sort((a, b) => a.borrowed - b.borrowed)[0];
-    return engine.decide(s, pick.id);
+    return engine.dispatch(s, { type: 'decide', option: pick.id });
   }
   // the reckless bots (no payback limit) commit the most money they can (cash + new debt), like they buy every deal
   if (cfg.maxPayback === Infinity) {
     const big = scored.filter((x) => x.used + x.borrowed > 0).sort((a, b) => (b.used + b.borrowed) - (a.used + a.borrowed) || b.gain - a.gain)[0];
-    if (big) return engine.decide(s, big.id);
+    if (big) return engine.dispatch(s, { type: 'decide', option: big.id });
   }
   const best = ok.filter((x) => x.gain > 0).sort((a, b) => b.gain - a.gain)[0];
-  if (best) return engine.decide(s, best.id);
-  return engine.decide(s, free ?? scored[0].id);
+  if (best) return engine.dispatch(s, { type: 'decide', option: best.id });
+  return engine.dispatch(s, { type: 'decide', option: free ?? scored[0].id });
 }
 
 /** Plays one decision. Returns the new state. */
@@ -81,7 +82,7 @@ export function step(engine, s, bot) {
   const cfg = BOTS[bot];
   const p = s.pending;
   if (s.phase === 'roll') {
-    return engine.roll(s);
+    return engine.dispatch(s, { type: 'roll' });
   }
   if (p.kind === 'shortfall' || p.kind === 'expense') {
     const need = p.kind === 'expense' ? p.amount - s.cash : -s.cash;
@@ -89,9 +90,9 @@ export function step(engine, s, bot) {
     if (n === s) {
       // cannot borrow: sell things (full mode)
       for (const a of s.assets) {
-        if (n.pending && n.cash < (p.amount ?? 0) && n.mode === 'full') n = engine.sellAsset(n, a.id);
+        if (n.pending && n.cash < (p.amount ?? 0) && n.mode === 'full') n = engine.dispatch(n, { type: 'sellAsset', id: a.id });
       }
-      if (n === s) return engine.takeLoan(s, loanStep(s)); // will throw if impossible
+      if (n === s) return engine.dispatch(s, { type: 'takeLoan', amount: loanStep(s) }); // will throw if impossible
     }
     return n;
   }
@@ -105,41 +106,41 @@ export function step(engine, s, bot) {
       const renoPayback = reno.gain > 0 ? reno.cost / reno.gain : Infinity;
       const cardPayback = c.type !== 'stock' && c.monthlyCashFlow > 0 ? c.downPayment / c.monthlyCashFlow : Infinity;
       const wants = cfg.maxPayback === Infinity || (renoPayback <= cfg.maxPayback && renoPayback <= cardPayback);
-      if (wants) return engine.renovate(s, reno.assetId, reno.style ? 'terrace' : null);
+      if (wants) return engine.dispatch(s, { type: 'renovate', assetId: reno.assetId, style: reno.style ? 'terrace' : null });
     }
     if (c.type === 'stock') {
       const afford = Math.floor((s.cash - reserve) / c.price);
       const qty = Math.min(afford, c.maxQty ?? 1000);
       const stockPayback = c.dividend > 0 ? c.price / c.dividend : Infinity; // months
-      return qty >= 1 && stockPayback <= cfg.maxPayback ? engine.buy(s, qty) : engine.pass(s);
+      return qty >= 1 && stockPayback <= cfg.maxPayback ? engine.dispatch(s, { type: 'buy', qty }) : engine.dispatch(s, { type: 'pass' });
     }
     const payback = c.monthlyCashFlow > 0 ? c.downPayment / c.monthlyCashFlow : Infinity;
-    if (payback > cfg.maxPayback) return engine.pass(s);
+    if (payback > cfg.maxPayback) return engine.dispatch(s, { type: 'pass' });
     let n = s;
     if (s.cash - c.downPayment < reserve) {
-      if (!cfg.borrow) return engine.pass(s);
+      if (!cfg.borrow) return engine.dispatch(s, { type: 'pass' });
       const need = c.downPayment - s.cash;
       if (need > 0) {
         const loanNeeded = Math.ceil(need / loanStep(s)) * loanStep(s);
-        if (loanNeeded > maxLoan(s)) return engine.pass(s);
+        if (loanNeeded > maxLoan(s)) return engine.dispatch(s, { type: 'pass' });
         // only borrow if the deal still improves cash flow after the loan payment (the over-borrowing bots skip this check)
-        if (!cfg.overBorrow && c.monthlyCashFlow - loanNeeded * loanRateNow(s) <= 0) return engine.pass(s);
-        n = engine.takeLoan(s, cfg.overBorrow === 'max' ? maxLoan(s) : loanNeeded);
+        if (!cfg.overBorrow && c.monthlyCashFlow - loanNeeded * loanRateNow(s) <= 0) return engine.dispatch(s, { type: 'pass' });
+        n = engine.dispatch(s, { type: 'takeLoan', amount: cfg.overBorrow === 'max' ? maxLoan(s) : loanNeeded });
       }
     }
-    return n.cash >= c.downPayment ? engine.buy(n) : engine.pass(n);
+    return n.cash >= c.downPayment ? engine.dispatch(n, { type: 'buy', qty: 1 }) : engine.dispatch(n, { type: 'pass' });
   }
   if (p.kind === 'offer') {
     return cfg.acceptOffers && p.card.offerPct >= cfg.acceptOffers
-      ? engine.acceptOffer(s) : engine.declineOffer(s);
+      ? engine.dispatch(s, { type: 'acceptOffer' }) : engine.dispatch(s, { type: 'declineOffer' });
   }
   if (p.kind === 'charity') {
     const reserve = cfg.reserveMonths * totalExpenses(s);
     return cfg.charity && s.cash - p.cost >= reserve && monthlyCashFlow(s) >= 0
-      ? engine.donate(s) : engine.declineCharity(s);
+      ? engine.dispatch(s, { type: 'donate' }) : engine.dispatch(s, { type: 'declineCharity' });
   }
   if (p.kind === 'decision') return decideBot(engine, s, cfg);
-  if (p.kind === 'taxAudit') return engine.answerAudit(s, { questionId: null, correct: null }); // knowledge only: never money
+  if (p.kind === 'taxAudit') return engine.dispatch(s, { type: 'answerAudit', questionId: null, correct: null }); // knowledge only: never money
   throw new Error(`bot cannot handle ${p.kind}`);
 }
 

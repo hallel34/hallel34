@@ -5,34 +5,26 @@
 // Opt-in: a game created with `daily` uses these; every normal game keeps its seeded rng exactly as before.
 import { EngineError } from './engine.js';
 import { netWorth } from './selectors.js';
+import { hashString, unit } from './rng.js';
+import { DAILY_RNG_V2_FROM } from './config.js';
 
 /** Turn 40 resolved without financial freedom = the day's challenge is over ("not this time"). */
 export const DAILY_TURN_CAP = 40;
 export const DAILY_MODE = 'family';
 
-/** FNV-1a 32 bit over the UTF-16 code units, finished with a murmur-style avalanche. Stable across platforms. */
-export function hashString(str) {
-  let h = 0x811C9DC5;
-  const s = String(str);
-  for (let i = 0; i < s.length; i++) {
-    h ^= s.charCodeAt(i);
-    h = Math.imul(h, 0x01000193) >>> 0;
-  }
-  h ^= h >>> 16; h = Math.imul(h, 0x85EBCA6B) >>> 0;
-  h ^= h >>> 13; h = Math.imul(h, 0xC2B2AE35) >>> 0;
-  h ^= h >>> 16;
-  return h >>> 0;
-}
+// hashString / unit moved to rng.js (v0.5): the same code, re-exported so every daily value stays byte-identical.
+export { hashString } from './rng.js';
 
 export const isDateKey = (s) => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s);
+
+/** The engine RNG version of the daily challenge of a date: 1 before DAILY_RNG_V2_FROM (unchanged streams), 2 from it on. */
+export const dailyRngVersion = (dateKey) => (String(dateKey) >= DAILY_RNG_V2_FROM ? 2 : 1);
 
 /** Seed of a local calendar date 'YYYY-MM-DD' (always a positive 32 bit integer). */
 export function dailySeed(dateKey) {
   if (!isDateKey(dateKey)) throw new EngineError(`bad date key ${dateKey}`);
   return hashString(`passivo-daily|${dateKey}`) || 1;
 }
-
-const unit = (seed, tag, i, k) => hashString(`${seed}|${tag}|${i}|${k}`) / 4294967296;
 
 /** Die k (0 = the first, 1 = the second die of a charity turn) of turn `turn`, 1-6. */
 export const dailyDie = (seed, turn, k = 0) => 1 + Math.floor(unit(seed, 'die', turn, k) * 6);
@@ -73,31 +65,28 @@ export function dailyResult(state) {
   };
 }
 
-const APPLY = {
-  roll: (e, s) => e.roll(s),
-  buy: (e, s, qty) => e.buy(s, qty),
-  pass: (e, s) => e.pass(s),
-  acceptOffer: (e, s) => e.acceptOffer(s),
-  declineOffer: (e, s) => e.declineOffer(s),
-  donate: (e, s) => e.donate(s),
-  declineCharity: (e, s) => e.declineCharity(s),
-  takeLoan: (e, s, amount) => e.takeLoan(s, amount),
-  repayLoan: (e, s, id, amount) => e.repayLoan(s, id, amount),
-  sellAsset: (e, s, id, qty) => e.sellAsset(s, id, qty),
-  forfeit: (e, s) => e.forfeit(s),
-  decide: (e, s, optionId) => e.decide(s, optionId),
-  answerAudit: (e, s, answer) => e.answerAudit(s, answer),
-  renovate: (e, s, assetId, level, style) => e.renovate(s, assetId, style ?? undefined),
-  auctionWin: (e, s, card, price) => e.auctionWin(s, card, price),
+// v0.5: the daily's stored v2.5 log entries ([name, ...args]) map onto the engine's dispatch actions (one table for every game).
+const LEGACY = {
+  roll: () => ({ type: 'roll' }),
+  buy: (qty) => ({ type: 'buy', qty }),
+  takeLoan: (amount) => ({ type: 'takeLoan', amount }),
+  repayLoan: (id, amount) => ({ type: 'repayLoan', id, amount }),
+  sellAsset: (id, qty) => ({ type: 'sellAsset', id, qty }),
+  decide: (option) => ({ type: 'decide', option }),
+  answerAudit: (answer) => ({ type: 'answerAudit', ...(answer ?? {}) }),
+  renovate: (assetId, level, style) => ({ type: 'renovate', assetId, level, style }),
+  chooseDeal: (cardId) => ({ type: 'chooseDeal', cardId }),
+};
+const SIMPLE = ['pass', 'acceptOffer', 'declineOffer', 'donate', 'declineCharity', 'forfeit', 'armReroll'];
+export const legacyAction = ([name, ...args]) => {
+  if (LEGACY[name]) return LEGACY[name](...args);
+  if (SIMPLE.includes(name)) return { type: name };
+  throw new EngineError(`unknown action ${name}`);
 };
 
 /** Re-runs a daily game from its date and action log. The server-side check of a score is exactly this. */
 export function replayDaily(engine, { date, actionsLog }) {
   let s = newDailyGame(engine, date);
-  for (const [name, ...args] of actionsLog) {
-    const fn = APPLY[name];
-    if (!fn) throw new EngineError(`unknown action ${name}`);
-    s = fn(engine, s, ...args);
-  }
+  for (const entry of actionsLog) s = engine.dispatch(s, legacyAction(entry));
   return s;
 }

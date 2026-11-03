@@ -1,0 +1,521 @@
+{
+ "schemaVersion": 8,
+ "kind": "match",
+ "mode": "full",
+ "seed": 424242,
+ "players": [
+  {
+   "id": "p1",
+   "name": "דנה",
+   "color": 1,
+   "professionId": "engineer",
+   "age": null,
+   "bot": null,
+   "state": {
+    "schemaVersion": 8,
+    "mode": "full",
+    "seed": 424242,
+    "rngState": 496801218,
+    "profession": {
+     "id": "engineer",
+     "title": "מהנדס/ת",
+     "salary": 12500,
+     "perChild": 600,
+     "expenses": [
+      {
+       "id": "tax",
+       "label": "מסים וביטוח לאומי",
+       "amount": 1950
+      },
+      {
+       "id": "housing",
+       "label": "שכר דירה",
+       "amount": 4500
+      },
+      {
+       "id": "food",
+       "label": "סופר ואוכל",
+       "amount": 1500
+      },
+      {
+       "id": "transport",
+       "label": "תחבורה",
+       "amount": 700
+      },
+      {
+       "id": "other",
+       "label": "כושר, בילויים ושונות",
+       "amount": 800
+      }
+     ]
+    },
+    "cash": 91800,
+    "assets": [],
+    "liabilities": [
+     {
+      "id": "car",
+      "label": "הלוואת רכב",
+      "debt": "car",
+      "principal": 40000,
+      "monthlyPayment": 800,
+      "kind": "base"
+     },
+     {
+      "id": "student",
+      "label": "הלוואת סטודנט",
+      "debt": "student",
+      "principal": 20000,
+      "monthlyPayment": 200,
+      "kind": "base"
+     }
+    ],
+    "kids": 1,
+    "position": 3,
+    "turn": 7,
+    "rerollTokens": 0,
+    "rerollArmed": false,
+    "lap": 1,
+    "effects": [],
+    "milestones": [],
+    "taxAudit": {
+     "points": 0,
+     "asked": []
+    },
+    "charityTurns": 0,
+    "stockPrices": {
+     "ELM": 750
+    },
+    "decks": {
+     "opportunity": [
+      "opp-apt-005",
+      "opp-biz-008",
+      "dec-006",
+      "opp-biz-015",
+      "opp-apt-008",
+      "dec-005",
+      "opp-apt-013",
+      "opp-biz-012",
+      "opp-stk-003",
+      "opp-apt-009",
+      "opp-biz-005",
+      "opp-apt-016",
+      "opp-biz-004",
+      "opp-apt-010",
+      "dec-002",
+      "opp-biz-014",
+      "opp-apt-011",
+      "opp-biz-002",
+      "opp-apt-007",
+      "opp-apt-003",
+      "dec-001",
+      "opp-apt-015",
+      "opp-biz-006",
+      "dec-008",
+      "opp-biz-009",
+      "dec-007",
+      "opp-apt-002",
+      "dec-009",
+      "opp-biz-016",
+      "opp-apt-004",
+      "dec-003",
+      "opp-biz-011",
+      "opp-stk-001",
+      "opp-stk-002",
+      "opp-biz-010",
+      "opp-apt-001",
+      "opp-apt-012",
+      "opp-biz-007",
+      "opp-apt-014",
+      "opp-biz-001",
+      "opp-biz-003",
+      "opp-apt-006"
+     ],
+     "expense": [
+      "exp-011",
+      "exp-001",
+      "exp-010",
+      "exp-013",
+      "exp-005",
+      "exp-014",
+      "exp-003",
+      "exp-007",
+      "exp-006",
+      "exp-009",
+      "exp-015",
+      "exp-004",
+      "exp-012",
+      "exp-008",
+      "dec-004",
+      "exp-002"
+     ],
+     "market": [
+      "mkt-016",
+      "mkt-001",
+      "mkt-002",
+      "mkt-015",
+      "mkt-007",
+      "mkt-005",
+      "mkt-013",
+      "mkt-003",
+      "mkt-009",
+      "mkt-008",
+      "mkt-011",
+      "mkt-017",
+      "mkt-010",
+      "mkt-014"
+     ]
+    },
+    "pending": null,
+    "phase": "roll",
+    "status": "playing",
+    "lastRoll": {
+     "dice": [
+      3
+     ],
+     "steps": 3
+    },
+    "events": [
+     {
+      "type": "move",
+      "from": 0,
+      "to": 3,
+      "dice": [
+       3
+      ],
+      "steps": 3,
+      "path": [
+       1,
+       2,
+       3
+      ]
+     },
+     {
+      "type": "square",
+      "square": "market"
+     },
+     {
+      "type": "market",
+      "card": {
+       "id": "mkt-006",
+       "deck": "market",
+       "modes": [
+        "full"
+       ],
+       "effect": "stockPrice",
+       "title": "קיץ חם במיוחד",
+       "text": "כל המזגנים נמכרו עד האחרון. מניית חם-קר מזנקת.",
+       "symbol": "ELM",
+       "newPrice": 750
+      }
+     }
+    ],
+    "seq": 0,
+    "stats": {
+     "paydays": 4,
+     "dealsBought": 0,
+     "dealsSold": 0,
+     "loansTaken": 0,
+     "donations": 0,
+     "expensesPaid": 0,
+     "peakPassive": 0,
+     "totalPaid": 0,
+     "interestPaid": 0
+    },
+    "learn": {
+     "decisions": [
+      {
+       "turn": 5,
+       "kind": "pass",
+       "cardId": "opp-biz-013",
+       "title": "אפליקציה של הבן של השכן",
+       "type": "business",
+       "tier": "bad",
+       "years": 20,
+       "yieldPct": 5,
+       "cf": 500,
+       "down": 120000,
+       "afford": false,
+       "green": true
+      }
+     ],
+     "guesses": [],
+     "concepts": [],
+     "shown": []
+    }
+   }
+  },
+  {
+   "id": "p2",
+   "name": "",
+   "color": 2,
+   "professionId": "teacher",
+   "age": null,
+   "bot": "sensible",
+   "state": {
+    "schemaVersion": 8,
+    "mode": "full",
+    "seed": 432161,
+    "rngState": 3528105093,
+    "profession": {
+     "id": "teacher",
+     "title": "מורה",
+     "salary": 8800,
+     "perChild": 450,
+     "expenses": [
+      {
+       "id": "tax",
+       "label": "מסים וביטוח לאומי",
+       "amount": 900
+      },
+      {
+       "id": "housing",
+       "label": "שכר דירה",
+       "amount": 3500
+      },
+      {
+       "id": "food",
+       "label": "סופר ואוכל",
+       "amount": 1300
+      },
+      {
+       "id": "transport",
+       "label": "תחבורה",
+       "amount": 500
+      },
+      {
+       "id": "other",
+       "label": "חוגים, פלאפון ושונות",
+       "amount": 600
+      }
+     ]
+    },
+    "cash": 52300,
+    "assets": [
+     {
+      "id": "asset-1",
+      "cardId": "opp-biz-002",
+      "type": "business",
+      "title": "עגלת קפה ברכבת",
+      "category": "coffee",
+      "price": 173000,
+      "downPayment": 86000,
+      "mortgage": 87000,
+      "monthlyCashFlow": 1950,
+      "loanPayment": 1510
+     }
+    ],
+    "liabilities": [
+     {
+      "id": "car",
+      "label": "הלוואת רכב",
+      "debt": "car",
+      "principal": 18000,
+      "monthlyPayment": 360,
+      "kind": "base"
+     },
+     {
+      "id": "card",
+      "label": "חוב בכרטיס אשראי",
+      "debt": "card",
+      "principal": 5000,
+      "monthlyPayment": 150,
+      "kind": "base"
+     }
+    ],
+    "kids": 0,
+    "position": 12,
+    "turn": 7,
+    "rerollTokens": 0,
+    "rerollArmed": false,
+    "lap": 1,
+    "effects": [],
+    "milestones": [
+     25
+    ],
+    "taxAudit": {
+     "points": 0,
+     "asked": [
+      {
+       "turn": 7,
+       "questionId": null,
+       "correct": null
+      }
+     ]
+    },
+    "charityTurns": 0,
+    "stockPrices": {},
+    "decks": {
+     "opportunity": [
+      "opp-stk-003",
+      "opp-apt-014",
+      "dec-008",
+      "opp-apt-007",
+      "opp-apt-012",
+      "dec-005",
+      "opp-apt-001",
+      "opp-biz-005",
+      "opp-apt-015",
+      "opp-apt-003",
+      "opp-biz-016",
+      "opp-biz-015",
+      "dec-007",
+      "opp-biz-007",
+      "opp-apt-010",
+      "opp-apt-013",
+      "opp-biz-012",
+      "opp-biz-006",
+      "dec-009",
+      "dec-001",
+      "dec-002",
+      "opp-apt-006",
+      "opp-stk-001",
+      "opp-biz-008",
+      "dec-006",
+      "opp-biz-011",
+      "opp-biz-004",
+      "opp-stk-002",
+      "opp-apt-002",
+      "opp-biz-013",
+      "opp-biz-014",
+      "opp-biz-003",
+      "opp-apt-009",
+      "opp-apt-008",
+      "opp-apt-004",
+      "opp-apt-005",
+      "dec-003",
+      "opp-biz-010",
+      "opp-apt-016",
+      "opp-biz-001",
+      "opp-biz-009"
+     ],
+     "expense": [
+      "dec-004",
+      "exp-013",
+      "exp-008",
+      "exp-005",
+      "exp-009",
+      "exp-001",
+      "exp-011",
+      "exp-007",
+      "exp-015",
+      "exp-002",
+      "exp-010",
+      "exp-012",
+      "exp-006",
+      "exp-003",
+      "exp-004"
+     ],
+     "market": [
+      "mkt-011",
+      "mkt-017",
+      "mkt-015",
+      "mkt-003",
+      "mkt-005",
+      "mkt-001",
+      "mkt-002",
+      "mkt-010",
+      "mkt-014",
+      "mkt-016",
+      "mkt-009",
+      "mkt-004",
+      "mkt-013",
+      "mkt-008",
+      "mkt-007",
+      "mkt-006"
+     ]
+    },
+    "pending": null,
+    "phase": "roll",
+    "status": "playing",
+    "lastRoll": {
+     "dice": [
+      4
+     ],
+     "steps": 4
+    },
+    "events": [
+     {
+      "type": "audited",
+      "questionId": null,
+      "correct": null,
+      "points": 0
+     }
+    ],
+    "seq": 1,
+    "stats": {
+     "paydays": 6,
+     "dealsBought": 1,
+     "dealsSold": 0,
+     "loansTaken": 0,
+     "donations": 1,
+     "expensesPaid": 1,
+     "peakPassive": 1950,
+     "totalPaid": 2380,
+     "interestPaid": 0
+    },
+    "learn": {
+     "decisions": [
+      {
+       "turn": 3,
+       "kind": "pass",
+       "cardId": "opp-apt-011",
+       "title": "דירה בבניין עם בריכה ושומר",
+       "type": "apartment",
+       "tier": "bad",
+       "years": 30.77,
+       "yieldPct": 3.25,
+       "cf": 1300,
+       "down": 480000,
+       "afford": false,
+       "green": true
+      },
+      {
+       "turn": 4,
+       "kind": "expense",
+       "cardId": "exp-014",
+       "amount": 1500,
+       "viaLoan": false,
+       "viaSale": false,
+       "loanAmount": 0,
+       "green": true
+      },
+      {
+       "turn": 6,
+       "kind": "buy",
+       "cardId": "opp-biz-002",
+       "title": "עגלת קפה ברכבת",
+       "type": "business",
+       "tier": "good",
+       "years": 3.68,
+       "yieldPct": 27.21,
+       "cf": 1950,
+       "down": 86000,
+       "green": true
+      }
+     ],
+     "guesses": [],
+     "concepts": [],
+     "shown": []
+    }
+   }
+  }
+ ],
+ "currentIndex": 0,
+ "turns": 14,
+ "turnMark": 7,
+ "status": "playing",
+ "winnerIndex": null,
+ "auction": null,
+ "lastAuction": {
+  "cardId": "opp-apt-012",
+  "title": "דירה עם משכנתא \"נוחה\"",
+  "winner": null,
+  "price": 0,
+  "history": [
+   {
+    "player": 0,
+    "bid": null
+   }
+  ]
+ }
+}

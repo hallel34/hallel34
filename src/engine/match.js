@@ -39,10 +39,11 @@ export const seesCoins = (m, player) => !!m?.junior && cleanAge(player?.age) ===
 
 /**
  * @param engine createEngine(...) result
+ * @param rngVersion null = the engine default (2; the daily follows its date); 1 only for tests / measurements.
  * @param players [{ name?, professionId, age?, bot? }] 1-4 entries; an empty name means "use the default label" (UI side).
  *   `bot` (a BOTS policy name) marks a seat the device plays itself (schema 7).
  */
-export function newMatch(engine, { mode = 'full', players, seed = 1, daily = null, roundCap = null } = {}) {
+export function newMatch(engine, { mode = 'full', players, seed = 1, daily = null, roundCap = null, rngVersion = null } = {}) {
   if (!Array.isArray(players) || players.length < MIN_PLAYERS || players.length > MAX_PLAYERS) {
     fail(`a match needs ${MIN_PLAYERS}-${MAX_PLAYERS} players`);
   }
@@ -64,7 +65,7 @@ export function newMatch(engine, { mode = 'full', players, seed = 1, daily = nul
       professionId: p.professionId,
       age: daily ? null : cleanAge(p.age), // schema 6
       bot: typeof p.bot === 'string' && p.bot ? p.bot : null, // schema 7: a seat the device plays itself
-      state: engine.newGame({ mode, professionId: p.professionId, seed: seed + i * SEED_STEP, ...(daily ? { daily } : {}), ...(junior ? { junior: true } : {}) }),
+      state: engine.newGame({ mode, professionId: p.professionId, seed: seed + i * SEED_STEP, ...(daily ? { daily } : {}), ...(junior ? { junior: true } : {}), ...(rngVersion ? { rngVersion } : {}) }),
     })),
     currentIndex: 0,
     turns: 0, // completed turns across all players

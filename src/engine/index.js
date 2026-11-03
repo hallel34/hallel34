@@ -1,4 +1,4 @@
-export { createEngine, EngineError, emptyTaxAudit, PASS_OPTION, isFreeOption, decisionCanPass } from './engine.js';
+export { createEngine, rngVersionOf, DECKS, DEAL_TIERS, dealTierIndex, EngineError, emptyTaxAudit, PASS_OPTION, isFreeOption, decisionCanPass } from './engine.js';
 export * from './selectors.js';
 export * from './config.js';
 export { serialize, deserialize } from './save.js';
@@ -10,3 +10,4 @@ export * from './match.js';
 export * from './learn.js';
 export * from './daily.js';
 export { cardView, hasFamilyWording } from './card-view.js';
+export * from './rng.js';

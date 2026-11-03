@@ -13,6 +13,10 @@ import { loadData } from '../src/data/index.js';
 
 const data = loadData('he');
 const engine = createEngine(data);
+// v0.5 (docs/v4/test-changes.md): these cases put chosen cards on top of the v1 deck arrays (state.decks), so their games
+// are rngVersion 1 (the single stream + piles, what every pre-v0.5 save keeps). rngVersion 2 draws: tests/rng.test.js.
+const newGameV2 = engine.newGame;
+engine.newGame = (opts = {}) => newGameV2({ rngVersion: 1, ...opts });
 const card = (id) => data.cards.find((c) => c.id === id);
 const idx = (type, nth = 0) => BOARD.map((t, i) => (t === type ? i : -1)).filter((i) => i >= 0)[nth];
 const FAMILY_MARKET = data.cards.filter((c) => c.deck === 'market' && TIMED_EFFECT_KINDS.includes(c.effect));
@@ -44,7 +48,7 @@ describe('economy constants (config)', () => {
     expect(PRICE_INFLATION_PER_LAP).toBe(1.08);
     expect(EXPENSE_INFLATION_PER_LAP).toBe(1.0);
     expect(DAILY_INFLATION_FACTOR).toBe(1.0);
-    expect(SCHEMA_VERSION).toBe(8);
+    expect(SCHEMA_VERSION).toBe(9);
   });
   it('a payday pays monthly cash flow x 12', () => {
     const s = engine.newGame({ mode: 'family', professionId: 'teacher', seed: 3 });
@@ -285,12 +289,12 @@ describe('save schema 4: a v2.5 save (schema 3) loads and plays on', () => {
     const old = JSON.parse(fixture);
     expect(old.schemaVersion).toBe(3);
     const m = deserialize(fixture);
-    expect(m.schemaVersion).toBe(8);
+    expect(m.schemaVersion).toBe(9);
     m.players.forEach((p, i) => {
-      expect(p.state.schemaVersion).toBe(8);
+      expect(p.state.schemaVersion).toBe(9);
       expect(p.state.lap).toBe(0);
       expect(p.state.effects).toEqual([]);
-      const { lap, effects, schemaVersion, milestones, taxAudit, rerollTokens, ...rest } = p.state;
+      const { lap, effects, schemaVersion, milestones, taxAudit, rerollTokens, rngVersion, ...rest } = p.state;
       const { schemaVersion: oldVersion, ...oldRest } = old.players[i].state;
       expect(rest).toEqual(oldRest);
     });
@@ -309,7 +313,7 @@ describe('save schema 4: a v2.5 save (schema 3) loads and plays on', () => {
     }
     expect(m.turns > start || m.status !== 'playing').toBe(true);
     const back = deserialize(serialize(m));
-    expect(back.schemaVersion).toBe(8);
+    expect(back.schemaVersion).toBe(9);
     expect(currentState(back)).toEqual(currentState(m));
     expect(m.players.some((p) => p.state.lap > 0)).toBe(true);
   });

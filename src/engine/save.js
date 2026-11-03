@@ -78,6 +78,17 @@ const migrations = {
       ? m.players.map((p) => (p?.state ? { ...p, state: { ...p.state, schemaVersion: 8, rerollTokens: p.state.rerollTokens ?? 0 } } : p))
       : m.players,
   }),
+
+  // 8 -> 9 (v0.5 keyed RNG, docs/RNG.md): every player's state gets `rngVersion`. A save from v0.4 or earlier is a
+  // version-1 game: it keeps its mulberry32 stream (rngState) and its deck arrays, so a game in progress plays on exactly
+  // as it would have. Its action log starts at the load (`log` is created by the first dispatched action).
+  8: (m) => ({
+    ...m,
+    schemaVersion: 9,
+    players: Array.isArray(m.players)
+      ? m.players.map((p) => (p?.state ? { ...p, state: { ...p.state, schemaVersion: 9, rngVersion: p.state.rngVersion ?? 1 } } : p))
+      : m.players,
+  }),
 };
 
 export function serialize(match) {

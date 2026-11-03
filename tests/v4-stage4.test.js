@@ -13,6 +13,10 @@ import { pruneLearn } from '../scripts/prune-learn.js';
 
 const data = loadData('he');
 const engine = createEngine(data);
+// v0.5 (docs/v4/test-changes.md): these cases put chosen cards on top of the v1 deck arrays (state.decks), so their games
+// are rngVersion 1 (the single stream + piles, what every pre-v0.5 save keeps). rngVersion 2 draws: tests/rng.test.js.
+const newGameV2 = engine.newGame;
+engine.newGame = (opts = {}) => newGameV2({ rngVersion: 1, ...opts });
 const card = (id) => data.cards.find((c) => c.id === id);
 const DECISIONS = data.cards.filter((c) => c.deck === 'decision');
 
@@ -200,17 +204,17 @@ describe('milestones 25% / 50% (once per game, kept in the save)', () => {
     expect(back.players[0].state.milestones).toEqual([25]);
   });
   it('schema 5: the v2.5 fixture (schema 3) migrates through 4 to 5 with milestones and an empty tax-audit record', () => {
-    expect(SCHEMA_VERSION).toBe(8);
+    expect(SCHEMA_VERSION).toBe(9);
     const fixture = readFileSync(new URL('./fixtures/save-v2.5-schema3.json', import.meta.url), 'utf8');
     const old = JSON.parse(fixture);
     const m = deserialize(fixture);
-    expect(m.schemaVersion).toBe(8);
+    expect(m.schemaVersion).toBe(9);
     m.players.forEach((p, i) => {
-      expect(p.state.schemaVersion).toBe(8);
+      expect(p.state.schemaVersion).toBe(9);
       expect(p.state.taxAudit).toEqual({ points: 0, asked: [] });
       const ratio = passiveIncome(p.state) / totalExpenses(p.state);
       expect(p.state.milestones).toEqual(MILESTONES.filter((x) => ratio * 100 >= x)); // already passed = already shown
-      const { lap, effects, milestones, taxAudit, schemaVersion, rerollTokens, ...rest } = p.state;
+      const { lap, effects, milestones, taxAudit, schemaVersion, rerollTokens, rngVersion, ...rest } = p.state;
       const { schemaVersion: v, ...oldRest } = old.players[i].state;
       expect(rest).toEqual(oldRest);
     });
