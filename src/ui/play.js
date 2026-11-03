@@ -38,7 +38,7 @@ import { eyeModel } from '../learn/guess.js';
 import { earnBadge } from '../learn/store.js';
 import { guessEnabled } from './prefs.js';
 import {
-  recordGuess, guessForCard, unlockConcept, markShown, hasShown, isDeal, purchaseCashFlow,
+  guessForCard, unlockConcept, markShown, hasShown, isDeal, purchaseCashFlow,
 } from '../engine/learn.js';
 import { REACTIONS, LAND_REACTION, tipIndexForTurn } from './fox-rules.js';
 import { summaryCard } from './summary-card.js';
@@ -250,7 +250,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   // owner 2026-10-26: no die icon inside the button (the plaza die above it is the die)
   const rollBtn = button([rollLabel], { variant: 'primary', cls: 'btn-roll', 'data-action': 'roll', onClick: () => turn() });
   // v0.4: the reroll-token toggle sits under the roll button — visible only while a token is held and a roll is due
-  const rerollBtn = button('', { variant: 'secondary', cls: 'btn-reroll', 'data-action': 'reroll', hidden: true, onClick: () => { if (apply((s) => engine.armReroll(s))) refreshRerollBtn(); } });
+  const rerollBtn = button('', { variant: 'secondary', cls: 'btn-reroll', 'data-action': 'reroll', hidden: true, onClick: () => { if (apply((s) => engine.dispatch(s, { type: 'armReroll' }))) refreshRerollBtn(); } });
   const actions = h('div', { class: 'board-actions' }, rollBtn, rerollBtn);
   function refreshRerollBtn() {
     const n = state.rerollTokens ?? 0;
@@ -916,7 +916,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     priorPrices = { ...state.stockPrices };
     haptic('roll'); sound('roll');
     let next;
-    try { next = engine.roll(state); } catch (e) { console.error(e); setBusy(false); return; }
+    try { next = engine.dispatch(state, { type: 'roll' }); } catch (e) { console.error(e); setBusy(false); return; }
     try {
       await playTurn(next);
     } catch (e) {
@@ -1071,7 +1071,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     turnLog = [];
     priorPrices = { ...state.stockPrices };
     let next;
-    try { next = engine.roll(state); } catch (e) { console.error(e); setBusy(false); return; }
+    try { next = engine.dispatch(state, { type: 'roll' }); } catch (e) { console.error(e); setBusy(false); return; }
     const move = next.events.find((e) => e.type === 'move');
     if (move) {
       await dice.roll(move.dice);
@@ -1217,14 +1217,14 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     flow.trigger('loan');
     // a loan that buys the pending card: the dialog shows the state right after the purchase (the asset's cash flow counts)
     const amount = await loanDialog(state, { required, gain: card ? purchaseCashFlow(card, qty) : null, hint: loanHintFor() });
-    if (amount) apply((s) => engine.takeLoan(s, amount));
+    if (amount) apply((s) => engine.dispatch(s, { type: 'takeLoan', amount }));
     return !!amount;
   }
 
   async function sellFlow({ autoClose = false } = {}) {
     await sellSheet(
       () => state,
-      (id, qty) => { apply((s) => engine.sellAsset(s, id, qty)); return state; },
+      (id, qty) => { apply((s) => engine.dispatch(s, { type: 'sellAsset', id, qty })); return state; },
       { shouldClose: (s) => autoClose && (s.status !== 'playing' || s.phase !== 'mustPay' || s.assets.length === 0) },
     );
   }
@@ -1240,7 +1240,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
       enabled: true, seed, prior: guessForCard(state, card.id), intro,
       eye: () => eye(true),
       onGuess: (pick, light) => {
-        state = recordGuess(state, { cardId: card.id, light, guess: pick });
+        state = engine.dispatch(state, { type: 'guess', cardId: card.id, light, guess: pick }); // a right guess discounts the buy: logged
         const model = eye(hasShown(state, 'badge:eye'));
         if (model.justEarned) { state = markShown(state, 'badge:eye'); earnBadge('investor_eye'); haptic('win'); sound('win'); }
         commit();
@@ -1262,8 +1262,8 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
         if (p.alt && !p.chosen) {
           const choice = await dealChoiceModal(state);
           if (!choice) break; // closed by debug force
-          if (choice.action === 'pass') { if (apply((s) => engine.pass(s))) await maybeAuction(p.card); continue; }
-          if (choice.action === 'choose') { if (!apply((s) => engine.chooseDeal(s, choice.cardId))) break; continue; }
+          if (choice.action === 'pass') { if (apply((s) => engine.dispatch(s, { type: 'pass' }))) await maybeAuction(p.card); continue; }
+          if (choice.action === 'choose') { if (!apply((s) => engine.dispatch(s, { type: 'chooseDeal', cardId: choice.cardId }))) break; continue; }
           continue;
         }
         flow.trigger('opportunity', { card: p.card });
@@ -1276,7 +1276,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
         if (tour) flow.trigger('reveal'); // the numbers were shown without a guess: the yield / payback explainers may follow
         if (!r) break; // closed by debug force
         const bought = async (qty) => {
-          if (!apply((s) => engine.buy(s, qty))) return;
+          if (!apply((s) => engine.dispatch(s, { type: 'buy', qty }))) return;
           // v0.4: a correct guess paid off in cash — say so in the log, the discount is already in the price paid
           const bev = state.events.find((e) => e.type === 'bought');
           if (bev?.discount) pushLog(tn('card.guessDiscountLog', { amount: money(bev.discount) }), 'good');
@@ -1287,12 +1287,12 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
           if (altPassed) await maybeAuction(altPassed.card);
         };
         if (r.action === 'buy') await bought(r.qty);
-        else if (r.action === 'pass') { if (apply((s) => engine.pass(s))) await maybeAuction(p.card); }
+        else if (r.action === 'pass') { if (apply((s) => engine.dispatch(s, { type: 'pass' }))) await maybeAuction(p.card); }
         else if (r.action === 'renovate' && renoOpt) {
           // Renovating instead of deciding on the card. Level 2 asks the style first; cancelling reopens the card.
           const style = renoOpt.style ? await renovateStyleSheet() : null;
           if (renoOpt.style && !style) continue;
-          if (apply((s) => engine.renovate(s, renoOpt.assetId, style))) {
+          if (apply((s) => engine.dispatch(s, { type: 'renovate', assetId: renoOpt.assetId, style }))) {
             const ev = state.events.find((e) => e.type === 'renovated');
             if (ev) {
               pushLog(t('reno.log', { title: ev.title, level: ev.level }), 'good'); react('celebrate');
@@ -1321,17 +1321,17 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
       } else if (p.kind === 'charity') {
         r = await charityModal(state, { flip });
         if (!r) break; // closed by debug force
-        if (r.action === 'donate') apply((s) => engine.donate(s)); else apply((s) => engine.declineCharity(s));
+        if (r.action === 'donate') apply((s) => engine.dispatch(s, { type: 'donate' })); else apply((s) => engine.dispatch(s, { type: 'declineCharity' }));
       } else if (p.kind === 'offer') {
         r = await offerModal(state, { flip });
         if (!r) break; // closed by debug force
-        if (r.action === 'accept') apply((s) => engine.acceptOffer(s)); else apply((s) => engine.declineOffer(s));
+        if (r.action === 'accept') apply((s) => engine.dispatch(s, { type: 'acceptOffer' })); else apply((s) => engine.dispatch(s, { type: 'declineOffer' }));
       } else if (p.kind === 'decision') {
         // v4 stage 4: a decision card; its option's fox line follows in the corner guide (one note, no second feedback)
         r = await decisionModal(state, engine);
         if (!r) break; // closed by debug force
         const before = state;
-        if (apply((s) => engine.decide(s, r.option))) {
+        if (apply((s) => engine.dispatch(s, { type: 'decide', option: r.option }))) {
           pushLog(decisionLog(p.card, r.option, state.mode));
           const text = fillSlots(decisionFox(p.card, r.option, state.mode), foxSlotsText(before, state));
           flow.notes.push({ kind: 'feedback', group: 'decision', pose: 'think', tone: 'neutral', plain: text, body: feedbackNodes(decisionFox(p.card, r.option, state.mode), foxSlotsText(before, state)) });
@@ -1340,7 +1340,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
         // v4 stage 4: the tax-audit quiz; knowledge points only (the engine never moves money here)
         r = await taxAuditModal(state);
         if (!r) break; // closed by debug force
-        if (apply((s) => engine.answerAudit(s, r))) {
+        if (apply((s) => engine.dispatch(s, { type: 'answerAudit', questionId: r.questionId ?? null, correct: r.correct ?? null }))) {
           pushLog(t('taxAudit.logPoints', { points: state.taxAudit?.points ?? 0 }), r.correct ? 'good' : '');
           if (r.correct) {
             const earned = countCorrect(learnContent().quizTax, state.mode);
@@ -1378,7 +1378,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
         takeLoan: async () => { await loanFlow(0); closeIfOver(); },
         repay: async (l) => {
           const amt = await repayDialog(state, l);
-          if (amt) apply((s) => engine.repayLoan(s, l.id, amt));
+          if (amt) apply((s) => engine.dispatch(s, { type: 'repayLoan', id: l.id, amount: amt }));
           closeIfOver();
         },
         sell: async () => { await sellFlow(); closeIfOver(); },
@@ -1394,7 +1394,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   if (debugEnabled()) {
     const force = (outcome) => {
       if (state.status !== 'playing' || destroyed) return false;
-      state = engine.debugForce(state, outcome);
+      state = engine.dispatch(state, { type: 'debugForce', outcome });
       commit();
       closeAllLayers();
       refreshHud();
@@ -1422,7 +1422,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   /** Daily challenge: the attempt is used up. The day ends as 'not today' and the result screen follows. */
   function giveUp() {
     if (destroyed || !isDaily || state.status !== 'playing') return;
-    state = engine.forfeit(state);
+    state = engine.dispatch(state, { type: 'forfeit' });
     commit();
     closeAllLayers();
     refreshHud();

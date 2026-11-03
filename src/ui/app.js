@@ -5,7 +5,7 @@ import { h, clear } from './dom.js';
 import { toast } from './fx.js';
 import {
   createEngine, serialize, deserialize, newMatch, rematch, isMultiplayer, currentState, dailySeed, dailyProfessionId, DAILY_MODE, seesCoins, isJuniorSetup, JUNIOR_AGE, cleanAge,
-  SHORT_ROUNDS,
+  SHORT_ROUNDS, botProfessionId,
 } from '../engine/index.js';
 import { setCoinScale } from './format.js';
 import { loadData } from '../data/index.js';
@@ -273,11 +273,11 @@ export function createApp(host) {
     }).el });
   }
 
-  /** A bot seat picks no profession on screen: it gets one at random. */
-  const botProfession = () => professionIds[Math.floor(Math.random() * professionIds.length)];
+  // A bot seat picks no profession on screen: startNew derives one from the match seed and the seat (v0.5, docs/RNG.md),
+  // so a seed replays the same table and the bot seat never draws on Math.random.
   function goPick(i) {
     if (i >= setup.count) { startNew(); return; } // the last seats were bots (they sit at the end): every pick is done
-    if (setup.bots?.[i]) { setup.professionIds[i] = botProfession(); goPick(i + 1); return; }
+    if (setup.bots?.[i]) { setup.professionIds[i] = null; goPick(i + 1); return; }
     setLearnMode(mode); // the pick sheet speaks the mode it shows (family: the children's words, QA r18 P2-2)
     const multi = setup.count > 1;
     const junior = isJuniorSetup(mode, (setup.ages ?? []).map((age) => ({ age })));
@@ -299,8 +299,10 @@ export function createApp(host) {
   }
 
   async function startNew() {
+    const seed = nextSeed();
+    setup.professionIds = setup.professionIds.map((id, i) => (setup.bots?.[i] ? botProfessionId(seed, i, professionIds) : id));
     const m = newMatch(engine, {
-      mode, seed: nextSeed(), roundCap: setup.length === 'short' ? SHORT_ROUNDS : null,
+      mode, seed, roundCap: setup.length === 'short' ? SHORT_ROUNDS : null,
       players: setup.professionIds.map((professionId, i) => ({ name: setup.names[i], professionId, age: setup.ages?.[i] ?? null, bot: setup.bots?.[i] ?? null })),
     });
     setCoinScale(seesCoins(m, m.players[0])); // the story of a junior first game is told in coins
