@@ -502,13 +502,15 @@ function matchWithCard(engine, mode, cardId, { prof = 'teacher', cash = null } =
     const pend = currentState(m).pending;
     const card = pend?.card?.id === cardId ? pend.card : pend?.alt?.id === cardId ? pend.alt : null;
     if (card) { // v0.4: the single deal card (the second deal of the choice dropped, so the choice card does not open first)
-      return { ...m, players: m.players.map((p, i) => (i ? p : { ...p, state: { ...p.state, pending: { kind: 'opportunity', card }, ...(cash == null ? {} : { cash }) } })) };
+      const pending = pend.kind === 'opportunity' ? { kind: 'opportunity', card } : pend; // a decision card stays as it is
+      return { ...m, players: m.players.map((p, i) => (i ? p : { ...p, state: { ...p.state, pending, ...(cash == null ? {} : { cash }) } })) };
     }
   }
   const data = engine.data.cards.find((c) => c.id === cardId); // out of every stage-0 offer (v0.4 tiers): deal it as the card
   if (data) {
     const m = act(newMatch(engine, { mode, players: [{ name: 'דנה', professionId: prof }], seed: 1 }), (st) => engine.roll(st, [1]));
-    return { ...m, players: m.players.map((p, i) => (i ? p : { ...p, state: { ...p.state, pending: { kind: 'opportunity', card: structuredClone(cardView(data, mode)) }, ...(cash == null ? {} : { cash }) } })) };
+    const pending = { kind: data.deck === 'decision' ? 'decision' : 'opportunity', card: structuredClone(cardView(data, mode)) };
+    return { ...m, players: m.players.map((p, i) => (i ? p : { ...p, state: { ...p.state, pending, ...(cash == null ? {} : { cash }) } })) };
   }
   throw new Error(`no seed for ${cardId}`);
 }
@@ -1178,11 +1180,11 @@ async function testPhaseA(page) {
       // the scenario is that single deal card, so the second deal is dropped (the choice card would open first)
       const p = currentState(m).pending;
       const card = p?.card?.id === cardId ? p.card : p?.alt?.id === cardId ? p.alt : null;
-      if (card) return act(m, (st) => ({ ...st, pending: { kind: 'opportunity', card } }));
+      if (card) return act(m, (st) => ({ ...st, pending: st.pending.kind === 'opportunity' ? { kind: 'opportunity', card } : st.pending }));
     }
     // v0.4 tiers can keep a deal out of a stage-0 player's offers altogether (opp-apt-001 for an engineer): deal it as the card
     const data = engine.data.cards.find((c) => c.id === cardId);
-    if (data) return act(act(newMatch(engine, { mode, players: [{ name: 'דנה', professionId: prof }], seed: 1 }), (st) => engine.roll(st, [1])), (st) => ({ ...st, pending: { kind: 'opportunity', card: structuredClone(cardView(data, mode)) } }));
+    if (data) return act(act(newMatch(engine, { mode, players: [{ name: 'דנה', professionId: prof }], seed: 1 }), (st) => engine.roll(st, [1])), (st) => ({ ...st, pending: { kind: data.deck === 'decision' ? 'decision' : 'opportunity', card: structuredClone(cardView(data, mode)) } }));
     throw new Error(`no seed for ${cardId}`);
   };
 
