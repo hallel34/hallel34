@@ -224,6 +224,8 @@ function decide(policy) {
     if (card) {
       const kind = card.dataset.card;
       shot = `card-${kind}${kind === 'expense' && btn('pay') ? '-paid' : ''}${kind === 'opportunity' ? `-${card.dataset.kind}` : ''}`;
+      // v0.4 deal choice: two deals side by side and no "pass" button; examine the first one (its own card opens next)
+      if (kind === 'opportunity' && card.dataset.kind === 'choice' && btn('choose-a')) return out({ click: '#modal-root .layer:last-child [data-action="choose-a"]' });
       if (kind === 'opportunity' && card.dataset.guess === 'ask') {
         // 'עסקה טובה?': guess from the payback (96 months = 8 years), every 7th pick on purpose wrong, every 11th skipped
         window.__gn = (window.__gn || 0) + 1;
@@ -1034,7 +1036,8 @@ async function testBuyStates(page) {
       const cash = status === 'blocked' ? Math.max(0, c.downPayment - room - 5000) : status === 'loan' ? Math.max(0, c.downPayment - 2500) : c.downPayment + 100;
       if (status === 'blocked' && !(c.downPayment - cash > room)) continue;
       if (status === 'loan' && !(c.downPayment - cash > 0 && c.downPayment - cash <= room)) continue;
-      const m2 = { ...m, players: m.players.map((p, i) => (i ? p : { ...p, state: { ...p.state, cash } })) };
+      // v0.4: a deal comes with a second deal (the choice card opens first); these cases test the single deal card itself
+      const m2 = { ...m, players: m.players.map((p, i) => (i ? p : { ...p, state: { ...p.state, cash, pending: { kind: 'opportunity', card: c } } })) };
       if (purchasePlan(currentState(m2), c.downPayment).status !== status) continue;
       return { m: m2, card: c };
     }
@@ -1426,11 +1429,12 @@ async function testJunior(browser) {
   await page.locator('[data-mode="full"]').click();
   await page.locator('[data-action="start"]').click();
   await page.waitForSelector('[data-screen="players"]');
-  const chips = await page.evaluate(() => [...document.querySelectorAll('.age-chip')].map((c) => { const b = c.getBoundingClientRect(); return { w: b.width, h: b.height, text: c.textContent.trim() }; }));
+  const chips = await page.evaluate(() => [...document.querySelectorAll('.age-group[data-age-for] .age-chip')].map((c) => { const b = c.getBoundingClientRect(); return { w: b.width, h: b.height, text: c.textContent.trim() }; }));
   check(chips.length === 3 && chips.every((c) => c.w >= 48 && c.h >= 48), `age picker: three chips, each a 48px target (${chips.map((c) => `${c.text} ${Math.round(c.w)}x${Math.round(c.h)}`).join(', ')})`);
-  check(await page.locator('.age-group input[type="radio"]').count() === 3 && await page.locator('.age-group legend').count() === 1, 'age picker: a native radio group with a legend');
+  // v0.4: the game-length group shares the chip styles; the age picker is the fieldset of a seat ([data-age-for])
+  check(await page.locator('.age-group[data-age-for] input[type="radio"]').count() === 3 && await page.locator('.age-group[data-age-for] legend').count() === 1, 'age picker: a native radio group with a legend');
   await page.locator('.age-chip:has([data-age="upTo10"])').click();
-  const note = await page.locator('.age-note').innerText();
+  const note = await page.locator('.age-note[role="status"]').innerText();
   check(/מצב משפחה/.test(note) && /מטבע/.test(note) && /₪100/.test(note), `age "עד 10": family mode is suggested and the coin line says "כל מטבע = ₪100" (${note.replace(/\s+/g, ' ')})`);
   check(await page.evaluate(() => localStorage.getItem('passivo.mode')) === 'family', 'an age under 14 switched the mode to family');
   await noHScroll(page, 'age picker');
