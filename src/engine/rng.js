@@ -68,8 +68,13 @@ export function stableStringify(x) {
   return `{${keys.map((k) => `${JSON.stringify(k)}:${stableStringify(x[k])}`).join(',')}}`;
 }
 
-/** A stable 32-bit digest of a game state (replay checks). `events` (the last action's UI feed) is left out. */
+/**
+ * A stable 32-bit digest of a game state (replay checks). Left out: `events` (the last action's UI feed) and the learn
+ * record's presentation flags `learn.shown` / `learn.concepts` (the UI marks a note or a glossary card as seen without an
+ * action; no rule reads them), so a game played on screen and its replay hash the same.
+ */
 export function stateHash(state) {
   const { events, ...rest } = state ?? {};
+  if (rest.learn) { const { shown, concepts, ...learn } = rest.learn; rest.learn = learn; }
   return hashString(stableStringify(rest));
 }

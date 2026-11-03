@@ -63,6 +63,10 @@ describe('rng.js primitives', () => {
     expect(stateHash({ a: 1, b: [1, { c: 2, d: 3 }] })).toBe(stateHash({ b: [1, { d: 3, c: 2 }], a: 1 }));
     expect(stateHash({ a: 1, events: [1] })).toBe(stateHash({ a: 1, events: [] }));
     expect(stateHash({ a: 1 })).not.toBe(stateHash({ a: 2 }));
+    // the UI's seen-flags are not gameplay; the guesses and decisions are
+    const learn = { decisions: [], guesses: [], concepts: [], shown: [] };
+    expect(stateHash({ learn: { ...learn, shown: ['badge:eye'], concepts: ['cashflow'] } })).toBe(stateHash({ learn }));
+    expect(stateHash({ learn: { ...learn, guesses: [{ turn: 1 }] } })).not.toBe(stateHash({ learn }));
   });
 });
 
