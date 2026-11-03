@@ -25,16 +25,16 @@ const reseal = (bytes) => {
 describe('action log: encode / decode', () => {
   it('round-trips every action type and argument', () => {
     const actions = [
-      { type: 'roll' }, { type: 'roll', dice: [3, 5] }, { type: 'armReroll' }, { type: 'chooseDeal', cardId: 'opp-apt-004' },
+      { type: 'roll' }, { type: 'armReroll' }, { type: 'chooseDeal', cardId: 'opp-apt-004' },
       { type: 'guess', cardId: 'opp-apt-004', light: 'green', guess: 'good' }, { type: 'guess', cardId: 'opp-biz-002', light: null, guess: 'skip' },
       { type: 'buy', qty: 1 }, { type: 'buy', qty: 250 }, { type: 'pass' }, { type: 'renovate', assetId: 'asset-3', level: 2, style: 'terrace' },
       { type: 'renovate', assetId: 'asset-3', level: 1 }, { type: 'auctionWin', card: { id: 'opp-apt-001', type: 'apartment', mortgage: 1, title: 'דירה' }, price: 12000 },
       { type: 'acceptOffer' }, { type: 'declineOffer' }, { type: 'donate' }, { type: 'declineCharity' }, { type: 'takeLoan', amount: 25000 },
       { type: 'repayLoan', id: 'loan-7', amount: 1000 }, { type: 'sellAsset', id: 'asset-2' }, { type: 'sellAsset', id: 'asset-5', qty: 0 },
       { type: 'decide', option: 'pass' }, { type: 'answerAudit' }, { type: 'answerAudit', questionId: 'tax-3', correct: false },
-      { type: 'forfeit' }, { type: 'debugForce', outcome: 'lose' },
+      { type: 'forfeit' },
     ];
-    expect(new Set(actions.map((a) => a.type))).toEqual(new Set(Object.keys(ACTION_CODES)));
+    expect(new Set(actions.map((a) => a.type))).toEqual(new Set(Object.keys(ACTION_CODES).filter((t) => t !== 'debugForce')));
     for (const config of [{ mode: 'full', professionId: 'lawyer' }, { mode: 'family', professionId: 'cook', junior: true }, { mode: 'family', professionId: 'nurse', daily: { date: '2026-11-20' } }]) {
       const log = { rngVersion: 2, seed: 4294967295, config, actions };
       const text = encodeActionLog(log);
@@ -86,16 +86,19 @@ describe('action log: malformed or tampered logs are refused with an ActionLogEr
     // the first action's type byte: right after the header (magic, format, version, seed varint, flags, strings, profession, count)
     const decoded = decodeActionLog(good);
     expect(decoded.actions[0].type).toBe('roll');
-    const at = b.findIndex((x, i) => i > 6 && x === ACTION_CODES.roll && b[i + 1] === 0);
+    const at = b.findIndex((x, i) => i > 6 && x === ACTION_CODES.roll && b[i + 1] === ACTION_CODES.roll); // two rolls in a row
+    expect(at).toBeGreaterThan(6);
     const bad = [...b]; bad[at] = 200;
     refuse(reseal(bad), 'unknown action code');
-    const badDie = [...b]; badDie[at + 1] = 1; badDie.splice(at + 2, 0, 9);
-    refuse(reseal(badDie), 'bad die');
+    const forced = [...b]; forced[at] = ACTION_CODES.debugForce;
+    refuse(reseal(forced), 'debugForce');
   });
   it('encode refuses what it cannot represent', () => {
     expect(() => encodeActionLog({ ...log, rngVersion: 3 })).toThrow(ActionLogError);
     expect(() => encodeActionLog({ ...log, seed: -1 })).toThrow(ActionLogError);
     expect(() => encodeActionLog({ ...log, actions: [{ type: 'teleport' }] })).toThrow(ActionLogError);
+    expect(() => encodeActionLog({ ...log, actions: [{ type: 'roll', dice: [6] }] })).toThrow(ActionLogError); // no chosen dice
+    expect(() => encodeActionLog({ ...log, actions: [{ type: 'debugForce', outcome: 'win' }] })).toThrow(ActionLogError); // no forced win
     expect(() => encodeActionLog({ ...log, actions: [{ type: 'takeLoan', amount: 1.5 }] })).toThrow(ActionLogError);
     expect(() => encodeActionLog({ ...log, actions: [{ type: 'guess', cardId: 'x', light: 'blue', guess: 'good' }] })).toThrow(ActionLogError);
   });

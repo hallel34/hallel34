@@ -113,20 +113,20 @@ describe('rngVersion 2: new games', () => {
   });
   it('the tax-audit pick is keyed by the turn', () => {
     const s = engine.newGame({ mode: 'full', professionId: 'teacher', seed: 12 });
-    const at = engine.dispatch({ ...s, position: BOARD.indexOf('taxAudit') - 1 }, { type: 'roll', dice: [1] });
+    const at = engine.roll({ ...s, position: BOARD.indexOf('taxAudit') - 1 }, [1]);
     expect(at.pending).toEqual({ kind: 'taxAudit', pick: v2AuditPick(12, 1, TAX_AUDIT_PICKS) });
   });
   it('same seed, turn and deck tile, same player standing: the same card, whatever happened before (cash, buys, draws)', () => {
     const s = engine.newGame({ mode: 'family', professionId: 'nurse', seed: 404 });
     for (let turn = 0; turn < 30; turn++) {
-      const a = engine.dispatch({ ...s, turn, position: oppIdx - 1 }, { type: 'roll', dice: [1] });
-      const b = engine.dispatch({ ...s, turn, position: oppIdx - 1, cash: s.cash + 5000, draws: { opportunity: 9, expense: 2, market: 4 }, stats: { ...s.stats, dealsBought: 3 } }, { type: 'roll', dice: [1] });
+      const a = engine.roll({ ...s, turn, position: oppIdx - 1 }, [1]);
+      const b = engine.roll({ ...s, turn, position: oppIdx - 1, cash: s.cash + 5000, draws: { opportunity: 9, expense: 2, market: 4 }, stats: { ...s.stats, dealsBought: 3 } }, [1]);
       expect(b.pending.card).toEqual(a.pending.card);
       expect(b.pending.alt).toEqual(a.pending.alt);
       for (const sq of ['expense', 'market']) {
         const i = BOARD.indexOf(sq);
-        const x = engine.dispatch({ ...s, turn, position: i - 1 }, { type: 'roll', dice: [1] });
-        const y = engine.dispatch({ ...s, turn, position: i - 1, cash: s.cash + 777, draws: { opportunity: 3, expense: 7, market: 1 } }, { type: 'roll', dice: [1] });
+        const x = engine.roll({ ...s, turn, position: i - 1 }, [1]);
+        const y = engine.roll({ ...s, turn, position: i - 1, cash: s.cash + 777, draws: { opportunity: 3, expense: 7, market: 1 } }, [1]);
         expect(y.events.find((e) => e.type === 'market')?.card?.id ?? y.pending?.card?.id ?? null).toBe(x.events.find((e) => e.type === 'market')?.card?.id ?? x.pending?.card?.id ?? null);
       }
     }
@@ -145,7 +145,7 @@ describe('rngVersion 2: new games', () => {
       let want = order[k];
       if (!fits(want)) { want = order.slice(k + 1).find((c) => (c.type === 'apartment' || c.type === 'business') && Number.isFinite(c.monthlyCashFlow) && fits(c) && met(c)) ?? want; swaps += 1; }
       if (k > 0) skips += 1;
-      const got = engine.dispatch({ ...s, turn: turn - 1, position: oppIdx - 1 }, { type: 'roll', dice: [1] });
+      const got = engine.roll({ ...s, turn: turn - 1, position: oppIdx - 1 }, [1]);
       expect(dealTierIndex(s)).toBe(0);
       expect(got.pending.card.id).toBe(want.id);
     }
@@ -156,7 +156,7 @@ describe('rngVersion 2: new games', () => {
     const s = engine.newGame({ mode: 'full', professionId: 'engineer', seed: 21 });
     let offers = 0;
     for (let turn = 0; turn < 60; turn++) {
-      const r = engine.dispatch({ ...s, turn, position: oppIdx - 1 }, { type: 'roll', dice: [1] });
+      const r = engine.roll({ ...s, turn, position: oppIdx - 1 }, [1]);
       if (r.pending?.kind !== 'opportunity' || r.pending.card.type === 'stock') continue;
       offers += 1;
       expect(r.pending.alt).toBeTruthy();
@@ -167,14 +167,14 @@ describe('rngVersion 2: new games', () => {
   });
   it('the draws counters count the draws (stats only)', () => {
     let s = engine.newGame({ mode: 'family', professionId: 'teacher', seed: 5 });
-    s = engine.dispatch({ ...s, position: oppIdx - 1 }, { type: 'roll', dice: [1] });
+    s = engine.roll({ ...s, position: oppIdx - 1 }, [1]);
     expect(s.draws.opportunity).toBe(1);
   });
   it('the positional scheme (measured alternative) is decision independent too for the same draw count', () => {
     const pos = createEngine(data, { drawScheme: 'positional' });
     const s = pos.newGame({ mode: 'family', professionId: 'teacher', seed: 8 });
-    const a = pos.dispatch({ ...s, turn: 4, position: oppIdx - 1, draws: { opportunity: 3, expense: 0, market: 0 } }, { type: 'roll', dice: [1] });
-    const b = pos.dispatch({ ...s, turn: 11, position: oppIdx - 1, cash: 99999, draws: { opportunity: 3, expense: 0, market: 0 } }, { type: 'roll', dice: [1] });
+    const a = pos.roll({ ...s, turn: 4, position: oppIdx - 1, draws: { opportunity: 3, expense: 0, market: 0 } }, [1]);
+    const b = pos.roll({ ...s, turn: 11, position: oppIdx - 1, cash: 99999, draws: { opportunity: 3, expense: 0, market: 0 } }, [1]);
     expect(b.pending.card.id).toBe(a.pending.card.id);
   });
 });

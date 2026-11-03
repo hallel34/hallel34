@@ -19,7 +19,7 @@ import {
 import { emptyLearn, recordDecision, buyRecord, passRecord, loanRating, isDeal } from './learn.js';
 import { dailyDie, dailyPick, DAILY_TURN_CAP, dailyRngVersion } from './daily.js';
 import { RNG_V1, RNG_V2, RNG_VERSION, V2_DRAW_SCHEME, v2Die, v2RerollDie, v2AuditPick, v2DeckOrder, v2DeckCycle } from './rng.js';
-import { recordGuess } from './learn.js';
+import { recordGuess, dealMetrics } from './learn.js';
 import { renovationLevel, renovationLevelsFor, RENOVATION_STYLES } from './renovation.js';
 
 export class EngineError extends Error {}
@@ -1033,7 +1033,8 @@ export function createEngine(data, { validate = true, drawScheme = V2_DRAW_SCHEM
   // known fields) to state.log, so a game is fully described by (seed, config, log). replay() rebuilds it from that.
   // The daily challenge additionally keeps its own v2.5 log (state.daily.log, the format of stored result records).
   const ACTIONS = {
-    roll: { fields: ['dice'], run: (s, a) => roll(s, a.dice ?? undefined) },
+    // forced dice (engine.roll(s, dice)) stay a test hook: a logged roll never carries dice, so a log cannot choose them
+    roll: { fields: [], run: (s, a) => (a.dice !== undefined ? fail('a dispatched roll takes no dice') : roll(s)) },
     armReroll: { fields: [], run: (s) => armReroll(s) },
     chooseDeal: { fields: ['cardId'], run: (s, a) => chooseDeal(s, a.cardId) },
     guess: { fields: ['cardId', 'light', 'guess'], run: (s, a) => guessAction(s, a) },
@@ -1059,8 +1060,12 @@ export function createEngine(data, { validate = true, drawScheme = V2_DRAW_SCHEM
   function guessAction(state, { cardId, light, guess }) {
     if (state.status !== 'playing') fail('game is over');
     if (!['good', 'bad', 'skip'].includes(guess)) fail(`bad guess ${guess}`);
-    if (!['green', 'yellow', 'red', null].includes(light ?? null)) fail(`bad light ${light}`);
-    return recordGuess(state, { cardId, light: light ?? null, guess }); // events untouched: a guess is part of the open card
+    // the guess is on the open deal, and its light is that deal's own (dealMetrics): a log cannot claim a green light on a red deal
+    const card = state.pending?.kind === 'opportunity' ? state.pending.card : null;
+    if (!card || card.id !== cardId || !isDeal(card)) fail('a guess needs the open deal');
+    const own = dealMetrics(card).light ?? null;
+    if ((light ?? null) !== own) fail(`the light of ${cardId} is ${own}`);
+    return recordGuess(state, { cardId, light: own, guess }); // events untouched: a guess is part of the open card
   }
   // renovate with the level it reaches in the log: a replayed log whose level does not match the state is refused
   function renovateAction(state, { assetId, level = null, style = null }) {

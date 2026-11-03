@@ -2,7 +2,7 @@
 // Pure: no DOM. Layout (all integers are unsigned LEB128 varints):
 //   'M' 'F'  format byte (1)  rngVersion  seed  flags (bit0 full mode, bit1 junior, bit2 daily date present)
 //   string-table: count, then each string as (byte length, UTF-8 bytes)   professionId (table index)   [daily date (index)]
-//   action count, then each action: 1 type byte (ACTION_CODES) + its arguments (strings are table indexes)
+//   action count, then each action: 1 type byte (ACTION_CODES) + its arguments (strings are table indexes); a roll has none
 //   CRC32 (4 bytes, little endian) over every byte before it
 // decode() refuses a bad header, version, type code, argument, length, trailing byte or checksum with an ActionLogError.
 // The checksum catches a damaged or hand-edited link; the proof that a result is real is replaying the decoded log.
@@ -13,7 +13,7 @@ const fail = (msg) => { throw new ActionLogError(msg); };
 export const FORMAT_VERSION = 1;
 const MAGIC = [0x4D, 0x46]; // 'MF'
 
-/** One byte per action type. Never renumber: links in the wild carry these codes. */
+/** One byte per action type. Never renumber: links in the wild carry these codes. 19 (debugForce) is refused in a link. */
 export const ACTION_CODES = {
   roll: 1, armReroll: 2, chooseDeal: 3, guess: 4, buy: 5, pass: 6, renovate: 7, auctionWin: 8, acceptOffer: 9,
   declineOffer: 10, donate: 11, declineCharity: 12, takeLoan: 13, repayLoan: 14, sellAsset: 15, decide: 16,
@@ -25,7 +25,6 @@ const LIGHTS = [null, 'green', 'yellow', 'red'];
 const GUESSES = ['good', 'bad', 'skip'];
 const STYLES = [null, 'terrace', 'takeaway'];
 const CORRECT = [null, true, false];
-const OUTCOMES = ['win', 'lose'];
 const MODES = ['family', 'full'];
 
 // ---------- CRC32 (IEEE) ----------
@@ -124,14 +123,10 @@ export function encodeActionLog({ rngVersion, seed, config = {}, actions = [] })
   for (const a of actions) {
     const code = ACTION_CODES[a?.type];
     if (!code) fail(`unknown action ${a?.type}`);
+    if (a.type === 'debugForce') fail('a QA force (debugForce) cannot go into a link');
     body.byte(code);
     switch (a.type) {
-      case 'roll': {
-        const dice = a.dice ?? [];
-        if (!Array.isArray(dice) || dice.some((x) => !Number.isInteger(x) || x < 1 || x > 6)) fail('bad forced dice');
-        body.uint(dice.length); for (const x of dice) body.byte(x);
-        break;
-      }
+      case 'roll': if (a.dice !== undefined) fail('a logged roll carries no dice'); break;
       case 'buy': body.uint(a.qty ?? 1); break;
       case 'chooseDeal': body.uint(ref(strOf(a.cardId, 'cardId'))); break;
       case 'guess': body.uint(ref(strOf(a.cardId, 'cardId'))); body.byte(indexIn(LIGHTS, a.light, 'light') * 4 + indexIn(GUESSES, a.guess, 'guess')); break;
@@ -142,7 +137,6 @@ export function encodeActionLog({ rngVersion, seed, config = {}, actions = [] })
       case 'sellAsset': body.uint(ref(strOf(a.id, 'id'))); body.uint(a.qty == null ? 0 : a.qty + 1); break;
       case 'decide': body.uint(ref(strOf(a.option, 'option'))); break;
       case 'answerAudit': body.uint(a.questionId == null ? 0 : ref(strOf(a.questionId, 'questionId')) + 1); body.byte(indexIn(CORRECT, a.correct, 'correct')); break;
-      case 'debugForce': body.byte(indexIn(OUTCOMES, a.outcome, 'outcome')); break;
       default: break; // no arguments
     }
   }
@@ -206,14 +200,9 @@ export function decodeActionLog(text) {
   for (let i = 0; i < n; i++) {
     const code = r.byte();
     const type = TYPE_OF[code] ?? fail(`unknown action code ${code}`);
+    if (type === 'debugForce') fail('a QA force (debugForce) cannot be in a link');
     const a = { type };
     switch (type) {
-      case 'roll': {
-        const k = r.uint();
-        if (k > 2) fail('bad forced dice');
-        if (k) a.dice = Array.from({ length: k }, () => { const x = r.byte(); return x >= 1 && x <= 6 ? x : fail('bad die'); });
-        break;
-      }
       case 'buy': a.qty = r.uint(); break;
       case 'chooseDeal': a.cardId = str(); break;
       case 'guess': { a.cardId = str(); const b = r.byte(); a.light = pick(LIGHTS, b >> 2, 'light'); a.guess = pick(GUESSES, b & 3, 'guess'); break; }
@@ -230,7 +219,6 @@ export function decodeActionLog(text) {
         if (c !== null) a.correct = c;
         break;
       }
-      case 'debugForce': a.outcome = pick(OUTCOMES, r.byte(), 'outcome'); break;
       default: break;
     }
     actions.push(a);

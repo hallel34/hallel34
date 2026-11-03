@@ -49,5 +49,6 @@ describe('replay fuzz: 500 random legal games replay exactly from their encoded 
     expect(stateHash(a)).not.toBe(stateHash(s));
     expect(() => engine.replay(7, { mode: 'full', professionId: 'teacher' }, [{ type: 'buy', qty: 1 }])).toThrow(EngineError);
     expect(() => engine.dispatch(s, { type: 'nope' })).toThrow(EngineError);
+    expect(() => engine.dispatch(s, { type: 'roll', dice: [6] })).toThrow(EngineError); // a log can never choose its dice
   });
 });
