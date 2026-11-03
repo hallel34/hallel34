@@ -31,6 +31,10 @@ function* walk(v, path = []) {
 /** Locale-file groups shown in family mode (full-only, stock-only and daily-share strings are not family surfaces). */
 const HE_GROUPS = ['game', 'card', 'loan', 'win', 'gameOver', 'fox', 'pick', 'stats', 'standings', 'a11y', 'statement']; // statement: QA round 14 P2-7
 const FULL_ONLY = /Stock|dividend|netWorth|repay|sell|Sell|share|daily/;
+// QA round 22 P1: the practice missions run on the family rules only (no full-mode path), so EVERY mission string is a family
+// surface (FULL_ONLY is not applied: 'missions.repay.*' is the family debt mission). Two more adult words are checked there.
+const MISSION_GROUPS = ['mission', 'missions'];
+const MISSION_WORDS = /ריבית|תזרים|מקדמה|קרן|להיפרע/u;
 
 describe('family vocabulary: no adult money words on the key screens', () => {
   let leaks;
@@ -43,6 +47,13 @@ describe('family vocabulary: no adult money words on the key screens', () => {
     // locale file with the family layer on top (what t() returns in family mode)
     // QA round 15: a full-only-looking key that HAS a family override (statement.netWorthTitle, ...) is a family surface: scan it
     for (const g of HE_GROUPS) for (const [p] of walk(he[g], [g])) { if (FULL_ONLY.test(p) && !(p in map)) continue; check(`he.json ${p}`, tRaw(p)); }
+    for (const g of MISSION_GROUPS) {
+      for (const [p] of walk(he[g], [g])) {
+        check(`he.json ${p}`, tRaw(p));
+        const plain = stripMarkup(tRaw(p));
+        if (MISSION_WORDS.test(plain)) leaks.push(`he.json ${p} (mission word): ${plain}`);
+      }
+    }
     // learn files (family view): feedback (family + shared lines), guess, report, hints, summary card, HUD, goal line, how-to, story
     // feedback: the lines a family player really gets = the group's family list, else its shared (all) list (feedback.js resolve)
     const feedbackLines = {};
@@ -86,6 +97,10 @@ describe('family vocabulary: no adult money words on the key screens', () => {
     }
     for (const o of lc.tutorial.familyStrings.overrides.filter((x) => !x.key.includes(':'))) expect(rawString(o.key, 'he'), o.key).toBeTypeOf('string');
     setLearnMode('family');
+  });
+  it('scans the mission groups (QA r22): they exist and the matcher catches the mission words', () => {
+    for (const g of MISSION_GROUPS) expect([...walk(he[g], [g])].length, g).toBeGreaterThan(10);
+    for (const w of ['הקרן עדיין', 'חייבת להיפרע', 'ריבית חודשית', 'בתזרים שלכם', 'המקדמה']) expect(MISSION_WORDS.test(w), w).toBe(true);
   });
   it('full mode keeps the original wording on the same surfaces', () => {
     setLearnMode('full');

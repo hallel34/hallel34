@@ -4,7 +4,7 @@ import { prepareBoardImage } from './board-ready.js';
 import { h, clear } from './dom.js';
 import { toast } from './fx.js';
 import {
-  createEngine, serialize, deserialize, newMatch, rematch, isMultiplayer, currentState, dailySeed, dailyProfessionId, DAILY_MODE, seesCoins, isJuniorSetup, JUNIOR_AGE,
+  createEngine, serialize, deserialize, newMatch, rematch, isMultiplayer, currentState, dailySeed, dailyProfessionId, DAILY_MODE, seesCoins, isJuniorSetup, JUNIOR_AGE, cleanAge,
   SHORT_ROUNDS,
 } from '../engine/index.js';
 import { setCoinScale } from './format.js';
@@ -23,11 +23,22 @@ import { dailyStatus } from '../daily/attempt.js';
 import { loadResults, loadStreak, endDailyGame, resetDay } from '../daily/store.js';
 import { showInterstitial } from '../services/ads.js';
 import { getLocale, t } from '../i18n/index.js';
-import { destroyAllLayers } from './modal.js';
+import { destroyAllLayers, openLayer } from './modal.js';
+import { button } from './widgets.js';
 import { initTermButtons } from './learn.js';
 import { setLearnMode } from '../learn/context.js';
 import { loadTutorial } from '../learn/tutorial-store.js';
 import { setSession } from './session.js';
+import { newFirstAsset, firstAssetPurchase, continueFirstAsset, FIRST_ASSET_ID } from '../engine/first-asset.js';
+import { createFirstAsset } from './screens/first-asset.js';
+import { FIRST_ASSET_BADGE } from '../engine/first-asset.js';
+import { hasBadge } from '../learn/store.js';
+import { isShortMission, practiceSlot, newShortMission, continueShortMission, validShortMission, REPAY_MISSION } from '../engine/short-missions.js';
+import { SLOT_MISSION } from '../services/match-store.js';
+import { completedShortMissions } from '../services/mission-progress.js';
+import { createMissions } from './screens/missions.js';
+import { createShortMission } from './screens/short-mission.js';
+import { loadMissionStyles } from './mission-styles.js';
 
 // The board (play.js: board, cards, bots, auctions, renovation, learning flow) is its own chunk, off the home screen's critical
 // path (QA round 19 perf). main.js warms it up at idle time; the service worker precaches it, so it opens offline too.
@@ -72,6 +83,89 @@ export function createApp(host) {
     const results = loadResults();
     const hasSave = !results.byDate[today] && !!loadDailySave(today);
     return { date: today, status: dailyStatus({ results, hasSave }, today), entry: results.byDate[today] ?? null, streak: streakView(loadStreak(), today) };
+  }
+
+  /**
+   * The player's age band for the practice missions (QA r22 P2, CEO): the age last chosen on the players screen (kept on the
+   * device), else the age stored with the saved game's first human player, else none. 'עד 10' plays the junior variant (coins).
+   */
+  function missionAge() {
+    const last = readRaw('lastAge');
+    if (last != null) return cleanAge(last);
+    return cleanAge(loadSave()?.players.find((p) => !p.bot)?.age);
+  }
+  const missionJunior = () => missionAge() === JUNIOR_AGE;
+
+  /** A saved mission of the variant `junior` (each variant has its own slot), or null. */
+  function loadMission(id = FIRST_ASSET_ID, junior = missionJunior()) {
+    if (isShortMission(id)) {
+      const m = deserialize(readRaw(practiceSlot(id, { junior })));
+      return validShortMission(engine, m, id) && !!m.junior === junior ? m : null;
+    }
+    try {
+      const m = deserialize(readRaw(junior ? `${SLOT_MISSION}.junior` : SLOT_MISSION));
+      if (!m || m.daily || !!m.junior !== junior || m.players.length !== 1 || m.currentIndex !== 0 || m.mode !== 'family'
+        || m.mission?.id !== FIRST_ASSET_ID
+        || !['offer', 'complete', 'declined', 'freeplay'].includes(m.mission.stage)) return null;
+      const s = currentState(m);
+      if (s.profession?.id !== 'teacher' || !Array.isArray(s.assets) || !Array.isArray(s.liabilities)) return null;
+      if (m.mission.stage === 'offer') {
+        if (s.pending?.card?.id !== 'opp-biz-006') return null;
+        // A malformed scenario must not crash the home screen's resume check.
+        firstAssetPurchase(engine, m);
+      }
+      if (m.mission.stage === 'complete' && ![
+        'gross', 'businessPayment', 'assetNet', 'bankLoan', 'bankPayment', 'netChange',
+        'beforeFlow', 'afterFlow', 'beforeProgress', 'afterProgress',
+      ].every((k) => Number.isFinite(m.mission.feedback?.[k]))) return null;
+      return m;
+    } catch { return null; }
+  }
+
+  /** The mission screens' stylesheet is a lazy chunk (home perf); a failed load still opens the (plainer) screen. */
+  const missionStyles = () => loadMissionStyles().catch((err) => console.warn(err));
+
+  async function goMissions() {
+    await missionStyles();
+    const junior = missionJunior();
+    setLearnMode('family'); // the missions run on the family rules: the family vocabulary layer (QA r22 P1)
+    setCoinScale(junior); // a junior player reads the chooser in coins (QA r22 P2)
+    mount(createMissions({
+      saved: (id) => loadMission(id, junior),
+      cash: currentState(newShortMission(engine, REPAY_MISSION, { age: missionAge() })).cash,
+      completed: [...completedShortMissions(), ...(hasBadge(FIRST_ASSET_BADGE) ? [FIRST_ASSET_ID] : [])],
+      onSelect: goMission, onMenu: goStart, onRestart: restartMission,
+    }));
+  }
+
+  async function restartMission(id) {
+    // the game's dialog surface (components.css .dialog): without it the text sat on the scrim, over the chooser (QA r22 axe)
+    const layer = openLayer(h('div', { class: 'dialog mission-content' },
+      h('h2', null, t('missions.restartTitle')),
+      h('p', null, t('missions.restartWarning')),
+      h('div', { class: 'mission-actions' },
+        button(t('missions.cancelRestart'), { variant: 'secondary', 'data-action': 'cancel-restart', onClick: () => layer.close(false) }),
+        button(t('missions.confirmRestart'), { 'data-action': 'confirm-restart', onClick: () => layer.close(true) }),
+      ),
+    ), { label: t('missions.restartTitle'), cls: 'layer-dialog' });
+    if (await layer.closed) goMission(id, { fresh: true });
+  }
+
+  async function goMission(id = FIRST_ASSET_ID, { fresh = false } = {}) {
+    const short = isShortMission(id);
+    const age = missionAge();
+    const m = (!fresh && loadMission(id, age === JUNIOR_AGE)) || (short ? newShortMission(engine, id, { age }) : newFirstAsset(engine, { age }));
+    if (m.mission.stage === 'freeplay') {
+      if (m.status === 'won') goWin(m); else if (m.status === 'lost') goOver(m); else goPlay(m);
+      return;
+    }
+    await missionStyles();
+    setLearnMode('family');
+    const screen = (short ? createShortMission : createFirstAsset)({
+      engine, match: m, store, onMenu: short ? goMissions : goStart, onMissions: goMissions,
+      onContinue: (saved) => goPlay(short ? continueShortMission(saved) : continueFirstAsset(saved)),
+    });
+    mount(screen);
   }
 
   function goDaily() {
@@ -148,6 +242,7 @@ export function createApp(host) {
       mode,
       gamesPlayed: gamesPlayed(),
       daily: dailyInfo(),
+      onMission: goMissions,
       onDaily: () => goDaily(),
       onDailyReset: () => { resetDay(dayKey()); goStart(); },
       onRefresh: () => goStart(),
@@ -169,13 +264,19 @@ export function createApp(host) {
       count: setup.count, names: setup.names, ages: setup.ages ?? [], bots: setup.bots ?? [], mode, length: setup.length ?? 'standard',
       onMode: (m) => { mode = m; writeRaw('mode', m); setLearnMode(m); }, // an age under 14 -> family: the kid vocabulary too (QA r18 P2-2)
       onBack: () => goStart(),
-      onNext: ({ count, names, ages, bots, length }) => { setup = { count, names, ages, bots, professionIds: [], length: length ?? 'standard' }; goPick(0); },
+      onNext: ({ count, names, ages, bots, length }) => {
+        setup = { count, names, ages, bots, professionIds: [], length: length ?? 'standard' };
+        // the practice missions follow the last chosen age band (QA r22 P2): the first human player's ('' = none given)
+        writeRaw('lastAge', ages.find((a, i) => !bots?.[i]) ?? '');
+        goPick(0);
+      },
     }).el });
   }
 
   /** A bot seat picks no profession on screen: it gets one at random. */
   const botProfession = () => professionIds[Math.floor(Math.random() * professionIds.length)];
   function goPick(i) {
+    if (i >= setup.count) { startNew(); return; } // the last seats were bots (they sit at the end): every pick is done
     if (setup.bots?.[i]) { setup.professionIds[i] = botProfession(); goPick(i + 1); return; }
     setLearnMode(mode); // the pick sheet speaks the mode it shows (family: the children's words, QA r18 P2-2)
     const multi = setup.count > 1;
@@ -184,7 +285,12 @@ export function createApp(host) {
     mount({ el: createPick({
       engine, mode, junior,
       player: multi ? { name: playerName({ name: setup.names[i] }, i), color: i + 1, n: i + 1, total: setup.count } : null,
-      onBack: () => (i === 0 ? goPlayers() : goPick(i - 1)),
+      onBack: () => {
+        // back to the previous person's pick; bot seats pick nothing on screen (going "back" onto one would bounce forward again)
+        let j = i - 1;
+        while (j >= 0 && setup.bots?.[j]) j--;
+        if (j < 0) goPlayers(); else goPick(j);
+      },
       onGo: (professionId) => {
         setup.professionIds[i] = professionId;
         if (i + 1 < setup.count) goPick(i + 1); else startNew();
@@ -221,7 +327,13 @@ export function createApp(host) {
 
   /** Same players, mode and professions, new seed. */
   function again(m) {
-    goPlay(rematch(engine, m, nextSeed()), { fresh: true });
+    let next = rematch(engine, m, nextSeed());
+    // Retrying after a practice freeplay win/loss must not overwrite a
+    // separately saved ordinary game.
+    if (m.mission?.id === FIRST_ASSET_ID || isShortMission(m.mission?.id)) {
+      next = { ...next, mission: { id: m.mission.id, stage: 'freeplay' } };
+    }
+    goPlay(next, { fresh: true });
   }
 
   function settingsOf(m) {

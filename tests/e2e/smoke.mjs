@@ -1634,7 +1634,50 @@ async function testJunior(browser) {
   const stOpen = await page.evaluate(() => { const sh = document.querySelector('#modal-root .layer:last-child'); return { nw: !!sh.querySelector('.nw'), liab: !!sh.querySelector('.st-sec-liability'), expanded: sh.querySelector('[data-action="parents"]').getAttribute('aria-expanded') }; });
   check(stOpen.nw && stOpen.liab && stOpen.expanded === 'true', `junior statement: 'להורים' opens the debts and the net worth ${JSON.stringify(stOpen)}`);
   await noHScroll(page, 'junior statement (להורים open)');
+  await testJuniorMissions(page);
   await ctx.close();
+}
+/**
+ * QA round 22 P2 (CEO): the practice missions follow the player's age band. After "עד 10" was chosen on the players screen (above),
+ * the chooser and every mission (offer and result) are in coins with the kid words: no ₪, no FORBIDDEN word, no number over 999.
+ * The board after a mission stays in coins.
+ */
+async function testJuniorMissions(page) {
+  await page.goto(`${URL_BASE}?seed=5`);
+  check(await page.evaluate(() => localStorage.getItem('passivo.lastAge')) === 'upTo10', 'missions: the players screen kept the last chosen age band (upTo10)');
+  await page.locator('[data-action="missions"]').click();
+  await page.waitForSelector('[data-screen="missions"]');
+  const coinsIn = () => page.evaluate(() => /מטבע/.test(document.querySelector('#app').innerText));
+  check(await coinsIn(), 'junior missions chooser: the starting cash in coins');
+  await juniorScan(page, '#app', null, 'missions chooser');
+  await noHScroll(page, 'junior missions chooser');
+  const scanMission = async (id, choice, tag) => {
+    await page.locator(`[data-mission="${id}"]`).click();
+    await page.waitForSelector(`[data-screen="${id === 'first-asset-v1' ? 'first-asset' : 'short-mission'}"]`);
+    await page.waitForTimeout(150);
+    check(await coinsIn(), `junior mission ${tag} (offer): coins`);
+    await juniorScan(page, '#app', null, `mission ${tag} (offer)`);
+    await noHScroll(page, `junior mission ${tag} (offer)`);
+    await page.locator(choice).click();
+    await page.waitForTimeout(150);
+    check(await coinsIn(), `junior mission ${tag} (result): coins`);
+    await juniorScan(page, '#app', null, `mission ${tag} (result)`);
+    await noHScroll(page, `junior mission ${tag} (result)`);
+  };
+  await scanMission('first-asset-v1', '[data-action="mission-buy"]', 'first asset');
+  const slot = await page.evaluate(() => JSON.parse(localStorage.getItem('passivo.missionSave.junior') || 'null'));
+  check(slot?.junior === true && slot.players[0].age === 'upTo10', 'junior first asset: a junior match in its own slot (missionSave.junior)');
+  await page.locator('[data-action="other-missions"]').click();
+  await page.waitForSelector('[data-screen="missions"]');
+  await scanMission('repay-debt-v1', '[data-choice="repay"]', 'repay debt');
+  await page.getByRole('button', { name: 'שומרים וחוזרים למשימות', exact: true }).click();
+  await page.waitForSelector('[data-screen="missions"]');
+  await scanMission('cash-buffer-v1', '[data-choice="loan"]', 'cash buffer');
+  await page.locator('[data-action="short-continue"]').click();
+  await page.waitForSelector('[data-screen="board"]');
+  await page.waitForTimeout(600);
+  const hud = await page.evaluate(() => document.querySelector('.hud')?.innerText ?? '');
+  check(!/₪/.test(hud) && /מטבע/.test(hud), `junior mission freeplay: the board HUD stays in coins (${hud.replace(/\s+/g, ' ').slice(0, 80)})`);
 }
 async function testNotesAtSizes(browser) {
   for (const [w, hgt] of [[390, 844], [320, 568]]) {
