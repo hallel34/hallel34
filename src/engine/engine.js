@@ -109,11 +109,30 @@ export const DEAL_TIERS = [
   { maxStage: 0.75, min: 0.22, max: 0.75 },
   { maxStage: Infinity, min: 0.32, max: Infinity },
 ];
-/** The deal tier (0-3, DEAL_TIERS) of a player: their stage on the road to freedom (passive income / expenses). */
+/**
+ * v0.5 (owner-approved balance change 2026-11-03, docs/BALANCE.md): the bands of rngVersion 2 games. A keyed pile never runs
+ * out of in-tier deals, so v1's soft filter (out-of-tier deals came through once a cycle's in-tier deals were used up) became
+ * strict. Family mode is recalibrated so v2 plays like v0.4 did: only the lower bounds moved (v0.4: 0.12 / 0.22 / 0.32), they
+ * decide how soon the small deals leave a growing player's offers. Full mode already plays like v0.4 on the v0.4 bands.
+ * v1 games (old saves) keep DEAL_TIERS.
+ */
+export const DEAL_TIERS_V2 = {
+  family: [
+    { maxStage: 0.25, min: 0, max: 0.4 },
+    { maxStage: 0.5, min: 0.08, max: 0.55 },
+    { maxStage: 0.75, min: 0.15, max: 0.75 },
+    { maxStage: Infinity, min: 0.22, max: Infinity },
+  ],
+  full: DEAL_TIERS,
+};
+/** The tier bands a game uses: rngVersion 2 -> DEAL_TIERS_V2[mode], otherwise (v1) DEAL_TIERS. */
+export const dealTiersOf = (d) => (d?.rngVersion === 2 ? DEAL_TIERS_V2[d.mode] ?? DEAL_TIERS : DEAL_TIERS);
+/** The deal tier (0-3) of a player: their stage on the road to freedom (passive income / expenses). */
 export function dealTierIndex(d) {
   const stage = passiveRatio(d);
-  const i = DEAL_TIERS.findIndex((t) => stage < t.maxStage);
-  return i === -1 ? DEAL_TIERS.length - 1 : i;
+  const tiers = dealTiersOf(d);
+  const i = tiers.findIndex((t) => stage < t.maxStage);
+  return i === -1 ? tiers.length - 1 : i;
 }
 
 const clone = (x) => structuredClone(x);
@@ -251,7 +270,7 @@ export function createEngine(data, { validate = true, drawScheme = V2_DRAW_SCHEM
     if (!isDealCard(card) || card.monthlyCashFlow <= 0) return true;
     const exp = totalExpenses(d);
     if (!exp) return true;
-    const tier = DEAL_TIERS[dealTierIndex(d)];
+    const tier = dealTiersOf(d)[dealTierIndex(d)];
     const ratio = card.monthlyCashFlow / exp;
     return ratio >= tier.min && ratio <= tier.max;
   }

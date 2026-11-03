@@ -6,7 +6,7 @@ import {
   createEngine, EngineError, BOARD, newMatch, currentState, deserialize, serialize, botStep, playGame, SCHEMA_VERSION,
   hashString, unit, keyedInt, keyedShuffle, v2Die, v2RerollDie, v2AuditPick, v2DeckOrder, botProfessionId, stateHash,
   RNG_VERSION, V2_DRAW_SCHEME, rngVersionOf, DAILY_RNG_V2_FROM, dailyRngVersion, newDailyGame, replayDaily, dailyResult,
-  dailyDie, dailyPick, TAX_AUDIT_PICKS, dealTierIndex, DEAL_TIERS, totalExpenses,
+  dailyDie, dailyPick, TAX_AUDIT_PICKS, dealTierIndex, DEAL_TIERS, DEAL_TIERS_V2, dealTiersOf, totalExpenses,
 } from '../src/engine/index.js';
 
 const read = (p) => JSON.parse(readFileSync(new URL(`../src/data/${p}`, import.meta.url), 'utf8'));
@@ -155,6 +155,16 @@ describe('rngVersion 2: new games', () => {
     }
     expect(swaps).toBeGreaterThan(2); // both rules were exercised
     expect(skips).toBeGreaterThan(2);
+  });
+  it('tier bands: v1 games keep v0.4 bands; v2 family games use the recalibrated lower bounds; v2 full keeps v0.4 bands', () => {
+    const fam = engine.newGame({ mode: 'family', professionId: 'teacher', seed: 1 });
+    const full = engine.newGame({ mode: 'full', professionId: 'teacher', seed: 1 });
+    const v1 = engine.newGame({ mode: 'family', professionId: 'teacher', seed: 1, rngVersion: 1 });
+    expect(dealTiersOf(v1)).toBe(DEAL_TIERS);
+    expect(dealTiersOf(full)).toBe(DEAL_TIERS);
+    expect(dealTiersOf(fam)).toBe(DEAL_TIERS_V2.family);
+    expect(DEAL_TIERS.map((t) => t.min)).toEqual([0, 0.12, 0.22, 0.32]); // v0.4, untouched
+    expect(DEAL_TIERS_V2.family.map((t) => [t.min, t.max, t.maxStage])).toEqual([[0, 0.4, 0.25], [0.08, 0.55, 0.5], [0.15, 0.75, 0.75], [0.22, Infinity, Infinity]]);
   });
   it('a deal comes with a second, different deal (the choice) taken from the same keyed pile', () => {
     const s = engine.newGame({ mode: 'full', professionId: 'engineer', seed: 21 });
