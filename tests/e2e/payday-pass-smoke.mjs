@@ -104,8 +104,9 @@ async function passCase(browser, { label, mode = 'full', age = null, reduced = f
   check(Math.max(0, ...gaps) < 700, `${label}: no pause on the crossed payday (hop gaps ${JSON.stringify(gaps)} ms)`);
   check(r1.hops.every((x) => !x.card), `${label}: the pawn never moved while a summary card was open`);
   const paydayFloats = r1.floats.filter((f) => !f.card);
-  check(paydayFloats.length === crossed(sc.move), `${label}: one float per crossed payday while moving (${JSON.stringify(paydayFloats)})`);
-  const crossedIdx = sc.move.path.slice(0, -1).filter((i) => BOARD[i] === 'payday');
+  // v0.4 (owner decision 2026-11-02): at most one annual summary per turn, so one float / card per CREDITED payday (sc.pds)
+  check(paydayFloats.length === sc.pds.length, `${label}: one float per credited payday while moving (${JSON.stringify(paydayFloats)})`);
+  const crossedIdx = sc.move.path.slice(0, -1).filter((i) => BOARD[i] === 'payday').slice(0, sc.pds.length);
   check(paydayFloats.every((f, k) => f.tiles.includes(crossedIdx[k])), `${label}: each float rose from the crossed payday tile ${JSON.stringify(crossedIdx)} (${JSON.stringify(paydayFloats.map((f) => f.tiles))})`);
   if (age) check(paydayFloats.every((f) => f.coins && !/₪/.test(f.text)), `${label}: the junior float is in coins, no ₪ (${paydayFloats.map((f) => f.text).join(' | ')})`);
   else check(paydayFloats.every((f, k) => digits(f.text) === Math.abs(sc.pds[k].amount) && /₪/.test(f.text)), `${label}: the float shows the payday amount (${paydayFloats.map((f) => f.text).join(' | ')})`);
@@ -121,7 +122,7 @@ async function passCase(browser, { label, mode = 'full', age = null, reduced = f
     if (nextUp !== 'summary') break;
     cards += 1;
   }
-  check(cards === crossed(sc.move), `${label}: ${crossed(sc.move)} summary card(s) after the landing (${cards})`);
+  check(cards === sc.pds.length, `${label}: ${sc.pds.length} summary card(s) after the landing (${cards})`);
   await page.waitForSelector('#modal-root .card', { timeout: 8000 }).catch(() => {});
   await sleep(700);
   const end = await page.evaluate(() => ({ cash: document.querySelector('.hud .cash-num').textContent, hops: window.__rec.hops.length }));

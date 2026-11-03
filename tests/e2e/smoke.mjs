@@ -641,7 +641,7 @@ async function testGuessFlow(page) {
   await page.locator('[data-action="guess-bad"]').click();
   await page.waitForSelector('.reveal');
   const trap = await page.evaluate(() => ({ result: document.querySelector('.guess-result')?.dataset.result, tiles: [...document.querySelectorAll('.reveal .stat-tile')].map((x) => x.innerText.replace(/\n/g, ' ')), verdict: document.querySelector('.guess-verdict')?.textContent }));
-  check(trap.result === 'correct' && trap.tiles.some((x) => /אין החזר|לא חוזר|אף פעם/.test(x)) && /אין החזר|הכסף לא חוזר|תזרים שלילי|מוציא|במקום להיכנס/.test(trap.verdict), `L2: a trap shows "אין החזר" and the redNever verdict (${trap.verdict})`);
+  check(trap.result === 'correct' && trap.tiles.some((x) => /אין החזר|לא חוזר|אף פעם/.test(x)) && /אין החזר|לא חוזר|תזרים שלילי|מוציא|במקום להיכנס|במקום להכניס/.test(trap.verdict), `L2: a trap shows "אין החזר" and the redNever verdict (${trap.verdict})`);
   await page.locator('.card [data-action="pass"]').click();
   await page.waitForSelector('.card', { state: 'detached' });
 
@@ -898,7 +898,7 @@ async function testRound5(page) {
   let card = null;
   for (let seed = 1; seed < 200 && !card; seed++) {
     const m = act(newMatch(engine, { mode: MODE, players: [{ professionId: 'teacher' }], seed }), (s) => engine.roll(s, [1]));
-    if (currentState(m).pending?.card && currentState(m).pending.card.type !== 'stock') card = act(m, (st) => ({ ...st, pending: { kind: 'opportunity', card: st.pending.card } })); // single deal card (v0.4 choice dropped)
+    if (currentState(m).pending?.card && currentState(m).pending.card.type !== 'stock') card = act(m, (st) => ({ ...st, pending: st.pending.kind === 'opportunity' ? { kind: 'opportunity', card: st.pending.card } : st.pending })); // single deal card (v0.4 choice dropped)
   }
   await load(card);
   await page.waitForSelector('.card[data-card="opportunity"]');
@@ -1578,7 +1578,7 @@ async function testJunior(browser) {
     for (const die of [1, 2, 3, 4, 5, 6]) {
       const m1 = act(m0, (st) => eng.roll(st, [die]));
       const pnd = currentState(m1).pending;
-      if (pnd?.kind === 'opportunity' && ['apartment', 'business'].includes(pnd.card.type)) return m1;
+      if (pnd?.kind === 'opportunity' && ['apartment', 'business'].includes(pnd.card.type)) return act(m1, (st) => ({ ...st, pending: { kind: 'opportunity', card: st.pending.card } })); // single deal card (v0.4 choice dropped)
     }
     return null;
   };
