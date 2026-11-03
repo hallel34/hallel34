@@ -1,4 +1,4 @@
-// Keyed, decision-independent randomness (rngVersion 2, docs/RNG.md). Pure: no DOM, no Date, no Math.random.
+// Keyed, decision-independent randomness (rngVersion 2, docs/RNG.md). Pure: no DOM, no clock, no unseeded randomness.
 // Every random value is a function of (seed, purpose, a, b) only, never of a stream position. So a buy, a pass, a loan,
 // a charity bonus die or a reroll never shifts a later die or card: two players on the same seed see the same dice on
 // the same turn and the same card on the same deck tile and turn, whatever they decide.

@@ -1,4 +1,4 @@
-// Learning layer, pure and serializable (docs/v2/learn/spec.md sections 2, 4, 6, 7). No DOM, no Math.random.
+// Learning layer, pure and serializable (docs/v2/learn/spec.md sections 2, 4, 6, 7). No DOM, no clock, no unseeded randomness.
 // This module only RECORDS and RATES what the player does; no rule of the game and no bot decision reads it.
 // `state.learn` = { decisions[], guesses[], concepts[], shown[] } lives inside every player's engine state, so resume works.
 import {

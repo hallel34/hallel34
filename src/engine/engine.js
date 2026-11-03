@@ -1,4 +1,4 @@
-// Pure game engine. No DOM, no Date, no Math.random.
+// Pure game engine. No DOM, no clock, no unseeded randomness.
 // createEngine(data) returns action functions of the form (state, ...args) => newState, and dispatch(state, action),
 // the one entry point the UI, the bots and replay() use (every dispatched action is appended to state.log).
 // The input state is never mutated. Randomness: rngVersion 2 (every new game) derives each die, card and pick from
