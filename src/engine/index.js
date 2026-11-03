@@ -11,3 +11,4 @@ export * from './learn.js';
 export * from './daily.js';
 export { cardView, hasFamilyWording } from './card-view.js';
 export * from './rng.js';
+export { encodeActionLog, decodeActionLog, ActionLogError, ACTION_CODES } from './actionlog.js';
