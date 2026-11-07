@@ -36,6 +36,7 @@ function decisionErrors(c, w) {
     if (!isStr(o.label)) e.push(`${ow}: label`);
     if (!isStr(o.fox)) e.push(`${ow}: fox line`);
     for (const k of ['labelFamily', 'foxFamily', 'labelJunior', 'foxJunior']) if (o[k] !== undefined && !isStr(o[k])) e.push(`${ow}: ${k}`);
+    if (o.foxVariants !== undefined && (!Array.isArray(o.foxVariants) || !o.foxVariants.every(isStr))) e.push(`${ow}: foxVariants must be a list of lines`);
     const fx = o.effects;
     if (!fx || typeof fx !== 'object') { e.push(`${ow}: effects`); continue; }
     for (const k of Object.keys(fx)) if (!EFFECT_KEYS.includes(k)) e.push(`${ow}: unknown effect ${k}`);

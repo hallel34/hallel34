@@ -45,7 +45,7 @@ import { summaryCard } from './summary-card.js';
 import { professionBust } from './professions.js';
 import { paydayChip } from './payday.js';
 import { decisionModal as rawDecisionModal, decisionFoxVariants, decisionLog, foxSlots } from './decision.js';
-import { createCommentaryPicker } from './commentary.js';
+import { nextDecisionLine } from './decision-lines.js';
 import { taxAuditModal as rawTaxAuditModal, countCorrect } from './tax-audit.js';
 import { feedbackNodes } from './learn-flow.js';
 import { learnContent } from '../learn/content.js';
@@ -759,8 +759,6 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     else react('celebrate');
   }
 
-  const pickDecisionLine = createCommentaryPicker(); // decision-card fox lines: shared by every seat on this device
-  let lastDecisionLine = null;
   function apply(fn) {
     if (destroyed) return false; // a late tap on a card that outlived the screen
     const before = state;
@@ -1338,10 +1336,8 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
           pushLog(decisionLog(p.card, r.option, state.mode));
           // rotate the variants; a line that would repeat the last decision line on this device is not shown again (QA L3)
           const slots = foxSlotsText(before, state);
-          const line = pickDecisionLine('decision', decisionFoxVariants(p.card, r.option, state.mode), (v) => fillSlots(v, slots));
-          const text = line ? fillSlots(line, slots) : null;
-          if (text && text !== lastDecisionLine) flow.notes.push({ kind: 'feedback', group: 'decision', pose: 'think', tone: 'neutral', plain: text, body: feedbackNodes(line, slots) });
-          if (text) lastDecisionLine = text;
+          const pick = nextDecisionLine(decisionFoxVariants(p.card, r.option, state.mode), (v) => fillSlots(v, slots)); // per device
+          if (pick) flow.notes.push({ kind: 'feedback', group: 'decision', pose: 'think', tone: 'neutral', plain: pick.text, body: feedbackNodes(pick.line, slots) });
         }
       } else if (p.kind === 'taxAudit') {
         // v4 stage 4: the tax-audit quiz; knowledge points only (the engine never moves money here)

@@ -92,7 +92,13 @@ export const decisionFox = (card, optionId, mode) => (optionId === PASS_OPTION ?
  * in a row (QA L3).
  */
 export function decisionFoxVariants(card, optionId, mode) {
-  if (optionId !== PASS_OPTION) return [decisionFox(card, optionId, mode)];
+  if (optionId !== PASS_OPTION) {
+    // an option's own line, plus its `foxVariants` (cards JSON) when the plain wording is the one shown (not family / junior)
+    const o = card.options.find((x) => x.id === optionId);
+    const line = decisionFox(card, optionId, mode);
+    const plain = line === scaleTypedMoney(o?.fox);
+    return [line, ...(plain && Array.isArray(o?.foxVariants) ? o.foxVariants.map((v) => scaleTypedMoney(v)) : [])];
+  }
   const out = [t('decision.passFox')];
   for (let i = 2; typeof rawString(`decision.passFox_${i}`) === 'string'; i++) out.push(t(`decision.passFox_${i}`));
   return out;
