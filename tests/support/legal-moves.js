@@ -31,7 +31,7 @@ export function legalMoves(engine, s, rnd, { passed = null } = {}) {
     const a = s.assets[Math.floor(rnd() * s.assets.length)];
     moves.push(a.type === 'stock' ? { type: 'sellAsset', id: a.id, qty: 1 + Math.floor(rnd() * a.qty) } : { type: 'sellAsset', id: a.id });
   }
-  if (passed && !s.daily && rnd() < 0.05) moves.push({ type: 'auctionWin', card: passed, price: Math.max(1, Math.floor(s.cash / 2 / step) * step) });
+  void passed; // auctions are hot-seat only (never in a single-player link): covered by tests/actionlog.test.js
   if (s.phase === 'roll') {
     if (s.rerollTokens > 0 && !s.daily && rnd() < 0.5) moves.push({ type: 'armReroll' });
     moves.push({ type: 'roll' });

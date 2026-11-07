@@ -18,7 +18,7 @@ import {
 } from './selectors.js';
 import { emptyLearn, recordDecision, buyRecord, passRecord, loanRating, isDeal } from './learn.js';
 import { dailyDie, dailyPick, DAILY_TURN_CAP, dailyRngVersion } from './daily.js';
-import { RNG_V1, RNG_V2, RNG_VERSION, V2_DRAW_SCHEME, v2Die, v2RerollDie, v2AuditPick, v2DeckOrder, v2DeckCycle } from './rng.js';
+import { RNG_V1, RNG_V2, RNG_VERSION, V2_DRAW_SCHEME, v2Die, v2RerollDie, v2AuditPick, v2DeckOrder, v2DeckCycle, stableStringify } from './rng.js';
 import { recordGuess, dealMetrics } from './learn.js';
 import { renovationLevel, renovationLevelsFor, RENOVATION_STYLES } from './renovation.js';
 
@@ -136,6 +136,26 @@ export function dealTierIndex(d) {
 }
 
 const clone = (x) => structuredClone(x);
+
+// ---------- an auction on a bidder's own state (hot-seat; the match runs the bidding, auction.js) ----------
+/** The lowest legal winning bid of an open auction: one step, and at least the floor rounded up to a step. */
+export const auctionMinBidOf = (o) => Math.max(o.step, Math.ceil((o.floor ?? 0) / o.step) * o.step);
+/** The bidder's state with the auction open on it (the dispatch action `auctionOpen`, without the log entry). */
+export function auctionOpenState(state, { card, floor, step }) {
+  if (state.status !== 'playing') throw new EngineError('game is over');
+  if (!['apartment', 'business'].includes(card?.type)) throw new EngineError('only a deal can be auctioned');
+  if (!Number.isInteger(step) || step <= 0 || !Number.isInteger(floor) || floor < 0) throw new EngineError('bad auction rules');
+  const d = structuredClone(state);
+  d.auctionOpen = { card: structuredClone(card), floor, step };
+  return d; // the events of the bidder's last action stay as they were
+}
+/** The bidder's state with the open auction closed (the dispatch action `auctionClose`, without the log entry). */
+export function auctionCloseState(state) {
+  if (!state.auctionOpen) throw new EngineError('no auction open');
+  const d = structuredClone(state);
+  delete d.auctionOpen;
+  return d;
+}
 const fail = (msg) => { throw new EngineError(msg); };
 
 // mulberry32, state kept inside the game state so it is serializable.
@@ -1060,7 +1080,11 @@ export function createEngine(data, { validate = true, drawScheme = V2_DRAW_SCHEM
     buy: { fields: ['qty'], run: (s, a) => buy(s, a.qty ?? 1) },
     pass: { fields: [], run: (s) => pass(s) },
     renovate: { fields: ['assetId', 'level', 'style'], run: (s, a) => renovateAction(s, a) },
-    auctionWin: { fields: ['card', 'price'], run: (s, a) => auctionWin(s, a.card, a.price) },
+    // an auction is a hot-seat event: the match opens it on every bidder's state (auctionOpen), a win must be for that very
+    // card at a legal bid, and the match closes it on the others (auctionClose). Never part of a single-player link.
+    auctionOpen: { fields: ['card', 'floor', 'step'], run: (s, a) => auctionOpenAction(s, a) },
+    auctionClose: { fields: [], run: (s) => auctionCloseAction(s) },
+    auctionWin: { fields: ['card', 'price'], run: (s, a) => auctionWinAction(s, a) },
     acceptOffer: { fields: [], run: (s) => acceptOffer(s) },
     declineOffer: { fields: [], run: (s) => declineOffer(s) },
     donate: { fields: [], run: (s) => donate(s) },
@@ -1086,6 +1110,19 @@ export function createEngine(data, { validate = true, drawScheme = V2_DRAW_SCHEM
     if ((light ?? null) !== own) fail(`the light of ${cardId} is ${own}`);
     return recordGuess(state, { cardId, light: own, guess }); // events untouched: a guess is part of the open card
   }
+  // ---------- auctions through dispatch: open -> win (or close) ----------
+  const auctionOpenAction = (state, a) => auctionOpenState(state, a);
+  const auctionCloseAction = (state) => auctionCloseState(state);
+  function auctionWinAction(state, { card, price }) {
+    const open = state.auctionOpen;
+    if (!open) fail('no auction open for this player');
+    if (stableStringify(open.card) !== stableStringify(card)) fail('not the auctioned card');
+    if (!Number.isInteger(price) || price < auctionMinBidOf(open) || price % open.step !== 0) fail(`bid must be a multiple of ${open.step} from ${auctionMinBidOf(open)}`);
+    const d = auctionWin(state, card, price);
+    delete d.auctionOpen;
+    return d;
+  }
+
   // renovate with the level it reaches in the log: a replayed log whose level does not match the state is refused
   function renovateAction(state, { assetId, level = null, style = null }) {
     const d = renovate(state, assetId, style ?? null);

@@ -1,6 +1,6 @@
 // Save/load: JSON with schemaVersion and migrations. Storage itself is the UI's job.
 // Schema 2 saves a whole match (1-4 players). Schema 1 saves were one bare game state: they load as a one-player match.
-import { SCHEMA_VERSION, MILESTONES } from './config.js';
+import { SCHEMA_VERSION, MILESTONES, LOAN_STEP, JUNIOR_LOAN_STEP } from './config.js';
 import { emptyTaxAudit } from './engine.js';
 import { matchFromState } from './match.js';
 import { emptyLearn } from './learn.js';
@@ -112,6 +112,15 @@ export function deserialize(json) {
   for (const p of s.players) {
     for (const l of Array.isArray(p.state.liabilities) ? p.state.liabilities : []) {
       if (l?.kind === 'loan' && !Number.isFinite(l.rate)) l.rate = loanRate(l);
+    }
+  }
+  // v0.5: a win in an auction is checked against the auction open on the bidder's own state. A save made while an auction
+  // was open, before that rule, has it on the match only: open it on the bidders that are still in (not logged).
+  if (s.auction?.card && Array.isArray(s.auction.order)) {
+    const step = s.auction.step ?? (s.junior ? JUNIOR_LOAN_STEP : LOAN_STEP);
+    for (const i of s.auction.order) {
+      const st = s.players[i]?.state;
+      if (st && !st.auctionOpen && !(s.auction.out ?? []).includes(i)) st.auctionOpen = { card: s.auction.card, floor: s.auction.floor ?? 0, step };
     }
   }
   return s;

@@ -13,12 +13,14 @@ const fail = (msg) => { throw new ActionLogError(msg); };
 export const FORMAT_VERSION = 1;
 const MAGIC = [0x4D, 0x46]; // 'MF'
 
-/** One byte per action type. Never renumber: links in the wild carry these codes. 19 (debugForce) is refused in a link. */
+/** One byte per action type. Never renumber: links in the wild carry these codes. REFUSED_IN_LINKS codes are reserved. */
 export const ACTION_CODES = {
   roll: 1, armReroll: 2, chooseDeal: 3, guess: 4, buy: 5, pass: 6, renovate: 7, auctionWin: 8, acceptOffer: 9,
   declineOffer: 10, donate: 11, declineCharity: 12, takeLoan: 13, repayLoan: 14, sellAsset: 15, decide: 16,
-  answerAudit: 17, forfeit: 18, debugForce: 19,
+  answerAudit: 17, forfeit: 18, debugForce: 19, auctionOpen: 20, auctionClose: 21,
 };
+/** Never in a link: a QA force, and the hot-seat auction actions (a link is one player's game; a forged auction card could win). */
+export const REFUSED_IN_LINKS = ['debugForce', 'auctionWin', 'auctionOpen', 'auctionClose'];
 const TYPE_OF = Object.fromEntries(Object.entries(ACTION_CODES).map(([k, v]) => [v, k]));
 
 const LIGHTS = [null, 'green', 'yellow', 'red'];
@@ -123,7 +125,7 @@ export function encodeActionLog({ rngVersion, seed, config = {}, actions = [] })
   for (const a of actions) {
     const code = ACTION_CODES[a?.type];
     if (!code) fail(`unknown action ${a?.type}`);
-    if (a.type === 'debugForce') fail('a QA force (debugForce) cannot go into a link');
+    if (REFUSED_IN_LINKS.includes(a.type)) fail(`${a.type} cannot go into a link (debugForce is a QA force; auctions are hot-seat only)`);
     body.byte(code);
     switch (a.type) {
       case 'roll': if (a.dice !== undefined) fail('a logged roll carries no dice'); break;
@@ -131,7 +133,6 @@ export function encodeActionLog({ rngVersion, seed, config = {}, actions = [] })
       case 'chooseDeal': body.uint(ref(strOf(a.cardId, 'cardId'))); break;
       case 'guess': body.uint(ref(strOf(a.cardId, 'cardId'))); body.byte(indexIn(LIGHTS, a.light, 'light') * 4 + indexIn(GUESSES, a.guess, 'guess')); break;
       case 'renovate': body.uint(ref(strOf(a.assetId, 'assetId'))); body.uint(a.level ?? 0); body.byte(indexIn(STYLES, a.style, 'style')); break;
-      case 'auctionWin': body.uint(ref(JSON.stringify(a.card))); body.uint(a.price); break;
       case 'takeLoan': body.uint(a.amount); break;
       case 'repayLoan': body.uint(ref(strOf(a.id, 'id'))); body.uint(a.amount); break;
       case 'sellAsset': body.uint(ref(strOf(a.id, 'id'))); body.uint(a.qty == null ? 0 : a.qty + 1); break;
@@ -200,14 +201,13 @@ export function decodeActionLog(text) {
   for (let i = 0; i < n; i++) {
     const code = r.byte();
     const type = TYPE_OF[code] ?? fail(`unknown action code ${code}`);
-    if (type === 'debugForce') fail('a QA force (debugForce) cannot be in a link');
+    if (REFUSED_IN_LINKS.includes(type)) fail(`${type} cannot be in a link (debugForce is a QA force; auctions are hot-seat only)`);
     const a = { type };
     switch (type) {
       case 'buy': a.qty = r.uint(); break;
       case 'chooseDeal': a.cardId = str(); break;
       case 'guess': { a.cardId = str(); const b = r.byte(); a.light = pick(LIGHTS, b >> 2, 'light'); a.guess = pick(GUESSES, b & 3, 'guess'); break; }
       case 'renovate': { a.assetId = str(); a.level = r.uint(); const st = pick(STYLES, r.byte(), 'style'); if (st) a.style = st; break; }
-      case 'auctionWin': { try { a.card = JSON.parse(str()); } catch (e) { if (e instanceof ActionLogError) throw e; fail('bad auction card'); } a.price = r.uint(); break; }
       case 'takeLoan': a.amount = r.uint(); break;
       case 'repayLoan': a.id = str(); a.amount = r.uint(); break;
       case 'sellAsset': { a.id = str(); const q = r.uint(); if (q) a.qty = q - 1; break; }

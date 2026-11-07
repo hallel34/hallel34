@@ -3,6 +3,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { createEngine, encodeActionLog, decodeActionLog, stateHash, DAILY_RNG_V2_FROM, EngineError } from '../src/engine/index.js';
+import { REFUSED_IN_LINKS } from '../src/engine/actionlog.js';
 import { mulberry, playRandom } from './support/legal-moves.js';
 
 const read = (p) => JSON.parse(readFileSync(new URL(`../src/data/${p}`, import.meta.url), 'utf8'));
@@ -39,8 +40,8 @@ describe('replay fuzz: 500 random legal games replay exactly from their encoded 
     }
     expect(ok).toBe(GAMES);
     expect(actions / GAMES).toBeGreaterThan(30);
-    // the generator reached every player action the engine has (debugForce is the QA-only force button)
-    for (const t of engine.ACTION_TYPES.filter((x) => x !== 'debugForce')) expect(kinds, t).toContain(t);
+    // the generator reached every action a link may carry (not the QA force, not the hot-seat auction actions)
+    for (const t of engine.ACTION_TYPES.filter((x) => !REFUSED_IN_LINKS.includes(x))) expect(kinds, t).toContain(t);
   }, 240000);
   it('a replay of a different log is a different game, and an illegal action in a log is refused', () => {
     const s = engine.newGame({ mode: 'full', professionId: 'teacher', seed: 7 });

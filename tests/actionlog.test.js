@@ -2,9 +2,10 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import {
-  createEngine, encodeActionLog, decodeActionLog, ActionLogError, ACTION_CODES, playGame, botStep,
+  createEngine, encodeActionLog, decodeActionLog, ActionLogError, ACTION_CODES, playGame, botStep, EngineError,
+  newMatch, maybeStartAuction, auctionBid, auctionPass, runAuction, currentState,
 } from '../src/engine/index.js';
-import { crc32, toBase64Url, fromBase64Url } from '../src/engine/actionlog.js';
+import { crc32, toBase64Url, fromBase64Url, REFUSED_IN_LINKS } from '../src/engine/actionlog.js';
 
 const read = (p) => JSON.parse(readFileSync(new URL(`../src/data/${p}`, import.meta.url), 'utf8'));
 const data = { professions: read('professions.he.json'), cards: read('cards.he.json') };
@@ -28,13 +29,13 @@ describe('action log: encode / decode', () => {
       { type: 'roll' }, { type: 'armReroll' }, { type: 'chooseDeal', cardId: 'opp-apt-004' },
       { type: 'guess', cardId: 'opp-apt-004', light: 'green', guess: 'good' }, { type: 'guess', cardId: 'opp-biz-002', light: null, guess: 'skip' },
       { type: 'buy', qty: 1 }, { type: 'buy', qty: 250 }, { type: 'pass' }, { type: 'renovate', assetId: 'asset-3', level: 2, style: 'terrace' },
-      { type: 'renovate', assetId: 'asset-3', level: 1 }, { type: 'auctionWin', card: { id: 'opp-apt-001', type: 'apartment', mortgage: 1, title: 'דירה' }, price: 12000 },
+      { type: 'renovate', assetId: 'asset-3', level: 1 },
       { type: 'acceptOffer' }, { type: 'declineOffer' }, { type: 'donate' }, { type: 'declineCharity' }, { type: 'takeLoan', amount: 25000 },
       { type: 'repayLoan', id: 'loan-7', amount: 1000 }, { type: 'sellAsset', id: 'asset-2' }, { type: 'sellAsset', id: 'asset-5', qty: 0 },
       { type: 'decide', option: 'pass' }, { type: 'answerAudit' }, { type: 'answerAudit', questionId: 'tax-3', correct: false },
       { type: 'forfeit' },
     ];
-    expect(new Set(actions.map((a) => a.type))).toEqual(new Set(Object.keys(ACTION_CODES).filter((t) => t !== 'debugForce')));
+    expect(new Set(actions.map((a) => a.type))).toEqual(new Set(Object.keys(ACTION_CODES).filter((t) => !REFUSED_IN_LINKS.includes(t))));
     for (const config of [{ mode: 'full', professionId: 'lawyer' }, { mode: 'family', professionId: 'cook', junior: true }, { mode: 'family', professionId: 'nurse', daily: { date: '2026-11-20' } }]) {
       const log = { rngVersion: 2, seed: 4294967295, config, actions };
       const text = encodeActionLog(log);
@@ -111,5 +112,52 @@ describe('action log: malformed or tampered logs are refused with an ActionLogEr
     edited.actions[edited.actions.length - 1].amount = 2000;
     const forged = decodeActionLog(encodeActionLog(edited));
     expect(engine.replay(99, forged.config, forged.actions).cash).not.toBe(engine.replay(99, edited.config, decodeActionLog(text).actions).cash);
+  });
+});
+
+describe('F5 / QA P2-2: a forged auction cannot win a game', () => {
+  const card = { id: 'fake', deck: 'opportunity', type: 'business', title: 'x', price: 1, downPayment: 1, mortgage: 0, monthlyCashFlow: 999999 };
+  const config = { mode: 'family', professionId: 'teacher' };
+  it("QA's forged link (one auctionWin with a fake card at price 1) is refused by encode, by decode and by replay", () => {
+    expect(() => encodeActionLog({ rngVersion: 2, seed: 5, config, actions: [{ type: 'auctionWin', card, price: 1 }] })).toThrow(/auctionWin cannot go into a link/);
+    // a hand-built link with the auctionWin code and a valid CRC
+    const good = [...fromBase64Url(encodeActionLog({ rngVersion: 2, seed: 5, config, actions: [{ type: 'pass' }] }))];
+    const body = good.slice(0, -4);
+    body[body.length - 1] = ACTION_CODES.auctionWin;
+    const c = crc32(Uint8Array.from(body));
+    const forged = toBase64Url(Uint8Array.from([...body, c & 255, (c >>> 8) & 255, (c >>> 16) & 255, (c >>> 24) & 255]));
+    expect(() => decodeActionLog(forged)).toThrow(/auctionWin cannot be in a link/);
+    for (const t of ['auctionOpen', 'auctionClose', 'debugForce']) expect(() => encodeActionLog({ rngVersion: 2, seed: 5, config, actions: [{ type: t }] })).toThrow(ActionLogError);
+    expect(() => engine.replay(5, config, [{ type: 'auctionWin', card, price: 1 }])).toThrow(/no auction open/);
+  });
+  it('dispatch refuses a win without an open auction, for another card, below the floor or off the bid step', () => {
+    const s = { ...engine.newGame({ ...config, seed: 5 }), cash: 100000 };
+    expect(() => engine.dispatch(s, { type: 'auctionWin', card, price: 1 })).toThrow(EngineError);
+    const real = { ...card, id: 'opp-apt-004', type: 'apartment', downPayment: 40000, monthlyCashFlow: 900 };
+    const open = engine.dispatch(s, { type: 'auctionOpen', card: real, floor: 20000, step: 1000 });
+    expect(() => engine.dispatch(open, { type: 'auctionWin', card, price: 20000 })).toThrow(/not the auctioned card/);
+    expect(() => engine.dispatch(open, { type: 'auctionWin', card: real, price: 1000 })).toThrow(/bid must be/);
+    expect(() => engine.dispatch(open, { type: 'auctionWin', card: real, price: 20500 })).toThrow(/bid must be/);
+    const won = engine.dispatch(open, { type: 'auctionWin', card: real, price: 20000 });
+    expect(won.auctionOpen).toBeUndefined();
+    expect(won.assets.at(-1)).toMatchObject({ cardId: 'opp-apt-004', downPayment: 20000, auctioned: true });
+    expect(() => engine.dispatch(won, { type: 'auctionWin', card: real, price: 20000 })).toThrow(/no auction open/); // once only
+  });
+  it('a hot-seat auction opens on every bidder, closes on the losers, and every seat replays from its own log', () => {
+    let m = newMatch(engine, { mode: 'family', seed: 77, players: [{ professionId: 'teacher' }, { professionId: 'nurse' }, { professionId: 'cook' }] });
+    const deal = engine.data.cards.find((c) => c.id === 'opp-apt-004');
+    m = { ...m, players: m.players.map((p) => ({ ...p, state: { ...p.state, cash: 500000 } })) };
+    const base = m.players.map((p) => p.state);
+    m = maybeStartAuction(m, deal, 0);
+    expect(m.players.map((p) => !!p.state.auctionOpen)).toEqual([false, true, true]);
+    m = runAuction(engine, m, (st, c, i) => (i === 2 ? st.cash : 0));
+    expect(m.players.map((p) => !!p.state.auctionOpen)).toEqual([false, false, false]);
+    expect(m.players[2].state.assets.at(-1).cardId).toBe('opp-apt-004');
+    m.players.forEach((p, i) => {
+      let s = base[i];
+      for (const a of p.state.log) s = engine.dispatch(s, a);
+      expect(s).toEqual({ ...p.state, events: s.events });
+    });
+    expect(currentState(m).log).toEqual([]);
   });
 });
