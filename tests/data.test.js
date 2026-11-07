@@ -216,6 +216,10 @@ describe('full games with real data', () => {
       const median = [...turns].sort((a, b) => a - b)[Math.floor(turns.length / 2)];
       expect(median).toBeGreaterThan(12);
       expect(median).toBeLessThan(30);
+      // and the original bound on the mean (QA P2-3), over the 120 games: family 25.3, full 30.0 (29.98) on rngVersion 2
+      const mean = turns.reduce((a, b) => a + b, 0) / turns.length;
+      expect(mean).toBeGreaterThan(12);
+      expect(mean).toBeLessThan(30);
     });
   }
   it('always-buy clearly loses to the sensible bot (>=15% lost, or much slower, or >=10% lost and slower)', () => {

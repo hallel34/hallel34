@@ -1,4 +1,4 @@
-export { createEngine, rngVersionOf, DECKS, DEAL_TIERS, DEAL_TIERS_V2, dealTiersOf, dealTierIndex, EngineError, emptyTaxAudit, PASS_OPTION, isFreeOption, decisionCanPass } from './engine.js';
+export { createEngine, juniorSkips, rngVersionOf, DECKS, DEAL_TIERS, DEAL_TIERS_V2, dealTiersOf, dealTierIndex, EngineError, emptyTaxAudit, PASS_OPTION, isFreeOption, decisionCanPass } from './engine.js';
 export * from './selectors.js';
 export * from './config.js';
 export { serialize, deserialize } from './save.js';

@@ -4,11 +4,11 @@ import { readFileSync } from 'node:fs';
 import { createEngine, BOARD, totalExpenses, newMatch, playMatch, standings, rematch, serialize, deserialize, SHORT_ROUNDS, recordGuess } from '../src/engine/index.js';
 import { loadData } from '../src/data/index.js';
 
+import { TEST_RNG, withTestRng, stack, topOf } from './support/stack.js';
 const engine = createEngine(loadData('he'));
-// v0.5 (docs/v4/test-changes.md): these cases put chosen cards on top of the v1 deck arrays (state.decks), so their games
-// are rngVersion 1 (the single stream + piles, what every pre-v0.5 save keeps). rngVersion 2 draws: tests/rng.test.js.
-const newGameV2 = engine.newGame;
-engine.newGame = (opts = {}) => newGameV2({ rngVersion: 1, ...opts });
+// v0.5 (docs/v4/test-changes.md 20, QA P2-3): this file runs twice, on rngVersion 1 (here) and rngVersion 2 (its .v2.test.js
+// twin); `stack` puts chosen cards on top of a square's pile in either version (tests/support/stack.js).
+withTestRng(engine);
 const professions = JSON.parse(readFileSync(new URL('../src/data/professions.he.json', import.meta.url), 'utf8'));
 
 describe('teacher starting cash: one value everywhere (QA P1, 2026-11-02)', () => {
@@ -36,7 +36,7 @@ describe('deal choice: two deals on an opportunity square (v0.4)', () => {
   /** A family game about to land on the first opportunity square, with two known deals on top of the pile. */
   const beforeDeal = (ids) => {
     const s = engine.newGame({ mode: 'family', professionId: 'teacher', seed: 7 });
-    return { ...s, cash: 900000, position: oppIdx - 1, decks: { ...s.decks, opportunity: [...ids, ...s.decks.opportunity] } };
+    return stack(engine, { ...s, cash: 900000, position: oppIdx - 1 }, 'opportunity', ids);
   };
 
   it('offers a second, different deal alongside the drawn one', () => {
@@ -46,8 +46,8 @@ describe('deal choice: two deals on an opportunity square (v0.4)', () => {
     expect(s.pending.alt).toBeTruthy();
     expect(s.pending.alt.id).toBe('opp-apt-008');
     expect(['apartment', 'business']).toContain(s.pending.alt.type);
-    // the peek does not consume the pile: the alt is still the next card in the deck
-    expect(s.decks.opportunity[0]).toBe(s.pending.alt.id);
+    // the peek does not consume the pile: the alt is still the next card in the deck (v1; a v2 game has no pile)
+    if (TEST_RNG === 1) expect(s.decks.opportunity[0]).toBe(s.pending.alt.id);
   });
 
   it('chooseDeal swaps the examined deal; buying it sends the unchosen one to auction via a passed event', () => {
@@ -84,14 +84,17 @@ it('chooseDeal rejects a card that was not offered, and a stock/daily offer carr
 
 describe('tiered deal pools: offers grow with the player stage (v0.4)', () => {
   const oppIdx = BOARD.indexOf('opportunity');
-  const withDeck = (s, ids) => ({ ...s, position: oppIdx - 1, decks: { ...s.decks, opportunity: [...ids, ...s.decks.opportunity] } });
+  // v1 stacks any card; a v2 pile holds the game's own cards only: opp-apt-002 (₪5,100, ≈70% of a teacher's expenses) is the
+  // family-mode huge deal there (opp-apt-006 is a full-mode card)
+  const BIG = TEST_RNG === 1 ? 'opp-apt-006' : 'opp-apt-002';
+  const withDeck = (s, ids) => stack(engine, { ...s, position: oppIdx - 1 }, 'opportunity', ids);
 
   it('stage 1 (0% freedom): a huge deal on top is swapped for a small in-tier deal, and stays in the pile', () => {
     const s0 = engine.newGame({ mode: 'family', professionId: 'teacher', seed: 7 });
     // opp-apt-006 flows ₪6,800/mo (≈85% of a teacher's expenses — a late-game deal); opp-biz-013 flows ₪500
-    const s = engine.roll(withDeck(s0, ['opp-apt-006', 'opp-biz-013']), [1]);
+    const s = engine.roll(withDeck(s0, [BIG, 'opp-biz-013']), [1]);
     expect(s.pending.card.id).toBe('opp-biz-013');
-    expect(s.decks.opportunity).toContain('opp-apt-006');
+    if (TEST_RNG === 1) expect(s.decks.opportunity).toContain(BIG);
   });
 
   it('stage 4 (80% freedom): a tiny deal on top is swapped for a big in-tier deal', () => {
@@ -101,9 +104,9 @@ describe('tiered deal pools: offers grow with the player stage (v0.4)', () => {
       ...s0,
       assets: [{ id: 'a1', cardId: 'seed-asset', type: 'apartment', title: 'נכס', price: 1, downPayment: 1, mortgage: 0, monthlyCashFlow: Math.round(exp * 0.8) }],
     };
-    const s = engine.roll(withDeck(rich, ['opp-biz-013', 'opp-apt-006']), [1]);
-    expect(s.pending.card.id).toBe('opp-apt-006');
-    expect(s.decks.opportunity).toContain('opp-biz-013');
+    const s = engine.roll(withDeck(rich, ['opp-biz-013', BIG]), [1]);
+    expect(s.pending.card.id).toBe(BIG);
+    if (TEST_RNG === 1) expect(s.decks.opportunity).toContain('opp-biz-013');
   });
 
   it('a negative-flow trap deal is never tier-filtered away', () => {
@@ -161,7 +164,7 @@ describe('guess stakes: discount and reroll tokens (v0.4)', () => {
   const oppIdx = BOARD.indexOf('opportunity');
   const beforeDeal = (ids) => {
     const s = engine.newGame({ mode: 'family', professionId: 'teacher', seed: 7 });
-    return { ...s, cash: 900000, position: oppIdx - 1, decks: { ...s.decks, opportunity: [...ids, ...s.decks.opportunity] } };
+    return stack(engine, { ...s, cash: 900000, position: oppIdx - 1 }, 'opportunity', ids);
   };
 
   it('a correct guess on the card this turn takes 10% off the down payment', () => {

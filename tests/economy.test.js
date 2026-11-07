@@ -11,23 +11,22 @@ import {
 import { inflateDeal } from '../src/engine/engine.js';
 import { loadData } from '../src/data/index.js';
 
+import { TEST_RNG, withTestRng, stack, topOf } from './support/stack.js';
 const data = loadData('he');
 const engine = createEngine(data);
-// v0.5 (docs/v4/test-changes.md): these cases put chosen cards on top of the v1 deck arrays (state.decks), so their games
-// are rngVersion 1 (the single stream + piles, what every pre-v0.5 save keeps). rngVersion 2 draws: tests/rng.test.js.
-const newGameV2 = engine.newGame;
-engine.newGame = (opts = {}) => newGameV2({ rngVersion: 1, ...opts });
+// v0.5 (docs/v4/test-changes.md 20, QA P2-3): this file runs twice, on rngVersion 1 (here) and rngVersion 2 (its .v2.test.js
+// twin); `stack` puts chosen cards on top of a square's pile in either version (tests/support/stack.js).
+withTestRng(engine);
 const card = (id) => data.cards.find((c) => c.id === id);
 const idx = (type, nth = 0) => BOARD.map((t, i) => (t === type ? i : -1)).filter((i) => i >= 0)[nth];
 const FAMILY_MARKET = data.cards.filter((c) => c.deck === 'market' && TIMED_EFFECT_KINDS.includes(c.effect));
 
 /** A family game standing just before a square, with chosen cards on top of the decks. */
 function before(square, { mode = 'family', professionId = 'teacher', market, opportunity, lap = 0, nth = 0 } = {}) {
-  const s = engine.newGame({ mode, professionId, seed: 7 });
-  const decks = { ...s.decks };
-  if (market) decks.market = [...market, ...decks.market];
-  if (opportunity) decks.opportunity = [...opportunity, ...decks.opportunity];
-  return { ...s, position: idx(square, nth) - 1, decks, lap };
+  let s = { ...engine.newGame({ mode, professionId, seed: 7 }), position: idx(square, nth) - 1, lap };
+  if (market) s = stack(engine, s, 'market', market);
+  if (opportunity) s = stack(engine, s, 'opportunity', opportunity);
+  return s;
 }
 const roll1 = (s) => engine.roll(s, [1]);
 /** Rolls a die of 1 from a square that is not before a payday, resolving whatever comes up, `n` times. */
@@ -109,13 +108,13 @@ describe('laps and price inflation of new deals', () => {
     const owned = structuredClone(s.assets[0]);
     s = engine.roll({ ...s, position: BOARD.length - 1 }, [1]); // pass square 0
     s = { ...s, lap: 5, phase: 'roll', pending: null };
-    s = roll1({ ...s, position: idx('opportunity') - 1, decks: { ...s.decks, opportunity: ['opp-biz-006', ...s.decks.opportunity] } });
+    s = roll1(stack(engine, { ...s, position: idx('opportunity') - 1 }, 'opportunity', ['opp-biz-006']));
     expect(s.pending.card.price).toBeGreaterThan(owned.price);
     expect(s.assets[0]).toEqual(owned);
   });
   it('expense cards are not inflated (factor 1.0)', () => {
     const s = before('expense', { lap: 4 });
-    const top = s.decks.expense[0];
+    const top = topOf(engine, s, 'expense');
     const r = roll1({ ...s, cash: 500000 });
     expect(r.events.find((e) => e.type === 'expensePaid').amount).toBe(card(top).amount);
   });
@@ -175,8 +174,14 @@ describe('family market deck (timed effects)', () => {
   it('a full game never draws them; a family game does', () => {
     const fam = engine.newGame({ mode: 'family', professionId: 'teacher', seed: 1 });
     const full = engine.newGame({ mode: 'full', professionId: 'teacher', seed: 1 });
-    expect(fam.decks.market.filter((id) => id.startsWith('fmkt-'))).toHaveLength(FAMILY_MARKET.length);
-    expect(full.decks.market.some((id) => id.startsWith('fmkt-'))).toBe(false);
+    if (TEST_RNG === 1) {
+      expect(fam.decks.market.filter((id) => id.startsWith('fmkt-'))).toHaveLength(FAMILY_MARKET.length);
+      expect(full.decks.market.some((id) => id.startsWith('fmkt-'))).toBe(false);
+    } else { // v2: the keyed market piles of 200 turns
+      const seen = (s) => new Set(Array.from({ length: 200 }, (_, t) => topOf(engine, { ...s, turn: t }, 'market')));
+      expect([...seen(fam)].filter((id) => id.startsWith('fmkt-')).sort()).toEqual(FAMILY_MARKET.map((c) => c.id).sort());
+      expect([...seen(full)].some((id) => id.startsWith('fmkt-'))).toBe(false);
+    }
   });
   it('the schema rejects a timed card without turns, a bad pct or rate, a missing teaches line, and a family offer card', () => {
     const ok = card('fmkt-001');
@@ -226,7 +231,7 @@ describe('timed effects in the engine', () => {
     s = engine.buy(roll1({ ...s, cash: 500000 }));
     expect(s.assets[0].rent).toBe(9500);
     const passive = passiveIncome(s);
-    s = roll1({ ...s, position: idx('market') - 1, decks: { ...s.decks, market: ['fmkt-004', ...s.decks.market] } });
+    s = roll1(stack(engine, { ...s, position: idx('market') - 1 }, 'market', ['fmkt-004']));
     expect(passiveIncome(s)).toBe(passive - 950);
     const flow = monthlyCashFlow(s);
     const paid = engine.roll({ ...s, position: idx('payday', 1) - 1 }, [1]).events.find((e) => e.type === 'payday');
@@ -240,18 +245,18 @@ describe('timed effects in the engine', () => {
     const worth = netWorth(s);
     const cash = s.cash;
     const flow = monthlyCashFlow(s);
-    const up = roll1({ ...s, position: idx('market') - 1, decks: { ...s.decks, market: ['fmkt-001', ...s.decks.market] } });
+    const up = roll1(stack(engine, { ...s, position: idx('market') - 1 }, 'market', ['fmkt-001']));
     expect(netWorth(up) - (up.cash - cash)).toBe(worth + 210000); // 1,400,000 x 15%
     expect(balanceSheet(up).items[0].value).toBe(1610000);
     expect(monthlyCashFlow(up)).toBe(flow);
-    const down = roll1({ ...s, position: idx('market') - 1, decks: { ...s.decks, market: ['fmkt-002', ...s.decks.market] } });
+    const down = roll1(stack(engine, { ...s, position: idx('market') - 1 }, 'market', ['fmkt-002']));
     expect(balanceSheet(down).items[0].value).toBe(1190000);
     expect(balanceSheet(quietTurns(up, 3)).items[0].value).toBe(1400000);
   });
   it('a second card of the same kind replaces the running one (no stacking)', () => {
     let s = draw('fmkt-001');
     s = quietTurns(s, 1);
-    s = roll1({ ...s, position: idx('market') - 1, decks: { ...s.decks, market: ['fmkt-002', ...s.decks.market] } });
+    s = roll1(stack(engine, { ...s, position: idx('market') - 1 }, 'market', ['fmkt-002']));
     expect(s.effects).toEqual([{ kind: 'propertyValue', turnsLeft: 3, cardId: 'fmkt-002', pct: -0.15 }]);
   });
   it('family offer cards do not exist, so a family market square never opens an offer', () => {
