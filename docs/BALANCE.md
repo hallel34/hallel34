@@ -205,8 +205,22 @@ The tuning runs above use seeds `1 + g * 7919`; `npm run simulate` uses its own 
 main table. The chosen bands put all three reckless bots back in the 15-35% band and closest to v0.4's average of the three
 (25.3%). Raising the upper bounds instead (0.5 / 0.65 / 0.85) did not help (28 / 39 / 30%).
 
-- **Full mode:** it plays like v0.4 on the v0.4 bands. Sensible means are 28.8 vs 29.8 turns at 300 games, about one standard
-  error apart, and they were 30.1 vs 30.3 at 800 games in docs/RNG.md. The reckless rates are within 3 points. So full mode
-  keeps `DEAL_TIERS`.
+- **Full mode:** it keeps the v0.4 bands (`DEAL_TIERS`). Sensible and cautious play and the loss rates are within noise:
+  - sensible means are 28.8 vs 29.8 turns at 300 games (about one standard error apart), and 30.1 vs 30.3 at 800 games in
+    docs/RNG.md;
+  - every reckless loss rate is within 3 points.
+- **Open for the owner (QA RNG P2-1): full-mode reckless bots win faster under v0.5.** This is outside the approved
+  family-only recalibration. The loss rates stay the same, but the games that the reckless bots win end sooner (300 games,
+  v0.4 -> v0.5):
+
+  | full mode | median | mean turns | p90 |
+  |---|---|---|---|
+  | alwaysBuy | 35 -> 29 | 44.5 -> 39.0 (-5.5) | 86 -> 74 |
+  | overBorrow | 35 -> 31 | 45.8 -> 41.9 (-3.9) | 89 -> 75 |
+  | overBorrowLite | 36 -> 31 | 46.0 -> 41.4 (-4.6) | 89 -> 84 |
+
+  The cause is the same as in family mode. A keyed pile never runs out of in-tier deals, so a reckless player who survives
+  keeps meeting deals sized for their stage instead of v0.4's end-of-cycle leftovers. The sensible bot (mean 28.8 vs 29.8) and
+  the bankruptcy rates are unchanged. Not changed here; the full-mode bands can be recalibrated if the owner asks.
 - **Sensible family play:** within noise (mean 24.6 vs 24.5).
 - **v1 games (old saves):** they keep `DEAL_TIERS` untouched (tests/rng.test.js).
