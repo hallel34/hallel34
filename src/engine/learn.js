@@ -1,4 +1,4 @@
-// Learning layer, pure and serializable (docs/v2/learn/spec.md sections 2, 4, 6, 7). No DOM, no Math.random.
+// Learning layer, pure and serializable (docs/v2/learn/spec.md sections 2, 4, 6, 7). No DOM, no clock, no unseeded randomness.
 // This module only RECORDS and RATES what the player does; no rule of the game and no bot decision reads it.
 // `state.learn` = { decisions[], guesses[], concepts[], shown[] } lives inside every player's engine state, so resume works.
 import {
@@ -135,7 +135,14 @@ export const guessForCard = (s, cardId) => {
 /** Returns a new state with the guess recorded: { cardId, light, guess: 'good'|'bad'|'skip' }. */
 export function recordGuess(s, { cardId, light, guess }) {
   const d = structuredClone(s);
-  ensureLearn(d).guesses.push({ turn: d.turn, cardId, light, guess, correct: guessCorrect(light, guess) });
+  const entry = { turn: d.turn, cardId, light, guess, correct: guessCorrect(light, guess) };
+  ensureLearn(d).guesses.push(entry);
+  // v0.4 guess stakes: every full investor's-eye streak (3, 6, 9... correct in a row) also earns a reroll
+  // token, up to 2 held. The token lives on the engine state (rerollTokens), so saves keep it.
+  if (entry.correct) {
+    const streak = investorStreak(d.learn.guesses);
+    if (streak > 0 && streak % INVESTOR_EYE_STREAK === 0) d.rerollTokens = Math.min(2, (d.rerollTokens ?? 0) + 1);
+  }
   return d;
 }
 

@@ -157,7 +157,8 @@ async function guards(browser, theme) {
   const { ctx, page } = await open(browser, { w: 360, h: 800, theme });
   await begin(page, { players: 2 });
   let sawHandoff = 0; let sawSummary = 0;
-  const sel = { pass: '[data-action="pass"]', pay: '[data-action="pay"]', ok: '[data-action="ok"]', skip: '[data-action="skip"]', decline: '[data-action="decline"]' };
+  // skipBoth: v0.4's deal-choice card (two deals, no "pass" button)
+  const sel = { pass: '[data-action="pass"]', skipBoth: '[data-action="skip-both"]', pay: '[data-action="pay"]', ok: '[data-action="ok"]', skip: '[data-action="skip"]', decline: '[data-action="decline"]' };
   for (let guard = 0; guard < 1500 && (sawHandoff < 4 || sawSummary < 1); guard++) {
     const kind = await topKind(page);
     if (kind === 'handoff') {
@@ -200,7 +201,7 @@ async function guards(browser, theme) {
     } else if (kind === 'card') {
       const top = '#modal-root .layer:last-child ';
       let done = false;
-      for (const k of ['pass', 'pay', 'ok', 'skip', 'decline']) { const l = page.locator(top + sel[k]).first(); if (await l.count()) { await l.click({ timeout: 2500 }).catch(() => {}); done = true; break; } }
+      for (const k of ['pass', 'skipBoth', 'pay', 'ok', 'skip', 'decline']) { const l = page.locator(top + sel[k]).first(); if (await l.count()) { await l.click({ timeout: 2500 }).catch(() => {}); done = true; break; } }
       if (!done) { const g = page.locator(`${top}[data-action^="guess-"]`).first(); if (await g.count()) await g.click().catch(() => {}); else await page.locator(`${top}[data-action="hint-next"]`).first().click({ timeout: 1500 }).catch(() => {}); }
     } else if (kind === 'layer') {
       await page.locator('#modal-root .layer:last-child [data-action="cancel"], #modal-root .layer:last-child [data-action="ok"]').first().click({ timeout: 1500 }).catch(() => {});

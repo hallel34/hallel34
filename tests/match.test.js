@@ -3,8 +3,11 @@ import { readFileSync } from 'node:fs';
 import {
   createEngine, EngineError, newMatch, act, currentState, currentPlayer, canEndTurn, endTurn, standings, rematch,
   setCurrentState, serialize, deserialize, playMatch, isMultiplayer, activeCount, liabilityReport, purchasePlan,
-  statement, monthlyCashFlow, passiveIncome, totalExpenses, maxLoan, BOARD, NAME_MAX, isFreeOption,
+  statement, monthlyCashFlow, passiveIncome, totalExpenses, maxLoan, BOARD, NAME_MAX, isFreeOption, v2Die,
 } from '../src/engine/index.js';
+
+// v0.5: a v2 game has no deck arrays; its dice of turns 1-12 (keyed by its own seed) tell two games apart
+const diceOf = (s) => Array.from({ length: 12 }, (_, t) => v2Die(s.seed, t + 1, 0));
 
 const read = (p) => JSON.parse(readFileSync(new URL(`../src/data/${p}`, import.meta.url), 'utf8'));
 const data = { professions: read('professions.he.json'), cards: read('cards.he.json') };
@@ -55,7 +58,7 @@ describe('match: setup', () => {
   it('allows the same profession for several players', () => {
     const m = newMatch(engine, { players: [{ professionId: 'nurse' }, { professionId: 'nurse' }] });
     expect(m.players[0].state.profession.id).toBe(m.players[1].state.profession.id);
-    expect(m.players[0].state.decks).not.toEqual(m.players[1].state.decks); // different seeds, different decks
+    expect(diceOf(m.players[0].state)).not.toEqual(diceOf(m.players[1].state)); // different seeds, different dice and cards
   });
 });
 
@@ -160,7 +163,7 @@ describe('match: determinism, save and rematch', () => {
     const r = rematch(engine, m, 6);
     expect(r.mode).toBe('family');
     expect(r.players.map((p) => [p.name, p.professionId])).toEqual(m.players.map((p) => [p.name, p.professionId]));
-    expect(r.players[0].state.decks).not.toEqual(m.players[0].state.decks);
+    expect(diceOf(r.players[0].state)).not.toEqual(diceOf(m.players[0].state));
     expect(r.turns).toBe(0);
   });
 });

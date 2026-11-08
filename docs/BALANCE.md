@@ -156,3 +156,71 @@ Every target is met. Two runs on the way:
 - **Raising the junior net floor:** `JUNIOR_NET_FLOOR` at 500, 1,000, 1,500 and 2,500 changed reckless losses by at most 3 points (they sit at 40-48% without the decision cards), so it stays 0.
 
 The 10,000 loan step itself barely matters: a 1,000 step gave the same loss rates (38-48%). An engine test (tests/junior.test.js) checks that every amount a junior game reaches is a multiple of ₪100, with every bot and in hot-seat.
+
+## v0.4 baseline and v0.5 keyed RNG (2026-11-03), `npm run simulate -- --games=300`
+
+The earlier sections predate v0.4's tiered deal pools and deal choice. This section records v0.4 as shipped and v0.5 on top
+of it. Every row is 300 games with professions rotated and a 200-turn cap; each cell is median / p90 turns to win, % lost and
+the mean turns. All three columns are re-measurable on the current code:
+- **v0.4 (v1 RNG)** = `--rng=v1`, byte-identical to origin/maxifox-v04-review. This is what old saves keep playing.
+- **v0.5 before** = turn-keyed draws on the v0.4 tier bands.
+- **v0.5 after** = the shipped engine (`DEAL_TIERS_V2`, owner-approved).
+
+| mode | bot | v0.4 (v1 RNG) | v0.5 before (v0.4 bands) | v0.5 after (recalibrated) |
+|---|---|---|---|---|
+| family | sensible | 24 / 33, 0%, mean 24.5 | 24 / 39, 0%, mean 25.6 | 23 / 36, 0%, mean 24.6 |
+| family | cautious | 31 / 48, 2% | 32 / 48, 2% | 32 / 47, 2% |
+| family | alwaysBuy | 25 / 48, **23%** | 26 / 45, **33%** | 25 / 41, **27%** |
+| family | overBorrow | 27 / 55, **28%** | 28 / 46, **43%** | 28 / 46, **31%** |
+| family | overBorrowLite | 27 / 55, **25%** | 27 / 49, **36%** | 26 / 47, **28%** |
+| full | sensible | 29 / 43, 0%, mean 29.8 | 27 / 43, 0%, mean 28.8 | 27 / 43, 0%, mean 28.8 |
+| full | cautious | 37 / 56, 0% | 37 / 58, 2% | 37 / 58, 2% |
+| full | alwaysBuy | 35 / 86, 14% | 29 / 74, 16% | 29 / 74, 16% |
+| full | overBorrow | 35 / 89, 37% | 31 / 75, 34% | 31 / 75, 34% |
+| full | overBorrowLite | 36 / 89, 28% | 31 / 84, 27% | 31 / 84, 27% |
+| junior (`--modes=junior`) | sensible / alwaysBuy / overBorrow / overBorrowLite lost | 0 / 21 / 32 / 23% | - | 0 / 25 / 35 / 26% |
+| multiplayer, 4 sensible | winner's median | family 13, full 15 | family 14, full 16 | family 13, full 16 |
+
+**Why v0.5 moved family bankruptcy.** The v1 tier filter was soft. Every swap used up an in-tier deal of the player's own
+pile, so late in a cycle the in-tier deals ran out and out-of-tier deals came through. Turn-keyed draws (docs/RNG.md) deal from
+a fresh keyed pile every turn, which never runs out, so the filter became strict. A growing player then lost the small, cheap
+deals below their tier's minimum, and reckless bots bought only bigger deals on bigger loans.
+
+**The fix (owner-approved, 2026-11-03).** Only the tier bands of rngVersion-2 family games changed. The lower bounds went from
+0.12 / 0.22 / 0.32 to 0.08 / 0.15 / 0.22 (`DEAL_TIERS_V2.family`, engine.js). The upper bounds and the stage thresholds are
+unchanged.
+
+Bands tried (300 family games, % lost for alwaysBuy / overBorrow / overBorrowLite):
+
+| lower bounds (tiers 2-4) | alwaysBuy / overBorrow / overBorrowLite lost |
+|---|---|
+| 0.12 / 0.22 / 0.32 (v0.4) | 30 / 40 / 31% |
+| 0.10 / 0.18 / 0.26 | 25 / 35 / 26% |
+| **0.08 / 0.15 / 0.22 (chosen)** | **22 / 32 / 22%** |
+| 0.06 / 0.11 / 0.16 | 20 / 27 / 20% |
+| 0.04 / 0.08 / 0.12 | 19 / 26 / 20% |
+| 0 / 0 / 0 (no lower bound) | 18 / 25 / 18% |
+
+The tuning runs above use seeds `1 + g * 7919`; `npm run simulate` uses its own seeds, which gives the 27 / 31 / 28% in the
+main table. The chosen bands put all three reckless bots back in the 15-35% band and closest to v0.4's average of the three
+(25.3%). Raising the upper bounds instead (0.5 / 0.65 / 0.85) did not help (28 / 39 / 30%).
+
+- **Full mode:** it keeps the v0.4 bands (`DEAL_TIERS`). Sensible and cautious play and the loss rates are within noise:
+  - sensible means are 28.8 vs 29.8 turns at 300 games (about one standard error apart), and 30.1 vs 30.3 at 800 games in
+    docs/RNG.md;
+  - every reckless loss rate is within 3 points.
+- **Open for the owner (QA RNG P2-1): full-mode reckless bots win faster under v0.5.** This is outside the approved
+  family-only recalibration. The loss rates stay the same, but the games that the reckless bots win end sooner (300 games,
+  v0.4 -> v0.5):
+
+  | full mode | median | mean turns | p90 |
+  |---|---|---|---|
+  | alwaysBuy | 35 -> 29 | 44.5 -> 39.0 (-5.5) | 86 -> 74 |
+  | overBorrow | 35 -> 31 | 45.8 -> 41.9 (-3.9) | 89 -> 75 |
+  | overBorrowLite | 36 -> 31 | 46.0 -> 41.4 (-4.6) | 89 -> 84 |
+
+  The cause is the same as in family mode. A keyed pile never runs out of in-tier deals, so a reckless player who survives
+  keeps meeting deals sized for their stage instead of v0.4's end-of-cycle leftovers. The sensible bot (mean 28.8 vs 29.8) and
+  the bankruptcy rates are unchanged. Not changed here; the full-mode bands can be recalibrated if the owner asks.
+- **Sensible family play:** within noise (mean 24.6 vs 24.5).
+- **v1 games (old saves):** they keep `DEAL_TIERS` untouched (tests/rng.test.js).

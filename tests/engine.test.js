@@ -3,7 +3,7 @@ import {
   createEngine, EngineError, BOARD, serialize, deserialize, SCHEMA_VERSION, newMatch, act, currentState, canEndTurn,
   PAYDAY_MONTHS, loanPaydayImpact, paybackYears, paybackTier, monthlyCashFlow, passiveIncome, totalExpenses, totalIncome, maxLoan, statement,
   loanTerms, loanMonthlyPayment, balanceSheet, netWorth, liabilityReport, LOAN_PAYMENT_RATE, LOAN_APR_NOMINAL, LOAN_CAP_SALARIES,
-  MORTGAGE_PAYMENT_RATE, BUSINESS_LOAN_PAYMENT_RATE, assetLoanPayment,
+  MORTGAGE_PAYMENT_RATE, BUSINESS_LOAN_PAYMENT_RATE, assetLoanPayment, botStep,
 } from '../src/engine/index.js';
 
 const profession = {
@@ -67,6 +67,7 @@ describe('setup and determinism', () => {
         out.push(s.lastRoll.dice[0]);
         if (s.pending?.kind === 'opportunity') s = e.pass(s);
         if (s.pending?.kind === 'charity') s = e.declineCharity(s);
+        while (s.status === 'playing' && s.phase !== 'roll') s = botStep(e, s, 'sensible'); // any other square (v0.5: v2 dice)
         if (s.status !== 'playing') break;
       }
       return out;
@@ -99,12 +100,13 @@ describe('payday', () => {
     const s = e.roll(at(s0, payday1 - 1), [3]);
     expect(s.cash).toBe(5000 + 5000 * PAYDAY_MONTHS);
   });
-  it('pays once per payday square crossed and wraps around the board', () => {
+  it('pays once per turn even when the roll crosses two payday squares, and wraps around the board', () => {
     const s = e.roll(at(s0, 22), [4]); // passes 22->23,0(payday),1,2
     expect(s.stats.paydays).toBe(1);
-    const s2 = e.roll(at(s0, 3), [5]); // 4 (payday) .. 7 (payday) -> two paydays
-    expect(s2.stats.paydays).toBe(2);
-    expect(s2.cash).toBe(5000 + 2 * 5000 * PAYDAY_MONTHS);
+    // v0.4 (QA P0): squares 4 and 7 are both payday, but one turn settles the annual summary only once
+    const s2 = e.roll(at(s0, 3), [5]); // 4 (payday) .. 7 (payday) -> one payday credit
+    expect(s2.stats.paydays).toBe(1);
+    expect(s2.cash).toBe(5000 + 1 * 5000 * PAYDAY_MONTHS);
   });
   it('does not pay when not crossing a payday', () => {
     const s = e.roll(at(s0, 1), [1]); // lands on expense square 2
@@ -234,6 +236,7 @@ describe('charity', () => {
     if (s.pending?.kind === 'opportunity') return e.pass(s);
     if (s.pending?.kind === 'charity') return e.declineCharity(s);
     if (s.pending?.kind === 'offer') return e.declineOffer(s);
+    while (s.status === 'playing' && s.phase !== 'roll') s = botStep(e, s, 'sensible'); // any other square (v0.5: v2 dice)
     return s;
   };
   it('offers 10% of total income', () => {

@@ -38,13 +38,14 @@ import { eyeModel } from '../learn/guess.js';
 import { earnBadge } from '../learn/store.js';
 import { guessEnabled } from './prefs.js';
 import {
-  recordGuess, guessForCard, unlockConcept, markShown, hasShown, isDeal, purchaseCashFlow,
+  guessForCard, unlockConcept, markShown, hasShown, isDeal, purchaseCashFlow,
 } from '../engine/learn.js';
 import { REACTIONS, LAND_REACTION, tipIndexForTurn } from './fox-rules.js';
 import { summaryCard } from './summary-card.js';
 import { professionBust } from './professions.js';
 import { paydayChip } from './payday.js';
-import { decisionModal as rawDecisionModal, decisionFox, decisionLog, foxSlots } from './decision.js';
+import { decisionModal as rawDecisionModal, decisionFoxVariants, decisionLog, foxSlots } from './decision.js';
+import { nextDecisionLine } from './decision-lines.js';
 import { taxAuditModal as rawTaxAuditModal, countCorrect } from './tax-audit.js';
 import { feedbackNodes } from './learn-flow.js';
 import { learnContent } from '../learn/content.js';
@@ -109,6 +110,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     return fn(...args);
   };
   const opportunityModal = gated(raw.opportunityModal);
+  const dealChoiceModal = gated(raw.dealChoiceModal);
   const expenseModal = gated(raw.expenseModal);
   const shortfallModal = gated(raw.shortfallModal);
   const charityModal = gated(raw.charityModal);
@@ -248,7 +250,19 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   const rollLabel = h('span', null, t('game.roll'));
   // owner 2026-10-26: no die icon inside the button (the plaza die above it is the die)
   const rollBtn = button([rollLabel], { variant: 'primary', cls: 'btn-roll', 'data-action': 'roll', onClick: () => turn() });
-  const actions = h('div', { class: 'board-actions' }, rollBtn);
+  // v0.4: the reroll-token toggle sits under the roll button — visible only while a token is held and a roll is due
+  const rerollBtn = button('', { variant: 'secondary', cls: 'btn-reroll', 'data-action': 'reroll', hidden: true, onClick: () => { if (apply((s) => engine.dispatch(s, { type: 'armReroll' }))) refreshRerollBtn(); } });
+  const actions = h('div', { class: 'board-actions' }, rollBtn, rerollBtn);
+  function refreshRerollBtn() {
+    const n = state.rerollTokens ?? 0;
+    const show = n > 0 && state.phase === 'roll' && state.status === 'playing' && !state.daily && !busy;
+    rerollBtn.hidden = !show;
+    if (show) {
+      rerollBtn.replaceChildren(state.rerollArmed ? t('game.rerollArmed') : t('game.rerollArm', { n }));
+      rerollBtn.dataset.armed = state.rerollArmed ? 'true' : '';
+      rerollBtn.setAttribute('aria-pressed', state.rerollArmed ? 'true' : 'false');
+    }
+  }
 
   // The fox strip (between the board plate and the roll button): the latest-event chip, the corner fox guide and its bubble.
   // data-pose: 'roll' = idle, 'none' = a turn is playing, 'note' = a bubble is up, 'tip' = a family tip bubble is up.
@@ -607,10 +621,15 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     paintPlayer();
     const turnText = state.turn ? t('game.turn', { turn: state.turn }) : t('game.yourTurn');
     // hot-seat: the number of the turn being played (the next one until the player has rolled)
+    // v0.4 short mode: the HUD counts rounds against the cap ("סיבוב X מתוך 12") for every seat, single player too
+    const roundNow = match.roundCap ? Math.min(match.roundCap, state.turn > match.turnMark ? state.turn : state.turn + 1) : null;
     if (multi) {
       profEl.textContent = state.profession.title;
-      turnEl.textContent = `· ${t('game.turnShort', { turn: state.turn > match.turnMark ? state.turn : state.turn + 1 })}`;
-    } else turnEl.textContent = isDaily ? (state.turn ? t('daily.turnOf', { turn: state.turn, cap: state.daily.turnCap }) : t('game.yourTurn')) : turnText;
+      turnEl.textContent = match.roundCap
+        ? `· ${t('game.roundOf', { turn: roundNow, cap: match.roundCap })}`
+        : `· ${t('game.turnShort', { turn: state.turn > match.turnMark ? state.turn : state.turn + 1 })}`;
+    } else turnEl.textContent = isDaily ? (state.turn ? t('daily.turnOf', { turn: state.turn, cap: state.daily.turnCap }) : t('game.yourTurn')) : match.roundCap ? t('game.roundOf', { turn: roundNow, cap: match.roundCap }) : turnText;
+    refreshRerollBtn();
     if (famHud) famHud.refresh(state, { goal: goalLineVisible(tutorialDevice()) });
     else {
       flowChip.replaceChildren(tn('game.perMonth', { amount: money(st.monthlyCashFlow, { sign: true }) }));
@@ -672,6 +691,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     rollBtn.disabled = mode === 'rolling' || mode === 'working';
     rollBtn.dataset.action = 'roll';
     el.dataset.btn = mode;
+    refreshRerollBtn(); // the reroll toggle follows the same busy rhythm as the roll button
   }
   function setBusy(b, mode = 'working') {
     const was = busy;
@@ -826,17 +846,35 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
    */
   async function paydayFx(pd) {
     const f = summaryFigures(state, pd, cash.value);
+    // Snapshot the count-up target BEFORE the modal: re-reading live cash.value after the await could add the
+    // amount on top of a baseline that already includes it (v0.4 hardening of the double-payday display).
+    const target = cash.value + f.amount;
     haptic('land'); sound('payday');
     await paydaySummary(f);
     if (destroyed) return;
     // The summary already shows the full calculation. Animate the cash in its own HUD, not over dice and board text.
     pulse(el.querySelector('.hud-cash'), 1.04);
     if (f.amount > 0) react('celebrate');
-    await cash.to(cash.value + f.amount, 450);
+    await cash.to(target, 450);
+  }
+
+  /**
+   * v0.4 (plan §2.1): idle cash gets a friendly mirror, never a penalty. When a meaningful sum sat in the till
+   * through the year, Maxi's line on the summary card says what an average deal would have made of it — the gain
+   * is the cash times the catalogue's average monthly yield on a down payment, rounded to ₪10.
+   */
+  function attachIdleLine(f) {
+    if (f.negative || f.idle) return;
+    const deals = engine.data.cards.filter((c) => c.deck === 'opportunity' && c.monthlyCashFlow > 0 && c.downPayment > 0);
+    if (!deals.length) return;
+    const avgYield = deals.reduce((a, c) => a + c.monthlyCashFlow / c.downPayment, 0) / deals.length;
+    const gain = Math.round((f.cashBefore * avgYield) / 10) * 10;
+    if (f.cashBefore >= 15000 && gain >= 100) f.idle = { cash: f.cashBefore, gain };
   }
 
   /** The learning moment of one payday: the itemised card, then its one-line form in the log and the fox-row chip. */
   async function paydaySummary(f) {
+    attachIdleLine(f);
     await summaryCardGated({ figures: f, hint: summaryHintFor(f) });
     if (destroyed) return;
     // spec 4.9 (owner approved 2026-10-25): the log / hand-over recap keeps the one-line form; the fox-row chip shows one of three
@@ -879,7 +917,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     priorPrices = { ...state.stockPrices };
     haptic('roll'); sound('roll');
     let next;
-    try { next = engine.roll(state); } catch (e) { console.error(e); setBusy(false); return; }
+    try { next = engine.dispatch(state, { type: 'roll' }); } catch (e) { console.error(e); setBusy(false); return; }
     try {
       await playTurn(next);
     } catch (e) {
@@ -1034,7 +1072,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     turnLog = [];
     priorPrices = { ...state.stockPrices };
     let next;
-    try { next = engine.roll(state); } catch (e) { console.error(e); setBusy(false); return; }
+    try { next = engine.dispatch(state, { type: 'roll' }); } catch (e) { console.error(e); setBusy(false); return; }
     const move = next.events.find((e) => e.type === 'move');
     if (move) {
       await dice.roll(move.dice);
@@ -1180,14 +1218,14 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     flow.trigger('loan');
     // a loan that buys the pending card: the dialog shows the state right after the purchase (the asset's cash flow counts)
     const amount = await loanDialog(state, { required, gain: card ? purchaseCashFlow(card, qty) : null, hint: loanHintFor() });
-    if (amount) apply((s) => engine.takeLoan(s, amount));
+    if (amount) apply((s) => engine.dispatch(s, { type: 'takeLoan', amount }));
     return !!amount;
   }
 
   async function sellFlow({ autoClose = false } = {}) {
     await sellSheet(
       () => state,
-      (id, qty) => { apply((s) => engine.sellAsset(s, id, qty)); return state; },
+      (id, qty) => { apply((s) => engine.dispatch(s, { type: 'sellAsset', id, qty })); return state; },
       { shouldClose: (s) => autoClose && (s.status !== 'playing' || s.phase !== 'mustPay' || s.assets.length === 0) },
     );
   }
@@ -1203,7 +1241,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
       enabled: true, seed, prior: guessForCard(state, card.id), intro,
       eye: () => eye(true),
       onGuess: (pick, light) => {
-        state = recordGuess(state, { cardId: card.id, light, guess: pick });
+        state = engine.dispatch(state, { type: 'guess', cardId: card.id, light, guess: pick }); // a right guess discounts the buy: logged
         const model = eye(hasShown(state, 'badge:eye'));
         if (model.justEarned) { state = markShown(state, 'badge:eye'); earnBadge('investor_eye'); haptic('win'); sound('win'); }
         commit();
@@ -1221,6 +1259,14 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
       first = false;
       let r;
       if (p.kind === 'opportunity') {
+        // v0.4 deal choice: two deals are on the table — first pick which one to examine (or skip both).
+        if (p.alt && !p.chosen) {
+          const choice = await dealChoiceModal(state);
+          if (!choice) break; // closed by debug force
+          if (choice.action === 'pass') { if (apply((s) => engine.dispatch(s, { type: 'pass' }))) await maybeAuction(p.card); continue; }
+          if (choice.action === 'choose') { if (!apply((s) => engine.dispatch(s, { type: 'chooseDeal', cardId: choice.cardId }))) break; continue; }
+          continue;
+        }
         flow.trigger('opportunity', { card: p.card });
         // first apartment / business card of the first game: a 3-step tour instead of the guess window
         let tour = null;
@@ -1230,14 +1276,24 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
         r = await opportunityModal(state, { flip, guess: guessFor(p.card), tour, reno: renoOpt });
         if (tour) flow.trigger('reveal'); // the numbers were shown without a guess: the yield / payback explainers may follow
         if (!r) break; // closed by debug force
-        const bought = (qty) => { if (apply((s) => engine.buy(s, qty))) { flow.trigger('purchase', { card: p.card }); if (isDeal(p.card) && !guessEnabled(state.mode)) flow.trigger('reveal'); } };
-        if (r.action === 'buy') bought(r.qty);
-        else if (r.action === 'pass') { if (apply((s) => engine.pass(s))) await maybeAuction(p.card); }
+        const bought = async (qty) => {
+          if (!apply((s) => engine.dispatch(s, { type: 'buy', qty }))) return;
+          // v0.4: a correct guess paid off in cash — say so in the log, the discount is already in the price paid
+          const bev = state.events.find((e) => e.type === 'bought');
+          if (bev?.discount) pushLog(tn('card.guessDiscountLog', { amount: money(bev.discount) }), 'good');
+          flow.trigger('purchase', { card: p.card });
+          if (isDeal(p.card) && !guessEnabled(state.mode)) flow.trigger('reveal');
+          // v0.4: the deal that was offered alongside and not chosen goes to auction among the other players
+          const altPassed = state.events.find((e) => e.type === 'passed' && e.viaChoice);
+          if (altPassed) await maybeAuction(altPassed.card);
+        };
+        if (r.action === 'buy') await bought(r.qty);
+        else if (r.action === 'pass') { if (apply((s) => engine.dispatch(s, { type: 'pass' }))) await maybeAuction(p.card); }
         else if (r.action === 'renovate' && renoOpt) {
           // Renovating instead of deciding on the card. Level 2 asks the style first; cancelling reopens the card.
           const style = renoOpt.style ? await renovateStyleSheet() : null;
           if (renoOpt.style && !style) continue;
-          if (apply((s) => engine.renovate(s, renoOpt.assetId, style))) {
+          if (apply((s) => engine.dispatch(s, { type: 'renovate', assetId: renoOpt.assetId, style }))) {
             const ev = state.events.find((e) => e.type === 'renovated');
             if (ev) {
               pushLog(t('reno.log', { title: ev.title, level: ev.level }), 'good'); react('celebrate');
@@ -1249,7 +1305,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
         else if (r.action === 'buyLoan') {
           // Short of cash but one loan covers the gap: ask for exactly that loan, then complete the purchase.
           // Cancelling the loan dialog leaves the card open (the loop below shows it again).
-          if (await loanFlow(r.need, { card: p.card, qty: r.qty })) bought(r.qty);
+          if (await loanFlow(r.need, { card: p.card, qty: r.qty })) await bought(r.qty);
         }
       } else if (p.kind === 'expense') {
         flow.trigger('expense');
@@ -1266,26 +1322,28 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
       } else if (p.kind === 'charity') {
         r = await charityModal(state, { flip });
         if (!r) break; // closed by debug force
-        if (r.action === 'donate') apply((s) => engine.donate(s)); else apply((s) => engine.declineCharity(s));
+        if (r.action === 'donate') apply((s) => engine.dispatch(s, { type: 'donate' })); else apply((s) => engine.dispatch(s, { type: 'declineCharity' }));
       } else if (p.kind === 'offer') {
         r = await offerModal(state, { flip });
         if (!r) break; // closed by debug force
-        if (r.action === 'accept') apply((s) => engine.acceptOffer(s)); else apply((s) => engine.declineOffer(s));
+        if (r.action === 'accept') apply((s) => engine.dispatch(s, { type: 'acceptOffer' })); else apply((s) => engine.dispatch(s, { type: 'declineOffer' }));
       } else if (p.kind === 'decision') {
         // v4 stage 4: a decision card; its option's fox line follows in the corner guide (one note, no second feedback)
         r = await decisionModal(state, engine);
         if (!r) break; // closed by debug force
         const before = state;
-        if (apply((s) => engine.decide(s, r.option))) {
+        if (apply((s) => engine.dispatch(s, { type: 'decide', option: r.option }))) {
           pushLog(decisionLog(p.card, r.option, state.mode));
-          const text = fillSlots(decisionFox(p.card, r.option, state.mode), foxSlotsText(before, state));
-          flow.notes.push({ kind: 'feedback', group: 'decision', pose: 'think', tone: 'neutral', plain: text, body: feedbackNodes(decisionFox(p.card, r.option, state.mode), foxSlotsText(before, state)) });
+          // rotate the variants; a line that would repeat the last decision line on this device is not shown again (QA L3)
+          const slots = foxSlotsText(before, state);
+          const pick = nextDecisionLine(decisionFoxVariants(p.card, r.option, state.mode), (v) => fillSlots(v, slots)); // per device
+          if (pick) flow.notes.push({ kind: 'feedback', group: 'decision', pose: 'think', tone: 'neutral', plain: pick.text, body: feedbackNodes(pick.line, slots) });
         }
       } else if (p.kind === 'taxAudit') {
         // v4 stage 4: the tax-audit quiz; knowledge points only (the engine never moves money here)
         r = await taxAuditModal(state);
         if (!r) break; // closed by debug force
-        if (apply((s) => engine.answerAudit(s, r))) {
+        if (apply((s) => engine.dispatch(s, { type: 'answerAudit', questionId: r.questionId ?? null, correct: r.correct ?? null }))) {
           pushLog(t('taxAudit.logPoints', { points: state.taxAudit?.points ?? 0 }), r.correct ? 'good' : '');
           if (r.correct) {
             const earned = countCorrect(learnContent().quizTax, state.mode);
@@ -1323,7 +1381,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
         takeLoan: async () => { await loanFlow(0); closeIfOver(); },
         repay: async (l) => {
           const amt = await repayDialog(state, l);
-          if (amt) apply((s) => engine.repayLoan(s, l.id, amt));
+          if (amt) apply((s) => engine.dispatch(s, { type: 'repayLoan', id: l.id, amount: amt }));
           closeIfOver();
         },
         sell: async () => { await sellFlow(); closeIfOver(); },
@@ -1339,7 +1397,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   if (debugEnabled()) {
     const force = (outcome) => {
       if (state.status !== 'playing' || destroyed) return false;
-      state = engine.debugForce(state, outcome);
+      state = engine.dispatch(state, { type: 'debugForce', outcome });
       commit();
       closeAllLayers();
       refreshHud();
@@ -1367,7 +1425,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   /** Daily challenge: the attempt is used up. The day ends as 'not today' and the result screen follows. */
   function giveUp() {
     if (destroyed || !isDaily || state.status !== 'playing') return;
-    state = engine.forfeit(state);
+    state = engine.dispatch(state, { type: 'forfeit' });
     commit();
     closeAllLayers();
     refreshHud();

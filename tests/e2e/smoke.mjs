@@ -5,7 +5,7 @@ import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import {
-  createEngine, newMatch, act, serialize, purchasePlan, currentState, maxLoan, loanTerms, PAYDAY_MONTHS, endTurn, renovationOption,
+  createEngine, newMatch, act, serialize, purchasePlan, currentState, maxLoan, loanTerms, PAYDAY_MONTHS, endTurn, renovationOption, cardView,
 } from '../../src/engine/index.js';
 
 const require = createRequire(import.meta.url);
@@ -224,6 +224,8 @@ function decide(policy) {
     if (card) {
       const kind = card.dataset.card;
       shot = `card-${kind}${kind === 'expense' && btn('pay') ? '-paid' : ''}${kind === 'opportunity' ? `-${card.dataset.kind}` : ''}`;
+      // v0.4 deal choice: two deals side by side and no "pass" button; examine the first one (its own card opens next)
+      if (kind === 'opportunity' && card.dataset.kind === 'choice' && btn('choose-a')) return out({ click: '#modal-root .layer:last-child [data-action="choose-a"]' });
       if (kind === 'opportunity' && card.dataset.guess === 'ask') {
         // 'עסקה טובה?': guess from the payback (96 months = 8 years), every 7th pick on purpose wrong, every 11th skipped
         window.__gn = (window.__gn || 0) + 1;
@@ -497,9 +499,18 @@ const learnEngine = () => createEngine({ professions: LEARN_READ('professions.he
 function matchWithCard(engine, mode, cardId, { prof = 'teacher', cash = null } = {}) {
   for (let seed = 1; seed < 4000; seed++) {
     const m = act(newMatch(engine, { mode, players: [{ name: 'דנה', professionId: prof }], seed }), (st) => engine.roll(st, [1]));
-    if (currentState(m).pending?.card?.id === cardId) {
-      return cash == null ? m : { ...m, players: m.players.map((p, i) => (i ? p : { ...p, state: { ...p.state, cash } })) };
+    const pend = currentState(m).pending;
+    const card = pend?.card?.id === cardId ? pend.card : pend?.alt?.id === cardId ? pend.alt : null;
+    if (card) { // v0.4: the single deal card (the second deal of the choice dropped, so the choice card does not open first)
+      const pending = pend.kind === 'opportunity' ? { kind: 'opportunity', card } : pend; // a decision card stays as it is
+      return { ...m, players: m.players.map((p, i) => (i ? p : { ...p, state: { ...p.state, pending, ...(cash == null ? {} : { cash }) } })) };
     }
+  }
+  const data = engine.data.cards.find((c) => c.id === cardId); // out of every stage-0 offer (v0.4 tiers): deal it as the card
+  if (data) {
+    const m = act(newMatch(engine, { mode, players: [{ name: 'דנה', professionId: prof }], seed: 1 }), (st) => engine.roll(st, [1]));
+    const pending = { kind: data.deck === 'decision' ? 'decision' : 'opportunity', card: structuredClone(cardView(data, mode)) };
+    return { ...m, players: m.players.map((p, i) => (i ? p : { ...p, state: { ...p.state, pending, ...(cash == null ? {} : { cash }) } })) };
   }
   throw new Error(`no seed for ${cardId}`);
 }
@@ -630,7 +641,7 @@ async function testGuessFlow(page) {
   await page.locator('[data-action="guess-bad"]').click();
   await page.waitForSelector('.reveal');
   const trap = await page.evaluate(() => ({ result: document.querySelector('.guess-result')?.dataset.result, tiles: [...document.querySelectorAll('.reveal .stat-tile')].map((x) => x.innerText.replace(/\n/g, ' ')), verdict: document.querySelector('.guess-verdict')?.textContent }));
-  check(trap.result === 'correct' && trap.tiles.some((x) => /אין החזר|לא חוזר|אף פעם/.test(x)) && /אין החזר|הכסף לא חוזר|תזרים שלילי|מוציא|במקום להיכנס/.test(trap.verdict), `L2: a trap shows "אין החזר" and the redNever verdict (${trap.verdict})`);
+  check(trap.result === 'correct' && trap.tiles.some((x) => /אין החזר|לא חוזר|אף פעם/.test(x)) && /אין החזר|לא חוזר|תזרים שלילי|מוציא|במקום להיכנס|במקום להכניס/.test(trap.verdict), `L2: a trap shows "אין החזר" and the redNever verdict (${trap.verdict})`);
   await page.locator('.card [data-action="pass"]').click();
   await page.waitForSelector('.card', { state: 'detached' });
 
@@ -853,7 +864,9 @@ async function checkFeedbackLog(page, label) {
   let repeats = 0;
   for (const x of log) { const prev = byGroup[x.group]; if (prev && prev === x.text) repeats += 1; byGroup[x.group] = x.text; }
   check(log.length > 0, `L3: fox feedback appeared during the game (${log.length} notes, ${label})`);
-  check(repeats === 0, `L3: the same feedback group never shows the same line twice in a row (${label})`);
+  const rep = []; const last = {};
+  for (const x of log) { if (last[x.group] === x.text) rep.push(`${x.group}: ${x.text.slice(0, 40)}`); last[x.group] = x.text; }
+  check(repeats === 0, `L3: the same feedback group never shows the same line twice in a row (${label})${rep.length ? ` ${JSON.stringify(rep)}` : ''}`);
   check(log.every((x) => !x.hitRoll && !x.hitHud && !x.hitDice && x.inViewport), `L3: no feedback note covered the roll button, HUD or die (${label})`);
 }
 
@@ -885,7 +898,7 @@ async function testRound5(page) {
   let card = null;
   for (let seed = 1; seed < 200 && !card; seed++) {
     const m = act(newMatch(engine, { mode: MODE, players: [{ professionId: 'teacher' }], seed }), (s) => engine.roll(s, [1]));
-    if (currentState(m).pending?.card && currentState(m).pending.card.type !== 'stock') card = m;
+    if (currentState(m).pending?.card && currentState(m).pending.card.type !== 'stock') card = act(m, (st) => ({ ...st, pending: st.pending.kind === 'opportunity' ? { kind: 'opportunity', card: st.pending.card } : st.pending })); // single deal card (v0.4 choice dropped)
   }
   await load(card);
   await page.waitForSelector('.card[data-card="opportunity"]');
@@ -1034,7 +1047,8 @@ async function testBuyStates(page) {
       const cash = status === 'blocked' ? Math.max(0, c.downPayment - room - 5000) : status === 'loan' ? Math.max(0, c.downPayment - 2500) : c.downPayment + 100;
       if (status === 'blocked' && !(c.downPayment - cash > room)) continue;
       if (status === 'loan' && !(c.downPayment - cash > 0 && c.downPayment - cash <= room)) continue;
-      const m2 = { ...m, players: m.players.map((p, i) => (i ? p : { ...p, state: { ...p.state, cash } })) };
+      // v0.4: a deal comes with a second deal (the choice card opens first); these cases test the single deal card itself
+      const m2 = { ...m, players: m.players.map((p, i) => (i ? p : { ...p, state: { ...p.state, cash, pending: { kind: 'opportunity', card: c } } })) };
       if (purchasePlan(currentState(m2), c.downPayment).status !== status) continue;
       return { m: m2, card: c };
     }
@@ -1162,8 +1176,15 @@ async function testPhaseA(page) {
   const matchWith = (mode, cardId, prof = 'teacher') => {
     for (let seed = 1; seed < 3000; seed++) {
       const m = act(newMatch(engine, { mode, players: [{ name: 'דנה', professionId: prof }], seed }), (st) => engine.roll(st, [1]));
-      if (currentState(m).pending?.card?.id === cardId) return m;
+      // v0.4: the deal may be the drawn one or the second deal of the choice (tiers can keep a big deal off the first slot);
+      // the scenario is that single deal card, so the second deal is dropped (the choice card would open first)
+      const p = currentState(m).pending;
+      const card = p?.card?.id === cardId ? p.card : p?.alt?.id === cardId ? p.alt : null;
+      if (card) return act(m, (st) => ({ ...st, pending: st.pending.kind === 'opportunity' ? { kind: 'opportunity', card } : st.pending }));
     }
+    // v0.4 tiers can keep a deal out of a stage-0 player's offers altogether (opp-apt-001 for an engineer): deal it as the card
+    const data = engine.data.cards.find((c) => c.id === cardId);
+    if (data) return act(act(newMatch(engine, { mode, players: [{ name: 'דנה', professionId: prof }], seed: 1 }), (st) => engine.roll(st, [1])), (st) => ({ ...st, pending: { kind: data.deck === 'decision' ? 'decision' : 'opportunity', card: structuredClone(cardView(data, mode)) } }));
     throw new Error(`no seed for ${cardId}`);
   };
 
@@ -1426,11 +1447,12 @@ async function testJunior(browser) {
   await page.locator('[data-mode="full"]').click();
   await page.locator('[data-action="start"]').click();
   await page.waitForSelector('[data-screen="players"]');
-  const chips = await page.evaluate(() => [...document.querySelectorAll('.age-chip')].map((c) => { const b = c.getBoundingClientRect(); return { w: b.width, h: b.height, text: c.textContent.trim() }; }));
+  const chips = await page.evaluate(() => [...document.querySelectorAll('.age-group[data-age-for] .age-chip')].map((c) => { const b = c.getBoundingClientRect(); return { w: b.width, h: b.height, text: c.textContent.trim() }; }));
   check(chips.length === 3 && chips.every((c) => c.w >= 48 && c.h >= 48), `age picker: three chips, each a 48px target (${chips.map((c) => `${c.text} ${Math.round(c.w)}x${Math.round(c.h)}`).join(', ')})`);
-  check(await page.locator('.age-group input[type="radio"]').count() === 3 && await page.locator('.age-group legend').count() === 1, 'age picker: a native radio group with a legend');
+  // v0.4: the game-length group shares the chip styles; the age picker is the fieldset of a seat ([data-age-for])
+  check(await page.locator('.age-group[data-age-for] input[type="radio"]').count() === 3 && await page.locator('.age-group[data-age-for] legend').count() === 1, 'age picker: a native radio group with a legend');
   await page.locator('.age-chip:has([data-age="upTo10"])').click();
-  const note = await page.locator('.age-note').innerText();
+  const note = await page.locator('.age-note[role="status"]').innerText();
   check(/מצב משפחה/.test(note) && /מטבע/.test(note) && /₪100/.test(note), `age "עד 10": family mode is suggested and the coin line says "כל מטבע = ₪100" (${note.replace(/\s+/g, ' ')})`);
   check(await page.evaluate(() => localStorage.getItem('passivo.mode')) === 'family', 'an age under 14 switched the mode to family');
   await noHScroll(page, 'age picker');
@@ -1499,7 +1521,7 @@ async function testJunior(browser) {
     const m0 = act(newMatch(eng, { mode: 'family', players: [{ name: 'נועה', professionId: 'teacher', age: 'upTo10' }], seed }), (st) => eng.roll(st, [1]));
     const c = currentState(m0).pending;
     if (c?.kind !== 'opportunity' || c.card.type !== 'apartment') continue;
-    const m1 = act(m0, (st) => ({ ...st, cash: Math.max(0, c.card.downPayment - 3000) }));
+    const m1 = act(m0, (st) => ({ ...st, cash: Math.max(0, c.card.downPayment - 3000), pending: { kind: 'opportunity', card: c.card } })); // the single deal card (no v0.4 choice)
     if (purchasePlan(currentState(m1), c.card.downPayment).status === 'loan') deal = m1;
   }
   check(!!deal, 'junior deal scenario found');
@@ -1556,7 +1578,7 @@ async function testJunior(browser) {
     for (const die of [1, 2, 3, 4, 5, 6]) {
       const m1 = act(m0, (st) => eng.roll(st, [die]));
       const pnd = currentState(m1).pending;
-      if (pnd?.kind === 'opportunity' && ['apartment', 'business'].includes(pnd.card.type)) return m1;
+      if (pnd?.kind === 'opportunity' && ['apartment', 'business'].includes(pnd.card.type)) return act(m1, (st) => ({ ...st, pending: { kind: 'opportunity', card: st.pending.card } })); // single deal card (v0.4 choice dropped)
     }
     return null;
   };
@@ -1582,7 +1604,7 @@ async function testJunior(browser) {
   let aucM = null;
   for (let seed = 1; seed < 800 && !aucM; seed++) {
     const m0 = act(newMatch(eng, { mode: 'family', players: [{ name: 'נועה', professionId: 'teacher', age: 'upTo10' }, { name: 'יואב', professionId: 'nurse', age: 'upTo10' }], seed }), (st) => eng.roll(st, [1]));
-    if (['apartment', 'business'].includes(currentState(m0).pending?.card?.type)) aucM = { ...m0, players: m0.players.map((pl, k) => (k === 1 ? { ...pl, state: { ...pl.state, cash: 300000 } } : pl)) };
+    if (['apartment', 'business'].includes(currentState(m0).pending?.card?.type)) aucM = { ...m0, players: m0.players.map((pl, k) => (k === 1 ? { ...pl, state: { ...pl.state, cash: 300000 } } : k === 0 ? { ...pl, state: { ...pl.state, pending: { kind: 'opportunity', card: pl.state.pending.card } } } : pl)) }; // single deal card (v0.4 choice dropped)
   }
   check(!!aucM, 'junior auction scenario found');
   if (aucM) {

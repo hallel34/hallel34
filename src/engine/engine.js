@@ -1,6 +1,9 @@
-// Pure game engine. No DOM, no Date, no Math.random.
-// createEngine(data) returns action functions of the form (state, ...args) => newState.
-// The input state is never mutated. All randomness comes from state.rngState.
+// Pure game engine. No DOM, no clock, no unseeded randomness.
+// createEngine(data) returns action functions of the form (state, ...args) => newState, and dispatch(state, action),
+// the one entry point the UI, the bots and replay() use (every dispatched action is appended to state.log).
+// The input state is never mutated. Randomness: rngVersion 2 (every new game) derives each die, card and pick from
+// (seed, purpose, turn, index) only (rng.js, docs/RNG.md); rngVersion 1 (saves up to v0.4) keeps the mulberry32 stream
+// in state.rngState and the shuffled deck arrays, unchanged.
 import {
   BOARD, SCHEMA_VERSION, MAX_KIDS, CHARITY_PCT, CHARITY_TURNS, LOAN_STEP,
   MAX_STOCK_QTY, PAYDAY_MONTHS, INFLATION_PRICE_ROUND, TIMED_EFFECT_KINDS, INFLATION_FLOW_ROUND, INFLATION_EXPENSE_ROUND,
@@ -11,10 +14,12 @@ import { cardView } from './card-view.js';
 import {
   monthlyCashFlow, hasWon, maxLoan, saleValue, stockPrice, totalIncome,
   passiveIncome, canSell, loanMonthlyPayment, loanRateNow, priceFactor, expenseFactor, loanLimits, loanPayments, bankLoanPrincipal,
-  passiveRatio, loanStep,
+  passiveRatio, loanStep, totalExpenses,
 } from './selectors.js';
 import { emptyLearn, recordDecision, buyRecord, passRecord, loanRating, isDeal } from './learn.js';
-import { dailyDie, dailyPick, DAILY_TURN_CAP } from './daily.js';
+import { dailyDie, dailyPick, DAILY_TURN_CAP, dailyRngVersion } from './daily.js';
+import { RNG_V1, RNG_V2, RNG_VERSION, V2_DRAW_SCHEME, v2Die, v2RerollDie, v2AuditPick, v2DeckOrder, v2DeckCycle, stableStringify } from './rng.js';
+import { recordGuess, dealMetrics } from './learn.js';
 import { renovationLevel, renovationLevelsFor, RENOVATION_STYLES } from './renovation.js';
 
 export class EngineError extends Error {}
@@ -98,7 +103,59 @@ export function juniorSkips(c) {
   });
 }
 
+export const DEAL_TIERS = [
+  { maxStage: 0.25, min: 0, max: 0.4 },
+  { maxStage: 0.5, min: 0.12, max: 0.55 },
+  { maxStage: 0.75, min: 0.22, max: 0.75 },
+  { maxStage: Infinity, min: 0.32, max: Infinity },
+];
+/**
+ * v0.5 (owner-approved balance change 2026-11-03, docs/BALANCE.md): the bands of rngVersion 2 games. A keyed pile never runs
+ * out of in-tier deals, so v1's soft filter (out-of-tier deals came through once a cycle's in-tier deals were used up) became
+ * strict. Family mode is recalibrated so v2 plays like v0.4 did: only the lower bounds moved (v0.4: 0.12 / 0.22 / 0.32), they
+ * decide how soon the small deals leave a growing player's offers. Full mode already plays like v0.4 on the v0.4 bands.
+ * v1 games (old saves) keep DEAL_TIERS.
+ */
+export const DEAL_TIERS_V2 = {
+  family: [
+    { maxStage: 0.25, min: 0, max: 0.4 },
+    { maxStage: 0.5, min: 0.08, max: 0.55 },
+    { maxStage: 0.75, min: 0.15, max: 0.75 },
+    { maxStage: Infinity, min: 0.22, max: Infinity },
+  ],
+  full: DEAL_TIERS,
+};
+/** The tier bands a game uses: rngVersion 2 -> DEAL_TIERS_V2[mode], otherwise (v1) DEAL_TIERS. */
+export const dealTiersOf = (d) => (d?.rngVersion === 2 ? DEAL_TIERS_V2[d.mode] ?? DEAL_TIERS : DEAL_TIERS);
+/** The deal tier (0-3) of a player: their stage on the road to freedom (passive income / expenses). */
+export function dealTierIndex(d) {
+  const stage = passiveRatio(d);
+  const tiers = dealTiersOf(d);
+  const i = tiers.findIndex((t) => stage < t.maxStage);
+  return i === -1 ? tiers.length - 1 : i;
+}
+
 const clone = (x) => structuredClone(x);
+
+// ---------- an auction on a bidder's own state (hot-seat; the match runs the bidding, auction.js) ----------
+/** The lowest legal winning bid of an open auction: one step, and at least the floor rounded up to a step. */
+export const auctionMinBidOf = (o) => Math.max(o.step, Math.ceil((o.floor ?? 0) / o.step) * o.step);
+/** The bidder's state with the auction open on it (the dispatch action `auctionOpen`, without the log entry). */
+export function auctionOpenState(state, { card, floor, step }) {
+  if (state.status !== 'playing') throw new EngineError('game is over');
+  if (!['apartment', 'business'].includes(card?.type)) throw new EngineError('only a deal can be auctioned');
+  if (!Number.isInteger(step) || step <= 0 || !Number.isInteger(floor) || floor < 0) throw new EngineError('bad auction rules');
+  const d = structuredClone(state);
+  d.auctionOpen = { card: structuredClone(card), floor, step };
+  return d; // the events of the bidder's last action stay as they were
+}
+/** The bidder's state with the open auction closed (the dispatch action `auctionClose`, without the log entry). */
+export function auctionCloseState(state) {
+  if (!state.auctionOpen) throw new EngineError('no auction open');
+  const d = structuredClone(state);
+  delete d.auctionOpen;
+  return d;
+}
 const fail = (msg) => { throw new EngineError(msg); };
 
 // mulberry32, state kept inside the game state so it is serializable.
@@ -119,8 +176,19 @@ function shuffle(d, arr) {
   return a;
 }
 
-export function createEngine(data, { validate = true } = {}) {
+/** The engine RNG version of a state: a state without the field is a v0.4 (or older) game, i.e. version 1. */
+export const rngVersionOf = (d) => (d?.rngVersion === RNG_V2 ? RNG_V2 : RNG_V1);
+const isV1 = (d) => rngVersionOf(d) === RNG_V1;
+export const DECKS = ['opportunity', 'expense', 'market'];
+
+/**
+ * @param drawScheme rngVersion 2 card draws (default V2_DRAW_SCHEME, rng.js): 'turn' (the card of deck D on turn t is keyed by
+ *   (seed, D, t)) or 'positional' (the n-th draw of D replays its keyed cycle). The other one exists so scripts/rng-fairness.js
+ *   and `npm run simulate -- --rng=...` can re-measure the comparison in docs/RNG.md; saves do not carry it.
+ */
+export function createEngine(data, { validate = true, drawScheme = V2_DRAW_SCHEME } = {}) {
   if (validate) validateData(data);
+  if (drawScheme !== 'turn' && drawScheme !== 'positional') throw new EngineError(`unknown draw scheme ${drawScheme}`);
   const cardById = new Map(data.cards.map((c) => [c.id, c]));
   const professionById = new Map(data.professions.map((p) => [p.id, p]));
 
@@ -136,7 +204,54 @@ export function createEngine(data, { validate = true } = {}) {
   // it: the next card of the deck is drawn and the skipped one goes to the bottom. The daily challenge deals no decision cards
   // at all (its piles are the classic decks), so its card stream is unchanged and the same for everyone.
   const dailyEligible = (deck, mode) => data.cards.filter((c) => c.deck === deck && c.modes.includes(mode)).map((c) => c.id);
+  // ---------- rngVersion 2 draws: no pile in the state, nothing a decision can shift ----------
+  // The v1 pile rules, applied to a keyed order instead of a stored pile:
+  //  - a card whose `requires` is not met goes to the bottom (after 64 tries it is dealt anyway, as in v1);
+  //  - an out-of-tier deal is swapped with the first in-tier deal still in the pile (none left: it stands);
+  //  - the deal-choice alternative is a peek at the pile after the drawn card.
+  // 'turn': the pile of deck D on turn t is the eligible list in an order keyed by (seed, D, t), freshly shuffled: the card is
+  //   its first draw. 'positional': the n-th draw of D replays cycle floor(n / len) (order keyed by (seed, D, cycle)) up to
+  //   position n mod len, with the player's current requirements and tier (the v1 pile, rebuilt instead of stored).
+  // The daily challenge walks its classic piles (no decision cards) with no tiers and no choice, as before.
+  let lastPile = null; // transient (one synchronous resolveSquare): the pile left after the last v2 opportunity draw
+  function pileStep(d, deck, pile, ok, fits) {
+    for (let tries = 0; ; tries++) {
+      const id = pile.shift();
+      if (ok(id) || tries > 64) {
+        if (fits && !fits(id)) {
+          const idx = pile.findIndex((x) => x !== id && isDealCard(cardById.get(x)) && fits(x) && ok(x));
+          if (idx !== -1) { const swap = pile[idx]; pile[idx] = id; return swap; }
+        }
+        return id;
+      }
+      pile.push(id);
+    }
+  }
+  function drawV2(d, deck) {
+    const ids = d.daily ? dailyEligible(deck, d.mode) : eligible(deck, d.mode, !!d.junior);
+    if (!d.draws) d.draws = { opportunity: 0, expense: 0, market: 0 };
+    const n = d.draws[deck] ?? 0;
+    d.draws[deck] = n + 1;
+    // the player's predicates, evaluated once for this draw
+    const met = new Map();
+    const ok = (id) => { if (!met.has(id)) { const c = cardById.get(id); met.set(id, !c.requires || meetsRequires(d, c.requires)); } return met.get(id); };
+    const tiered = !d.daily && deck === 'opportunity';
+    const fitMemo = new Map();
+    const fits = tiered ? (id) => { if (!fitMemo.has(id)) { const c = cardById.get(id); fitMemo.set(id, !isDealCard(c) || dealFitsTier(d, c)); } return fitMemo.get(id); } : null;
+    let pile; let id;
+    if (drawScheme === 'positional') {
+      pile = v2DeckCycle(d.seed, deck, Math.floor(n / ids.length), ids);
+      for (let k = 0; k <= n % ids.length; k++) id = pileStep(d, deck, pile, ok, fits);
+    } else {
+      pile = v2DeckOrder(d.seed, deck, d.turn, ids);
+      id = pileStep(d, deck, pile, ok, fits);
+    }
+    if (deck === 'opportunity') lastPile = pile;
+    return view(cardById.get(id), d.mode);
+  }
+
   function draw(d, deck) {
+    if (!isV1(d)) return drawV2(d, deck);
     if (d.daily) { // daily challenge: the card of this turn depends on (seed, deck, turn) only, never on earlier choices
       const ids = dailyEligible(deck, d.mode);
       return view(cardById.get(ids[dailyPick(d.seed, deck, d.turn, ids.length)]), d.mode);
@@ -144,23 +259,85 @@ export function createEngine(data, { validate = true } = {}) {
     for (let tries = 0; ; tries++) {
       if (!d.decks[deck].length) d.decks[deck] = shuffle(d, eligible(deck, d.mode, !!d.junior));
       const card = cardById.get(d.decks[deck].shift());
-      if (!card.requires || meetsRequires(d, card.requires) || tries > 64) return view(card, d.mode);
+      if (!card.requires || meetsRequires(d, card.requires) || tries > 64) {
+        // v0.4 tiered deal pools: an out-of-tier deal is swapped with the first in-tier deal still in the pile
+        // (the out-of-tier card takes its slot — nothing is removed, the pile's size and order otherwise stand).
+        if (deck === 'opportunity' && isDealCard(card) && !dealFitsTier(d, card)) {
+          const idx = d.decks[deck].findIndex((id) => {
+            const c = cardById.get(id);
+            return c && c.id !== card.id && isDealCard(c) && dealFitsTier(d, c) && (!c.requires || meetsRequires(d, c.requires));
+          });
+          if (idx !== -1) {
+            const swapId = d.decks[deck][idx];
+            d.decks[deck][idx] = card.id;
+            return view(cardById.get(swapId), d.mode);
+          }
+        }
+        return view(card, d.mode);
+      }
       d.decks[deck].push(card.id);
     }
   }
 
+  // v0.4 tiered deal pools (improvement plan, axis 1): the deals a player is offered grow with their stage.
+  // A deal's size is its monthly cash flow RELATIVE to that player's own total monthly expenses, and the bands
+  // are calibrated to the existing catalogue (positive flows run ₪500–₪8,500 against expenses of ₪5,600–₪11,400,
+  // so the plan's literal percentages were widened to the catalogue's real spread — the intent is unchanged:
+  // small deals early, big deals late, per player, never a global rubber band). Negative-flow trap deals always
+  // "fit": they are judgement tests, not sized deals. The daily challenge is exempt (drawn deterministically).
+  const isDealCard = (c) => c && (c.type === 'apartment' || c.type === 'business') && Number.isFinite(c.monthlyCashFlow);
+  function dealFitsTier(d, card) {
+    if (!isDealCard(card) || card.monthlyCashFlow <= 0) return true;
+    const exp = totalExpenses(d);
+    if (!exp) return true;
+    const tier = dealTiersOf(d)[dealTierIndex(d)];
+    const ratio = card.monthlyCashFlow / exp;
+    return ratio >= tier.min && ratio <= tier.max;
+  }
+
+  // v0.4 deal choice: the second deal offered alongside the drawn one on an opportunity square. It is a PEEK at
+  // the next apartment/business in the opportunity pile (not the drawn card, `requires` met), priced exactly like
+  // a drawn deal (lap inflation, junior rounding). The card is NOT removed from the pile: the main card stream —
+  // and with it the game's balance and every seeded sequence — stays exactly as before, and a deal the player
+  // did not pick simply comes up again as a later offer (or goes to auction when the picked one is bought).
+  // Returns null when the pile holds no second deal — the square then plays as a classic single-deal card.
+  // The daily challenge never offers a choice: its card stream stays (seed, turn)-determined for everyone.
+  function drawAltDeal(d, first) {
+    if (d.daily) return null;
+    if (!isV1(d)) return altFrom(d, first, lastPile.length ? lastPile : v2DeckOrder(d.seed, 'opportunity:alt', d.turn, eligible('opportunity', d.mode, !!d.junior)));
+    if (!d.decks.opportunity.length) d.decks.opportunity = shuffle(d, eligible('opportunity', d.mode, !!d.junior));
+    return altFrom(d, first, d.decks.opportunity);
+  }
+  function altFrom(d, first, pile) {
+    const candidates = pile.filter((candidate) => {
+      const c = cardById.get(candidate);
+      return c && c.id !== first.id && (c.type === 'apartment' || c.type === 'business') && (!c.requires || meetsRequires(d, c.requires));
+    });
+    // the offered alternative follows the same tiering as the main draw, with any deal as the fallback
+    const id = candidates.find((candidate) => dealFitsTier(d, cardById.get(candidate))) ?? candidates[0];
+    if (!id) return null;
+    const card = clone(view(cardById.get(id), d.mode));
+    inflateDeal(card, priceFactor(d));
+    if (d.junior) juniorDeal(card);
+    return card;
+  }
+
   // ---------- setup ----------
-  function newGame({ mode = 'full', professionId, seed = 1, daily = null, junior = false } = {}) {
+  function newGame({ mode = 'full', professionId, seed = 1, daily = null, junior = false, rngVersion = null } = {}) {
     if (mode !== 'family' && mode !== 'full') fail(`unknown mode ${mode}`);
     if (junior && (mode !== 'family' || daily)) fail('a junior game is a family game (and never the daily challenge)');
     const raw = professionById.get(professionId ?? data.professions[0].id);
     if (!raw) fail(`unknown profession ${professionId}`);
     const profession = junior ? juniorProfession(raw) : raw;
+    // a new normal game is rngVersion 2; the daily challenge follows its date (DAILY_RNG_V2_FROM); 1 only on request (tests)
+    const version = rngVersion ?? (daily ? dailyRngVersion(daily.date) : RNG_VERSION);
+    if (version !== RNG_V1 && version !== RNG_V2) fail(`unknown rng version ${version}`);
     const d = {
       schemaVersion: SCHEMA_VERSION,
       mode,
       seed,
-      rngState: seed >>> 0,
+      rngVersion: version,
+      ...(version === RNG_V1 ? { rngState: seed >>> 0 } : {}),
       profession: clone({
         id: profession.id, title: profession.title, salary: profession.salary,
         perChild: profession.perChild, expenses: profession.expenses,
@@ -173,13 +350,15 @@ export function createEngine(data, { validate = true } = {}) {
       kids: 0,
       position: 0,
       turn: 0,
+      rerollTokens: 0, // schema 8 (v0.4): 'גלגול שוב' tokens earned by investor's-eye guess streaks (max 2)
+      rerollArmed: false, // a token armed for the next roll: two dice sets are rolled, the higher total moves
       lap: 0, // passes of square 0 (price inflation reads it)
       effects: [], // timed market effects: { kind, pct | rate, turnsLeft, cardId }
       milestones: [], // schema 5: passive-income milestones (MILESTONES, % of expenses) already celebrated in this game
       taxAudit: emptyTaxAudit(), // schema 5: tax-audit quiz answers and knowledge points (no money)
       charityTurns: 0,
       stockPrices: {},
-      decks: { opportunity: [], expense: [], market: [] },
+      ...(version === RNG_V1 ? { decks: { opportunity: [], expense: [], market: [] } } : { draws: { opportunity: 0, expense: 0, market: 0 } }),
       pending: null,
       phase: 'roll', // roll | decision | mustPay | ended
       status: 'playing', // playing | won | lost
@@ -191,12 +370,13 @@ export function createEngine(data, { validate = true } = {}) {
         expensesPaid: 0, peakPassive: 0, totalPaid: 0, interestPaid: 0,
       },
       learn: emptyLearn(), // what the player decided (feedback, guesses, report); never read by a rule
+      log: [], // schema 9: every dispatched action, in order (replay / action-log links)
     };
     if (junior) d.junior = true; // 'צעירים' round rules (schema 6)
     if (daily) {
       // opt-in rules flag: pre-determined dice / card streams (see daily.js) and an action log for later verification
       d.daily = { date: String(daily.date), turnCap: daily.turnCap ?? DAILY_TURN_CAP, log: [] };
-    } else {
+    } else if (version === RNG_V1) {
       for (const deck of Object.keys(d.decks)) d.decks[deck] = shuffle(d, eligible(deck, mode, junior));
     }
     settle(d);
@@ -286,6 +466,22 @@ export function createEngine(data, { validate = true } = {}) {
     d.events.push({ type: 'payday', amount, monthly, months: PAYDAY_MONTHS, interest });
   }
 
+  /**
+   * v0.4: arm (or disarm) a reroll token for the next roll. Arming is free and reversible until the roll;
+   * the roll itself consumes the token. The daily challenge cannot arm one — its dice are (seed, turn)-fixed,
+   * so a second set would be the same dice.
+   */
+  function armReroll(state) {
+    const d = begin(state);
+    if (d.phase !== 'roll') fail('cannot arm a reroll now');
+    if (d.daily) fail('no reroll in the daily challenge');
+    if (!d.rerollArmed && !(d.rerollTokens > 0)) fail('no reroll token');
+    d.rerollArmed = !d.rerollArmed;
+    d.events.push({ type: 'rerollArmed', armed: d.rerollArmed });
+    settle(d);
+    return d;
+  }
+
   function roll(state, forcedDice) {
     const d = begin(state);
     if (d.phase !== 'roll') fail('cannot roll now');
@@ -294,15 +490,33 @@ export function createEngine(data, { validate = true } = {}) {
     tickEffects(d);
     const diceCount = d.charityTurns > 0 ? 2 : 1;
     if (d.charityTurns > 0) d.charityTurns -= 1;
-    const dice = forcedDice ?? Array.from({ length: diceCount }, (_, k) => (d.daily ? dailyDie(d.seed, d.turn, k) : 1 + randInt(d, 6)));
+    const v1 = isV1(d);
+    // v2: die k of turn t is keyed by (seed, 'dice', t, k): the charity bonus die is k = 1 of the same turn, so it never shifts a later value
+    const v1Die = (k) => (d.daily ? dailyDie(d.seed, d.turn, k) : 1 + randInt(d, 6));
+    const rollSet = (die) => forcedDice ?? Array.from({ length: diceCount }, (_, k) => die(k));
+    let dice = rollSet(v1 ? v1Die : (k) => v2Die(d.seed, d.turn, k));
+    // v0.4: an armed reroll token rolls a second set and keeps the higher total (the token is spent either way)
+    if (d.rerollArmed && d.rerollTokens > 0 && !d.daily) {
+      const second = rollSet(v1 ? v1Die : (k) => v2RerollDie(d.seed, d.turn, k));
+      const total = (set) => set.reduce((a, b) => a + b, 0);
+      d.rerollTokens -= 1;
+      d.events.push({ type: 'reroll', kept: total(second) > total(dice) ? second : dice, dropped: total(second) > total(dice) ? dice : second, first: dice });
+      if (total(second) > total(dice)) dice = second;
+    }
+    d.rerollArmed = false;
     const steps = dice.reduce((a, b) => a + b, 0);
     const from = d.position;
     const path = [];
+    // v0.4 (owner decision 2026-11-02, QA P0): at most ONE annual summary per turn. Payday squares sit 3 apart
+    // (indices 4, 7, 10), so one roll — above all a charity roll with 2 dice — could cross two of them and credit
+    // the annual flow twice in a single turn. The first payday square on the path settles the turn; any further
+    // payday square on the same path is crossed/landed on without another credit.
+    let paydaySettled = false;
     for (let i = 0; i < steps; i++) {
       d.position = (d.position + 1) % BOARD.length;
       path.push(d.position);
       if (d.position === 0) d.lap = (d.lap ?? 0) + 1;
-      if (BOARD[d.position] === 'payday') payday(d); // passing or landing
+      if (!paydaySettled && BOARD[d.position] === 'payday') { payday(d); paydaySettled = true; } // passing or landing, once per turn
     }
     d.lastRoll = { dice, steps };
     d.events.push({ type: 'move', from, to: d.position, dice, steps, path });
@@ -320,7 +534,9 @@ export function createEngine(data, { validate = true } = {}) {
         if (card.deck === 'decision') { startDecision(d, card); break; }
         if (card.type === 'stock') card.price = stockPrice(d, card.symbol, card.price);
         else { inflateDeal(card, priceFactor(d)); if (d.junior) juniorDeal(card); }
-        d.pending = { kind: 'opportunity', card };
+        // v0.4: a deal (apartment/business) comes with a second deal to choose between — see drawAltDeal.
+        const alt = card.type === 'stock' ? null : drawAltDeal(d, card);
+        d.pending = { kind: 'opportunity', card, ...(alt ? { alt } : {}) };
         break;
       }
       case 'expense': {
@@ -350,7 +566,8 @@ export function createEngine(data, { validate = true } = {}) {
         if (d.junior) { d.events.push({ type: 'taxAuditRest' }); break; }
         // v4 'ביקורת רשות המסים': a quiz question from the learn bank. `pick` chooses it (the UI maps it onto the questions of
         // the mode); the answer gives knowledge points only. Daily challenge: the pick depends on (seed, turn) only.
-        const pick = d.daily ? dailyPick(d.seed, 'taxAudit', d.turn, TAX_AUDIT_PICKS) : randInt(d, TAX_AUDIT_PICKS);
+        const pick = !isV1(d) ? v2AuditPick(d.seed, d.turn, TAX_AUDIT_PICKS)
+          : d.daily ? dailyPick(d.seed, 'taxAudit', d.turn, TAX_AUDIT_PICKS) : randInt(d, TAX_AUDIT_PICKS);
         d.pending = { kind: 'taxAudit', pick };
         break;
       }
@@ -549,6 +766,28 @@ export function createEngine(data, { validate = true } = {}) {
   }
 
   // ---------- opportunities ----------
+  /**
+   * v0.4 deal choice: pick which of the two offered deals (pending.card / pending.alt) the player wants to
+   * decide on. The picked one becomes pending.card; the other stays pending.alt — when the picked deal is
+   * bought, the unchosen one is emitted as a 'passed' card so the match layer can auction it (see buy()).
+   * The pending decision stays open; this only swaps the cards.
+   */
+  function chooseDeal(state, cardId) {
+    const d = begin(state);
+    requirePending(d, 'opportunity');
+    if (!d.pending.alt) fail('no deal choice offered');
+    if (cardId === d.pending.alt.id) {
+      const first = d.pending.card;
+      d.pending.card = d.pending.alt;
+      d.pending.alt = first;
+    } else if (cardId !== d.pending.card.id) fail('unknown deal');
+    d.pending.chosen = true;
+    logAction(d, 'chooseDeal', d.pending.card.id);
+    d.events.push({ type: 'dealChoice', cardId: d.pending.card.id, altId: d.pending.alt.id });
+    settle(d);
+    return d;
+  }
+
   function buy(state, qty = 1) {
     const d = begin(state);
     requirePending(d, 'opportunity');
@@ -574,21 +813,30 @@ export function createEngine(data, { validate = true } = {}) {
       }
       d.events.push({ type: 'bought', cardId: card.id, cost, qty });
     } else {
-      if (d.cash < card.downPayment) fail('not enough cash');
-      d.cash -= card.downPayment;
+      // v0.4 guess stakes: a correct 'עסקה טובה?' guess on this very card this turn takes 10% off the down
+      // payment (rounded to ₪10, or to a whole coin for juniors). The asset's price drops by the same amount,
+      // so price = down payment + mortgage still holds; the mortgage and the monthly flow are untouched.
+      const guessedRight = (d.learn?.guesses ?? []).some((g) => g.cardId === card.id && g.turn === d.turn && g.correct);
+      const discount = guessedRight ? Math.round((card.downPayment * 0.1) / (d.junior ? JUNIOR_ROUND : 10)) * (d.junior ? JUNIOR_ROUND : 10) : 0;
+      const cost = card.downPayment - discount;
+      if (d.cash < cost) fail('not enough cash');
+      d.cash -= cost;
       d.seq += 1;
       d.assets.push({
         id: `asset-${d.seq}`, cardId: card.id, type: card.type, title: card.title, category: card.category,
-        price: card.price, downPayment: card.downPayment, mortgage: card.mortgage,
+        price: card.price - discount, downPayment: cost, mortgage: card.mortgage,
         monthlyCashFlow: card.monthlyCashFlow,
         ...(Number.isFinite(card.rent) ? { rent: card.rent } : {}), // a rent card changes the flow by rent x pct
         ...(Number.isFinite(card.loanPayment) ? { loanPayment: card.loanPayment } : {}),
       });
-      d.events.push({ type: 'bought', cardId: card.id, cost: card.downPayment, qty: 1 });
+      d.events.push({ type: 'bought', cardId: card.id, cost, qty: 1, ...(discount ? { discount } : {}) });
     }
     logAction(d, 'buy', card.type === 'stock' ? qty : 1);
     recordDecision(d, buyRecord(card, card.type === 'stock' ? qty : 1));
     d.stats.dealsBought += 1;
+    // v0.4: the deal that was offered alongside and not chosen goes to the other players, exactly like a
+    // passed deal — the match layer auctions it off the 'passed' event (bots and UI already listen for it).
+    if (d.pending.alt) d.events.push({ type: 'passed', card: d.pending.alt, viaChoice: true });
     d.pending = null;
     settle(d);
     return d;
@@ -819,8 +1067,92 @@ export function createEngine(data, { validate = true } = {}) {
     return d;
   }
 
+  // ---------- dispatch + replay (v0.5): the one seam every player action goes through ----------
+  // An action is a plain object { type, ...args }. dispatch() runs the engine function and appends the action (only its
+  // known fields) to state.log, so a game is fully described by (seed, config, log). replay() rebuilds it from that.
+  // The daily challenge additionally keeps its own v2.5 log (state.daily.log, the format of stored result records).
+  const ACTIONS = {
+    // forced dice (engine.roll(s, dice)) stay a test hook: a logged roll never carries dice, so a log cannot choose them
+    roll: { fields: [], run: (s, a) => (a.dice !== undefined ? fail('a dispatched roll takes no dice') : roll(s)) },
+    armReroll: { fields: [], run: (s) => armReroll(s) },
+    chooseDeal: { fields: ['cardId'], run: (s, a) => chooseDeal(s, a.cardId) },
+    guess: { fields: ['cardId', 'light', 'guess'], run: (s, a) => guessAction(s, a) },
+    buy: { fields: ['qty'], run: (s, a) => buy(s, a.qty ?? 1) },
+    pass: { fields: [], run: (s) => pass(s) },
+    renovate: { fields: ['assetId', 'level', 'style'], run: (s, a) => renovateAction(s, a) },
+    // an auction is a hot-seat event: the match opens it on every bidder's state (auctionOpen), a win must be for that very
+    // card at a legal bid, and the match closes it on the others (auctionClose). Never part of a single-player link.
+    auctionOpen: { fields: ['card', 'floor', 'step'], run: (s, a) => auctionOpenAction(s, a) },
+    auctionClose: { fields: [], run: (s) => auctionCloseAction(s) },
+    auctionWin: { fields: ['card', 'price'], run: (s, a) => auctionWinAction(s, a) },
+    acceptOffer: { fields: [], run: (s) => acceptOffer(s) },
+    declineOffer: { fields: [], run: (s) => declineOffer(s) },
+    donate: { fields: [], run: (s) => donate(s) },
+    declineCharity: { fields: [], run: (s) => declineCharity(s) },
+    takeLoan: { fields: ['amount'], run: (s, a) => takeLoan(s, a.amount) },
+    repayLoan: { fields: ['id', 'amount'], run: (s, a) => repayLoan(s, a.id, a.amount) },
+    sellAsset: { fields: ['id', 'qty'], run: (s, a) => sellAsset(s, a.id, a.qty ?? undefined) },
+    decide: { fields: ['option'], run: (s, a) => decide(s, a.option) },
+    answerAudit: { fields: ['questionId', 'correct'], run: (s, a) => answerAudit(s, { questionId: a.questionId ?? null, correct: a.correct ?? null }) },
+    forfeit: { fields: [], run: (s) => forfeit(s) },
+    debugForce: { fields: ['outcome'], run: (s, a) => debugForce(s, a.outcome) },
+  };
+  const ACTION_TYPES = Object.keys(ACTIONS);
+
+  // the 'עסקה טובה?' guess (learn.recordGuess) is an action: a right guess takes 10% off the down payment and streaks earn reroll tokens
+  function guessAction(state, { cardId, light, guess }) {
+    if (state.status !== 'playing') fail('game is over');
+    if (!['good', 'bad', 'skip'].includes(guess)) fail(`bad guess ${guess}`);
+    // the guess is on the open deal, and its light is that deal's own (dealMetrics): a log cannot claim a green light on a red deal
+    const card = state.pending?.kind === 'opportunity' ? state.pending.card : null;
+    if (!card || card.id !== cardId || !isDeal(card)) fail('a guess needs the open deal');
+    const own = dealMetrics(card).light ?? null;
+    if ((light ?? null) !== own) fail(`the light of ${cardId} is ${own}`);
+    return recordGuess(state, { cardId, light: own, guess }); // events untouched: a guess is part of the open card
+  }
+  // ---------- auctions through dispatch: open -> win (or close) ----------
+  const auctionOpenAction = (state, a) => auctionOpenState(state, a);
+  const auctionCloseAction = (state) => auctionCloseState(state);
+  function auctionWinAction(state, { card, price }) {
+    const open = state.auctionOpen;
+    if (!open) fail('no auction open for this player');
+    if (stableStringify(open.card) !== stableStringify(card)) fail('not the auctioned card');
+    if (!Number.isInteger(price) || price < auctionMinBidOf(open) || price % open.step !== 0) fail(`bid must be a multiple of ${open.step} from ${auctionMinBidOf(open)}`);
+    const d = auctionWin(state, card, price);
+    delete d.auctionOpen;
+    return d;
+  }
+
+  // renovate with the level it reaches in the log: a replayed log whose level does not match the state is refused
+  function renovateAction(state, { assetId, level = null, style = null }) {
+    const d = renovate(state, assetId, style ?? null);
+    const ev = d.events.find((e) => e.type === 'renovated');
+    if (level !== null && level !== undefined && ev?.level !== level) fail(`renovation level ${level} does not match ${ev?.level}`);
+    return d;
+  }
+
+  /** Applies `action` ({ type, ...args }) and logs it. Throws EngineError on an unknown or illegal action. */
+  function dispatch(state, action) {
+    const def = ACTIONS[action?.type];
+    if (!def) fail(`unknown action ${action?.type}`);
+    const next = def.run(state, action);
+    const entry = { type: action.type, ...(action.type === 'buy' ? { qty: action.qty ?? 1 } : {}) };
+    for (const f of def.fields) if (action[f] !== undefined && action[f] !== null) entry[f] = action.type === 'auctionWin' && f === 'card' ? clone(action[f]) : action[f];
+    if (action.type === 'renovate' && entry.level === undefined) entry.level = next.events.find((e) => e.type === 'renovated')?.level;
+    next.log = Array.isArray(next.log) ? next.log : [];
+    next.log.push(entry);
+    return next;
+  }
+
+  /** The game a (seed, config, actions) triple describes: newGame, then every action dispatched in order. */
+  function replay(seed, config = {}, actions = []) {
+    let s = newGame({ ...config, seed });
+    for (const a of actions) s = dispatch(s, a);
+    return s;
+  }
+
   return {
-    data, newGame, debugForce, forfeit, roll, buy, pass, renovate, auctionWin, acceptOffer, declineOffer, donate,
-    declineCharity, takeLoan, repayLoan, sellAsset, decide, decisionOptions, answerAudit,
+    data, newGame, debugForce, forfeit, roll, armReroll, buy, pass, chooseDeal, renovate, auctionWin, acceptOffer, declineOffer, donate,
+    declineCharity, takeLoan, repayLoan, sellAsset, decide, decisionOptions, answerAudit, dispatch, replay, ACTION_TYPES,
   };
 }

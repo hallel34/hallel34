@@ -133,7 +133,10 @@ describe('daily: normal games are untouched', () => {
   it('a normal game has no daily field and still shuffles its decks', () => {
     const s = engine.newGame({ mode: 'family', professionId: 'teacher', seed: 7 });
     expect('daily' in s).toBe(false);
-    expect(s.decks.opportunity.length).toBeGreaterThan(5);
+    // v0.5: a new game draws keyed cards (rngVersion 2, no pile); a v1 game (an old save) still shuffles its decks
+    expect(s.rngVersion).toBe(2);
+    expect(s.draws).toEqual({ opportunity: 0, expense: 0, market: 0 });
+    expect(engine.newGame({ mode: 'family', professionId: 'teacher', seed: 7, rngVersion: 1 }).decks.opportunity.length).toBeGreaterThan(5);
     expect(engine.forfeit).toBeTypeOf('function');
     expect(() => engine.forfeit(s)).toThrow(EngineError);
   });

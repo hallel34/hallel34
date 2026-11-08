@@ -100,7 +100,7 @@ async function run(browser) {
     await page.waitForTimeout(100);
     s = await seatsOf(page);
     check(s[0].human && !s[0].bot && s[1].bot, 'seat 1 cannot become a bot while every other seat is a bot');
-    check((await page.locator('.age-note').innerText()).includes('לפחות אחד צריך להיות שחקן ולא בוט'), 'the note explains why');
+    check((await page.locator('.age-note[role="status"]').innerText()).includes('לפחות אחד צריך להיות שחקן ולא בוט'), 'the note explains why');
     // with seat 2 a person again, seat 1 may become a bot (an explicit choice)
     await page.locator('[data-bot-seat="1"] [data-seat="human"]').check({ force: true });
     await page.locator('[data-bot-seat="0"] [data-seat="bot"]').check({ force: true });

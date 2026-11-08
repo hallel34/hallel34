@@ -164,7 +164,9 @@ describe('v2 phase A: amounts, payday copy, no typed numbers', () => {
     const play = src('ui/play.js');
     const payday = play.slice(play.indexOf('async function paydayFx'), play.indexOf('// ---------- turn ----------'));
     expect(payday).not.toContain('floatText(');
-    expect(payday).toContain('cash.to(cash.value + f.amount');
+    // v0.4: the count-up target is snapshotted before the summary modal, never re-read live after the await
+    expect(payday).toContain('const target = cash.value + f.amount');
+    expect(payday).toContain('await cash.to(target, 450)');
     const fx = src('ui/fx.js');
     expect(fx).toContain('within.getBoundingClientRect()');
   });

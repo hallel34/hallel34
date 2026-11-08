@@ -4,11 +4,13 @@
 // The player who passed does not bid. Open ascending bids in loan steps (10,000 in a junior game), cash only
 // (no loans mid-auction): a bid must top the current one and stay within the bidder's cash. Last bidder standing
 // pays their bid as the effective down payment and gets the card with its own financing (see engine.auctionWin).
-import { EngineError } from './engine.js';
+import { EngineError, auctionOpenState, auctionCloseState } from './engine.js';
 import { LOAN_STEP, JUNIOR_LOAN_STEP } from './config.js';
 import { currentState } from './match.js';
 
 const fail = (msg) => { throw new EngineError(msg); };
+// the same log entry engine.dispatch would append (the match applies auctionOpen / auctionClose to bidders that are not on turn)
+const logged = (state, entry) => ({ ...state, log: [...(Array.isArray(state.log) ? state.log : []), entry] });
 
 export const auctionable = (card) => card?.type === 'apartment' || card?.type === 'business';
 export const auctionStep = (m) => m?.auction?.step ?? (m?.junior ? JUNIOR_LOAN_STEP : LOAN_STEP);
@@ -35,7 +37,10 @@ export function maybeStartAuction(m, card, fromIndex = m.currentIndex, rules = {
   const floorRule = rules.floor ?? ((c) => Math.round((c.downPayment ?? 0) / 2));
   const floor = Math.max(0, Math.round(typeof floorRule === 'function' ? floorRule(card) : floorRule));
   const step = Number.isInteger(rules.step) && rules.step > 0 ? rules.step : null;
-  return { ...m, auction: { card, fromIndex, order, seat: 0, currentBid: 0, winner: null, out: [], history: [], floor, step } };
+  const next = { ...m, auction: { card, fromIndex, order, seat: 0, currentBid: 0, winner: null, out: [], history: [], floor, step } };
+  // every bidder's own state learns the auction (dispatched and logged), so a win can be checked against it on replay
+  const open = { card, floor, step: auctionStep(next) };
+  return { ...next, players: next.players.map((p, i) => (order.includes(i) ? { ...p, state: logged(auctionOpenState(p.state, open), { type: 'auctionOpen', ...open }) } : p)) };
 }
 
 export const auctionActive = (m) => !!m?.auction;
@@ -65,9 +70,12 @@ function advance(a) {
 function finish(engine, m, a) {
   const { card, winner, currentBid, history } = a;
   const base = { ...m, auction: null, lastAuction: { cardId: card.id, title: card.title, winner, price: currentBid, history } };
-  if (winner === null) return base; // everyone passed: the card is gone
-  const state = engine.auctionWin(m.players[winner].state, card, currentBid);
-  const next = { ...base, players: base.players.map((p, i) => (i === winner ? { ...p, state } : p)) };
+  // the auction is closed on every other bidder; the winner's auctionWin closes it on theirs
+  const close = (p, i) => (i !== winner && a.order.includes(i) && p.state.auctionOpen ? { ...p, state: logged(auctionCloseState(p.state), { type: 'auctionClose' }) } : p);
+  const closed = { ...base, players: base.players.map(close) };
+  if (winner === null) return closed; // everyone passed: the card is gone
+  const state = engine.dispatch(m.players[winner].state, { type: 'auctionWin', card, price: currentBid });
+  const next = { ...closed, players: closed.players.map((p, i) => (i === winner ? { ...p, state } : p)) };
   if (state.status === 'won') { next.status = 'won'; next.winnerIndex = winner; }
   return next;
 }

@@ -1,4 +1,4 @@
-// npm run simulate [-- --games=100 --max=200 --bots=sensible,alwaysBuy,... --modes=family,full,junior --perProfession --json=out.json --multiplayer=0]
+// npm run simulate [-- --rng=v1|turn|positional --games=100 --max=200 --bots=sensible,alwaysBuy,... --modes=family,full,junior --perProfession --json=out.json --multiplayer=0]
 // mode 'junior' = a family game on the 'צעירים' round rules (owner 2026-10-26).
 // Plays N games per mode / bot / profession and prints balance statistics.
 // cash@t10 = median cash at the first roll phase on or after turn 10 (games that reached it), as in finance's runner.
@@ -11,7 +11,12 @@ import { monthlyCashFlow } from '../src/engine/selectors.js';
 
 const read = (p) => JSON.parse(readFileSync(new URL(p, import.meta.url), 'utf8'));
 const data = { professions: read('../src/data/professions.he.json'), cards: read('../src/data/cards.he.json') };
-const engine = createEngine(data);
+// --rng: the engine RNG to measure. Default = what new games use (rngVersion 2, turn-keyed draws, docs/RNG.md);
+// v1 = the pre-v0.5 single stream (old saves), positional = the measured alternative draw scheme.
+const RNG = process.argv.find((a) => a.startsWith('--rng='))?.split('=')[1] ?? 'turn';
+if (!['v1', 'turn', 'positional'].includes(RNG)) throw new Error(`unknown --rng ${RNG}`);
+const engine = createEngine(data, { drawScheme: RNG === 'positional' ? 'positional' : 'turn' });
+const rngVersion = RNG === 'v1' ? 1 : 2;
 
 const args = Object.fromEntries(process.argv.slice(2).map((a) => {
   const [k, v] = a.replace(/^--/, '').split('=');
@@ -26,7 +31,7 @@ const avg = (a) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : NaN);
 const f1 = (x) => (Number.isNaN(x) ? '-' : x.toFixed(1));
 
 function play(mode, bot, professionId, seed) {
-  let s = mode === 'junior' ? engine.newGame({ mode: 'family', professionId, seed, junior: true }) : engine.newGame({ mode, professionId, seed });
+  let s = mode === 'junior' ? engine.newGame({ mode: 'family', professionId, seed, junior: true, rngVersion }) : engine.newGame({ mode, professionId, seed, rngVersion });
   let cash10 = null;
   let guard = 0;
   while (s.status === 'playing' && s.turn < MAX_TURNS && guard++ < 5000) {
@@ -94,7 +99,7 @@ if (args.multiplayer !== '0') {
     const res = { winner: 0, lost: 0, timeout: 0, rounds: [], byIndex: [0, 0, 0, 0] };
     for (let g = 0; g < MP_GAMES; g++) {
       const players = Array.from({ length: 4 }, (_, i) => ({ name: `P${i + 1}`, professionId: profs[(g + i * 2) % profs.length] }));
-      const m = playMatch(engine, newMatch(engine, { mode, players, seed: 5000 + g * 104729 }), ['sensible', 'sensible', 'sensible', 'sensible'], 2000);
+      const m = playMatch(engine, newMatch(engine, { mode, players, seed: 5000 + g * 104729, rngVersion }), ['sensible', 'sensible', 'sensible', 'sensible'], 2000);
       if (m.status === 'won') { res.winner++; res.rounds.push(m.players[m.winnerIndex].state.turn); res.byIndex[m.winnerIndex]++; }
       else if (m.status === 'lost') res.lost++;
       else res.timeout++;

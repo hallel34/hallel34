@@ -5,7 +5,7 @@ import { h } from './dom.js';
 import { t } from '../i18n/index.js';
 import { openLayer } from './modal.js';
 import { button, arm } from './widgets.js';
-import { money, moneyText, moneySpoken, numberText } from './format.js';
+import { money, moneyText, moneySpoken, numberText, tn } from './format.js';
 import { animate, haptic } from './fx.js';
 import { motionOK } from './prefs.js';
 import { getLearnMode } from '../learn/context.js';
@@ -85,6 +85,8 @@ export function summaryCard({ figures: f, hint = null }) {
   const [arrLabel] = arrA.split('{cashBefore}');
   const caption = h('p', { class: 'sc-cash', 'data-row': 'cash' }, arrLabel,
     h('span', { class: 'sc-pair' }, fillNodes('{cashBefore}', { cashBefore: money(f.cashBefore) }), h('span', { class: 'sc-arrow', 'aria-hidden': 'true' }, '→'), fillNodes(`{cashAfter}${arrB.replace('{cashAfter}', '')}`, { cashAfter: money(f.cashAfter) })));
+  // v0.4: Maxi's idle-cash mirror (figures.idle is computed by the play controller; no penalty, just the mirror)
+  const idleLine = f.idle ? h('p', { class: 'sc-idle', 'data-idle': '' }, tn('payday.idle', { cash: money(f.idle.cash), gain: money(f.idle.gain, { sign: true }) })) : null;
   const strip = hint ? hintStrip({ body: hint.body, more: hint.more, cls: 'in-summary' }) : null;
 
   let layer;
@@ -98,7 +100,7 @@ export function summaryCard({ figures: f, hint = null }) {
     h('h2', { class: 'sc-title' }, t('game.paydayFloatLabel')),
     h('ul', { class: 'sc-rows' }, rows),
     h('div', { class: 'sc-divider', 'aria-hidden': 'true' }),
-    leftRow, band, caption, strip,
+    leftRow, band, caption, idleLine, strip,
     h('p', { id: descId, class: 'vh' }, summarySpoken(f)),
     h('div', { class: 'sc-cta' }, go));
   // tapping anywhere on the card goes on (the figures were the point; the log keeps them)

@@ -5,6 +5,7 @@ import { h, clear } from './dom.js';
 import { toast } from './fx.js';
 import {
   createEngine, serialize, deserialize, newMatch, rematch, isMultiplayer, currentState, dailySeed, dailyProfessionId, DAILY_MODE, seesCoins, isJuniorSetup, JUNIOR_AGE, cleanAge,
+  SHORT_ROUNDS, botProfessionId,
 } from '../engine/index.js';
 import { setCoinScale } from './format.js';
 import { loadData } from '../data/index.js';
@@ -53,7 +54,7 @@ export function createApp(host) {
   let active = null;
   let mode = readRaw('mode') === 'full' ? 'full' : 'family';
   // Hot-seat setup being built: count, names, and each player's chosen profession.
-  let setup = { count: 1, names: [''], ages: [null], bots: [null], professionIds: [] };
+  let setup = { count: 1, names: [''], ages: [null], bots: [null], professionIds: [], length: 'standard' };
 
   // a daily challenge keeps its own slot, so starting it never overwrites a normal game in progress; the slot always comes from the match
   const store = createMatchStore({ write: writeRaw, remove, serialize });
@@ -260,11 +261,11 @@ export function createApp(host) {
   function goPlayers() {
     setCoinScale(false);
     mount({ el: createPlayers({
-      count: setup.count, names: setup.names, ages: setup.ages ?? [], bots: setup.bots ?? [], mode,
+      count: setup.count, names: setup.names, ages: setup.ages ?? [], bots: setup.bots ?? [], mode, length: setup.length ?? 'standard',
       onMode: (m) => { mode = m; writeRaw('mode', m); setLearnMode(m); }, // an age under 14 -> family: the kid vocabulary too (QA r18 P2-2)
       onBack: () => goStart(),
-      onNext: ({ count, names, ages, bots }) => {
-        setup = { count, names, ages, bots, professionIds: [] };
+      onNext: ({ count, names, ages, bots, length }) => {
+        setup = { count, names, ages, bots, professionIds: [], length: length ?? 'standard' };
         // the practice missions follow the last chosen age band (QA r22 P2): the first human player's ('' = none given)
         writeRaw('lastAge', ages.find((a, i) => !bots?.[i]) ?? '');
         goPick(0);
@@ -272,11 +273,11 @@ export function createApp(host) {
     }).el });
   }
 
-  /** A bot seat picks no profession on screen: it gets one at random. */
-  const botProfession = () => professionIds[Math.floor(Math.random() * professionIds.length)];
+  // A bot seat picks no profession on screen: startNew derives one from the match seed and the seat (v0.5, docs/RNG.md),
+  // so a seed replays the same table and the bot seat never draws on Math.random.
   function goPick(i) {
     if (i >= setup.count) { startNew(); return; } // the last seats were bots (they sit at the end): every pick is done
-    if (setup.bots?.[i]) { setup.professionIds[i] = botProfession(); goPick(i + 1); return; }
+    if (setup.bots?.[i]) { setup.professionIds[i] = null; goPick(i + 1); return; }
     setLearnMode(mode); // the pick sheet speaks the mode it shows (family: the children's words, QA r18 P2-2)
     const multi = setup.count > 1;
     const junior = isJuniorSetup(mode, (setup.ages ?? []).map((age) => ({ age })));
@@ -298,8 +299,10 @@ export function createApp(host) {
   }
 
   async function startNew() {
+    const seed = nextSeed();
+    setup.professionIds = setup.professionIds.map((id, i) => (setup.bots?.[i] ? botProfessionId(seed, i, professionIds) : id));
     const m = newMatch(engine, {
-      mode, seed: nextSeed(),
+      mode, seed, roundCap: setup.length === 'short' ? SHORT_ROUNDS : null,
       players: setup.professionIds.map((professionId, i) => ({ name: setup.names[i], professionId, age: setup.ages?.[i] ?? null, bot: setup.bots?.[i] ?? null })),
     });
     setCoinScale(seesCoins(m, m.players[0])); // the story of a junior first game is told in coins
@@ -343,6 +346,7 @@ export function createApp(host) {
       ages: m.players.map((p) => p.age ?? null),
       bots: m.players.map((p) => p.bot ?? null),
       professionIds: m.players.map((p) => p.professionId),
+      length: m.roundCap ? 'short' : 'standard',
     };
   }
 

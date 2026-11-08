@@ -302,7 +302,12 @@
 .name-input { flex: 1; min-inline-size: 0; min-block-size: 48px; padding-inline: 14px; border-radius: 16px; border: 2px solid var(--border-strong); background: rgb(255 255 255 / .10); color: var(--text); font: inherit; font-size: 1rem; font-weight: var(--fw-bold); }
 .name-input:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 2px; border-color: var(--sel-ring); }
 :root[data-theme="light"] .name-input { background: #fff; }
-.players-cta { margin-block-start: auto; display: flex; flex-direction: column; }
+/* the CTA stays in the thumb zone: pinned to the bottom of the viewport when the seats (bots, ages, game length) run past it;
+   the content scrolls under a fade, which is the cue that there is more above (QA: 2 players at 360x800 put it at 816px) */
+.players-cta { margin-block-start: auto; display: flex; flex-direction: column; position: sticky; inset-block-end: 0; z-index: 2;
+  margin-inline: calc(var(--sp-4) * -1); padding: 18px var(--sp-4) max(12px, env(safe-area-inset-bottom));
+  margin-block-end: calc(max(20px, env(safe-area-inset-bottom)) * -1);
+  background: linear-gradient(to top, var(--grad-night-end) 72%, transparent); }
 .players-cta .btn { inline-size: 100%; }
 
 /* other players: strip inside the board centre; the expanded panel covers the board only, never the roll button */
@@ -482,6 +487,9 @@
 .age-chip:has(.age-input:checked) { border-color: var(--c-gold-400, #F2B53A); background: color-mix(in srgb, var(--c-gold-400, #F2B53A) 22%, var(--surface-2)); }
 .age-chip:has(.age-input:focus-visible) { outline: 3px solid var(--focus-ring); outline-offset: 2px; }
 .age-chip-text { font-variant-numeric: tabular-nums; }
+/* an age band is one token ("11–13"): never broken over two lines; at 320 px the chip pads less instead (QA RNG P3) */
+.age-group[data-age-for] .age-chip-text { white-space: nowrap; }
+@media (max-width: 340px) { .age-group[data-age-for] .age-chip { padding-inline: 4px; } }
 .name-fields .age-group { margin-block-end: 6px; }
 .age-note { margin: 0; display: flex; flex-direction: column; gap: 4px; font-size: .875rem; line-height: 1.4; color: var(--text); }
 .age-note[hidden] { display: none; }

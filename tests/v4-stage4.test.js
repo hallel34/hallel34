@@ -11,8 +11,12 @@ import {
 import { loadData, loadLearn } from '../src/data/index.js';
 import { pruneLearn } from '../scripts/prune-learn.js';
 
+import { TEST_RNG, withTestRng, stack, topOf } from './support/stack.js';
 const data = loadData('he');
 const engine = createEngine(data);
+// v0.5 (docs/v4/test-changes.md 20, QA P2-3): this file runs twice, on rngVersion 1 (here) and rngVersion 2 (its .v2.test.js
+// twin); `stack` puts chosen cards on top of a square's pile in either version (tests/support/stack.js).
+withTestRng(engine);
 const card = (id) => data.cards.find((c) => c.id === id);
 const DECISIONS = data.cards.filter((c) => c.deck === 'decision');
 
@@ -20,9 +24,8 @@ const DECISIONS = data.cards.filter((c) => c.deck === 'decision');
 function withDecision(id, { mode = card(id).modes[0], cash = 1000000, ...extra } = {}) {
   const s = engine.newGame({ mode, professionId: 'teacher', seed: 5 });
   const square = card(id).square;
-  const decks = { ...s.decks, [square]: [id, ...s.decks[square]] };
   const pos = BOARD.indexOf(square, 1) - 1; // never across square 0 (no payday on the way unless the square is after one)
-  const ready = { ...s, cash, decks, position: pos, ...extra };
+  const ready = stack(engine, { ...s, cash, position: pos, ...extra }, square, [id]);
   // land with a die of 1: square `pos + 1` is the deck's square; any payday on the way is not crossed (pos + 1 is the square)
   const out = engine.roll(ready, [1]);
   return { ...out, cash }; // the test controls the cash at the decision
@@ -129,7 +132,7 @@ describe('decision cards: engine effects (exact, from the doc)', () => {
     // the card is never dealt to a player without an apartment: the next card comes instead
     const base = engine.newGame({ mode: 'full', professionId: 'teacher', seed: 5 });
     const pos = BOARD.indexOf('opportunity', 1) - 1;
-    const n = engine.roll({ ...base, position: pos, decks: { ...base.decks, opportunity: ['dec-003', ...base.decks.opportunity.filter((x) => x !== 'dec-003')] } }, [1]);
+    const n = engine.roll(stack(engine, { ...base, position: pos }, 'opportunity', ['dec-003']), [1]);
     expect(n.pending.card.id).not.toBe('dec-003');
   });
   it('card 4 (expense): cash, a loan exempt from the purchase cap, or half and half; nothing possible = an ordinary expense', () => {
@@ -153,7 +156,7 @@ describe('decision cards: engine effects (exact, from the doc)', () => {
     expect(loanPayments(s) - loanPayments(a)).toBe(400);
     expect(passiveIncome(engine.decide(s, 'B')) - passiveIncome(s)).toBe(900);
     const base = engine.newGame({ mode: 'family', professionId: 'teacher', seed: 5 });
-    const n = engine.roll({ ...base, position: BOARD.indexOf('opportunity', 1) - 1, liabilities: [loan(39000)], decks: { ...base.decks, opportunity: ['dec-005', ...base.decks.opportunity] } }, [1]);
+    const n = engine.roll(stack(engine, { ...base, position: BOARD.indexOf('opportunity', 1) - 1, liabilities: [loan(39000)] }, 'opportunity', ['dec-005']), [1]);
     expect(n.pending.card.id).not.toBe('dec-005');
   });
   it('card 6 (partnership), card 7 (stocks), card 8 (down payment) and card 9 (centre or periphery)', () => {
@@ -200,17 +203,17 @@ describe('milestones 25% / 50% (once per game, kept in the save)', () => {
     expect(back.players[0].state.milestones).toEqual([25]);
   });
   it('schema 5: the v2.5 fixture (schema 3) migrates through 4 to 5 with milestones and an empty tax-audit record', () => {
-    expect(SCHEMA_VERSION).toBe(7);
+    expect(SCHEMA_VERSION).toBe(9);
     const fixture = readFileSync(new URL('./fixtures/save-v2.5-schema3.json', import.meta.url), 'utf8');
     const old = JSON.parse(fixture);
     const m = deserialize(fixture);
-    expect(m.schemaVersion).toBe(7);
+    expect(m.schemaVersion).toBe(9);
     m.players.forEach((p, i) => {
-      expect(p.state.schemaVersion).toBe(7);
+      expect(p.state.schemaVersion).toBe(9);
       expect(p.state.taxAudit).toEqual({ points: 0, asked: [] });
       const ratio = passiveIncome(p.state) / totalExpenses(p.state);
       expect(p.state.milestones).toEqual(MILESTONES.filter((x) => ratio * 100 >= x)); // already passed = already shown
-      const { lap, effects, milestones, taxAudit, schemaVersion, ...rest } = p.state;
+      const { lap, effects, milestones, taxAudit, schemaVersion, rerollTokens, rngVersion, ...rest } = p.state;
       const { schemaVersion: v, ...oldRest } = old.players[i].state;
       expect(rest).toEqual(oldRest);
     });

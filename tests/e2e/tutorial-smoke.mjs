@@ -217,12 +217,15 @@ async function main() {
       await click(`${L}[data-action="summary-ok"]`);
     } else if (st.kind === 'handoff') {
       await click(`${L}[data-action="roll-next"]`);
+    } else if (st.kind === 'card-opportunity' && st.ctype === 'choice') {
+      // v0.4 deal choice: two deals and no pass button; examine the first (its own card, tour and guess, opens next)
+      (await click(`${L}[data-action="choose-a"]`)) || (await click(`${L}[data-action="skip-both"]`));
     } else if (st.kind === 'card-opportunity') {
       if (st.strip && st.guess === 'off' && st.step === '1') { tour += 1; if (dealCount === 0 && firstDealNoGuess === null) firstDealNoGuess = true; }
       if (st.guess === 'ask') { if (dealCount >= 1) secondDealGuess = true; guessIntro = guessIntro || st.strip; await click(`${L}[data-action="guess-${st.payback <= 96 ? 'good' : 'bad'}"]`); await page.waitForTimeout(300); continue; }
       if (st.strip && st.step && Number(st.step) < 5) { await click(`${L}[data-action="hint-next"]`); await page.waitForTimeout(450); continue; }
       if (st.strip && st.step === '5') { await click(`${L}[data-action="hint-next"]`); await page.waitForTimeout(300); continue; }
-      dealCount += 1;
+      if (st.ctype === 'apartment' || st.ctype === 'business') dealCount += 1; // the tour belongs to the first DEAL (not a stock or decision card)
       const afford = st.afford === 'true' && st.ctype !== 'stock' && st.cash - st.cost >= st.exp * 0.3;
       if (!(afford && await click(`${L}[data-action="buy"]:not([disabled])`))) await click(`${L}[data-action="pass"]`);
     } else if (st.kind.startsWith('card')) {
