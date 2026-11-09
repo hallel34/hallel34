@@ -176,7 +176,7 @@ and in 90-95% when one player never donates. A single reroll desyncs 68% of the 
 a desync the dice stay identical and the squares stay apart by a fixed offset. Cards still match on any turn when both land
 on a tile of the same deck (turn-keyed: 85-96% of those turns).
 
-**Decided (owner, 2026-11-03), to build in 0.5.1, not in this step:** in challenge mode, charity gives no bonus die and
+**Decided (owner, 2026-11-03), built in 0.5.1 (`newGame({ challenge: true })`):** in challenge mode, charity gives no bonus die and
 reroll tokens are not offered. Both players' squares then stay 100% in sync, and so do the cards whenever the tiers match.
 Normal games keep both rules unchanged.
 
@@ -226,14 +226,30 @@ pending card. They are single scenarios, not challenges.
 
 ## 6. Compact action log (`src/engine/actionlog.js`)
 
-`encodeActionLog({ rngVersion, seed, config, actions })` produces base64url. The layout:
-- `'MF'`, the format byte, rngVersion, the seed and the flags (full mode / junior / daily);
-- a string table, so each card, asset and loan id is written once;
+`encodeActionLog({ rngVersion, seed, config, actions, name? })` produces base64url. The layout:
+- `'MF'`, the format byte, rngVersion, the seed and the flags:
+  - bit0 full mode, bit1 junior, bit2 daily date present (format 1 and 2);
+  - bit3 friend challenge (the game ran under the 0.5.1 challenge rules), bit4 display name present (format 2 only);
+- a string table, so each card, asset and loan id is written once; the profession, then the daily date and the display name
+  (when their bits are set) are references into it;
 - one type byte per action, followed by varint arguments;
 - a CRC32.
 
 `decodeActionLog` validates the header, version, type codes, every argument, the string references, the lengths, trailing
-bytes and the checksum, and throws `ActionLogError`. The CRC catches a damaged or hand-edited link but is not a signature:
+bytes and the checksum, and throws `ActionLogError` with a `code`: `CRC` (checksum), `VERSION` (another format, or an
+unknown rngVersion) or `FORMAT` (anything else malformed).
+
+**Format 2 (0.5.1).** `FORMAT_VERSION` is 2 and encode always writes it. Decode accepts format 1 (v0.5 step 1 links, where
+any flag above bit2 is refused) and format 2. The display name is the creator's optional name for a challenge link:
+`sanitizeDisplayName` makes it NFC, drops control, bidi-override and zero-width characters, collapses whitespace, trims, and
+keeps at most 16 code points. An empty name is left out. Decode refuses a name that is not already in sanitized form, and
+the challenge bit together with a daily. Tests: `tests/actionlog-v2.test.js`.
+
+**Verification (0.5.1).** `engine.verifyResult(textOrDecoded)` (src/engine/challenge.js) decodes and replays, and returns
+`{ ok, comparable, status, turns, freedomPct, stats }`. It refuses rngVersion 1 (`VERSION`), a daily (`DAILY`), any auction
+action (`AUCTION`), an illegal move (`REPLAY`) and a game that did not end (`UNFINISHED`). `comparable` is false when the
+log rolled charity's bonus die or a reroll, because a challenge player's dice then differ. A log with no actions is a
+seed-only "new challenge on the same game" (`empty`, ok, not comparable). The CRC catches a damaged or hand-edited link but is not a signature:
 replaying the decoded log is the proof that a result is real.
 
 Encoded length of whole games (`node scripts/rng-fairness.js --lengths`, 500 games per row, rngVersion 2):
@@ -280,8 +296,9 @@ turn only. That is a match-layer choice for 0.5.2; the engine already supports i
 - **F3. Daily boundary: placeholder kept.** `2026-11-17` stays, with a TODO in config.js to set it to the first day after the
   release. The day key is the device's local date (`calendar.js dayKey`), not Asia/Jerusalem.
 - **F4. docs/BALANCE.md: closed.** It now has the v0.4 baseline and the v0.5 before/after tables.
-- **F5. `auctionWin` carries a card object.** It only occurs in hot-seat matches. A single-player challenge verifier must
-  reject it, or check the card against the data; the action log encodes it as JSON. Open for 0.5.1.
+- **F5. `auctionWin` carries a card object: closed (0.5.1).** It only occurs in hot-seat matches. The link format refuses every
+  auction action in encode and decode, and `verifyResult` refuses a decoded log that has one (`AUCTION`), so a forged auction
+  can never verify (tests/challenge-engine.test.js, tests/actionlog.test.js).
 - **F6. Smokes: green.**
   - v0.4's deal-choice card, game-length chips and one-payday-per-turn rule were never taught to the smokes. They are fixed
     test-side (docs/v4/test-changes.md 28-33).
