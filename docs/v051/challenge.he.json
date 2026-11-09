@@ -1,0 +1,390 @@
+{
+  "_meta": {
+    "version": 1,
+    "date": "2026-11-09",
+    "doc": "docs/v051/challenges-copy.md",
+    "merge": {
+      "challenge": "מיזוג כמו שהוא אל src/i18n/he.json כקבוצה חדשה ברמה העליונה 'challenge'. זה הנוסח של מצב מלא (מבוגרים) ושל ה-Junior siblings.",
+      "familyOverrides": "הוספה בסוף tutorial.he.json > familyStrings.overridesRound11 (או overrides). אותו מבנה: key, was, family. was = הערך של מצב מלא מהבלוק challenge כאן.",
+      "resolve": "מצב מלא: challenge.<key>. מצב משפחה (11-13): שכבת ה-override, ואם אין override, הערך הבסיסי. צעירים (עד 10, מטבעות): challenge.<key>Junior אם קיים, אחרת כמו מצב משפחה. זה אותו דפוס כמו loan.limitLeftJunior ו-standings.rowJunior.",
+      "tests": "להוסיף 'challenge' ל-HE_GROUPS ב-tests/kid-vocabulary.test.js. כל ערך בסיס בלי override, וכל מפתח Junior, נקי מהמילים האסורות. שני המפתחות שיש בהם מילים של מבוגרים בלי override הם takeaway.repayLoan ו-timeline.repayYou/repayThem, שמותם מכיל 'repay' ולכן FULL_ONLY מדלג עליהם (החזר הלוואה קיים רק במצב מלא). אין מפתח בשם share/a11y/note/when כדי שה-walk לא ידלג."
+    },
+    "slots": {
+      "url": "הקישור המלא עם #c=...",
+      "name": "השם שהיוצר הקליד (עד 16 תווים, מסונן). אופציונלי: בלי שם משתמשים בגרסה בלי Named",
+      "them": "challenge.them.named ('אצל {name}') או challenge.them.anon ('במשחק מהקישור'). ניסוח בלי מגדר: השם יכול להיות של כל אחד",
+      "mode": "challenge.mode.full / family / junior",
+      "turns": "plural.turnsIn: 'בתור אחד' / 'ב-23 תורות' (כמו win.shareText ו-daily.resultFreedom)",
+      "pct": "אחוז החופש הכלכלי: passiveIncome / totalExpenses x 100, מעוגל למטה, מקסימום 100 (אותו מספר כמו מד ה-HUD)",
+      "profession": "כותרת המקצוע מ-professions.he.json",
+      "turn": "מספר התור של ההתפצלות",
+      "turnYou": "התור שבו השחקן קנה נכס ראשון",
+      "turnThem": "התור שבו נקנה הנכס הראשון במשחק מהקישור",
+      "deal": "כותרת הקלף (cards.he.json title), בתוך גרשיים ״ ״ בטקסט",
+      "years": "ביטוי עם יחידה (plural.years), אותו ערך כמו card.payback",
+      "monthly": "monthlyCashFlow של הקלף, כסף מעוצב (בצעירים: מטבעות)",
+      "monthlyAbs": "הערך המוחלט של monthly, כשהוא שלילי",
+      "months": "PAYDAY_MONTHS (12)",
+      "amount": "סכום ההלוואה או ההחזר, כסף מעוצב",
+      "monthlyPayment": "loanTerms(amount, rate של אותו תור).monthly",
+      "perSummary": "loanTerms(amount, rate של אותו תור).perPayday",
+      "n": "מספר (הלוואות, מקום בטבלה)",
+      "total": "מספר התורות בציר",
+      "splits": "plural.turnsIn של מספר התורות שבהן ההחלטות נפרדו",
+      "list": "רשימת הכיתובים של ההתפצלויות, מופרדים ב-'; '",
+      "range": "טווח תאריכים של השבוע (Intl.DateTimeFormat he-IL, יום וחודש), ראשון עד שבת",
+      "start": "תאריך יום ראשון של השבוע",
+      "end": "תאריך שבת של השבוע",
+      "result": "board.rowWin או board.rowProgress אחרי הצבה",
+      "lane": "'אתם' או השם / 'מהקישור'",
+      "action": "אחד מ-timeline.act.*"
+    },
+    "money": "אין ₪ מוקלד באף מחרוזת. כל סכום מגיע מ-slot ומעוצב לפי טווח הגיל של מי שמשחק (format.js): בצעירים מטבעות, אחרת ₪. גם כשהקישור נוצר במשחק מלא, הצעיר שפותח אותו רואה מטבעות.",
+    "takeawaySelection": [
+      "1. אם אחד מהשניים לא אומת: לא מציגים שורת לימוד על ההבדל, רק compare.simplification.",
+      "2. אם אין אף התפצלות: takeaway.sameDecisions.",
+      "3. אחרת: ההתפצלות המכריעה היא הראשונה בציר מסוג קנייה/דילוג, הלוואה או הוצאה (תרומה אינה מכריעה, כי באתגר היא לא משנה את הקוביות). ממפים אותה לשורה לפי הטבלה במסמך.",
+      "4. שורה שנייה, אופציונלית: firstAssetEarlier / firstAssetLater, רק אם שני הצדדים קנו נכס ובתורות שונים, ורק אם השורה הראשונה לא דיברה על אותה עסקה.",
+      "5. לכל היותר 2 שורות. 'עסקה טובה' = רמזור ירוק או צהוב של המשחק (תקופת החזר עד 14 שנים), 'עסקה רעה' = monthly שלילי. עסקה אדומה עם monthly חיובי: passedGoodDeal לא מוצגת, מדלגים להתפצלות הבאה."
+    ],
+    "headlineRule": "הצעה (להחלטת הבעלים, ראו needs_review): שניהם הגיעו לחופש: פחות תורות מנצח. רק אחד הגיע: הוא מקדים. אף אחד: pct גבוה יותר מקדים. שוויון: tie. אם צד כלשהו לא אומת: headlineUnverified, בלי מנצח.",
+    "needs_review": [
+      "CEO/developer (חשוב): 'כדי ששניכם תשחקו בדיוק באותם תנאים' נכון רק אם גם המשחק של היוצר שוחק בלי קובייה נוספת מתרומה ובלי גלגול שוב. אם 'שלחו אתגר' מופיע גם בסוף משחק רגיל, ובמשחק הזה הייתה תרומה עם שתי קוביות או גלגול שוב, הקוביות אצל המקבל לא יהיו אותן קוביות וההשוואה לא הוגנת. הצעה: להציע קישור רק ממשחק שהיומן שלו בלי bonus die ובלי reroll (או ממשחק אתגר), ולהשתמש ב-rules.whyAlt אם לא.",
+      "developer: האם במשחק אתגר עדיין מציעים לתרום (בלי קובייה)? rules.charityStill ו-rules.charityModal מניחים שכן. אם המשבצת לא מציעה תרומה כלל, למחוק את שני המפתחות ולשנות את rules.charity ל-'באתגר אין תרומה'.",
+      "developer: error.versionBody מניח שרענון מביא את הגרסה החדשה (PWA). אם יש מסלול עדכון אחר (חנות), לעדכן את הניסוח.",
+      "owner: השם בקישור. בצעירים הוספנו create.nameHintJunior ('רק שם פרטי'). להחליט אם בכלל להציג שדה שם למשחק צעירים, כי הקישור נשלח הלאה.",
+      "owner: סדר הטבלה למשחקים שלא הגיעו לחופש (board.sort מניח: קודם תורות, אחר כך אחוז). אם הוחלט אחרת, לעדכן את board.sort.",
+      "designer/developer: compare.* ו-timeline.* הם לשוני בלבד. אורך כפתורים וצ'יפים עד 60 תווים נבדק ידנית; לבדוק שבירת שורה ב-360px.",
+      "developer: לא הייתה מעטפת בסביבה הזאת, לכן לא הורץ git pull ולא JSON.parse. יש להריץ JSON.parse על הקובץ ואת kid-vocabulary.test.js אחרי המיזוג."
+    ]
+  },
+  "challenge": {
+    "mode": {
+      "full": "משחק מלא",
+      "family": "משחק משפחתי",
+      "junior": "משחק צעירים"
+    },
+    "them": {
+      "named": "אצל {name}",
+      "anon": "במשחק מהקישור",
+      "anonJunior": "במשחק ששלחו לכם"
+    },
+    "create": {
+      "button": "שלחו אתגר",
+      "buttonSub": "אותו משחק בדיוק, בקישור אחד",
+      "nameLabel": "השם שלכם בקישור (לא חובה)",
+      "nameHint": "עד 16 תווים. מי שיקבל את הקישור יראה אותו",
+      "nameHintJunior": "אפשר לכתוב רק שם פרטי, או להשאיר ריק",
+      "namePlaceholder": "למשל: נועה",
+      "sendTitle": "אתגר MaxiFox",
+      "copied": "הקישור הועתק. אפשר להדביק בוואטסאפ",
+      "copyFailed": "לא הצלחנו להעתיק. אפשר להעתיק מכאן",
+      "textBox": "טקסט לשליחה"
+    },
+    "invite": {
+      "win": "אתגר ב-MaxiFox: הגעתי לחופש כלכלי {turns} ({mode}). אותן קוביות ואותם קלפים, ההחלטות שלכם. רוצים לנסות? {url}",
+      "winNamed": "אתגר מ-{name} ב-MaxiFox: הגעתי לחופש כלכלי {turns} ({mode}). אותן קוביות ואותם קלפים, ההחלטות שלכם. רוצים לנסות? {url}",
+      "progress": "אתגר ב-MaxiFox: הגעתי ל-{pct}% מהדרך לחופש כלכלי ({mode}). אותן קוביות ואותם קלפים, ההחלטות שלכם. רוצים לנסות? {url}",
+      "progressNamed": "אתגר מ-{name} ב-MaxiFox: הגעתי ל-{pct}% מהדרך לחופש כלכלי ({mode}). אותן קוביות ואותם קלפים, ההחלטות שלכם. רוצים לנסות? {url}",
+      "winJunior": "שיחקנו ב-MaxiFox ({mode}) והגענו לחופש {turns}! רוצים לשחק בדיוק את אותו משחק? {url}",
+      "winNamedJunior": "אתגר מ-{name}: שיחקנו ב-MaxiFox ({mode}) והגענו לחופש {turns}! רוצים לשחק בדיוק את אותו משחק? {url}",
+      "progressJunior": "שיחקנו ב-MaxiFox ({mode}) והגענו ל-{pct}% מהדרך לחופש. רוצים לשחק בדיוק את אותו משחק? {url}",
+      "progressNamedJunior": "אתגר מ-{name}: שיחקנו ב-MaxiFox ({mode}) והגענו ל-{pct}% מהדרך לחופש. רוצים לשחק בדיוק את אותו משחק? {url}"
+    },
+    "reply": {
+      "win": "תשובה לאתגר ב-MaxiFox: הגעתי לחופש כלכלי {turns} ({mode}). ההשוואה בינינו כאן: {url}",
+      "winNamed": "תשובה מ-{name} לאתגר ב-MaxiFox: הגעתי לחופש כלכלי {turns} ({mode}). ההשוואה בינינו כאן: {url}",
+      "progress": "תשובה לאתגר ב-MaxiFox: הגעתי ל-{pct}% מהדרך לחופש כלכלי ({mode}). ההשוואה בינינו כאן: {url}",
+      "progressNamed": "תשובה מ-{name} לאתגר ב-MaxiFox: הגעתי ל-{pct}% מהדרך לחופש כלכלי ({mode}). ההשוואה בינינו כאן: {url}",
+      "winJunior": "שיחקנו את האתגר והגענו לחופש {turns}! בואו לראות את ההשוואה: {url}",
+      "winNamedJunior": "תשובה מ-{name}: שיחקנו את האתגר והגענו לחופש {turns}! בואו לראות את ההשוואה: {url}",
+      "progressJunior": "שיחקנו את האתגר והגענו ל-{pct}% מהדרך לחופש. בואו לראות את ההשוואה: {url}",
+      "progressNamedJunior": "תשובה מ-{name}: שיחקנו את האתגר והגענו ל-{pct}% מהדרך לחופש. בואו לראות את ההשוואה: {url}"
+    },
+    "intro": {
+      "title": "קיבלתם אתגר",
+      "titleNamed": "אתגר מ-{name}",
+      "resultWin": "התוצאה בקישור: חופש כלכלי {turns}",
+      "resultWinNamed": "התוצאה של {name}: חופש כלכלי {turns}",
+      "resultProgress": "התוצאה בקישור: {pct}% מהדרך לחופש כלכלי",
+      "resultProgressNamed": "התוצאה של {name}: {pct}% מהדרך לחופש כלכלי",
+      "sameGame": "אותו משחק בדיוק: {profession}, {mode}, אותן קוביות ואותם קלפים. ההחלטות שלכם.",
+      "curious": "מה תעשו אתם?",
+      "cta": "שחקו את האתגר",
+      "later": "לא עכשיו",
+      "resultWinJunior": "במשחק הזה הגיעו לחופש {turns}",
+      "resultWinNamedJunior": "{name}: חופש {turns}",
+      "resultProgressJunior": "במשחק הזה הגיעו ל-{pct}% מהדרך לחופש",
+      "resultProgressNamedJunior": "{name}: {pct}% מהדרך לחופש",
+      "sameGameJunior": "אותו משחק בדיוק: אותן קוביות ואותם קלפים. אתם מחליטים.",
+      "ctaJunior": "בואו נשחק"
+    },
+    "rules": {
+      "title": "באתגר יש שני כללים",
+      "charity": "תרומה לא נותנת קובייה נוספת.",
+      "reroll": "אין גלגול שוב.",
+      "why": "כדי ששניכם תשחקו בדיוק באותם תנאים.",
+      "whyAlt": "כך הקוביות שלכם יהיו קבועות לאורך כל המשחק.",
+      "charityStill": "אפשר עדיין לתרום, אם רוצים.",
+      "charityModal": "תרמו {amount} (10% מההכנסה). באתגר תרומה לא נותנת קובייה נוספת",
+      "titleJunior": "שני כללים באתגר",
+      "charityJunior": "תרומה לא נותנת עוד קובייה.",
+      "rerollJunior": "אי אפשר לזרוק שוב.",
+      "whyJunior": "ככה לשניכם יש בדיוק אותו משחק.",
+      "charityModalJunior": "אפשר לתרום {amount}. באתגר זה לא נותן עוד קובייה"
+    },
+    "error": {
+      "invalidTitle": "הקישור לא נפתח",
+      "invalidBody": "אולי חסר בו חלק, או שהוא נקטע בדרך. בקשו ממי ששלח לשלוח אותו שוב.",
+      "tamperedTitle": "משהו בקישור השתנה",
+      "tamperedBody": "הקישור לא תואם למשחק המקורי, ולכן אי אפשר לשחק בו אתגר הוגן. בקשו קישור חדש.",
+      "versionTitle": "קישור מגרסה אחרת",
+      "versionBody": "הקישור נוצר בגרסה אחרת של MaxiFox. נסו לרענן את האפליקציה ולפתוח אותו שוב.",
+      "toPlay": "למשחק רגיל",
+      "toHome": "לדף הבית",
+      "invalidBodyJunior": "הקישור הזה לא עובד. בקשו ממי ששלח לשלוח אותו שוב.",
+      "tamperedBodyJunior": "משהו בקישור השתנה. בקשו קישור חדש.",
+      "versionBodyJunior": "הקישור מגרסה אחרת של המשחק. בקשו ממבוגר לרענן את האפליקציה."
+    },
+    "hud": {
+      "chip": "אתגר",
+      "aria": "משחק אתגר. תרומה בלי קובייה נוספת, ואין גלגול שוב",
+      "ariaNamed": "משחק אתגר מול {name}. תרומה בלי קובייה נוספת, ואין גלגול שוב",
+      "ariaJunior": "משחק אתגר: אותן קוביות כמו במשחק ששלחו לכם",
+      "ariaNamedJunior": "משחק אתגר: אותן קוביות כמו במשחק של {name}"
+    },
+    "resume": "המשיכו את האתגר",
+    "resumeInfo": "אתגר · תור {turn}",
+    "compare": {
+      "title": "ההשוואה",
+      "you": "אתם",
+      "themAnon": "מהקישור",
+      "turns": "תורות עד חופש כלכלי",
+      "turnsJunior": "תורות עד החופש",
+      "notReached": "עוד לא",
+      "freedom": "חופש כלכלי",
+      "freedomValue": "{pct}%",
+      "freedomHelp": "כמה מההוצאות החודשיות ההכנסה הפסיבית מכסה",
+      "freedomJunior": "כמה קרוב לחופש",
+      "freedomHelpJunior": "כמה מהחשבונות של כל חודש הנכסים כבר מכסים",
+      "deals": "עסקאות שנקנו",
+      "dealsJunior": "נכסים שנקנו",
+      "loans": "הלוואות מהבנק",
+      "loansJunior": "הלוואות",
+      "loansValue": "{n} · {amount}",
+      "loansNone": "בלי הלוואות",
+      "verified": "אומת",
+      "verifiedText": "שחזרנו את המשחק מהקישור לפי כללי המשחק, והתוצאה נכונה.",
+      "unverified": "לא אומת",
+      "unverifiedText": "לא הצלחנו לשחזר את המשחק מהקישור, ולכן התוצאה מוצגת בלי בדיקה.",
+      "verifiedTextJunior": "בדקנו: זה בדיוק מה שקרה במשחק.",
+      "unverifiedTextJunior": "לא הצלחנו לבדוק את התוצאה הזאת.",
+      "headlineYouAheadWin": "הפעם הגעתם לחופש מהר יותר",
+      "headlineYouAheadProgress": "הפעם הגעתם רחוק יותר בדרך לחופש",
+      "subYouAhead": "כל הכבוד. בצפייה החוזרת רואים מה היה שונה.",
+      "headlineThemAheadWin": "הפעם המסלול {them} היה מהיר יותר",
+      "headlineThemAheadProgress": "הפעם ההתקדמות {them} הייתה גדולה יותר",
+      "subThemAhead": "בואו נראה איפה ההחלטות נפרדו. מכל הבדל לומדים משהו.",
+      "headlineTie": "תיקו: אותה תוצאה בדיוק",
+      "subTie": "בואו נראה אם הדרך הייתה שונה.",
+      "headlineUnverified": "הנה שתי התוצאות",
+      "subUnverified": "את התוצאה מהקישור לא הצלחנו לבדוק, ולכן אין כאן מנצח.",
+      "headlineYouAheadWinJunior": "הגעתם לחופש מהר יותר! כל הכבוד",
+      "headlineYouAheadProgressJunior": "הגעתם רחוק יותר! כל הכבוד",
+      "headlineThemAheadWinJunior": "הפעם המשחק {them} היה מהיר יותר",
+      "headlineThemAheadProgressJunior": "הפעם המשחק {them} הגיע רחוק יותר",
+      "subThemAheadJunior": "בואו נראה מה היה שונה. ככה לומדים.",
+      "headlineTieJunior": "תיקו! בדיוק אותה תוצאה",
+      "takeawayTitle": "מה זה מלמד",
+      "simplification": "במשחק המספרים מפושטים, ובאתגר המזל זהה לשניכם. בחיים אי אפשר לשחק שוב עם אותו מזל בדיוק.",
+      "simplificationJunior": "במשחק המספרים פשוטים יותר מבחיים.",
+      "btnReply": "שלחו את התוצאה שלכם",
+      "btnReplay": "צפייה חוזרת",
+      "btnBoard": "לטבלת המשפחה",
+      "btnHome": "לדף הבית"
+    },
+    "takeaway": {
+      "passedGoodDeal": "בתור {turn} דילגתם על ״{deal}״. תקופת ההחזר של העסקה: {years}, כלומר המקדמה חוזרת מהר יחסית.",
+      "boughtGoodDeal": "בתור {turn} קניתם את ״{deal}״: עוד {monthly} בחודש לתזרים. בכל סיכום שנתי זה כפול {months}.",
+      "boughtGoodDealJunior": "בתור {turn} קניתם את ״{deal}״. מאז נכנסים לכם עוד {monthly} בכל חודש.",
+      "boughtNegative": "בתור {turn} קניתם את ״{deal}״, עסקה עם תזרים שלילי: {monthlyAbs} יוצאים בכל חודש. כדאי לבדוק את שורת התזרים לפני שקונים.",
+      "boughtNegativeJunior": "בתור {turn} קניתם את ״{deal}״. העסקה הזאת לוקחת {monthlyAbs} בכל חודש. בפעם הבאה בודקים קודם כמה נשאר בחודש.",
+      "passedNegative": "בתור {turn} דילגתם על ״{deal}״, עסקה שמוציאה {monthlyAbs} בכל חודש (תזרים שלילי). הדילוג שמר על הכסף שלכם.",
+      "loanYou": "בתור {turn} לקחתם הלוואה של {amount}. הריבית: {monthlyPayment} בכל חודש, {perSummary} בכל סיכום שנתי, עד שמחזירים.",
+      "loanYouJunior": "בתור {turn} לקחתם הלוואה של {amount}. בכל חודש משלמים עליה עוד {monthlyPayment}, עד שמחזירים.",
+      "loanForDeal": "ההלוואה מתור {turn} עולה {monthlyPayment} ריבית בחודש, והעסקה ״{deal}״ מכניסה {monthly}. הלוואה לנכס מוסיפה לתזרים רק כשהנכס מכניס יותר מהריבית.",
+      "loanForDealJunior": "ההלוואה מתור {turn} עולה {monthlyPayment} בכל חודש, והעסקה ״{deal}״ מכניסה {monthly}. נשאר יותר כסף רק כשהעסקה מכניסה יותר.",
+      "cushionLoan": "בתור {turn} שילמתם הוצאה בעזרת הלוואה של {amount}. כרית ביטחון במזומן הייתה חוסכת {monthlyPayment} ריבית בחודש.",
+      "cushionCash": "בתור {turn} שילמתם הוצאה מהמזומן, בלי הלוואה. זו כרית ביטחון בפעולה: בלי ריבית חדשה.",
+      "cushionCashJunior": "בתור {turn} היה לכם מספיק כסף לשלם הוצאה, בלי הלוואה. ככה לא משלמים תוספת.",
+      "firstAssetEarlier": "הנכס הראשון שלכם נקנה בתור {turnYou}, ו{them} בתור {turnThem}. הכנסה פסיבית שמתחילה מוקדם יכולה להגיע ביותר סיכומים שנתיים.",
+      "firstAssetEarlierJunior": "קניתם נכס ראשון בתור {turnYou}, ו{them} בתור {turnThem}. נכס שקונים מוקדם מכניס כסף יותר זמן.",
+      "firstAssetLater": "{them} הנכס הראשון נקנה בתור {turnThem}, ואצלכם בתור {turnYou}. כל תור מוקדם יותר נותן להכנסה הפסיבית יותר זמן לעבוד.",
+      "firstAssetLaterJunior": "{them} הנכס הראשון נקנה בתור {turnThem}, ואצלכם בתור {turnYou}. נכס שקונים מוקדם מכניס כסף יותר זמן.",
+      "repayLoan": "בתור {turn} החזרתם {amount} מההלוואה, והריבית החודשית ירדה ב-{monthlyPayment}.",
+      "sameDecisions": "אותן החלטות בכל התורות, ולכן אותה תוצאה. באתגר המזל זהה, ורק ההחלטות משנות את התזרים."
+    },
+    "timeline": {
+      "title": "צפייה חוזרת",
+      "sub": "רק לצפייה: כאן רואים איפה ההחלטות נפרדו",
+      "turnLabel": "תור {turn}",
+      "laneYou": "אתם",
+      "laneThemAnon": "מהקישור",
+      "legendSplit": "סימן = כאן ההחלטות נפרדו",
+      "noSplit": "כל ההחלטות היו זהות",
+      "act": {
+        "bought": "קנייה",
+        "passed": "דילוג",
+        "loan": "הלוואה",
+        "expenseCash": "הוצאה מהמזומן",
+        "expenseLoan": "הוצאה בהלוואה",
+        "charity": "תרומה",
+        "repay": "החזר",
+        "freedom": "חופש!",
+        "end": "סוף המשחק"
+      },
+      "themBought": "בתור {turn} העסקה ״{deal}״ נקנתה {them}, ואתם דילגתם",
+      "youBought": "בתור {turn} קניתם את ״{deal}״, ו{them} היה דילוג",
+      "themLoan": "בתור {turn} נלקחה הלוואה של {amount} {them}, ואצלכם לא",
+      "youLoan": "בתור {turn} לקחתם הלוואה של {amount}, ו{them} לא",
+      "expenseLoanYou": "בתור {turn} שילמתם הוצאה בהלוואה, ו{them} מהמזומן",
+      "expenseLoanThem": "בתור {turn} {them} הוצאה שולמה בהלוואה, ואצלכם מהמזומן",
+      "charityYou": "בתור {turn} תרמתם, ו{them} לא",
+      "charityThem": "בתור {turn} {them} הייתה תרומה, ואצלכם לא",
+      "repayYou": "בתור {turn} החזרתם {amount} מההלוואה, ו{them} לא",
+      "repayThem": "בתור {turn} {them} הוחזרו {amount} מההלוואה, ואצלכם לא",
+      "freedomYou": "בתור {turn} הגעתם לחופש כלכלי",
+      "freedomThem": "בתור {turn} הגיע החופש הכלכלי {them}",
+      "endYou": "בתור {turn} המשחק שלכם נגמר",
+      "endThem": "בתור {turn} המשחק {them} נגמר",
+      "freedomYouJunior": "בתור {turn} הגעתם לחופש!",
+      "freedomThemJunior": "בתור {turn} הגיע החופש {them}",
+      "srSummary": "ציר של {total} תורות. ההחלטות נפרדו {splits}: {list}.",
+      "srSummaryNone": "ציר של {total} תורות. כל ההחלטות היו זהות.",
+      "srCell": "{lane}, תור {turn}: {action}"
+    },
+    "board": {
+      "title": "טבלת המשפחה של השבוע",
+      "week": "השבוע: {range}",
+      "weekAria": "השבוע, מיום ראשון {start} עד שבת {end}",
+      "how": "מתוצאות של אתגרים שקיבלתם השבוע. רק תוצאות שנבדקו, ורק במכשיר הזה.",
+      "howJunior": "מהאתגרים שקיבלתם השבוע. הטבלה נשמרת רק במכשיר הזה.",
+      "sort": "קודם מי שהגיעו לחופש בפחות תורות, אחר כך מי שעוד בדרך",
+      "you": "אתם",
+      "anonName": "קישור בלי שם",
+      "place": "מקום {n}",
+      "placeTie": "יחד במקום {n}",
+      "rowWin": "חופש כלכלי {turns}",
+      "rowWinJunior": "חופש {turns}",
+      "rowProgress": "עוד בדרך: {pct}% מהדרך",
+      "rowAria": "{name}: {result}",
+      "emptyTitle": "עוד אין תוצאות השבוע",
+      "emptyBody": "שלחו אתגר למישהו מהמשפחה, והתוצאות יופיעו כאן.",
+      "emptyCta": "שלחו אתגר",
+      "reset": "ביום ראשון הטבלה מתחילה מחדש",
+      "cheer": "כל משחק הוא הזדמנות ללמוד. כל הכבוד לכל מי ששיחקו"
+    }
+  },
+  "familyOverrides": [
+    {
+      "key": "challenge.invite.win",
+      "was": "אתגר ב-MaxiFox: הגעתי לחופש כלכלי {turns} ({mode}). אותן קוביות ואותם קלפים, ההחלטות שלכם. רוצים לנסות? {url}",
+      "family": "אתגר ב-MaxiFox: הגענו לחופש כלכלי {turns} ({mode}). רוצים לשחק בדיוק את אותו משחק? ההחלטות שלכם. {url}"
+    },
+    {
+      "key": "challenge.invite.winNamed",
+      "was": "אתגר מ-{name} ב-MaxiFox: הגעתי לחופש כלכלי {turns} ({mode}). אותן קוביות ואותם קלפים, ההחלטות שלכם. רוצים לנסות? {url}",
+      "family": "אתגר מ-{name} ב-MaxiFox: הגענו לחופש כלכלי {turns} ({mode}). רוצים לשחק בדיוק את אותו משחק? ההחלטות שלכם. {url}"
+    },
+    {
+      "key": "challenge.invite.progress",
+      "was": "אתגר ב-MaxiFox: הגעתי ל-{pct}% מהדרך לחופש כלכלי ({mode}). אותן קוביות ואותם קלפים, ההחלטות שלכם. רוצים לנסות? {url}",
+      "family": "אתגר ב-MaxiFox: הגענו ל-{pct}% מהדרך לחופש כלכלי ({mode}). רוצים לשחק בדיוק את אותו משחק? ההחלטות שלכם. {url}"
+    },
+    {
+      "key": "challenge.invite.progressNamed",
+      "was": "אתגר מ-{name} ב-MaxiFox: הגעתי ל-{pct}% מהדרך לחופש כלכלי ({mode}). אותן קוביות ואותם קלפים, ההחלטות שלכם. רוצים לנסות? {url}",
+      "family": "אתגר מ-{name} ב-MaxiFox: הגענו ל-{pct}% מהדרך לחופש כלכלי ({mode}). רוצים לשחק בדיוק את אותו משחק? ההחלטות שלכם. {url}"
+    },
+    {
+      "key": "challenge.reply.win",
+      "was": "תשובה לאתגר ב-MaxiFox: הגעתי לחופש כלכלי {turns} ({mode}). ההשוואה בינינו כאן: {url}",
+      "family": "תשובה לאתגר ב-MaxiFox: הגענו לחופש כלכלי {turns} ({mode}). ההשוואה כאן: {url}"
+    },
+    {
+      "key": "challenge.reply.winNamed",
+      "was": "תשובה מ-{name} לאתגר ב-MaxiFox: הגעתי לחופש כלכלי {turns} ({mode}). ההשוואה בינינו כאן: {url}",
+      "family": "תשובה מ-{name} לאתגר ב-MaxiFox: הגענו לחופש כלכלי {turns} ({mode}). ההשוואה כאן: {url}"
+    },
+    {
+      "key": "challenge.reply.progress",
+      "was": "תשובה לאתגר ב-MaxiFox: הגעתי ל-{pct}% מהדרך לחופש כלכלי ({mode}). ההשוואה בינינו כאן: {url}",
+      "family": "תשובה לאתגר ב-MaxiFox: הגענו ל-{pct}% מהדרך לחופש כלכלי ({mode}). ההשוואה כאן: {url}"
+    },
+    {
+      "key": "challenge.reply.progressNamed",
+      "was": "תשובה מ-{name} לאתגר ב-MaxiFox: הגעתי ל-{pct}% מהדרך לחופש כלכלי ({mode}). ההשוואה בינינו כאן: {url}",
+      "family": "תשובה מ-{name} לאתגר ב-MaxiFox: הגענו ל-{pct}% מהדרך לחופש כלכלי ({mode}). ההשוואה כאן: {url}"
+    },
+    {
+      "key": "challenge.compare.freedomHelp",
+      "was": "כמה מההוצאות החודשיות ההכנסה הפסיבית מכסה",
+      "family": "כמה מההוצאות של כל חודש הכסף שעובד בשבילכם מכסה"
+    },
+    {
+      "key": "challenge.takeaway.passedGoodDeal",
+      "was": "בתור {turn} דילגתם על ״{deal}״. תקופת ההחזר של העסקה: {years}, כלומר המקדמה חוזרת מהר יחסית.",
+      "family": "בתור {turn} דילגתם על ״{deal}״. שם התשלום הראשון חוזר תוך {years}, וזה די מהר."
+    },
+    {
+      "key": "challenge.takeaway.boughtGoodDeal",
+      "was": "בתור {turn} קניתם את ״{deal}״: עוד {monthly} בחודש לתזרים. בכל סיכום שנתי זה כפול {months}.",
+      "family": "בתור {turn} קניתם את ״{deal}״: עוד {monthly} שנשארים בכל חודש. בכל סיכום שנתי זה כפול {months}."
+    },
+    {
+      "key": "challenge.takeaway.boughtNegative",
+      "was": "בתור {turn} קניתם את ״{deal}״, עסקה עם תזרים שלילי: {monthlyAbs} יוצאים בכל חודש. כדאי לבדוק את שורת התזרים לפני שקונים.",
+      "family": "בתור {turn} קניתם את ״{deal}״. העסקה הזאת עולה לכם {monthlyAbs} בכל חודש במקום להכניס. שווה לבדוק את ׳נשאר בחודש׳ לפני שקונים."
+    },
+    {
+      "key": "challenge.takeaway.passedNegative",
+      "was": "בתור {turn} דילגתם על ״{deal}״, עסקה שמוציאה {monthlyAbs} בכל חודש (תזרים שלילי). הדילוג שמר על הכסף שלכם.",
+      "family": "בתור {turn} דילגתם על ״{deal}״, עסקה שעולה {monthlyAbs} בכל חודש במקום להכניס. הדילוג שמר על הכסף שלכם."
+    },
+    {
+      "key": "challenge.takeaway.loanYou",
+      "was": "בתור {turn} לקחתם הלוואה של {amount}. הריבית: {monthlyPayment} בכל חודש, {perSummary} בכל סיכום שנתי, עד שמחזירים.",
+      "family": "בתור {turn} לקחתם הלוואה של {amount}. התוספת: {monthlyPayment} בכל חודש, {perSummary} בכל סיכום שנתי, עד שמחזירים אותה."
+    },
+    {
+      "key": "challenge.takeaway.loanForDeal",
+      "was": "ההלוואה מתור {turn} עולה {monthlyPayment} ריבית בחודש, והעסקה ״{deal}״ מכניסה {monthly}. הלוואה לנכס מוסיפה לתזרים רק כשהנכס מכניס יותר מהריבית.",
+      "family": "ההלוואה מתור {turn} עולה {monthlyPayment} תוספת בחודש, והעסקה ״{deal}״ מכניסה {monthly}. הלוואה לנכס מוסיפה למה שנשאר בחודש רק כשהנכס מכניס יותר מהתוספת."
+    },
+    {
+      "key": "challenge.takeaway.cushionLoan",
+      "was": "בתור {turn} שילמתם הוצאה בעזרת הלוואה של {amount}. כרית ביטחון במזומן הייתה חוסכת {monthlyPayment} ריבית בחודש.",
+      "family": "בתור {turn} שילמתם הוצאה בעזרת הלוואה של {amount}. קורה לכולם. כסף בצד לשעת צורך היה חוסך {monthlyPayment} תוספת בחודש."
+    },
+    {
+      "key": "challenge.takeaway.cushionCash",
+      "was": "בתור {turn} שילמתם הוצאה מהמזומן, בלי הלוואה. זו כרית ביטחון בפעולה: בלי ריבית חדשה.",
+      "family": "בתור {turn} שילמתם הוצאה מהמזומן, בלי הלוואה. זה כסף בצד לשעת צורך: בלי תוספת חדשה."
+    },
+    {
+      "key": "challenge.takeaway.firstAssetEarlier",
+      "was": "הנכס הראשון שלכם נקנה בתור {turnYou}, ו{them} בתור {turnThem}. הכנסה פסיבית שמתחילה מוקדם יכולה להגיע ביותר סיכומים שנתיים.",
+      "family": "הנכס הראשון שלכם נקנה בתור {turnYou}, ו{them} בתור {turnThem}. כסף שעובד בשבילכם ומתחיל מוקדם יכול להגיע ביותר סיכומים שנתיים."
+    },
+    {
+      "key": "challenge.takeaway.firstAssetLater",
+      "was": "{them} הנכס הראשון נקנה בתור {turnThem}, ואצלכם בתור {turnYou}. כל תור מוקדם יותר נותן להכנסה הפסיבית יותר זמן לעבוד.",
+      "family": "{them} הנכס הראשון נקנה בתור {turnThem}, ואצלכם בתור {turnYou}. כל תור מוקדם יותר נותן לכסף שעובד בשבילכם יותר זמן לעבוד."
+    },
+    {
+      "key": "challenge.takeaway.sameDecisions",
+      "was": "אותן החלטות בכל התורות, ולכן אותה תוצאה. באתגר המזל זהה, ורק ההחלטות משנות את התזרים.",
+      "family": "אותן החלטות בכל התורות, ולכן אותה תוצאה. באתגר המזל זהה, ורק ההחלטות משנות כמה נשאר בחודש."
+    }
+  ]
+}
