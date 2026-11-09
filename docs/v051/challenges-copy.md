@@ -58,7 +58,7 @@ The legend for the version columns:
 | mode.full / family / junior | משחק מלא / משחק משפחתי / משחק צעירים | | |
 | create.button | שלחו אתגר | = | = |
 | create.nameLabel | השם שלכם בקישור (לא חובה) | = | = |
-| create.nameHint | עד 16 תווים. מי שיקבל את הקישור יראה אותו | = | אפשר לכתוב רק שם פרטי, או להשאיר ריק |
+| create.nameHint | עד 16 תווים. מי שיקבל את הקישור יראה אותו | = | (no name field in junior: CEO 2026-11-09) |
 
 Notes on the share text:
 - **The button name:** "שלחו אתגר" replaces the plan's "אתגרו חבר", because "חבר" is masculine.
@@ -183,13 +183,62 @@ Example, with `{them}` = "אצל נועה": "בתור 6 העסקה ״עגלת פ
 | place / placeTie | מקום {n} / יחד במקום {n} | = |
 | rowWin / rowProgress | חופש כלכלי {turns} / עוד בדרך: {pct}% מהדרך | חופש {turns} / = |
 | rowAria | {name}: {result} | = |
-| empty* | עוד אין תוצאות השבוע / שלחו אתגר למישהו מהמשפחה, והתוצאות יופיעו כאן. / שלחו אתגר | = |
+| empty* | עוד אין תוצאות השבוע / שחקו משחק, ובסופו שלחו אתגר למישהו מהמשפחה. התוצאות יופיעו כאן. / התחילו משחק | = |
 | reset / cheer | ביום ראשון הטבלה מתחילה מחדש / כל משחק הוא הזדמנות ללמוד. כל הכבוד לכל מי ששיחקו | = |
 
 How the board avoids shaming:
 - An unfinished game shows as "עוד בדרך" with its %, never as "הפסד".
 - The last row gets no label, colour or icon of its own (a note for the designer).
 - The cheer line appears under every board.
+
+### 3.8 Round 2: the design spec's keys and the CEO decisions of 2026-11-09
+
+**The 19 keys from the design spec §10, plus the companions they need:**
+
+| Key | מלא = משפחה | צעירים |
+|---|---|---|
+| create.send | שלחו קישור | = |
+| intro.checking | בודקים… | = |
+| intro.fullModeNote | המשחק הזה במצב מלא, מגיל 14 | זה משחק לגדולים, מגיל 14. כדאי לשחק יחד עם מבוגר. |
+| intro.pendingOther (+Named) | יש לכם אתגר פתוח (מול {name}). אתגר חדש יחליף אותו. | יש לכם אתגר שעוד לא נגמר. אם מתחילים את החדש, הקודם יימחק. |
+| intro.continueOther | המשיכו את הקודם | = |
+| intro.continue | המשיכו את האתגר | = |
+| intro.toResult | לתוצאה | = |
+| intro.playAgain (+Confirm) | שחקו שוב / התוצאה הקודמת תוחלף. לשחק שוב? | = |
+| intro.ownLink | זה האתגר ששלחתם. מחכים לתשובה | זה האתגר ששלחתם. עוד אין תשובה |
+| hud.target (+targetPct) | היעד: חופש {turns} / היעד: {pct}% מהדרך לחופש | = |
+| challenge.resume | already in the JSON from round 1: "המשיכו את האתגר" | = |
+| compare.unverifiedBoard | תוצאה שלא נבדקה לא נכנסת לטבלת המשפחה. | תוצאה שלא בדקנו לא נכנסת לטבלת המשפחה. |
+| timeline.filterSplits / filterAll | רק ההבדלים / כל התורות | = |
+| timeline.sameTurnOtherCard | אותו תור, קלף אחר | = |
+| timeline.after (+afterCash, afterFreedom) | אחרי התור / מזומן {cash} / חופש כלכלי {pct}% | = / = / קרוב לחופש: {pct}% |
+| board.unitTurns | plural object: תור / תורות | = |
+| board.unitProgress | עוד בדרך | = |
+| board.more | הצגת עוד {n} | = |
+
+Notes on these keys:
+- **Gender-neutral replacements:** the spec uses some masculine strings ("אתגר מחבר", "החבר יקבל…", "השם שיופיע לחבר", "מחכים לתשובה מהחבר", "נועה מאתגרת אתכם"). The neutral keys that replace them are:
+  - `intro.kicker` "אתגר";
+  - `create.lead`;
+  - `intro.h1Aria`, `h1AriaNamed` and `h1AriaFresh`;
+  - `create.nameLabel` (round 1) for the name field label, and `intro.ownLink` without "מהחבר".
+- **Other new keys the spec text refers to:** `create.sent`, `create.failedManual`, `create.close`, `timeline.count` ("ההחלטות נפרדו ב-{n} מתוך {total} תורות"), `timeline.charitySub` and `board.juniorTag`.
+- **A key the test skips:** `hud.target` is named `target`, which is in the vocabulary test's `NON_TEXT` set, so the test never scans it. Its text is clean either way. Rename it to `hud.goal` if you want it scanned.
+
+**CEO decisions:**
+1. **"Fresh" challenge:** when the creator's game used the bonus die or a reroll, the link is a new challenge on the same game, with no creator result.
+   - **Sending:** `invite.fresh` / `freshNamed` / `freshJunior` ("שיחקתי את המשחק הזה… רוצים לשחק אותו, עם אותן קוביות ואותם קלפים?"; family "שיחקנו"). The sheet shows `create.freshNote`, which tells the creator why their result isn't included (junior has its own version).
+   - **Receiving:**
+     - `intro.titleFresh` "אתגר חדש באותו משחק" (or `titleNamed`), with `intro.resultFresh` in place of the result tile;
+     - `rules.whyFresh` "כך כל מי שמשחק את הקישור הזה משחק באותם תנאים" replaces `rules.why`, which would be false here; it also replaces the round-1 `whyAlt`, now removed;
+     - no `hud.target`.
+   - **Receiver's end:** `compare.headlineFresh` "הנה התוצאה שלכם" + `subFresh`. There is no takeaway, because there is nothing to compare.
+   - **The reply:** `reply.winFresh` / `progressFresh` (+Named, +Junior, and family overrides). They replace "ההשוואה בינינו כאן", which would be untrue, with "רוצים לשחק את אותו משחק באתגר ולהשוות?".
+   - **Creator side, when the reply arrives:** `compare.headlineReplyFresh` "הגיעה תשובה לאתגר" + `subReplyFresh` + `btnPlaySame` "שחקו את אותו משחק".
+2. **Charity still offers a donation:** `rules.charityStill` and `rules.charityModal` stay as written.
+3. **No name field for junior players:** I removed `create.nameHintJunior` and every `invite.*NamedJunior` / `reply.*NamedJunior`. The receiver-side `intro.*NamedJunior` and `hud.ariaNamedJunior` stay, because a junior player can still open a named link that an adult sent.
+4. **Board order:** turns first, then %, with family and full ranked separately. This matches `board.sort`.
+5. **Empty board button:** `board.emptyCta` is now "התחילו משחק". I also changed `emptyBody` to "שחקו משחק, ובסופו שלחו אתגר למישהו מהמשפחה. התוצאות יופיעו כאן." so it fits the button.
 
 ## 4. Fact checks (game math against the text)
 
@@ -204,11 +253,9 @@ How the board avoids shaming:
 
 ## 5. needs_review
 
-1. **CEO/developer (blocking for the wording):** "כדי ששניכם תשחקו בדיוק באותם תנאים" is true only if the creator's game also ran without a charity bonus die or a reroll.
-   - If a normal game that used either one can create a link, the receiver's dice will differ.
-   - Proposal: offer the link only for logs without them, or for challenge games. Otherwise use `rules.whyAlt`.
-2. **developer:** Does the charity square still offer a donation in a challenge? `rules.charityStill` and `rules.charityModal` assume it does.
-3. **developer:** `error.versionBody` assumes a refresh brings in the new PWA version.
-4. **owner:** Should junior games show a name field at all? The link gets forwarded.
-5. **owner:** How are unfinished games ranked on the board? `board.sort` assumes turns first, then %.
-6. **developer:** I had no shell in this session, so `git pull`, `JSON.parse` and vitest were not run. I worked from the checkout as it was. Run the vocabulary test after merging.
+The items on fairness, charity, the junior name field and board order are settled by the CEO decisions of 2026-11-09 (see §3.8).
+1. **CEO:** the creator side of a fresh challenge. I assumed that when the reply arrives, the creator is offered a challenge-rules game on the same seed so the two can be compared (`btnPlaySame`). If the reply should only show the receiver's result, delete `btnPlaySame` and shorten `subReplyFresh`.
+2. **developer:** `error.versionBody` assumes a refresh brings in the new PWA version.
+3. **developer:** `intro.fullModeNote` assumes full mode is for ages 14 and up (the "14+" band).
+4. **developer:** `board.unitTurns` duplicates `plural.label.turns`; you can use that key instead.
+5. **developer:** there was no shell, so `JSON.parse` and vitest were not run. Run them after merging.
