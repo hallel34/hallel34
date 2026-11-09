@@ -318,6 +318,13 @@ async function main() {
   check(true, 'a truncated link gives the error screen');
   await C.close();
 
+  // ================= a log that decodes but does not replay to an end: playable, "לא אומת" =================
+  const cut = encodeActionLog({ ...logA, actions: logA.actions.slice(0, 6) });
+  const U = await open(ctxB, { path: `#c=${cut}`, waitFor: '[data-screen="challenge"]' });
+  check(await U.locator('.ch-result [data-verified="false"]').count() === 1 && await U.locator('[data-action="ch-play"]').count() === 1, 'an unfinished log is playable and shows the neutral "לא אומת" badge');
+  await layout(U, 'intro-unverified-360x800');
+  await U.close();
+
   // ================= a non-comparable link: "new challenge, same game" =================
   let donor = engine.newGame({ mode: 'family', professionId: 'nurse', seed: 515 });
   for (let i = 0; i < 2000 && donor.status === 'playing'; i++) donor = donor.pending?.kind === 'charity' && donor.cash >= donor.pending.cost ? engine.dispatch(donor, { type: 'donate' }) : botStep(engine, donor, 'sensible');

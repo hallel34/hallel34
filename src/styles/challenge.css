@@ -72,7 +72,8 @@
 /* ---- HUD chip + popover ---- */
 .ch-chip { position: relative; display: inline-flex; align-items: center; gap: 4px; block-size: 24px; padding-inline: 8px; margin-inline-start: 6px; border-radius: 12px; border: 1px solid var(--border-strong); background: transparent; color: var(--text); font: inherit; font-size: .75rem; font-weight: 700; flex: none; vertical-align: middle; }
 .ch-chip::after { content: ''; position: absolute; inset: -12px -6px; }
-@media (max-width: 359px) { .ch-chip-label { display: none; } .ch-chip { padding-inline: 4px; } }
+/* icon only under 400px: the full label pushed the profession name into an ellipsis at 360 (decision 2026-11-09) */
+@media (max-width: 399px) { .ch-chip-label { display: none; } .ch-chip { padding-inline: 4px; } }
 .ch-pop { position: absolute; z-index: 5; inset-block-start: calc(100% + 6px); inset-inline-start: 12px; max-inline-size: 280px; padding: 12px 14px; border-radius: 16px; background: var(--surface); border: 1px solid var(--border); box-shadow: 0 10px 30px rgb(0 0 0 / .35); color: var(--text); }
 .ch-pop p { margin: 0; }
 .ch-pop-head { display: flex; align-items: center; gap: 6px; font-size: .875rem; font-weight: 700; }
