@@ -1282,6 +1282,136 @@
         "key": "missions.buffer.loan.lesson",
         "was": "המזומן הגבוה יותר אינו רווח: הוא כולל כסף שלוויתם. יישארו לכם ₪50 פחות בכל חודש עד להחזרת ההלוואה, והקרן עדיין חייבת להיפרע.",
         "family": "המזומן הגבוה יותר הוא לא רווח: חלק ממנו הוא כסף שלוויתם. בכל חודש יישארו לכם {interest} פחות, עד שתחזירו את ההלוואה, ואת כל ההלוואה עדיין צריך להחזיר."
+      },
+      {
+        "key": "challenge.invite.win",
+        "was": "אתגר ב-MaxiFox: הגעתי לחופש כלכלי {turns} ({mode}). אותן קוביות ואותם קלפים, ההחלטות שלכם. רוצים לנסות? {url}",
+        "family": "אתגר ב-MaxiFox: הגענו לחופש כלכלי {turns} ({mode}). רוצים לשחק בדיוק את אותו משחק? ההחלטות שלכם. {url}"
+      },
+      {
+        "key": "challenge.invite.winNamed",
+        "was": "אתגר מ-{name} ב-MaxiFox: הגעתי לחופש כלכלי {turns} ({mode}). אותן קוביות ואותם קלפים, ההחלטות שלכם. רוצים לנסות? {url}",
+        "family": "אתגר מ-{name} ב-MaxiFox: הגענו לחופש כלכלי {turns} ({mode}). רוצים לשחק בדיוק את אותו משחק? ההחלטות שלכם. {url}"
+      },
+      {
+        "key": "challenge.invite.progress",
+        "was": "אתגר ב-MaxiFox: הגעתי ל-{pct}% מהדרך לחופש כלכלי ({mode}). אותן קוביות ואותם קלפים, ההחלטות שלכם. רוצים לנסות? {url}",
+        "family": "אתגר ב-MaxiFox: הגענו ל-{pct}% מהדרך לחופש כלכלי ({mode}). רוצים לשחק בדיוק את אותו משחק? ההחלטות שלכם. {url}"
+      },
+      {
+        "key": "challenge.invite.progressNamed",
+        "was": "אתגר מ-{name} ב-MaxiFox: הגעתי ל-{pct}% מהדרך לחופש כלכלי ({mode}). אותן קוביות ואותם קלפים, ההחלטות שלכם. רוצים לנסות? {url}",
+        "family": "אתגר מ-{name} ב-MaxiFox: הגענו ל-{pct}% מהדרך לחופש כלכלי ({mode}). רוצים לשחק בדיוק את אותו משחק? ההחלטות שלכם. {url}"
+      },
+      {
+        "key": "challenge.invite.fresh",
+        "was": "אתגר ב-MaxiFox: שיחקתי את המשחק הזה ({mode}). רוצים לשחק אותו, עם אותן קוביות ואותם קלפים? {url}",
+        "family": "אתגר ב-MaxiFox: שיחקנו את המשחק הזה ({mode}). רוצים לשחק אותו, עם אותן קוביות ואותם קלפים? {url}"
+      },
+      {
+        "key": "challenge.invite.freshNamed",
+        "was": "אתגר מ-{name} ב-MaxiFox: שיחקתי את המשחק הזה ({mode}). רוצים לשחק אותו, עם אותן קוביות ואותם קלפים? {url}",
+        "family": "אתגר מ-{name} ב-MaxiFox: שיחקנו את המשחק הזה ({mode}). רוצים לשחק אותו, עם אותן קוביות ואותם קלפים? {url}"
+      },
+      {
+        "key": "challenge.reply.winFresh",
+        "was": "תשובה לאתגר ב-MaxiFox: הגעתי לחופש כלכלי {turns} ({mode}). רוצים לשחק את אותו משחק באתגר ולהשוות? {url}",
+        "family": "תשובה לאתגר ב-MaxiFox: הגענו לחופש כלכלי {turns} ({mode}). רוצים לשחק את אותו משחק באתגר ולהשוות? {url}"
+      },
+      {
+        "key": "challenge.reply.winFreshNamed",
+        "was": "תשובה מ-{name} לאתגר ב-MaxiFox: הגעתי לחופש כלכלי {turns} ({mode}). רוצים לשחק את אותו משחק באתגר ולהשוות? {url}",
+        "family": "תשובה מ-{name} לאתגר ב-MaxiFox: הגענו לחופש כלכלי {turns} ({mode}). רוצים לשחק את אותו משחק באתגר ולהשוות? {url}"
+      },
+      {
+        "key": "challenge.reply.progressFresh",
+        "was": "תשובה לאתגר ב-MaxiFox: הגעתי ל-{pct}% מהדרך לחופש כלכלי ({mode}). רוצים לשחק את אותו משחק באתגר ולהשוות? {url}",
+        "family": "תשובה לאתגר ב-MaxiFox: הגענו ל-{pct}% מהדרך לחופש כלכלי ({mode}). רוצים לשחק את אותו משחק באתגר ולהשוות? {url}"
+      },
+      {
+        "key": "challenge.reply.progressFreshNamed",
+        "was": "תשובה מ-{name} לאתגר ב-MaxiFox: הגעתי ל-{pct}% מהדרך לחופש כלכלי ({mode}). רוצים לשחק את אותו משחק באתגר ולהשוות? {url}",
+        "family": "תשובה מ-{name} לאתגר ב-MaxiFox: הגענו ל-{pct}% מהדרך לחופש כלכלי ({mode}). רוצים לשחק את אותו משחק באתגר ולהשוות? {url}"
+      },
+      {
+        "key": "challenge.reply.win",
+        "was": "תשובה לאתגר ב-MaxiFox: הגעתי לחופש כלכלי {turns} ({mode}). ההשוואה בינינו כאן: {url}",
+        "family": "תשובה לאתגר ב-MaxiFox: הגענו לחופש כלכלי {turns} ({mode}). ההשוואה כאן: {url}"
+      },
+      {
+        "key": "challenge.reply.winNamed",
+        "was": "תשובה מ-{name} לאתגר ב-MaxiFox: הגעתי לחופש כלכלי {turns} ({mode}). ההשוואה בינינו כאן: {url}",
+        "family": "תשובה מ-{name} לאתגר ב-MaxiFox: הגענו לחופש כלכלי {turns} ({mode}). ההשוואה כאן: {url}"
+      },
+      {
+        "key": "challenge.reply.progress",
+        "was": "תשובה לאתגר ב-MaxiFox: הגעתי ל-{pct}% מהדרך לחופש כלכלי ({mode}). ההשוואה בינינו כאן: {url}",
+        "family": "תשובה לאתגר ב-MaxiFox: הגענו ל-{pct}% מהדרך לחופש כלכלי ({mode}). ההשוואה כאן: {url}"
+      },
+      {
+        "key": "challenge.reply.progressNamed",
+        "was": "תשובה מ-{name} לאתגר ב-MaxiFox: הגעתי ל-{pct}% מהדרך לחופש כלכלי ({mode}). ההשוואה בינינו כאן: {url}",
+        "family": "תשובה מ-{name} לאתגר ב-MaxiFox: הגענו ל-{pct}% מהדרך לחופש כלכלי ({mode}). ההשוואה כאן: {url}"
+      },
+      {
+        "key": "challenge.compare.freedomHelp",
+        "was": "כמה מההוצאות החודשיות ההכנסה הפסיבית מכסה",
+        "family": "כמה מההוצאות של כל חודש הכסף שעובד בשבילכם מכסה"
+      },
+      {
+        "key": "challenge.takeaway.passedGoodDeal",
+        "was": "בתור {turn} דילגתם על ״{deal}״. תקופת ההחזר של העסקה: {years}, כלומר המקדמה חוזרת מהר יחסית.",
+        "family": "בתור {turn} דילגתם על ״{deal}״. שם התשלום הראשון חוזר תוך {years}, וזה די מהר."
+      },
+      {
+        "key": "challenge.takeaway.boughtGoodDeal",
+        "was": "בתור {turn} קניתם את ״{deal}״: עוד {monthly} בחודש לתזרים. בכל סיכום שנתי זה כפול {months}.",
+        "family": "בתור {turn} קניתם את ״{deal}״: עוד {monthly} שנשארים בכל חודש. בכל סיכום שנתי זה כפול {months}."
+      },
+      {
+        "key": "challenge.takeaway.boughtNegative",
+        "was": "בתור {turn} קניתם את ״{deal}״, עסקה עם תזרים שלילי: {monthlyAbs} יוצאים בכל חודש. כדאי לבדוק את שורת התזרים לפני שקונים.",
+        "family": "בתור {turn} קניתם את ״{deal}״. העסקה הזאת עולה לכם {monthlyAbs} בכל חודש במקום להכניס. שווה לבדוק את ׳נשאר בחודש׳ לפני שקונים."
+      },
+      {
+        "key": "challenge.takeaway.passedNegative",
+        "was": "בתור {turn} דילגתם על ״{deal}״, עסקה שמוציאה {monthlyAbs} בכל חודש (תזרים שלילי). הדילוג שמר על הכסף שלכם.",
+        "family": "בתור {turn} דילגתם על ״{deal}״, עסקה שעולה {monthlyAbs} בכל חודש במקום להכניס. הדילוג שמר על הכסף שלכם."
+      },
+      {
+        "key": "challenge.takeaway.loanYou",
+        "was": "בתור {turn} לקחתם הלוואה של {amount}. הריבית: {monthlyPayment} בכל חודש, {perSummary} בכל סיכום שנתי, עד שמחזירים.",
+        "family": "בתור {turn} לקחתם הלוואה של {amount}. התוספת: {monthlyPayment} בכל חודש, {perSummary} בכל סיכום שנתי, עד שמחזירים אותה."
+      },
+      {
+        "key": "challenge.takeaway.loanForDeal",
+        "was": "ההלוואה מתור {turn} עולה {monthlyPayment} ריבית בחודש, והעסקה ״{deal}״ מכניסה {monthly}. הלוואה לנכס מוסיפה לתזרים רק כשהנכס מכניס יותר מהריבית.",
+        "family": "ההלוואה מתור {turn} עולה {monthlyPayment} תוספת בחודש, והעסקה ״{deal}״ מכניסה {monthly}. הלוואה לנכס מוסיפה למה שנשאר בחודש רק כשהנכס מכניס יותר מהתוספת."
+      },
+      {
+        "key": "challenge.takeaway.cushionLoan",
+        "was": "בתור {turn} שילמתם הוצאה בעזרת הלוואה של {amount}. כרית ביטחון במזומן הייתה חוסכת {monthlyPayment} ריבית בחודש.",
+        "family": "בתור {turn} שילמתם הוצאה בעזרת הלוואה של {amount}. קורה לכולם. כסף בצד לשעת צורך היה חוסך {monthlyPayment} תוספת בחודש."
+      },
+      {
+        "key": "challenge.takeaway.cushionCash",
+        "was": "בתור {turn} שילמתם הוצאה מהמזומן, בלי הלוואה. זו כרית ביטחון בפעולה: בלי ריבית חדשה.",
+        "family": "בתור {turn} שילמתם הוצאה מהמזומן, בלי הלוואה. זה כסף בצד לשעת צורך: בלי תוספת חדשה."
+      },
+      {
+        "key": "challenge.takeaway.firstAssetEarlier",
+        "was": "הנכס הראשון שלכם נקנה בתור {turnYou}, ו{them} בתור {turnThem}. הכנסה פסיבית שמתחילה מוקדם יכולה להגיע ביותר סיכומים שנתיים.",
+        "family": "הנכס הראשון שלכם נקנה בתור {turnYou}, ו{them} בתור {turnThem}. כסף שעובד בשבילכם ומתחיל מוקדם יכול להגיע ביותר סיכומים שנתיים."
+      },
+      {
+        "key": "challenge.takeaway.firstAssetLater",
+        "was": "{them} הנכס הראשון נקנה בתור {turnThem}, ואצלכם בתור {turnYou}. כל תור מוקדם יותר נותן להכנסה הפסיבית יותר זמן לעבוד.",
+        "family": "{them} הנכס הראשון נקנה בתור {turnThem}, ואצלכם בתור {turnYou}. כל תור מוקדם יותר נותן לכסף שעובד בשבילכם יותר זמן לעבוד."
+      },
+      {
+        "key": "challenge.takeaway.sameDecisions",
+        "was": "אותן החלטות בכל התורות, ולכן אותה תוצאה. באתגר המזל זהה, ורק ההחלטות משנות את התזרים.",
+        "family": "אותן החלטות בכל התורות, ולכן אותה תוצאה. באתגר המזל זהה, ורק ההחלטות משנות כמה נשאר בחודש."
       }
     ],
     "overridesRound11Note": "מפתחות נוספים לשכבת ה-override (family-only), מעבר ל-22 הקיימים. ה-was הוא ערך he.json ב-HEAD 00c9162. [[term:..]] נשמר. 'statement.balance*' ו'netWorthTitle' מוצגים במצב מלא בלבד (net_worth level=full) ולכן אין להם override; אם יוצגו במשפחה, יש להוסיף. QA round 22 (2026-11-02): the last 11 entries are the practice missions' kid wording (mission.*, missions.*, PRs 13/14); the missions run on the family rules only, so their locale strings carry no adult term either.",
