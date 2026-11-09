@@ -1,16 +1,35 @@
 // Compact action log (v0.5, docs/RNG.md): { rngVersion, seed, config, actions } <-> a base64url string for a link.
 // Pure: no DOM. Layout (all integers are unsigned LEB128 varints):
-//   'M' 'F'  format byte (1)  rngVersion  seed  flags (bit0 full mode, bit1 junior, bit2 daily date present)
+//   'M' 'F'  format byte (2)  rngVersion  seed  flags (bit0 full mode, bit1 junior, bit2 daily date present,
+//            format 2 only: bit3 friend challenge (0.5.1), bit4 display name present)
 //   string-table: count, then each string as (byte length, UTF-8 bytes)   professionId (table index)   [daily date (index)]
+//   [display name (index), format 2 only]
 //   action count, then each action: 1 type byte (ACTION_CODES) + its arguments (strings are table indexes); a roll has none
 //   CRC32 (4 bytes, little endian) over every byte before it
 // decode() refuses a bad header, version, type code, argument, length, trailing byte or checksum with an ActionLogError.
 // The checksum catches a damaged or hand-edited link; the proof that a result is real is replaying the decoded log.
+// Decode accepts format 1 (v0.5 step 1: no challenge bit, no name) and format 2; encode always writes format 2.
 
-export class ActionLogError extends Error {}
-const fail = (msg) => { throw new ActionLogError(msg); };
+/** code: 'FORMAT' (malformed / truncated), 'CRC' (checksum mismatch), 'VERSION' (another format or rng version). */
+export class ActionLogError extends Error {
+  constructor(msg, code = 'FORMAT') { super(msg); this.code = code; }
+}
+const fail = (msg, code) => { throw new ActionLogError(msg, code); };
 
-export const FORMAT_VERSION = 1;
+export const FORMAT_VERSION = 2;
+export const FORMATS_READ = [1, 2];
+/** A creator's display name in a link: at most this many characters (code points) after sanitizing. */
+export const NAME_MAX_CHARS = 16;
+/**
+ * The display name as a link carries it: NFC, no control / bidi-override / zero-width characters, whitespace collapsed,
+ * trimmed, at most NAME_MAX_CHARS code points. '' = no name.
+ */
+export function sanitizeDisplayName(name) {
+  const plain = String(name ?? '').normalize('NFC')
+    .replace(/[\u0000-\u001F\u007F-\u009F\u200B-\u200F\u2028-\u202E\u2060-\u206F\u061C\uFEFF]/gu, ' ')
+    .replace(/\s+/gu, ' ').trim();
+  return Array.from(plain).slice(0, NAME_MAX_CHARS).join('').trim();
+}
 const MAGIC = [0x4D, 0x46]; // 'MF'
 
 /** One byte per action type. Never renumber: links in the wild carry these codes. REFUSED_IN_LINKS codes are reserved. */
@@ -109,10 +128,11 @@ const indexIn = (list, v, what) => { const i = list.indexOf(v ?? null); return i
 const pick = (list, i, what) => (i < list.length ? list[i] : fail(`bad ${what} code ${i}`));
 
 /**
- * @param log { rngVersion, seed, config: { mode, professionId, junior?, daily?: { date } }, actions: [{ type, ...args }] }
+ * @param log { rngVersion, seed, config: { mode, professionId, junior?, daily?: { date }, challenge? }, actions: [{ type, ...args }],
+ *   name? } — `name` is the creator's optional display name (sanitized; an empty one is left out)
  * @returns a base64url string
  */
-export function encodeActionLog({ rngVersion, seed, config = {}, actions = [] }) {
+export function encodeActionLog({ rngVersion, seed, config = {}, actions = [], name = '' }) {
   if (rngVersion !== 1 && rngVersion !== 2) fail(`unknown rng version ${rngVersion}`);
   if (!Number.isInteger(seed) || seed < 0 || seed > 0xFFFFFFFF) fail(`bad seed ${seed}`);
   if (!Array.isArray(actions)) fail('actions must be an array');
@@ -121,6 +141,9 @@ export function encodeActionLog({ rngVersion, seed, config = {}, actions = [] })
   const body = writer();
   const professionRef = ref(strOf(config.professionId, 'professionId'));
   const dateRef = config.daily ? ref(strOf(config.daily.date, 'daily date')) : null;
+  if (config.challenge && config.daily) fail('a friend challenge is never the daily challenge');
+  const shown = sanitizeDisplayName(name);
+  const nameRef = shown ? ref(shown) : null;
   body.uint(actions.length);
   for (const a of actions) {
     const code = ACTION_CODES[a?.type];
@@ -146,7 +169,7 @@ export function encodeActionLog({ rngVersion, seed, config = {}, actions = [] })
   w.byte(FORMAT_VERSION);
   w.uint(rngVersion);
   w.uint(seed);
-  w.byte((config.mode === 'full' ? 1 : 0) | (config.junior ? 2 : 0) | (dateRef !== null ? 4 : 0));
+  w.byte((config.mode === 'full' ? 1 : 0) | (config.junior ? 2 : 0) | (dateRef !== null ? 4 : 0) | (config.challenge ? 8 : 0) | (nameRef !== null ? 16 : 0));
   if (!MODES.includes(config.mode ?? 'family')) fail(`bad mode ${config.mode}`);
   const enc = new TextEncoder();
   w.uint(strings.length);
@@ -157,6 +180,7 @@ export function encodeActionLog({ rngVersion, seed, config = {}, actions = [] })
   }
   w.uint(professionRef);
   if (dateRef !== null) w.uint(dateRef);
+  if (nameRef !== null) w.uint(nameRef);
   for (const b of body.bytes) w.byte(b);
   const crc = crc32(w.bytes);
   for (let k = 0; k < 4; k++) w.byte((crc >>> (8 * k)) & 0xFF);
@@ -169,17 +193,18 @@ export function decodeActionLog(text) {
   if (bytes.length < MAGIC.length + 1 + 4) fail('action log is too short');
   const end = bytes.length - 4;
   const stored = (bytes[end] | (bytes[end + 1] << 8) | (bytes[end + 2] << 16) | (bytes[end + 3] << 24)) >>> 0;
-  if (crc32(bytes.subarray(0, end)) !== stored) fail('action log checksum does not match (damaged or edited)');
+  if (crc32(bytes.subarray(0, end)) !== stored) fail('action log checksum does not match (damaged or edited)', 'CRC');
   const r = reader(bytes, end);
   if (r.byte() !== MAGIC[0] || r.byte() !== MAGIC[1]) fail('not a MaxiFox action log');
   const format = r.byte();
-  if (format !== FORMAT_VERSION) fail(`unknown action log format ${format}`);
+  if (!FORMATS_READ.includes(format)) fail(`unknown action log format ${format}`, 'VERSION');
   const rngVersion = r.uint();
-  if (rngVersion !== 1 && rngVersion !== 2) fail(`unknown rng version ${rngVersion}`);
+  if (rngVersion !== 1 && rngVersion !== 2) fail(`unknown rng version ${rngVersion}`, 'VERSION');
   const seed = r.uint();
   if (seed > 0xFFFFFFFF) fail('bad seed');
   const flags = r.byte();
-  if (flags & ~7) fail('bad config flags');
+  if (flags & (format === 1 ? ~7 : ~31)) fail('bad config flags');
+  if ((flags & 8) && (flags & 4)) fail('a friend challenge is never the daily challenge');
   const dec = new TextDecoder('utf-8', { fatal: true });
   const count = r.uint();
   if (count > end) fail('bad string table length');
@@ -195,6 +220,12 @@ export function decodeActionLog(text) {
   const config = { mode: flags & 1 ? 'full' : 'family', professionId: str() };
   if (flags & 2) config.junior = true;
   if (flags & 4) config.daily = { date: str() };
+  if (flags & 8) config.challenge = true;
+  let name = null;
+  if (flags & 16) {
+    name = str();
+    if (!name || sanitizeDisplayName(name) !== name) fail('bad display name');
+  }
   const n = r.uint();
   if (n > end) fail('bad action count');
   const actions = [];
@@ -224,5 +255,5 @@ export function decodeActionLog(text) {
     actions.push(a);
   }
   if (r.at !== end) fail('trailing bytes in action log');
-  return { rngVersion, seed, config, actions };
+  return name ? { rngVersion, seed, config, actions, name } : { rngVersion, seed, config, actions };
 }
