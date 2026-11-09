@@ -61,11 +61,11 @@ export function createStart({ save, mode: initialMode, gamesPlayed = 0, daily = 
         h('span', null, gamesPlayed === 1 ? t('menu.gamesPlayedOne') : t('menu.gamesPlayed', { n: gamesPlayed })))
       : h('span'),
     h('div', { class: 'topbar-actions' },
-      // 0.5.1: the weekly family board (inline SVG; the screen and its store load only on tap, spec §6.1)
-      onBoard ? boardBtn() : null,
       iconButton('book', t('settings.dictionary'), () => { setLearnMode(mode); openDictionary(); }, 'icon-btn-glass'),
       iconButton('help', t('menu.howTo'), () => openHowTo({ mode }), 'icon-btn-glass'),
-      iconButton('gear', t('menu.settings'), () => openSettings({ version: __APP_VERSION__, mode }), 'icon-btn-glass')));
+      iconButton('gear', t('menu.settings'), () => openSettings({ version: __APP_VERSION__, mode }), 'icon-btn-glass'),
+      // 0.5.1: the weekly family board, the 4th icon (inline SVG; the screen and its store load only on tap, spec §6.1)
+      onBoard ? boardBtn() : null));
 
   // h1 keeps the accessible name 'MaxiFox' (he.json app.title); the logo art itself is decorative (alt="").
   const logo = h('img', {
