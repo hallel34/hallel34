@@ -117,7 +117,8 @@ export function feedbackForChange(before, after) {
   for (const x of fresh) out.push(...fromDecision(x, after));
   for (const ev of after.events ?? []) {
     if (ev.type === 'repaid') out.push(req('loan.repaid', { amount: moneyText(ev.amount), saved: moneyText(ev.saved ?? 0) }));
-    else if (ev.type === 'donated') out.push(req('charity.donate', { amount: moneyText(ev.cost) }));
+    // a friend challenge gives no bonus die: the donate lines all promise two dice, so the donation is not commented on there
+    else if (ev.type === 'donated') { if (!after.challenge) out.push(req('charity.donate', { amount: moneyText(ev.cost) })); }
     else if (ev.type === 'charityDeclined') out.push(req('charity.skip', { amount: moneyText(ev.cost) }));
   }
   // market offer: accepted (an asset was sold) or kept

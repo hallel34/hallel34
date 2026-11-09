@@ -36,7 +36,7 @@ const SKY = `<svg class="sky" aria-hidden="true" focusable="false" viewBox="0 0 
 <g class="windows" opacity=".9"><rect x="42" y="672" width="4" height="5"/><rect x="48" y="686" width="4" height="5"/><rect x="112" y="656" width="4" height="5"/><rect x="120" y="674" width="4" height="5"/><rect x="252" y="664" width="4" height="5"/><rect x="258" y="682" width="4" height="5"/><rect x="326" y="682" width="4" height="5"/><rect x="340" y="700" width="4" height="5"/></g>
 </svg>`;
 
-export function createStart({ save, mode: initialMode, gamesPlayed = 0, daily = null, onPlay, onResume, onMode, onDaily, onDailyReset, onRefresh, onMission }) {
+export function createStart({ save, mode: initialMode, gamesPlayed = 0, daily = null, onPlay, onResume, onMode, onDaily, onDailyReset, onRefresh, onMission, challengeSave = null, onChallengeResume = null, onBoard = null }) {
   let mode = initialMode;
   setLearnMode(mode);
   let alive = true;
@@ -54,12 +54,15 @@ export function createStart({ save, mode: initialMode, gamesPlayed = 0, daily = 
     return b;
   };
 
+  const boardBtn = () => { const b = iconButton('familyBoard', t('challenge.board.title'), () => { haptic('tap'); onBoard(); }, 'icon-btn-glass'); b.dataset.action = 'family-board'; return b; };
   const topbar = h('div', { class: 'topbar' },
     gamesPlayed > 0
       ? h('div', { class: 'games-chip glass' }, h('img', { src: coinUrl, alt: '', width: 22, height: 22 }),
         h('span', null, gamesPlayed === 1 ? t('menu.gamesPlayedOne') : t('menu.gamesPlayed', { n: gamesPlayed })))
       : h('span'),
     h('div', { class: 'topbar-actions' },
+      // 0.5.1: the weekly family board (inline SVG; the screen and its store load only on tap, spec §6.1)
+      onBoard ? boardBtn() : null,
       iconButton('book', t('settings.dictionary'), () => { setLearnMode(mode); openDictionary(); }, 'icon-btn-glass'),
       iconButton('help', t('menu.howTo'), () => openHowTo({ mode }), 'icon-btn-glass'),
       iconButton('gear', t('menu.settings'), () => openSettings({ version: __APP_VERSION__, mode }), 'icon-btn-glass')));
@@ -94,12 +97,21 @@ export function createStart({ save, mode: initialMode, gamesPlayed = 0, daily = 
   const dailyReset = daily && debugEnabled() && daily.status !== 'new'
     ? h('button', { type: 'button', class: 'debug-btn daily-reset', 'data-action': 'daily-reset', onClick: () => onDailyReset?.() }, t('daily.debugReset')) : null;
 
+  // 0.5.1: a challenge in progress (its own save slot). Under 700px tall it takes the missions row's slot (spec §3, reversible).
+  const challengeRow = challengeSave && onChallengeResume ? h('button', {
+    type: 'button', class: 'btn btn-secondary ch-resume', 'data-action': 'challenge-resume', onClick: () => { haptic('tap'); onChallengeResume(); },
+  },
+  h('span', { class: 'ch-resume-icon', 'aria-hidden': 'true' }, icon('challenge', { size: 22, width: 2 })),
+  h('span', { class: 'ch-resume-text' }, h('span', null, t('challenge.resume')), h('span', { class: 'ch-resume-info' }, t('challenge.resumeInfo', { turn: challengeSave.turn }))),
+  icon('arrow', { size: 22, width: 3 })) : null;
+
   const bottom = h('div', { class: 'start-bottom' },
     h('div', { class: 'mode-grid', role: 'group', 'aria-label': t('menu.chooseMode') },
       modeBtn('family', t('menu.modeFamily'), t('menu.modeFamilyDesc')),
       modeBtn('full', t('menu.modeFull'), t('menu.modeFullDesc'))),
     dailyCard, dailyReset,
-    onMission ? button(t('missions.entry'), {
+    challengeRow,
+    onMission && !(challengeRow && globalThis.innerHeight < 700) ? button(t('missions.entry'), {
       variant: 'secondary', cls: 'mission-entry', 'data-action': 'missions', onClick: onMission,
     }) : null,
     hasBadge(FIRST_ASSET_BADGE) ? h('p', { class: 'mission-home-badge' }, t('mission.badge')) : null,

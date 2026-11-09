@@ -33,7 +33,14 @@ function dropIn(img) {
     }, () => {});
 }
 
+/** 0.5.1 "שלחו אתגר" (spec §1.1). `onChallenge` is set only when the game can send one (challengeEligibility). */
+const challengeButton = (onChallenge, opts = {}) => button([icon('challenge', { size: 24, width: 2 }), t('challenge.create.button')], {
+  'data-action': 'challenge', onClick: () => { haptic('tap'); onChallenge(); }, ...opts,
+});
+
+// 0.5.1: the second argument ({ onChallenge }) is optional; read through `arguments` so the v3.1 signature stays as it was
 export function createWin({ match, onAgain, onMenu }) {
+  const { onChallenge = null } = arguments[1] ?? {}; // eslint-disable-line prefer-rest-params
   if (isMultiplayer(match)) return createMatchWin({ match, onAgain, onMenu });
   const state = match.players[0].state;
   const st = statement(state);
@@ -69,10 +76,16 @@ export function createWin({ match, onAgain, onMenu }) {
         statBox(state.turn, 'turns'), statBox(state.assets.length, 'assets'), statBox(state.kids, 'kids'),
         state.stats.donations ? statBox(state.stats.donations, 'donations') : null,
       ])),
-    h('div', { class: 'end-actions' },
-      button(t('win.again'), { variant: 'primary', size: 'lg', 'data-action': 'again', 'data-autofocus': '', onClick: onAgain }),
-      h('div', { class: 'end-row' }, reportButton(match), button(t('win.change'), { variant: 'secondary', 'data-action': 'menu', onClick: onMenu })),
-      button(t('win.share'), { variant: 'text', cls: 'btn-share', 'data-action': 'share', onClick: share }), shareBox));
+    onChallenge
+      // a challenge replaces the plain share: gold "שלחו אתגר", ghosts "שחקו שוב · מה למדתי", text "שנו מצב או מקצוע" (same height)
+      ? h('div', { class: 'end-actions', 'data-challenge': 'on' },
+        challengeButton(onChallenge, { variant: 'primary', size: 'lg', 'data-autofocus': '' }),
+        h('div', { class: 'end-row' }, button(t('win.again'), { variant: 'secondary', 'data-action': 'again', onClick: onAgain }), reportButton(match)),
+        button(t('win.change'), { variant: 'text', cls: 'btn-menu-text', 'data-action': 'menu', onClick: onMenu }))
+      : h('div', { class: 'end-actions' },
+        button(t('win.again'), { variant: 'primary', size: 'lg', 'data-action': 'again', 'data-autofocus': '', onClick: onAgain }),
+        h('div', { class: 'end-row' }, reportButton(match), button(t('win.change'), { variant: 'secondary', 'data-action': 'menu', onClick: onMenu })),
+        button(t('win.share'), { variant: 'text', cls: 'btn-share', 'data-action': 'share', onClick: share }), shareBox));
   return {
     el,
     start() {
@@ -83,7 +96,7 @@ export function createWin({ match, onAgain, onMenu }) {
   };
 }
 
-export function createOver({ match, onRetry, onMenu }) {
+export function createOver({ match, onRetry, onMenu }, { onChallenge = null } = {}) {
   if (isMultiplayer(match)) return createMatchOver({ match, onRetry, onMenu });
   const state = match.players[0].state;
   const st = statement(state);
@@ -106,7 +119,8 @@ export function createOver({ match, onRetry, onMenu }) {
       h('p', { class: 'tip' }, h('b', null, `${t('gameOver.tipTitle')}: `), tip)),
     h('div', { class: 'end-actions' },
       button(t('gameOver.retry'), { variant: 'primary', size: 'lg', 'data-action': 'retry', 'data-autofocus': '', onClick: onRetry }),
-      reportButton(match),
+      // a challenge is offered after a loss, not pushed: it shares the ghost row with "מה למדתי" (spec §1.1)
+      onChallenge ? h('div', { class: 'end-row' }, challengeButton(onChallenge, { variant: 'secondary' }), reportButton(match)) : reportButton(match),
       button(t('gameOver.menu'), { variant: 'text', cls: 'btn-menu-text', 'data-action': 'menu', onClick: onMenu })));
   return { el, start() { haptic('error'); riseIn(overFox); } };
 }

@@ -29,10 +29,11 @@ export function routeChallenge({ link, verify, store, saveKey = null }) {
   const key = challengeKey(v.log);
   const sent = findEntry(store, 'sent', key);
   if (sent) {
-    if (sent.me?.link === link.text) return { screen: 'own' };
+    if (sent.me?.sentLink === link.text || sent.me?.link === link.text) return { screen: 'own' };
     return { screen: 'compare', variant: 'reply', entry: sent, them: v, key };
   }
   const entry = findEntry(store, 'received', key);
+  if (entry?.me?.link && (entry.me.link === link.text || entry.me.sentLink === link.text)) return { screen: 'own' }; // my own reply link
   const fresh = !!v.ok && !v.comparable;
   let state = 'new';
   if (saveKey === key) state = 'continue';

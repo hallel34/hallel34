@@ -460,3 +460,18 @@
 [dir="rtl"] .icon-dir { transform: scaleX(-1); }
 button, [role="button"] { touch-action: manipulation; min-block-size: var(--tap-min); min-inline-size: var(--tap-min); }
 :focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 2px; }
+
+/* 0.5.1 friend challenges (docs/v051/design/challenges-spec.md §8.1; contrast: docs/v051/design/contrast-v051.py, 45 pairs pass) */
+:root {
+  --split: #7CC4FF;                          /* decision-split marker/text: 9.5 bg, 8.5 surface, 7.3 surface-2 */
+  --split-tint: rgb(124 196 255 / .14);      /* split row fill (text on it: --text 10.9, --text-muted 5.7, --split 6.2) */
+  --verified: var(--income);                 /* verified badge text + icon (7.0 on its tint) */
+  --verified-tint: rgb(95 224 174 / .14);
+  --unverified: var(--text-muted);           /* "לא אומת" text + icon (7.7 on surface) */
+  --unverified-border: var(--border-strong); /* 1px dashed outline (5.4 on surface) */
+}
+:root[data-theme="light"] {
+  --split: #1A62B3;                          /* 5.5 bg, 6.1 surface, 5.8 surface-2 */
+  --split-tint: rgb(26 98 179 / .10);
+  --verified-tint: rgb(11 107 67 / .10);     /* --verified (#0B6B43) 5.7 */
+}

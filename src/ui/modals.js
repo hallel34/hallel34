@@ -602,12 +602,13 @@ export function charityModal(state) {
   const afford = state.cash >= cost;
   const body = [
     keyNumbers(statTile(t('charity.cost'), money(cost), { big: true }), statTile(t('card.cashNow'), money(state.cash), { big: true })),
-    h('div', { class: 'banner banner-info' }, icon('charity', { size: 20 }), h('span', null, t(state.daily ? 'charity.boostDaily' : 'charity.boost'))),
+    // 0.5.1: a friend challenge gives no bonus die, so its card never promises one (spec §3: one quiet line instead)
+    state.challenge ? null : h('div', { class: 'banner banner-info' }, icon('charity', { size: 20 }), h('span', null, t(state.daily ? 'charity.boostDaily' : 'charity.boost'))),
     afford ? null : h('div', { class: 'banner banner-warn', role: 'status' }, icon('bank', { size: 20 }), h('span', null, tn('card.notEnough', { amount: money(cost - state.cash) }))),
   ];
   return cardShell({
     type: 'charity', kind: null, headChip: tileChip('charity'), title: t('charity.title'),
-    text: tn('charity.text', { amount: money(cost) }), body,
+    text: state.challenge ? tn(coinScale() ? 'challenge.rules.charityModalJunior' : 'challenge.rules.charityModal', { amount: money(cost) }) : tn('charity.text', { amount: money(cost) }), body,
     actions: [
       { id: 'skip', label: t('charity.skip'), variant: 'secondary', value: { action: 'skip' } },
       { id: 'donate', label: t('charity.donate'), variant: 'primary', disabled: !afford, value: { action: 'donate' }, autofocus: afford },
