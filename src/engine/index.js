@@ -12,3 +12,7 @@ export * from './daily.js';
 export { cardView, hasFamilyWording } from './card-view.js';
 export * from './rng.js';
 export { encodeActionLog, decodeActionLog, ActionLogError, ACTION_CODES } from './actionlog.js';
+export { FORMAT_VERSION, sanitizeDisplayName, NAME_MAX_CHARS } from './actionlog.js';
+export {
+  verifyResult, replayTurns, compareOutcome, splitTurns, takeawayOf, decisionOf, challengeEligibility, challengeKey, freedomPct, configOf, linkLogOf,
+} from './challenge.js';
