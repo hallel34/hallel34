@@ -195,3 +195,4 @@ button.fb-row { cursor: pointer; }
   .fb-num { font-size: 1.125rem; }
   .fb-unit { font-size: .75rem; }
 }
+.ch-alert { display: flex; flex-direction: column; align-items: center; gap: 12px; }

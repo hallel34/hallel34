@@ -140,8 +140,10 @@ export function createChallengeError({ variant = 'invalid', code = 'FORMAT', onH
     topbar(onHome),
     h('div', { class: 'ch-error' },
       h('div', { class: 'ch-error-icon', 'aria-hidden': 'true' }, icon('unverified', { size: 40, width: 2 })),
-      h('h1', { class: 'ch-title', role: 'alert', tabindex: '-1', 'data-autofocus': '' }, ct(`error.${variant}Title`)),
-      h('p', { class: 'ch-lede' }, ct(`error.${variant}Body`)),
+      // role="alert" may not sit on a heading (axe aria-allowed-role): the alert wraps the title and its body
+      h('div', { class: 'ch-alert', role: 'alert' },
+        h('h1', { class: 'ch-title', tabindex: '-1', 'data-autofocus': '' }, ct(`error.${variant}Title`)),
+        h('p', { class: 'ch-lede' }, ct(`error.${variant}Body`))),
       h('p', { class: 'ch-code' }, ct('error.code', { code }))),
     h('div', { class: 'ch-foot' },
       button(ct('error.toHome'), { variant: 'primary', size: 'lg', 'data-action': 'ch-home', onClick: onHome }),
