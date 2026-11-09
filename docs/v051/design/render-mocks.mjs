@@ -35,8 +35,8 @@ function phone({ w, h, theme, label, body, cls = '' }) {
 // ---------- 2. Intro ----------
 function intro(o) {
   const k = o.kid;
-  const title = o.name ? (k ? `${o.name} מזמין אתכם לאתגר!` : `${o.name} מאתגרת אתכם`) : 'קיבלתם אתגר!';
-  const who = o.name ? `התוצאה של ${o.name}` : 'התוצאה לנצח';
+  const title = o.name ? `אתגר מ-${o.name}` : 'קיבלתם אתגר';
+  const who = o.name ? `התוצאה של ${o.name}` : (k ? 'במשחק הזה' : 'התוצאה בקישור');
   const res = o.turns
     ? `<div class="res-big"><b>${o.turns}</b><span>${k ? 'תורות עד החופש' : 'תורות עד חופש כלכלי'}</span></div>`
     : `<div class="res-big"><b>${o.pct}%</b><span>מהדרך לחופש כלכלי</span></div>${meter(o.pct)}`;
@@ -48,11 +48,11 @@ function intro(o) {
       <h1>${title}</h1>
       <div class="chips"><span class="chip">${o.profName}</span><span class="chip">${o.mode}</span>${o.junior ? `<span class="chip">${COIN} צעירים</span>` : ''}</div>
       <div class="result"><div class="res-label"><span>${who}</span>${badge(o.verified, true)}</div>${res}</div>
-      <p class="lede">${k ? 'אותן קוביות ואותם קלפים. אתם מחליטים מה לקנות!' : 'אותן קוביות ואותם קלפים. ההחלטות שלכם.'}</p>
+      <p class="lede">${k ? 'אותו משחק בדיוק: אותן קוביות ואותם קלפים. אתם מחליטים.' : `אותו משחק בדיוק: ${o.profName}, ${o.modeLong}, אותן קוביות ואותם קלפים. ההחלטות שלכם.`}<br><b class="cur">מה תעשו אתם?</b></p>
     </section>
-    <p class="note">${INFO}<span>${k ? 'באתגר כולם באותם כללים: תרומה לא נותנת קובייה נוספת, ואין הטלה חוזרת.' : 'באתגר: לתרומה אין קובייה נוספת, ואין הטלה חוזרת.'}</span></p>
+    <p class="note">${INFO}<span>${k ? '<b>שני כללים באתגר:</b> תרומה לא נותנת עוד קובייה. אי אפשר לזרוק שוב.' : '<b>באתגר יש שני כללים:</b> תרומה לא נותנת קובייה נוספת. אין גלגול שוב.'}</span></p>
   </main>
-  <footer class="foot"><button class="btn primary">יוצאים לאתגר</button><button class="btn text">לא עכשיו</button></footer>`;
+  <footer class="foot"><button class="btn primary">${k ? 'בואו נשחק' : 'שחקו את האתגר'}</button><button class="btn text">לא עכשיו</button></footer>`;
 }
 function introError() {
   return `
@@ -60,10 +60,10 @@ function introError() {
   <main class="scroll center">
     <div class="err-icon">${svg('unverified', 40)}</div>
     <h1 class="err-title">הקישור לא נפתח</h1>
-    <p class="lede">נראה שחלק מהקישור נחתך או השתנה בדרך. בקשו מהחבר לשלוח אותו שוב, ישירות מהמשחק.</p>
-    <p class="fine">קוד: CRC</p>
+    <p class="lede">אולי חסר בו חלק, או שהוא נקטע בדרך. בקשו ממי ששלח לשלוח אותו שוב.</p>
+    <p class="fine">קוד: FORMAT</p>
   </main>
-  <footer class="foot"><button class="btn primary">למסך הבית</button></footer>`;
+  <footer class="foot"><button class="btn primary">לדף הבית</button><button class="btn text">למשחק רגיל</button></footer>`;
 }
 
 // ---------- 4. Compare ----------
@@ -71,12 +71,12 @@ function compare(o) {
   const k = o.kid;
   const rows = o.rows.map((r) => `
       <div class="c-row${r.key ? ' key' : ''}">
-        <div class="v me ${r.best === 'me' ? 'best' : ''} ${o.verified === false ? '' : ''}">${r.best === 'me' ? CHECK : ''}<b>${r.me}</b>${r.meBar != null ? meter(r.meBar) : ''}</div>
+        <div class="v me ${r.best === 'me' ? 'best' : ''} ${o.verified === false ? '' : ''}">${r.best === 'me' ? CHECK : ''}<b>${r.me}</b>${r.meSub ? `<small class="sub">${r.meSub}</small>` : ''}${r.meBar != null ? meter(r.meBar) : ''}</div>
         <div class="lbl">${r.label}</div>
-        <div class="v them ${r.best === 'them' ? 'best' : ''} ${o.verified === false ? 'dim' : ''}">${r.best === 'them' ? CHECK : ''}<b>${r.them}</b>${r.themBar != null ? meter(r.themBar) : ''}</div>
+        <div class="v them ${r.best === 'them' ? 'best' : ''} ${o.verified === false ? 'dim' : ''}">${r.best === 'them' ? CHECK : ''}<b>${r.them}</b>${r.themSub ? `<small class="sub">${r.themSub}</small>` : ''}${r.themBar != null ? meter(r.themBar) : ''}</div>
       </div>`).join('');
   return `
-  <header class="topbar"><h2 class="tb-title">${k ? 'מי ניצח באתגר?' : 'תוצאת האתגר'}</h2><button class="iconbtn" aria-label="חזרה לתפריט">${X}</button></header>
+  <header class="topbar"><h2 class="tb-title">ההשוואה</h2><button class="iconbtn" aria-label="חזרה לתפריט">${X}</button></header>
   <main class="scroll">
     <div class="headline"><h1>${o.headline}</h1><p>${o.sub}</p></div>
     <section class="card cmp">
@@ -87,24 +87,24 @@ function compare(o) {
       </div>
       ${rows}
     </section>
-    ${o.verified === false ? `<p class="note warnless">${svg('unverified', 20)}<span>לא הצלחנו לשחזר מהקישור את המשחק של ${o.them}, ולכן התוצאה לא נבדקה ולא תיכנס לטבלת המשפחה.</span></p>` : ''}
+    ${o.verified === false ? `<p class="note warnless">${svg('unverified', 20)}<span>לא הצלחנו לשחזר את המשחק מהקישור, ולכן התוצאה מוצגת בלי בדיקה. היא לא תיכנס לטבלת המשפחה.</span></p>` : ''}
     <div class="takeaway"><img class="crop" src="${A(`fox/${o.fox}.webp`)}" alt=""><p>${o.takeaway}</p></div>
   </main>
   <footer class="foot">
-    <button class="btn primary">${o.primary || 'שלחו תשובה'}</button>
-    <div class="row2"><button class="btn ghost" ${o.verified === false ? 'disabled' : ''}>${svg('replay', 20)}צפייה חוזרת</button><button class="btn ghost">${svg('family-board', 20)}טבלת המשפחה</button></div>
+    <button class="btn primary">${o.primary || 'שלחו את התוצאה שלכם'}</button>
+    <div class="row2"><button class="btn ghost" ${o.verified === false ? 'disabled' : ''}>${svg('replay', 20)}צפייה חוזרת</button><button class="btn ghost">${svg('family-board', 20)}לטבלת המשפחה</button></div>
   </footer>`;
 }
 
 // ---------- 5. Replay timeline ----------
 function timeline() {
   const rows = [
-    { t: 3, tile: 'payday', me: ['משכורת', ''], th: ['משכורת', ''] },
-    { t: 4, tile: 'opportunity', split: true, me: ['דילוג', 'עגלת קפה'], th: ['קנייה', 'עגלת קפה'], line: 'פה נועה קנתה ואתם דילגתם' },
-    { t: 5, tile: 'expense', me: ['תשלום', 'טיפול שיניים'], th: ['תשלום', 'טיפול שיניים'] },
-    { t: 6, tile: 'opportunity', split: true, me: ['קנייה + הלוואה', 'דירת 2 חדרים'], th: ['דילוג', 'דירת 2 חדרים'], line: 'פה לקחתם הלוואה ונועה דילגה', open: true },
-    { t: 8, tile: 'charity', split: true, me: ['תרומה', '10% מההכנסה'], th: ['בלי תרומה', ''], line: 'פה תרמתם ונועה לא' },
-    { t: 9, tile: 'market', me: ['בלי שינוי', 'הריבית עלתה'], th: ['בלי שינוי', 'הריבית עלתה'] },
+    { t: 3, tile: 'payday', me: ['—', 'משכורת'], th: ['—', 'משכורת'] },
+    { t: 4, tile: 'opportunity', split: true, me: ['דילוג', 'עגלת קפה'], th: ['קנייה', 'עגלת קפה'], line: 'בתור 4 העסקה ״עגלת קפה״ נקנתה אצל נועה, ואתם דילגתם' },
+    { t: 5, tile: 'expense', me: ['הוצאה מהמזומן', 'טיפול שיניים'], th: ['הוצאה מהמזומן', 'טיפול שיניים'] },
+    { t: 6, tile: 'opportunity', split: true, me: ['הלוואה · קנייה', 'דירת 2 חדרים'], th: ['דילוג', 'דירת 2 חדרים'], line: 'בתור 6 לקחתם הלוואה של ₪50,000, ואצל נועה לא', open: true },
+    { t: 8, tile: 'charity', split: true, me: ['תרומה', '10% מההכנסה'], th: ['—', ''], line: 'בתור 8 תרמתם, ואצל נועה לא' },
+    { t: 9, tile: 'market', me: ['—', 'הריבית עלתה'], th: ['—', 'הריבית עלתה'] },
     { t: 11, tile: 'opportunity', me: ['קנייה', 'מכונת שתייה'], th: ['קנייה', 'חנות פרחים'], note: 'אותו תור, קלף אחר (שלב אחר במשחק)' },
   ];
   const r = rows.map((x) => `
@@ -117,7 +117,7 @@ function timeline() {
   const ticks = Array.from({ length: 23 }, (_, i) => `<i class="${[3, 5, 7, 10].includes(i) ? 's' : ''}"></i>`).join('');
   return `
   <header class="topbar"><button class="iconbtn" aria-label="חזרה">${BACK}</button><h2 class="tb-title grow">צפייה חוזרת</h2></header>
-  <div class="tl-sum"><span>4 פיצולים ב-23 תורות</span><div class="ticks" aria-hidden="true">${ticks}</div></div>
+  <div class="tl-sum"><span>רק לצפייה: כאן רואים איפה ההחלטות נפרדו · 4 מתוך 23 תורות</span><div class="ticks" aria-hidden="true">${ticks}</div></div>
   <div class="seg" role="radiogroup"><button class="segb" aria-checked="false">רק פיצולים</button><button class="segb on" aria-checked="true">${CHECK}כל התורות</button></div>
   <div class="tl-heads"><div>${head('nurse', 32)}<b>אתם</b></div><span>תור</span><div>${head('teacher', 32)}<b>נועה</b></div></div>
   <ol class="tl">${r}</ol>`;
@@ -126,29 +126,30 @@ function timeline() {
 // ---------- 6. Family board ----------
 function board(empty) {
   if (empty) return `
-  <header class="topbar"><h2 class="tb-title">טבלת המשפחה</h2><button class="iconbtn" aria-label="סגירה">${X}</button></header>
-  <p class="week">השבוע · <bdi dir="ltr">8.11–14.11</bdi></p>
+  <header class="topbar"><h2 class="tb-title">טבלת המשפחה של השבוע</h2><button class="iconbtn" aria-label="סגירה">${X}</button></header>
+  <p class="week">השבוע: <bdi dir="ltr">8.11–14.11</bdi></p>
   <main class="scroll center">
     <div class="err-icon">${svg('family-board', 40)}</div>
     <h1 class="err-title">עוד אין תוצאות השבוע</h1>
-    <p class="lede">סיימו משחק, לחצו "אתגרו חבר" ושלחו את הקישור. כל תוצאה מאומתת תופיע כאן.</p>
+    <p class="lede">שלחו אתגר למישהו מהמשפחה, והתוצאות יופיעו כאן.</p>
   </main>
-  <footer class="foot"><button class="btn primary">התחילו משחק</button></footer>`;
+  <footer class="foot"><button class="btn primary">שלחו אתגר</button></footer>`;
   const L = [
     ['1', 'teacher', 'נועה', 'מורה · משפחה', '18', 'תורות'],
     ['2', 'nurse', 'אתם', 'אח/ות · משפחה', '20', 'תורות', true],
     ['3', 'cook', 'יואב', 'טבח/ית · צעירים', '26', 'תורות'],
     ['4', 'lawyer', 'אבא', 'עורך/ת דין · מלא', '31', 'תורות'],
-    ['5', 'driver', 'סבתא רותי', 'נהג/ת מונית · משפחה', '72%', 'מהדרך'],
+    ['5', 'driver', 'סבתא רותי', 'נהג/ת מונית · משפחה', '72%', 'עוד בדרך'],
   ];
   return `
-  <header class="topbar"><h2 class="tb-title">טבלת המשפחה</h2><button class="iconbtn" aria-label="סגירה">${X}</button></header>
-  <p class="week">השבוע · <bdi dir="ltr">8.11–14.11</bdi> <span>מתחילה מחדש ביום ראשון</span></p>
+  <header class="topbar"><h2 class="tb-title">טבלת המשפחה של השבוע</h2><button class="iconbtn" aria-label="סגירה">${X}</button></header>
+  <p class="week">השבוע: <bdi dir="ltr">8.11–14.11</bdi> <span>ביום ראשון הטבלה מתחילה מחדש</span></p>
   <main class="scroll">
     <ol class="fb">${L.map(([n, p, name, sub, v, u, me]) => `
       <li class="${me ? 'me' : ''}"><span class="rk">${n === '1' ? STAR : ''}${n}</span>${head(p, 40)}<div class="nm"><b>${name}</b><small>${sub}</small></div><div class="rs"><b>${v}</b><small>${u}</small></div></li>`).join('')}
     </ol>
-    <p class="fine">${svg('verified', 16)} רק תוצאות מאומתות מקישורי אתגר. הטבלה נשמרת רק במכשיר הזה.</p>
+    <p class="fine">${svg('verified', 16)} מתוצאות של אתגרים שקיבלתם השבוע. רק תוצאות שנבדקו, ורק במכשיר הזה.</p>
+    <p class="lede" style="text-align:center;font-size:14px">כל משחק הוא הזדמנות ללמוד. כל הכבוד לכל מי ששיחקו</p>
   </main>`;
 }
 
@@ -159,7 +160,7 @@ function hud(compact) {
     <div class="hud-col"><div class="hud-line">מורה · תור 7 <button class="ch-chip" aria-label="אתגר מול נועה">${svg('challenge', 16)}${compact ? '' : '<span>אתגר</span>'}</button></div>
     <div class="cash">${COIN}<b>₪12,480</b></div></div>
     <span class="grow"></span><button class="iconbtn sm">≡</button></div>
-    <div class="pop"><b>${svg('challenge', 16)} אתגר מול נועה</b><span>היעד: 23 תורות · בלי קובייה נוספת ובלי הטלה חוזרת</span></div>`;
+    <div class="pop"><b>${svg('challenge', 16)} משחק אתגר (מול נועה)</b><span>תרומה בלי קובייה נוספת, ואין גלגול שוב</span></div>`;
 }
 
 const CSS = `${[400, 500, 700, 900].map(font).join('\n')}
@@ -190,6 +191,8 @@ figcaption{color:#fff;font:500 14px Rubik;direction:ltr;max-width:390px}
 .res-big{display:flex;align-items:baseline;gap:10px;justify-content:center}
 .res-big b{font:900 52px/1 Rubik;font-variant-numeric:tabular-nums}
 .res-big span{font:700 16px Rubik}
+.lede .cur{color:var(--text);font-weight:700}
+.c-row .v small.sub{font:500 12px Rubik;color:var(--muted);direction:ltr}
 .meter{block-size:8px;border-radius:4px;background:var(--track);overflow:hidden;inline-size:100%}
 .meter i{display:block;block-size:100%;background:var(--passive);border-radius:4px}
 .lede{font:400 15px/1.45 Rubik;color:var(--muted)}
@@ -289,32 +292,32 @@ figcaption{color:#fff;font:500 14px Rubik;direction:ltr;max-width:390px}
 .pop b{display:flex;gap:6px;align-items:center;font:700 14px Rubik;color:var(--text)}
 `;
 
-const introA = { name: 'נועה', prof: 'teacher', profName: 'מורה', mode: 'משפחה', turns: 23, verified: true };
+const introA = { name: 'נועה', prof: 'teacher', profName: 'מורה', mode: 'משפחה', modeLong: 'משחק משפחתי', turns: 23, verified: true };
 const sec = (t, items) => `<h3 class="sec">${t}</h3><div class="sheet">${items.join('')}</div>`;
 const rowsWin = [
   { key: 1, label: 'תורות עד חופש כלכלי', me: '20', them: '23', best: 'me' },
   { label: 'חופש כלכלי', me: '100%', them: '100%', meBar: 100, themBar: 100 },
   { label: 'עסקאות שנקנו', me: '6', them: '4' },
-  { label: 'הלוואות', me: '1', them: '0' },
+  { label: 'הלוואות מהבנק', me: '1', meSub: '₪50,000', them: '—', themSub: 'בלי הלוואות' },
 ];
 const html = `<!doctype html><html lang="he"><meta charset="utf-8"><style>${CSS}</style><body>
-${sec('0.5.1 challenge intro (section 2)', [
+${sec('0.5.1 challenge intro (section 2) · strings from docs/v051/challenge.he.json', [
   phone({ w: 390, h: 844, theme: 'dark', label: 'A · Intro · dark · 390x844 · named, family, won, verified', body: intro(introA) }),
-  phone({ w: 360, h: 800, theme: 'light', label: 'B · Intro · light · 360x800 · no name, full, did not finish (64%)', body: intro({ prof: 'lawyer', profName: 'עורך/ת דין', mode: 'מלא', pct: 64, verified: true }) }),
+  phone({ w: 360, h: 800, theme: 'light', label: 'B · Intro · light · 360x800 · no name, full, did not finish (64%)', body: intro({ prof: 'lawyer', profName: 'עורך/ת דין', mode: 'מלא', modeLong: 'משחק מלא', pct: 64, verified: true }) }),
   phone({ w: 360, h: 800, theme: 'dark', label: 'C · Intro · dark · 360x800 · invalid link', body: introError() }),
   phone({ w: 320, h: 568, theme: 'light', label: 'D · Intro · light · 320x568 · junior (kid words, coin chip)', body: intro({ name: 'יואב', prof: 'cook', profName: 'טבח/ית', mode: 'משפחה', junior: true, turns: 26, verified: true, kid: true, bustH: 72 }) }),
 ])}
 ${sec('0.5.1 compare (section 4)', [
-  phone({ w: 390, h: 844, theme: 'dark', label: 'E · Compare · dark · 390x844 · I won, both verified', body: compare({ headline: 'ניצחתם ב-3 תורות!', sub: 'מול נועה · אותו משחק, משפחה', them: 'נועה', meProf: 'nurse', themProf: 'teacher', verified: true, rows: rowsWin, fox: 'celebrate', takeaway: 'ההבדל: בתור 6 לקחתם הלוואה וקניתם דירה. היא החזירה את עצמה.' }) }),
-  phone({ w: 360, h: 800, theme: 'light', label: 'F · Compare · light · 360x800 · they won, I did not finish', body: compare({ headline: 'הפעם הניצחון של נועה', sub: 'מול נועה · אותו משחק, מלא', them: 'נועה', meProf: 'nurse', themProf: 'teacher', verified: true, fox: 'think',
-    rows: [{ key: 1, label: 'תורות עד חופש כלכלי', me: '—', them: '23', best: 'them' }, { label: 'חופש כלכלי', me: '71%', them: '100%', meBar: 71, themBar: 100 }, { label: 'עסקאות שנקנו', me: '3', them: '5' }, { label: 'הלוואות', me: '2', them: '1' }],
-    takeaway: 'ההבדל: בתור 4 דילגתם על עגלת הקפה. עסקה קטנה, אבל היא עבדה כל חודש.' }) }),
-  phone({ w: 320, h: 568, theme: 'dark', label: 'G · Compare · dark · 320x568 · their result NOT verified', body: compare({ headline: 'סיימתם ב-21 תורות', sub: 'מול אורי · משפחה', them: 'אורי', meProf: 'programmer', themProf: 'police', verified: false, fox: 'ponder',
+  phone({ w: 390, h: 844, theme: 'dark', label: 'E · Compare · dark · 390x844 · I am ahead, both verified', body: compare({ headline: 'הפעם הגעתם לחופש מהר יותר', sub: 'כל הכבוד. בצפייה החוזרת רואים מה היה שונה.', them: 'נועה', meProf: 'nurse', themProf: 'teacher', verified: true, rows: rowsWin, fox: 'celebrate', takeaway: 'בתור 6 קניתם את ״דירת 2 חדרים״: עוד ₪1,200 בחודש לתזרים. בכל סיכום שנתי זה כפול 12.' }) }),
+  phone({ w: 360, h: 800, theme: 'light', label: 'F · Compare · light · 360x800 · they are ahead, I did not finish', body: compare({ headline: 'הפעם המסלול אצל נועה היה מהיר יותר', sub: 'בואו נראה איפה ההחלטות נפרדו. מכל הבדל לומדים משהו.', them: 'נועה', meProf: 'nurse', themProf: 'teacher', verified: true, fox: 'think',
+    rows: [{ key: 1, label: 'תורות עד חופש כלכלי', me: 'עוד לא', them: '23', best: 'them' }, { label: 'חופש כלכלי', me: '71%', them: '100%', meBar: 71, themBar: 100 }, { label: 'עסקאות שנקנו', me: '3', them: '5' }, { label: 'הלוואות מהבנק', me: '2', meSub: '₪80,000', them: '1', themSub: '₪30,000' }],
+    takeaway: 'בתור 4 דילגתם על ״עגלת קפה״. תקופת ההחזר של העסקה: 3 שנים, כלומר המקדמה חוזרת מהר יחסית.' }) }),
+  phone({ w: 320, h: 568, theme: 'dark', label: 'G · Compare · dark · 320x568 · their result NOT verified', body: compare({ headline: 'הנה שתי התוצאות', sub: 'את התוצאה מהקישור לא הצלחנו לבדוק, ולכן אין כאן מנצח.', them: 'אורי', meProf: 'programmer', themProf: 'police', verified: false, fox: 'ponder',
     rows: [{ key: 1, label: 'תורות עד חופש', me: '21', them: '9' }, { label: 'חופש כלכלי', me: '100%', them: '100%', meBar: 100, themBar: 100 }, { label: 'עסקאות', me: '5', them: '?' }, { label: 'הלוואות', me: '1', them: '?' }],
-    takeaway: 'את התוצאה שלכם בדקנו. עכשיו תורו של אורי לשחק אותה.' }) }),
-  phone({ w: 390, h: 844, theme: 'light', label: 'H · Compare · light · 390x844 · junior (kid words, coins in the takeaway)', body: compare({ kid: true, headline: 'הגעתם ראשונים!', sub: 'מול יואב · משחק צעירים', them: 'יואב', meProf: 'driver', themProf: 'cook', verified: true, fox: 'celebrate',
-    rows: [{ key: 1, label: 'תורות עד החופש', me: '24', them: '26', best: 'me' }, { label: 'כמה מהדרך', me: '100%', them: '100%', meBar: 100, themBar: 100 }, { label: 'דברים שקניתם', me: '4', them: '3' }, { label: 'הלוואות מהבנק', me: '0', them: '1' }],
-    takeaway: `בתור 5 קניתם דוכן פלאפל. הוא נתן לכם ${COIN} 9 מטבעות כל חודש!` }) }),
+    takeaway: 'במשחק המספרים מפושטים, ובאתגר המזל זהה לשניכם. בחיים אי אפשר לשחק שוב עם אותו מזל בדיוק.' }) }),
+  phone({ w: 390, h: 844, theme: 'light', label: 'H · Compare · light · 390x844 · junior (kid words, coins, loans as a count only)', body: compare({ kid: true, headline: 'הגעתם לחופש מהר יותר! כל הכבוד', sub: 'כל הכבוד. בצפייה החוזרת רואים מה היה שונה.', them: 'יואב', meProf: 'driver', themProf: 'cook', verified: true, fox: 'celebrate',
+    rows: [{ key: 1, label: 'תורות עד החופש', me: '24', them: '26', best: 'me' }, { label: 'כמה קרוב לחופש', me: '100%', them: '100%', meBar: 100, themBar: 100 }, { label: 'נכסים שנקנו', me: '4', them: '3' }, { label: 'הלוואות', me: '0', them: '1' }],
+    takeaway: `בתור 5 קניתם את ״דוכן פלאפל״: מאז נכנסים לכם עוד ${COIN} 9 מטבעות בכל חודש.` }) }),
 ])}
 ${sec('Extras: HUD chip (3), replay (5), family board (6)', [
   phone({ w: 390, h: 200, theme: 'dark', label: 'I · HUD chip · dark · 390 · slim HUD + tap popover', body: hud(false) }),
