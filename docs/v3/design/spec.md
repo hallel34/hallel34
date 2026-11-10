@@ -31,6 +31,8 @@ Companion files: `docs/v3/design/category-map.md` (category registry + card mapp
 | Income statement sheet | none (read-only); close is an icon button | — | — |
 | Payday summary / hand-over | **המשיכו** (arms 700ms) | — | חזרה לתפריט (text, arms too) |
 | Win | **שחקו שוב** | מה למדתי, שנו מצב או מקצוע | שתפו את התוצאה |
+| Win, single player that can send a challenge (0.5.1) | **שלחו אתגר** | שחקו שוב, מה למדתי | שנו מצב או מקצוע (the plain share is merged into the challenge) |
+| Game over, single player that can send a challenge (0.5.1) | **ננסה שוב** | שלחו אתגר, מה למדתי | חזרה לתפריט |
 | Game over | **ננסה שוב** | מה למדתי | חזרה לתפריט |
 
 ## 2. Tokens (values live in `src/styles/tokens.css`; token NAMES kept)
@@ -235,6 +237,7 @@ Section titles: 13/700 in `--text-muted` (headings are never coloured: the negat
 
 ### 4.7 Win
 Quiet navy (`--grad-sunburst`, the rays/orange are removed), gold halo `--glow-fox` behind the `hammock` fox (unchanged art, positions as in `fox-usage.md`), confetti stays (6 colours, 2800ms; none under reduced motion). Title "חופש כלכלי!" in `--title-grad` (the single gold-text moment; it is the celebration). Stats card: opaque `--surface`, 1px `--border`, radius 22; passive income XL `--income`; expenses `--text-muted`; mini meter full; three stat tiles (turns, assets, kids) as plain figures with hairline separators (no boxed glass tiles). Actions: **שחקו שוב** (gold 64), two ghost buttons side by side (מה למדתי / שנו מצב או מקצוע), tertiary text "שתפו את התוצאה". Haptic: success pattern [20,40,20,40,60] once.
+**0.5.1 (docs/v051/design/challenges-spec.md §1.1):** when a single-player game can send a challenge (not hot-seat, daily, missions, a short game, an rngVersion 1 game or a challenge game, which ends on compare), the actions are **שלחו אתגר** (gold 64, `challenge` icon), the ghost row **שחקו שוב** / **מה למדתי**, and the text button **שנו מצב או מקצוע**. "שתפו את התוצאה" is dropped, because the challenge message already carries the result. The button count and height are unchanged. Game over keeps **ננסה שוב** as the primary, and **שלחו אתגר** shares the ghost row with **מה למדתי**.
 320x568: fox 180px, stat tiles 2 columns hidden except turns.
 
 ### 4.8 Game over
