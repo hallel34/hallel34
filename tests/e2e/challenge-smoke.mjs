@@ -9,6 +9,7 @@ import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import {
   createEngine, decodeActionLog, encodeActionLog, replayTurns, botStep, newMatch, serialize, configOf, verifyResult,
 } from '../../src/engine/index.js';
+import { crc32, toBase64Url, fromBase64Url } from '../../src/engine/actionlog.js';
 
 const require = createRequire(import.meta.url);
 let chromium;
@@ -56,7 +57,7 @@ async function axe(page, label) {
   await page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== 'running' || a.effect?.getComputedTiming().iterations === Infinity), null, { timeout: 5000 }).catch(() => {});
   await page.waitForTimeout(150);
   await page.evaluate(AXE);
-  const res = await page.evaluate(async () => (await window.axe.run(document, { runOnly: ['wcag2a', 'wcag2aa', 'wcag21aa', 'best-practice'] })).violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(' | ')}`));
+  const res = await page.evaluate(async () => (await window.axe.run(document, { runOnly: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'best-practice'], rules: { 'label-content-name-mismatch': { enabled: true } } })).violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(' | ')}`));
   check(res.length === 0, `axe: 0 violations on ${label}${res.length ? ` ${JSON.stringify(res)}` : ''}`);
 }
 async function layout(page, tag) {
@@ -339,10 +340,17 @@ async function main() {
   // the receiver: a junior link, a 10-year-old's device -> coins chip, kid words, and no name field at the end
   let jr = engine.newGame({ mode: 'family', professionId: 'cook', seed: 777, junior: true });
   for (let i = 0; i < 2000 && jr.status === 'playing'; i++) jr = jr.pending?.kind === 'charity' ? engine.dispatch(jr, { type: 'declineCharity' }) : botStep(engine, jr, 'sensible');
-  const jLink = encodeActionLog({ rngVersion: 2, seed: 777, config: configOf(jr), actions: jr.log, name: 'סבתא' });
+  // QA 0.5.1 P2-1: a CRAFTED junior link that still carries a name (the encoder drops it, so the bytes are built by hand: a named
+  // family link with the junior bit set and a fresh checksum). The child must never see the name.
+  const named = [...fromBase64Url(encodeActionLog({ rngVersion: 2, seed: 777, config: { mode: 'family', professionId: 'cook' }, actions: jr.log, name: 'ShouldNotShow' }))].slice(0, -4);
+  named[named.indexOf(16, 3)] |= 2;
+  const crc = crc32(Uint8Array.from(named));
+  const jLink = toBase64Url(Uint8Array.from([...named, crc & 255, (crc >>> 8) & 255, (crc >>> 16) & 255, (crc >>> 24) & 255]));
+  check(decodeActionLog(jLink).config.junior === true, 'the crafted link is a junior link');
   urls.push(`${URL_BASE}#c=${jLink}`.length);
   const ctxJ = await newCtx(browser);
   const J = await open(ctxJ, { path: `#c=${jLink}`, storage: { ...SKIP_STORY, lastAge: 'upTo10' }, waitFor: '[data-screen="challenge"]' });
+  check(!(await J.locator('body').innerText()).includes('ShouldNotShow') && !(await J.evaluate(() => document.body.outerHTML)).includes('ShouldNotShow'), 'junior intro: a crafted name is never shown (not in the text, not in any aria-label)');
   check(await J.locator('[data-junior] img').count() === 1, 'junior intro: the "צעירים" chip with the coin');
   check((await J.locator('[data-action="ch-play"]').innerText()).includes('בואו נשחק'), 'junior intro: the kid CTA "בואו נשחק"');
   const bigNums = async (page) => page.evaluate(() => (document.querySelector('[data-screen]').innerText.match(/\d[\d,]*/g) ?? []).map((x) => Number(x.replace(/,/g, ''))).filter((x) => x > 999));
@@ -356,6 +364,7 @@ async function main() {
   await J.waitForTimeout(500);
   check((await bigNums(J)).length === 0, `junior compare: no number over 999 (${await bigNums(J)})`);
   check((await J.locator('section[data-screen="compare"]').innerText()).includes('תורות עד החופש'), 'junior compare: kid labels');
+  check(!(await J.evaluate(() => document.body.outerHTML)).includes('ShouldNotShow'), 'junior compare: the crafted name is never shown');
   await layout(J, 'compare-junior-360x800');
   await J.locator('[data-action="ch-reply"]').click();
   await J.waitForSelector('[data-ch-sheet]');
@@ -404,6 +413,7 @@ async function main() {
   await S.locator('[data-action="ch-replay"]').click();
   await S.waitForSelector('[data-screen="timeline"]');
   await layout(S, 'timeline-320x568');
+  await axe(S, 'timeline 320x568 (label-content-name-mismatch on, QA P2-2)');
   await ctxS.close();
 
   // ================= errors + URL lengths =================
