@@ -45,7 +45,7 @@ export function routeChallenge({ link, verify, store, saveKey = null }) {
 /** A challenge URL longer than this is sent as the seed-only "אתגר חדש באותו משחק" link (QA 0.5.1 P2-4; the plan's ceiling is 2,000). */
 export const LINK_MAX = 1800;
 /** The longest display name a link can carry (16 two-byte letters): the guard measures with it, so no typed name can tip it over. */
-export const LONGEST_NAME = 'אאאאאאאאאאאאאאאא';
+export const LONGEST_NAME = '\u05D0'.repeat(16); // 16 two-byte letters (alef): never shown, only measured
 /**
  * The link kind to send: 'link' (the whole game) unless its URL would pass LINK_MAX, then 'fresh' (seed + config only, the existing
  * fallback for non-comparable games). false stays false.
