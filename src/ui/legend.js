@@ -24,7 +24,7 @@ function legendTile(type, mode) {
     h('img', { src: u.src, srcset: u.srcset, width: 40, height: 48, alt: '', decoding: 'async', draggable: 'false' }));
 }
 
-export function openLegend({ mode = 'full' } = {}) {
+export function openLegend({ mode = 'full', challenge = false } = {}) {
   let layer;
   const titleId = 'legend-title';
   const title = h('h2', { class: 'sheet-title legend-title', id: titleId, tabindex: '-1' }, t('legend.title'));
@@ -34,7 +34,8 @@ export function openLegend({ mode = 'full' } = {}) {
       legendTile(type, mode),
       h('div', { class: 'legend-text' },
         h('strong', { class: 'legend-label' }, t(TILE_META[type].label)),
-        h('span', { class: 'legend-line' }, t(TILE_META[type].legend))))))));
+        // a friend challenge: the charity line never promises the bonus die (0.5.1)
+        h('span', { class: 'legend-line' }, challenge && type === 'charity' ? `${t('challenge.rules.charity')} ${t('challenge.rules.charityStill')}` : t(TILE_META[type].legend))))))));
   const close = h('button', { type: 'button', class: 'icon-btn legend-close', 'aria-label': t('legend.close'), 'data-action': 'legend-close', onClick: () => layer.close() }, icon('close', { size: 22 }));
   const content = h('div', { class: 'sheet legend-sheet', 'data-sheet': 'legend', 'aria-labelledby': titleId },
     h('div', { class: 'sheet-head legend-sheet-head' }, title, close),

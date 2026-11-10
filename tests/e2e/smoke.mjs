@@ -1913,10 +1913,14 @@ async function main() {
       await page.waitForTimeout(500);
       await noHScroll(page, 'win');
       await page.screenshot({ path: `${OUT}/07-win${PLAYERS > 1 ? '-multi' : ''}.png` });
+      // 0.5.1 (challenges-spec §1.1, test-changes row 41): a single-player game that can send a challenge has the new ladder:
+      // gold "שלחו אתגר" (it replaces the plain share), ghosts "שחקו שוב · מה למדתי", text "שנו מצב או מקצוע"
+      const withChallenge = await page.locator('[data-screen="win"] [data-action="challenge"]').count() === 1;
       await insideViewport(page, PLAYERS > 1
         ? ['[data-screen="win"] [data-action="again"]', '[data-screen="win"] [data-action="menu"]']
-        : ['[data-screen="win"] [data-action="again"]', '[data-screen="win"] [data-action="menu"]', '[data-screen="win"] [data-action="share"]'], 'win actions');
-      check(await page.locator('[data-action="again"].btn-primary').count() === 1 && await page.locator('[data-action="menu"].btn-secondary').count() === 1, 'win: play again is primary, change mode is secondary');
+        : ['[data-screen="win"] [data-action="again"]', '[data-screen="win"] [data-action="menu"]', `[data-screen="win"] [data-action="${withChallenge ? 'challenge' : 'share'}"]`], 'win actions');
+      if (withChallenge) check(await page.locator('[data-action="challenge"].btn-primary').count() === 1 && await page.locator('[data-action="again"].btn-secondary').count() === 1 && await page.locator('[data-action="menu"].btn-text').count() === 1, 'win: "שלחו אתגר" is primary, play again is secondary, change mode is text (0.5.1)');
+      else check(await page.locator('[data-action="again"].btn-primary').count() === 1 && await page.locator('[data-action="menu"].btn-secondary').count() === 1, 'win: play again is primary, change mode is secondary');
       if (PLAYERS > 1) {
         check(await page.locator('.stand-row').count() === PLAYERS, 'win screen lists every player in the standings');
         check(await page.locator('.stand-row[data-winner="true"]').count() === 1 && await page.locator('.stand-row[data-place="1"][data-winner="true"]').count() === 1, 'exactly one winner, first in the standings');

@@ -5,10 +5,13 @@ import { isShortMission, practiceSlot } from '../engine/short-missions.js';
 export const SLOT_NORMAL = 'save';
 export const SLOT_DAILY = 'dailySave';
 export const SLOT_MISSION = 'missionSave';
+/** 0.5.1: a friend challenge in progress never overwrites the normal, daily or mission saves. */
+export const SLOT_CHALLENGE = 'challengeSave';
 
 export const slotOf = (match) => {
   if (!match || typeof match !== 'object') throw new Error('match-store: a match is required to pick the save slot');
   if (match.daily) return SLOT_DAILY;
+  if (match.challenge) return SLOT_CHALLENGE;
   // a junior mission variant ('צעירים' match) keeps its own slot next to the shekel one
   if (isShortMission(match.mission?.id)) return practiceSlot(match.mission.id, { junior: !!match.junior });
   if (match.mission) return match.junior ? `${SLOT_MISSION}.junior` : SLOT_MISSION;

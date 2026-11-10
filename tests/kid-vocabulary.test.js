@@ -29,7 +29,7 @@ function* walk(v, path = []) {
 }
 
 /** Locale-file groups shown in family mode (full-only, stock-only and daily-share strings are not family surfaces). */
-const HE_GROUPS = ['game', 'card', 'loan', 'win', 'gameOver', 'fox', 'pick', 'stats', 'standings', 'a11y', 'statement']; // statement: QA round 14 P2-7
+const HE_GROUPS = ['game', 'card', 'loan', 'win', 'gameOver', 'fox', 'pick', 'stats', 'standings', 'a11y', 'statement', 'challenge']; // statement: QA round 14 P2-7; challenge: 0.5.1
 const FULL_ONLY = /Stock|dividend|netWorth|repay|sell|Sell|share|daily/;
 // QA round 22 P1: the practice missions run on the family rules only (no full-mode path), so EVERY mission string is a family
 // surface (FULL_ONLY is not applied: 'missions.repay.*' is the family debt mission). Two more adult words are checked there.

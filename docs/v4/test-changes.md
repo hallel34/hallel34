@@ -250,3 +250,10 @@ New games are rngVersion 2 (docs/RNG.md). New tests only add: tests/rng.test.js,
 | 38 | tests/commentary-variants.test.js | the decision line | source pin on the per-board `lastDecisionLine` | the per-device picker (src/ui/decision-lines.js, storage-backed) never repeats the last line across a re-created board; every wait option has 3 lines | QA P1 |
 | 39 | tests/e2e/tutorial-smoke.mjs | the first-game loop | clicked buy / pass on the deal-choice card; counted any opportunity card as the first deal | examines the first deal on the choice card; counts only apartment / business cards | QA P2-4: 62 -> 114 ok (a pre-existing v0.4 gap the v2 dice exposed) |
 
+
+### 0.5.1 friend challenges (developer, 2026-11-09)
+
+| # | File | Test | Old expectation | New expectation | Why the requirement forces it |
+|---|---|---|---|---|---|
+| 40 | tests/kid-vocabulary.test.js | family vocabulary: no adult money words on the key screens | `HE_GROUPS` listed 11 groups | `'challenge'` added as the 12th group; nothing else changed | the new `challenge.*` group in he.json is a family surface (copy §1, educator `_meta.merge.tests`); without it the family overrides of the challenge screens were never scanned |
+| 41 | tests/e2e/smoke.mjs | the single-player win screen's actions | "שחקו שוב" primary, "שנו מצב או מקצוע" secondary, the share button inside the viewport | when the win screen offers "שלחו אתגר" (a single-player game that can send a challenge): "שלחו אתגר" primary, "שחקו שוב" secondary, "שנו מצב או מקצוע" text, and the challenge button inside the viewport; the old checks are unchanged for every other win screen (hot-seat, daily, missions, short games) | challenges-spec §1.1 / §12.1 (CEO, 2026-11-09): on a challenge-capable win the challenge is the gold primary and replaces the plain share. Same button count and height |

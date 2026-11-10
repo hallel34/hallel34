@@ -43,13 +43,15 @@ export const seesCoins = (m, player) => !!m?.junior && cleanAge(player?.age) ===
  * @param players [{ name?, professionId, age?, bot? }] 1-4 entries; an empty name means "use the default label" (UI side).
  *   `bot` (a BOTS policy name) marks a seat the device plays itself (schema 7).
  */
-export function newMatch(engine, { mode = 'full', players, seed = 1, daily = null, roundCap = null, rngVersion = null } = {}) {
+export function newMatch(engine, { mode = 'full', players, seed = 1, daily = null, roundCap = null, rngVersion = null, challenge = null, junior: juniorRule = null } = {}) {
   if (!Array.isArray(players) || players.length < MIN_PLAYERS || players.length > MAX_PLAYERS) {
     fail(`a match needs ${MIN_PLAYERS}-${MAX_PLAYERS} players`);
   }
   if (roundCap !== null && (!Number.isInteger(roundCap) || roundCap < 1)) fail('bad round cap');
+  // 0.5.1 friend challenge: one player, the link's seed and rules; `junior` follows the LINK (not the receiver's age)
+  if (challenge && (daily || roundCap || players.length !== 1)) fail('a friend challenge is one player, never daily or short');
   const names = uniqueNames(players.map((p) => p.name));
-  const junior = !daily && isJuniorSetup(mode, players);
+  const junior = !daily && (challenge && juniorRule !== null ? !!juniorRule && mode === 'family' : isJuniorSetup(mode, players));
   return {
     schemaVersion: SCHEMA_VERSION,
     kind: 'match',
@@ -58,6 +60,8 @@ export function newMatch(engine, { mode = 'full', players, seed = 1, daily = nul
     ...(daily ? { daily: { date: String(daily.date) } } : {}), // a daily challenge (one player); normal matches carry no such field
     ...(roundCap && !daily ? { roundCap } : {}), // schema 8: a short game ends after this many rounds (the daily has its own cap)
     ...(junior ? { junior: true } : {}), // schema 6: a 'צעירים' game (round rules for everyone)
+    // 0.5.1: { log (the received link text), name, key, fresh } — optional, so no schema change; its own save slot
+    ...(challenge ? { challenge: { ...challenge } } : {}),
     players: players.map((p, i) => ({
       id: `p${i + 1}`,
       name: names[i],
@@ -65,7 +69,7 @@ export function newMatch(engine, { mode = 'full', players, seed = 1, daily = nul
       professionId: p.professionId,
       age: daily ? null : cleanAge(p.age), // schema 6
       bot: typeof p.bot === 'string' && p.bot ? p.bot : null, // schema 7: a seat the device plays itself
-      state: engine.newGame({ mode, professionId: p.professionId, seed: seed + i * SEED_STEP, ...(daily ? { daily } : {}), ...(junior ? { junior: true } : {}), ...(rngVersion ? { rngVersion } : {}) }),
+      state: engine.newGame({ mode, professionId: p.professionId, seed: seed + i * SEED_STEP, ...(daily ? { daily } : {}), ...(junior ? { junior: true } : {}), ...(rngVersion ? { rngVersion } : {}), ...(challenge ? { challenge: true } : {}) }),
     })),
     currentIndex: 0,
     turns: 0, // completed turns across all players

@@ -499,3 +499,10 @@
 .st-parents-btn { inline-size: 100%; min-block-size: 56px; flex-direction: column; gap: 2px; margin-block: 8px 4px; }
 .st-parents-hint { font-size: .8125rem; font-weight: var(--fw-medium, 500); opacity: .85; }
 .st-parents:empty { display: none; }
+
+/* 0.5.1: home's "המשיכו את האתגר" row (a 64px ghost row: the challenge icon in a 40px chip, text, mirrored chevron) */
+.start-bottom > .ch-resume { display: flex; align-items: center; gap: 12px; min-block-size: 64px; text-align: start; justify-content: flex-start; }
+.ch-resume-icon { display: grid; place-items: center; inline-size: 40px; block-size: 40px; border-radius: 50%; background: var(--surface-2); flex: none; }
+.ch-resume-text { display: flex; flex-direction: column; flex: 1 1 auto; min-inline-size: 0; line-height: 1.2; }
+.ch-resume-info { font-size: .8125rem; font-weight: 500; color: var(--text-muted); }
+.ch-resume > .icon-dir { flex: none; }

@@ -245,6 +245,31 @@ A start-screen card ("אתגר יומי") opens one family-mode game per calenda
 Tests: `tests/daily.test.js` (unit) and `node tests/e2e/daily-smoke.mjs` after `npm run build` (UI flow at 360x800, 360x640 and 320x568;
 set `AXE_PATH` to an `axe.min.js` to include the accessibility checks). Screenshots go to `qa/screens/daily/`.
 
+## Friend challenges by link (0.5.1, client only)
+
+After a single-player game, "שלחו אתגר" sends a link that lets a friend play exactly the same game (same seed, profession, mode and
+junior setting: the same dice and cards) on their own phone, then compare. There is no server.
+
+- **The link** is `<app>/#c=<log>`: the creator's whole action log (`src/engine/actionlog.js`, format 2: seed, rules config, an
+  optional display name of at most 16 characters, every action, a CRC32). A hash never reaches a server log and works offline. The
+  app reads it on boot and clears it. A reply is `#r=<log>`. Links are a few hundred characters: `node scripts/challenge-lengths.mjs`
+  reports the URL lengths with the hash (p95 about 550). Over 1,800 characters the seed-only link is sent instead.
+- **Verification**: `engine.verifyResult(textOrDecoded)` replays the log. A damaged, edited or old-version link shows the error
+  screen; a log that decodes but does not replay is still playable and shows "לא אומת" (never accusing).
+- **Challenge rules** (`newGame({ challenge: true })`): charity still takes the donation but gives no bonus die, and no reroll can be
+  armed, so both players stay on the same squares. A creator's game that used either one sends a seed-only "אתגר חדש באותו משחק".
+- **Screens**: intro, HUD chip, compare (it replaces win / game over), the replay timeline and the weekly family board (home's board
+  icon). They load as lazy chunks, together with the `challenge.*` strings (`vite.config.js` cuts them out of the main bundle in a
+  production build; `ensureStrings('challenge')` loads them). Edit the strings in `src/i18n/he.json` as usual.
+- **Storage**: a challenge in progress is saved in `passivo.challengeSave` (never the normal, daily or mission slot); sent and
+  received challenges with their verified results are kept in `passivo.challenges`, which the family board reads (Sunday to Saturday,
+  per mode: turns first, then lost games by freedom %).
+- **Junior** (age up to 10): coins and kid words on every challenge screen, no name field, and a junior link never carries a name.
+
+Tests: `tests/challenge-engine.test.js`, `tests/actionlog-v2.test.js`, `tests/challenge-store.test.js`, and `npm run smoke:challenge`
+after `npm run build` (two browsers, the same dice, compare, reply, tampered and junior links, 360x800 and 320x568; set `AXE_PATH` for
+the accessibility checks).
+
 ## Debug helpers
 
 Open the app with `?debug=1` (for example `/?debug=1&seed=11`) to get two dev-only buttons on the board

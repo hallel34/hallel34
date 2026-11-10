@@ -62,6 +62,7 @@ import {
 import { yearsPhrase, fillSlots } from '../learn/slots.js';
 import coinUrl from '../assets/coin.svg?url';
 import pawnUrl from '../assets/pawn.svg?url';
+import { challengeChip } from './challenge/hud-chip.js';
 
 // v4 stage (docs/v4/design/board-spec.md section 5): the HOME skyline (start.js SKY: 10 buildings, 8 windows, no stars) as one
 // inline SVG behind the board plate's lower half and the fox strip (viewBox 0 640 360 160, meet, so % maps exactly). Two windows
@@ -130,6 +131,8 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   const taxAuditModal = gated(rawTaxAuditModal);
   const { homeConfirmSheet, giveUpConfirmSheet } = raw;
   const isDaily = !!match.daily;
+  // 0.5.1 friend challenge: the HUD chip with its rules popover (no reroll, no bonus die; nothing else changes on the board)
+  const chChip = match.challenge ? challengeChip(match.challenge) : null;
 
   const nameOf = (i = match.currentIndex) => playerName(match.players[i], i);
   const colorOf = (i = match.currentIndex) => match.players[i].color;
@@ -180,7 +183,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     h('div', { class: 'hud-top' },
       h('div', { class: 'hud-avatar' }, avatar, babies), // kids: a small badge on the avatar, so the text column keeps all its width
       h('div', { class: 'hud-id' },
-        h('div', { class: 'hud-idline' }, hudProf, h('span', { class: 'hud-sub' }, profEl, turnEl))),
+        h('div', { class: 'hud-idline' }, hudProf, h('span', { class: 'hud-sub' }, profEl, turnEl), chChip?.el ?? null)),
       h('div', { class: 'hud-btns' }, stmtBtn, homeBtn),
       // QA round 14 P1: the cash has its own row under the name and the buttons (the full width beside the avatar), so the ₪ sign,
       // every digit and a minus sign always show (up to -₪99,999 / ₪9,999,999 at 320); fitText shrinks it as the last resort
@@ -229,7 +232,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   const hereLine = h('p', { class: 'here-line', 'data-here': '' }, hereIcon, hereText);
   // the landing caption: icon + full label, shown at every landing before the card opens
   const landCap = h('div', { class: 'land-cap', 'aria-hidden': 'true', hidden: true });
-  const legendBtn = h('button', { type: 'button', class: 'icon-btn legend-btn', 'aria-label': t('legend.open'), 'aria-haspopup': 'dialog', 'data-action': 'legend', onClick: () => { haptic('tap'); openLegend({ mode: state.mode }); } },
+  const legendBtn = h('button', { type: 'button', class: 'icon-btn legend-btn', 'aria-label': t('legend.open'), 'aria-haspopup': 'dialog', 'data-action': 'legend', onClick: () => { haptic('tap'); openLegend({ mode: state.mode, challenge: !!state.challenge }); } },
     h('span', { class: 'legend-q', 'aria-hidden': 'true' }, '?'));
   // Hot-seat: compact strip with the other players (tap to expand into a panel over the board, never over the roll button).
   const othersCells = h('span', { class: 'os-cells' }); // each cell starts with a visually hidden player name, so the button's name contains its visible text
@@ -255,7 +258,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   const actions = h('div', { class: 'board-actions' }, rollBtn, rerollBtn);
   function refreshRerollBtn() {
     const n = state.rerollTokens ?? 0;
-    const show = n > 0 && state.phase === 'roll' && state.status === 'playing' && !state.daily && !busy;
+    const show = n > 0 && state.phase === 'roll' && state.status === 'playing' && !state.daily && !state.challenge && !busy;
     rerollBtn.hidden = !show;
     if (show) {
       rerollBtn.replaceChildren(state.rerollArmed ? t('game.rerollArmed') : t('game.rerollArm', { n }));
@@ -1449,6 +1452,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     removeEventListener('resize', sizeBoard);
     document.documentElement.removeAttribute('data-flow-pop');
     famHud?.destroy();
+    chChip?.destroy();
     mqShort?.removeEventListener?.('change', refreshHud);
     mqMin?.removeEventListener?.('change', refreshHud);
     guide.destroy();

@@ -33,6 +33,8 @@ jobs:
         run: npm run smoke
       - name: Players screen seats smoke test (seat 1 is the person)
         run: npm run smoke:players
+      - name: Friend challenge smoke test (link, same dice, compare, reply, tampered, junior; 360x800 + 320x568)
+        run: npm run smoke:challenge
       - name: First-asset mission smoke test
         run: |
           npm run preview -- --host 127.0.0.1 --port 4182 &

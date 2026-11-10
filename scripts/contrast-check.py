@@ -117,6 +117,20 @@ dark += [
 light += [
  ('v3.1 light hint strip text / surface-2','#0F172A','#FFF9EC',4.5),('v3.1 light text / bg','#0F172A','#FBF3E1',4.5),
 ]
+# 0.5.1 friend challenges (docs/v051/design/challenges-spec.md §9; the timeline's split rows sit on --bg, the cards on surface)
+def _mix(fg,al,bg): f,b_=h(fg),h(bg); return '#%02X%02X%02X'%tuple(round(f[i]*al+b_[i]*(1-al)) for i in range(3))
+for _rows,T,split,tint in ((dark,dict(bg='#0F172A',surface='#182238',s2='#212D48',text='#F5F7FC',muted='#A9B5D0',income='#5FE0AE',bstrong='#8A97B8'),'#7CC4FF',.14),
+                           (light,dict(bg='#FBF3E1',surface='#FFFFFF',s2='#FFF9EC',text='#0F172A',muted='#3F4C78',income='#0B6B43',bstrong='#6F7899'),'#1A62B3',.10)):
+    for sn in ('bg','surface','s2'):
+        _rows.append((f'0.5.1 --split text / {sn}',split,T[sn],4.5))
+        st=_mix(split,tint,T[sn])
+        for tn_ in ('text','muted'): _rows.append((f'0.5.1 --{tn_} on the split row tint over {sn}',T[tn_],st,4.5))
+        _rows.append((f'0.5.1 --split why-line on the split row tint over {sn}',split,st,4.5))
+    vt=_mix(T['income'],tint,T['surface'])
+    _rows += [('0.5.1 verified badge --income / its tint',T['income'],vt,4.5),('0.5.1 "לא אומת" --text-muted / surface',T['muted'],T['surface'],4.5),
+              ('0.5.1 "לא אומת" dashed border / surface (non-text)',T['bstrong'],T['surface'],3),('0.5.1 HUD chip text / surface',T['text'],T['surface'],4.5),
+              ('0.5.1 HUD chip border / surface (non-text)',T['bstrong'],T['surface'],3),('0.5.1 compare winner --income / surface-2',T['income'],T['s2'],4.5),
+              ('0.5.1 compare label --text-muted / surface-2',T['muted'],T['s2'],4.5),('0.5.1 end marker --income / bg',T['income'],T['bg'],4.5)]
 bad=0; md='--md' in sys.argv
 for name,rows in (('DARK',dark),('LIGHT',light)):
     print(f'\n### {name}' if md else f'== {name} =='); 

@@ -323,9 +323,10 @@ export function createEngine(data, { validate = true, drawScheme = V2_DRAW_SCHEM
   }
 
   // ---------- setup ----------
-  function newGame({ mode = 'full', professionId, seed = 1, daily = null, junior = false, rngVersion = null } = {}) {
+  function newGame({ mode = 'full', professionId, seed = 1, daily = null, junior = false, rngVersion = null, challenge = false } = {}) {
     if (mode !== 'family' && mode !== 'full') fail(`unknown mode ${mode}`);
     if (junior && (mode !== 'family' || daily)) fail('a junior game is a family game (and never the daily challenge)');
+    if (challenge && daily) fail('a friend challenge is never the daily challenge');
     const raw = professionById.get(professionId ?? data.professions[0].id);
     if (!raw) fail(`unknown profession ${professionId}`);
     const profession = junior ? juniorProfession(raw) : raw;
@@ -373,6 +374,9 @@ export function createEngine(data, { validate = true, drawScheme = V2_DRAW_SCHEM
       log: [], // schema 9: every dispatched action, in order (replay / action-log links)
     };
     if (junior) d.junior = true; // 'צעירים' round rules (schema 6)
+    // 0.5.1 friend challenge (owner 2026-11-03, docs/RNG.md §4): charity gives no bonus die and no reroll can be armed, so both
+    // players on the seed stay on the same squares. Optional field: no schema change (old saves simply have no challenge).
+    if (challenge) d.challenge = true;
     if (daily) {
       // opt-in rules flag: pre-determined dice / card streams (see daily.js) and an action log for later verification
       d.daily = { date: String(daily.date), turnCap: daily.turnCap ?? DAILY_TURN_CAP, log: [] };
@@ -475,6 +479,7 @@ export function createEngine(data, { validate = true, drawScheme = V2_DRAW_SCHEM
     const d = begin(state);
     if (d.phase !== 'roll') fail('cannot arm a reroll now');
     if (d.daily) fail('no reroll in the daily challenge');
+    if (d.challenge) fail('no reroll in a friend challenge');
     if (!d.rerollArmed && !(d.rerollTokens > 0)) fail('no reroll token');
     d.rerollArmed = !d.rerollArmed;
     d.events.push({ type: 'rerollArmed', armed: d.rerollArmed });
@@ -488,7 +493,8 @@ export function createEngine(data, { validate = true, drawScheme = V2_DRAW_SCHEM
     d.turn += 1;
     logAction(d, 'roll');
     tickEffects(d);
-    const diceCount = d.charityTurns > 0 ? 2 : 1;
+    // a friend challenge never rolls charity's bonus die (the donation itself still happens)
+    const diceCount = d.charityTurns > 0 && !d.challenge ? 2 : 1;
     if (d.charityTurns > 0) d.charityTurns -= 1;
     const v1 = isV1(d);
     // v2: die k of turn t is keyed by (seed, 'dice', t, k): the charity bonus die is k = 1 of the same turn, so it never shifts a later value
@@ -496,7 +502,7 @@ export function createEngine(data, { validate = true, drawScheme = V2_DRAW_SCHEM
     const rollSet = (die) => forcedDice ?? Array.from({ length: diceCount }, (_, k) => die(k));
     let dice = rollSet(v1 ? v1Die : (k) => v2Die(d.seed, d.turn, k));
     // v0.4: an armed reroll token rolls a second set and keeps the higher total (the token is spent either way)
-    if (d.rerollArmed && d.rerollTokens > 0 && !d.daily) {
+    if (d.rerollArmed && d.rerollTokens > 0 && !d.daily && !d.challenge) {
       const second = rollSet(v1 ? v1Die : (k) => v2RerollDie(d.seed, d.turn, k));
       const total = (set) => set.reduce((a, b) => a + b, 0);
       d.rerollTokens -= 1;
@@ -943,7 +949,7 @@ export function createEngine(data, { validate = true, drawScheme = V2_DRAW_SCHEM
     if (d.cash < cost) fail('not enough cash');
     logAction(d, 'donate');
     payFromCash(d, cost);
-    d.charityTurns = CHARITY_TURNS;
+    d.charityTurns = d.challenge ? 0 : CHARITY_TURNS; // a challenge donation buys no bonus die
     d.stats.donations += 1;
     d.events.push({ type: 'donated', cost });
     d.pending = null;
@@ -1151,8 +1157,11 @@ export function createEngine(data, { validate = true, drawScheme = V2_DRAW_SCHEM
     return s;
   }
 
-  return {
+  const api = {
     data, newGame, debugForce, forfeit, roll, armReroll, buy, pass, chooseDeal, renovate, auctionWin, acceptOffer, declineOffer, donate,
     declineCharity, takeLoan, repayLoan, sellAsset, decide, decisionOptions, answerAudit, dispatch, replay, ACTION_TYPES,
   };
+  // 0.5.1: engine.verifyResult(log) is attached by engine/index.js (and by the lazy challenge flow in the app), so the verifier
+  // and the action-log codec stay out of the app's main bundle (QA 0.5.1 P2-3)
+  return api;
 }

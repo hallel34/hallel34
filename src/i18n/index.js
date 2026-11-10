@@ -51,9 +51,31 @@ export const rawString = (key, loc = locale) => {
   return typeof s === 'string' ? s : undefined;
 };
 
+// QA 0.5.1 P2-3: groups a production build loads on demand (vite.config.js lazyStringsPlugin cuts them out of the locale bundle
+// and marks them in `__lazy`). Dev and tests never cut anything, so ensureStrings() is then a no-op.
+const LAZY = { challenge: () => import('virtual:i18n-lazy/challenge') };
+let lazyFamily = {}; // the family-layer lines of the lazy groups (they join the override layer whenever it is on)
+const merge = (into, from) => {
+  for (const [k, v] of Object.entries(from)) {
+    if (v && typeof v === 'object' && !Array.isArray(v) && into[k] && typeof into[k] === 'object') merge(into[k], v);
+    else into[k] = v;
+  }
+  return into;
+};
+/** Loads a lazy string group (once) before a screen that shows it. Resolves at once when it is already there. */
+export async function ensureStrings(group) {
+  const he = bundles[FALLBACK];
+  if (!he.__lazy?.includes(group) || !LAZY[group]) return;
+  const { strings, family } = (await LAZY[group]()).default;
+  merge(he[group] ??= {}, strings);
+  lazyFamily = { ...lazyFamily, ...family };
+  he.__lazy = he.__lazy.filter((g) => g !== group);
+}
+
 /** Same as t() but keeps the glossary markup. */
 export function tRaw(key, params) {
   let s = overrides?.[key];
+  if (overrides && typeof s !== 'string') s = lazyFamily[key];
   if (typeof s !== 'string') s = lookup(bundles[locale], key);
   if (typeof s !== 'string') s = lookup(bundles[FALLBACK], key);
   if (typeof s !== 'string') {

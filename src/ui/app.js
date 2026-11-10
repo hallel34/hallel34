@@ -4,10 +4,12 @@ import { prepareBoardImage } from './board-ready.js';
 import { h, clear } from './dom.js';
 import { toast } from './fx.js';
 import {
-  createEngine, serialize, deserialize, newMatch, rematch, isMultiplayer, currentState, dailySeed, dailyProfessionId, DAILY_MODE, seesCoins, isJuniorSetup, JUNIOR_AGE, cleanAge,
+  serialize, deserialize, newMatch, rematch, isMultiplayer, currentState, dailySeed, dailyProfessionId, DAILY_MODE, seesCoins, isJuniorSetup, JUNIOR_AGE, cleanAge,
   SHORT_ROUNDS, botProfessionId,
 } from '../engine/index.js';
 import { setCoinScale } from './format.js';
+// the bare engine: its verifier (engine/challenge.js + the action-log codec) arrives with the lazy challenge flow (QA 0.5.1 P2-3)
+import { createEngine } from '../engine/engine.js';
 import { loadData } from '../data/index.js';
 import { readRaw, writeRaw, remove } from '../services/storage.js';
 import { createMatchStore } from '../services/match-store.js';
@@ -22,7 +24,7 @@ import { streakView } from '../daily/streak.js';
 import { dailyStatus } from '../daily/attempt.js';
 import { loadResults, loadStreak, endDailyGame, resetDay } from '../daily/store.js';
 import { showInterstitial } from '../services/ads.js';
-import { getLocale, t } from '../i18n/index.js';
+import { getLocale, t, ensureStrings } from '../i18n/index.js';
 import { destroyAllLayers, openLayer } from './modal.js';
 import { button } from './widgets.js';
 import { initTermButtons } from './learn.js';
@@ -39,6 +41,7 @@ import { completedShortMissions } from '../services/mission-progress.js';
 import { createMissions } from './screens/missions.js';
 import { createShortMission } from './screens/short-mission.js';
 import { loadMissionStyles } from './mission-styles.js';
+import { SLOT_CHALLENGE } from '../services/match-store.js';
 
 // The board (play.js: board, cards, bots, auctions, renovation, learning flow) is its own chunk, off the home screen's critical
 // path (QA round 19 perf). main.js warms it up at idle time; the service worker precaches it, so it opens offline too.
@@ -237,8 +240,12 @@ export function createApp(host) {
 
   function goStart() {
     setCoinScale(false);
+    const chSave = loadChallengeSave();
     const start = createStart({
       save: loadSave(),
+      challengeSave: chSave ? { name: chSave.challenge.name || '', turn: currentState(chSave).turn } : null,
+      onChallengeResume: () => { const m = loadChallengeSave(); if (m) goPlay(m); },
+      onBoard: () => goBoard(),
       mode,
       gamesPlayed: gamesPlayed(),
       daily: dailyInfo(),
@@ -318,6 +325,7 @@ export function createApp(host) {
 
   async function goPlay(m, { fresh = false } = {}) {
     store.save(m);
+    if (m.challenge) await challengeStrings(); // the HUD chip, the charity line and the legend speak the challenge rules
     setLearnMode(m.mode);
     try { await loadBoardStyles(); } catch (err) { console.warn(err); } // the board is usable (if plainer) even without its v4 stylesheet
     try { await prepareBoardImage(); } catch (err) { console.error(err); toast(t('app.loadError'), 4000); return; }
@@ -352,6 +360,7 @@ export function createApp(host) {
 
   async function goWin(m) {
     if (m.daily) { finishDaily(m); return; }
+    if (m.challenge) { goChallengeEnd(m); return; }
     store.clear(m);
     countGame();
     const multi = isMultiplayer(m);
@@ -360,13 +369,14 @@ export function createApp(host) {
       match: m,
       onAgain: () => again(m),
       onMenu: () => { if (multi) { settingsOf(m); goPlayers(); } else goStart(); },
-    });
+    }, { onChallenge: challengeHandler(m) });
     mount({ el: win.el }, { start: () => win.start() });
     showInterstitial('win');
   }
 
   function goOver(m) {
     if (m.daily) { finishDaily(m); return; }
+    if (m.challenge) { goChallengeEnd(m); return; }
     store.clear(m);
     countGame();
     const multi = isMultiplayer(m);
@@ -375,9 +385,46 @@ export function createApp(host) {
       match: m,
       onRetry: () => again(m),
       onMenu: () => { if (multi) { settingsOf(m); goPlayers(); } else goStart(); },
-    });
+    }, { onChallenge: challengeHandler(m) });
     mount({ el: over.el }, { start: () => over.start() });
   }
 
-  return { start: goStart, engine, data, h };
+  // ---------- 0.5.1 friend challenges by link (the flow itself is a lazy chunk: src/ui/challenge/flow.js) ----------
+  let flowChunk = null;
+  const challengeFlow = () => (flowChunk ??= import('./challenge/flow.js').then(({ createChallengeFlow }) => createChallengeFlow({
+    engine, mount, goStart, goPlay, goPlayers, store, countGame, loadChallengeSave,
+  })).catch((err) => { flowChunk = null; throw err; }));
+  const challengeStrings = () => ensureStrings('challenge').catch((err) => console.error(err));
+  const goChallengeEnd = (m) => challengeFlow().then((f) => f.end(m), (err) => { console.error(err); toast(t('app.loadError'), 4000); });
+  const goBoard = () => challengeFlow().then((f) => f.board(), (err) => { console.error(err); toast(t('app.loadError'), 4000); });
+
+  /** A challenge game in progress (its own slot), or null. */
+  function loadChallengeSave() {
+    const m = deserialize(readRaw(SLOT_CHALLENGE));
+    const ok = m && m.challenge && typeof m.challenge.log === 'string' && m.status === 'playing' && m.players.length === 1
+      && currentState(m).challenge && engine.data.professions.some((x) => x.id === currentState(m).profession?.id);
+    return ok ? m : null;
+  }
+
+  /** Boot / hashchange: '#c=' or '#r=' in the address. The hash is cleared right after reading (a reload never re-opens it). */
+  function openLinkFromHash() {
+    const hash = location.hash;
+    if (!/^#[cr]=/.test(hash)) return false;
+    try { history.replaceState(null, '', `${location.pathname}${location.search}`); } catch { /* ignore */ }
+    challengeFlow().then((f) => f.routeLink(hash), (err) => { console.error(err); goStart(); });
+    return true;
+  }
+  addEventListener('hashchange', () => { if (/^#[cr]=/.test(location.hash)) openLinkFromHash(); });
+
+  /**
+   * The end screen's "שלחו אתגר" (spec §1.1): a cheap check here (single player, not daily / mission / short / a challenge, a v2 game
+   * that ended with a log); the flow chunk replays the log on the tap and picks the whole link or the seed-only one.
+   */
+  function challengeHandler(m) {
+    const s = m?.players?.length === 1 && !m.players[0].bot ? m.players[0].state : null;
+    if (!s || m.daily || m.mission || m.roundCap || m.challenge || s.daily || s.challenge || s.rngVersion !== 2 || s.status === 'playing' || !s.log?.length) return null;
+    return () => challengeFlow().then((f) => f.openCreate(m), (err) => { console.error(err); toast(t('app.loadError'), 4000); });
+  }
+
+  return { start: () => { if (!openLinkFromHash()) goStart(); }, engine, data, h };
 }
