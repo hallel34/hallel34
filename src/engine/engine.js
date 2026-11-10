@@ -21,7 +21,6 @@ import { dailyDie, dailyPick, DAILY_TURN_CAP, dailyRngVersion } from './daily.js
 import { RNG_V1, RNG_V2, RNG_VERSION, V2_DRAW_SCHEME, v2Die, v2RerollDie, v2AuditPick, v2DeckOrder, v2DeckCycle, stableStringify } from './rng.js';
 import { recordGuess, dealMetrics } from './learn.js';
 import { renovationLevel, renovationLevelsFor, RENOVATION_STYLES } from './renovation.js';
-import { verifyResult } from './challenge.js';
 
 export class EngineError extends Error {}
 
@@ -1162,7 +1161,7 @@ export function createEngine(data, { validate = true, drawScheme = V2_DRAW_SCHEM
     data, newGame, debugForce, forfeit, roll, armReroll, buy, pass, chooseDeal, renovate, auctionWin, acceptOffer, declineOffer, donate,
     declineCharity, takeLoan, repayLoan, sellAsset, decide, decisionOptions, answerAudit, dispatch, replay, ACTION_TYPES,
   };
-  /** 0.5.1: replays a challenge link (a base64url action log or a decoded one) and reports its result (challenge.js). */
-  api.verifyResult = (log) => verifyResult(api, log);
+  // 0.5.1: engine.verifyResult(log) is attached by engine/index.js (and by the lazy challenge flow in the app), so the verifier
+  // and the action-log codec stay out of the app's main bundle (QA 0.5.1 P2-3)
   return api;
 }

@@ -4,10 +4,12 @@ import { prepareBoardImage } from './board-ready.js';
 import { h, clear } from './dom.js';
 import { toast } from './fx.js';
 import {
-  createEngine, serialize, deserialize, newMatch, rematch, isMultiplayer, currentState, dailySeed, dailyProfessionId, DAILY_MODE, seesCoins, isJuniorSetup, JUNIOR_AGE, cleanAge,
+  serialize, deserialize, newMatch, rematch, isMultiplayer, currentState, dailySeed, dailyProfessionId, DAILY_MODE, seesCoins, isJuniorSetup, JUNIOR_AGE, cleanAge,
   SHORT_ROUNDS, botProfessionId,
 } from '../engine/index.js';
 import { setCoinScale } from './format.js';
+// the bare engine: its verifier (engine/challenge.js + the action-log codec) arrives with the lazy challenge flow (QA 0.5.1 P2-3)
+import { createEngine } from '../engine/engine.js';
 import { loadData } from '../data/index.js';
 import { readRaw, writeRaw, remove } from '../services/storage.js';
 import { createMatchStore } from '../services/match-store.js';
@@ -22,7 +24,7 @@ import { streakView } from '../daily/streak.js';
 import { dailyStatus } from '../daily/attempt.js';
 import { loadResults, loadStreak, endDailyGame, resetDay } from '../daily/store.js';
 import { showInterstitial } from '../services/ads.js';
-import { getLocale, t } from '../i18n/index.js';
+import { getLocale, t, ensureStrings } from '../i18n/index.js';
 import { destroyAllLayers, openLayer } from './modal.js';
 import { button } from './widgets.js';
 import { initTermButtons } from './learn.js';
@@ -39,11 +41,7 @@ import { completedShortMissions } from '../services/mission-progress.js';
 import { createMissions } from './screens/missions.js';
 import { createShortMission } from './screens/short-mission.js';
 import { loadMissionStyles } from './mission-styles.js';
-import { challengeEligibility, linkLogOf, encodeActionLog, configOf, challengeKey } from '../engine/index.js';
 import { SLOT_CHALLENGE } from '../services/match-store.js';
-import { loadChallenges, saveChallenges, upsertEntry, findEntry, summaryOf } from '../services/challenge-store.js';
-import { parseChallengeHash, routeChallenge, guardLinkKind, LONGEST_NAME } from '../services/challenge-route.js';
-import { setJuniorView, viewerAge, viewerIsJunior, ct, linkUrl, shareMessage } from './challenge/copy.js';
 
 // The board (play.js: board, cards, bots, auctions, renovation, learning flow) is its own chunk, off the home screen's critical
 // path (QA round 19 perf). main.js warms it up at idle time; the service worker precaches it, so it opens offline too.
@@ -327,6 +325,7 @@ export function createApp(host) {
 
   async function goPlay(m, { fresh = false } = {}) {
     store.save(m);
+    if (m.challenge) await challengeStrings(); // the HUD chip, the charity line and the legend speak the challenge rules
     setLearnMode(m.mode);
     try { await loadBoardStyles(); } catch (err) { console.warn(err); } // the board is usable (if plainer) even without its v4 stylesheet
     try { await prepareBoardImage(); } catch (err) { console.error(err); toast(t('app.loadError'), 4000); return; }
@@ -390,10 +389,14 @@ export function createApp(host) {
     mount({ el: over.el }, { start: () => over.start() });
   }
 
-  // ---------- 0.5.1 friend challenges by link ----------
-  const chStore = { load: () => loadChallenges(), save: (st) => saveChallenges(st) };
-  const professionTitle = (id) => engine.data.professions.find((p) => p.id === id)?.title ?? '';
-  const verify = (x) => engine.verifyResult(x);
+  // ---------- 0.5.1 friend challenges by link (the flow itself is a lazy chunk: src/ui/challenge/flow.js) ----------
+  let flowChunk = null;
+  const challengeFlow = () => (flowChunk ??= import('./challenge/flow.js').then(({ createChallengeFlow }) => createChallengeFlow({
+    engine, mount, goStart, goPlay, goPlayers, store, countGame, loadChallengeSave,
+  })).catch((err) => { flowChunk = null; throw err; }));
+  const challengeStrings = () => ensureStrings('challenge').catch((err) => console.error(err));
+  const goChallengeEnd = (m) => challengeFlow().then((f) => f.end(m), (err) => { console.error(err); toast(t('app.loadError'), 4000); });
+  const goBoard = () => challengeFlow().then((f) => f.board(), (err) => { console.error(err); toast(t('app.loadError'), 4000); });
 
   /** A challenge game in progress (its own slot), or null. */
   function loadChallengeSave() {
@@ -403,198 +406,24 @@ export function createApp(host) {
     return ok ? m : null;
   }
 
-  /** The challenge screens follow the viewer's age band: coins + kid words for 'עד 10' (spec §7). */
-  function viewerScale(config) {
-    const junior = viewerIsJunior();
-    setJuniorView(junior);
-    setCoinScale(junior);
-    setLearnMode(junior || config?.mode !== 'full' ? 'family' : 'full');
-    return junior;
-  }
-
   /** Boot / hashchange: '#c=' or '#r=' in the address. The hash is cleared right after reading (a reload never re-opens it). */
   function openLinkFromHash() {
-    const link = parseChallengeHash(location.hash);
-    if (!link && !/^#[cr]=/.test(location.hash)) return false;
+    const hash = location.hash;
+    if (!/^#[cr]=/.test(hash)) return false;
     try { history.replaceState(null, '', `${location.pathname}${location.search}`); } catch { /* ignore */ }
-    if (!link) { goChallengeError({ variant: 'invalid', code: 'FORMAT' }); return true; }
-    const save = loadChallengeSave();
-    const r = routeChallenge({ link, verify, store: chStore.load(), saveKey: save?.challenge?.key ?? null });
-    if (r.screen === 'error') goChallengeError(r);
-    else if (r.screen === 'own') { goStart(); toast(ct('intro.ownLink'), 3500); }
-    else if (r.screen === 'compare') {
-      const now = Date.now();
-      chStore.save(upsertEntry(chStore.load(), 'sent', r.key, { them: { link: link.text, name: r.them.log.name ?? '', result: summaryOf(r.them), at: now } }));
-      goCompare({ entry: findEntry(chStore.load(), 'sent', r.key), variant: 'reply' });
-    } else goChallengeIntro({ ...r, text: link.text }, save);
+    challengeFlow().then((f) => f.routeLink(hash), (err) => { console.error(err); goStart(); });
     return true;
   }
   addEventListener('hashchange', () => { if (/^#[cr]=/.test(location.hash)) openLinkFromHash(); });
 
-  async function goChallengeError({ variant, code }) {
-    viewerScale(null);
-    const { createChallengeError } = await import('./screens/challenge-intro.js');
-    mount(createChallengeError({ variant, code, onHome: () => goStart(), onPlay: () => goPlayers() }));
-  }
-
-  async function goChallengeIntro(r, save = loadChallengeSave()) {
-    const cfg = r.them.log.config;
-    viewerScale(cfg);
-    const { createChallengeIntro } = await import('./screens/challenge-intro.js');
-    const intro = createChallengeIntro({
-      route: r, profession: { id: cfg.professionId, title: professionTitle(cfg.professionId) }, pendingName: save?.challenge?.name ?? '',
-      onPlay: () => startChallenge(r),
-      onPlayAgain: () => startChallenge(r),
-      onContinue: () => { const m = loadChallengeSave(); if (m) goPlay(m); },
-      onResult: () => goCompare({ entry: r.entry, variant: 'view' }),
-      onLater: () => { rememberReceived(r); goStart(); },
-      onAge: (band) => { writeRaw('lastAge', band); goChallengeIntro(r, save); },
-    });
-    mount(intro, { start: () => intro.start() });
-  }
-
-  /** "לא עכשיו" / start: the received challenge is kept (the board shows the creator's verified result anyway). */
-  function rememberReceived(r) {
-    const log = r.them.log;
-    const now = Date.now();
-    const st = chStore.load();
-    const old = findEntry(st, 'received', r.key);
-    const keepMine = old?.them?.link === r.text;
-    chStore.save(upsertEntry(st, 'received', r.key, {
-      seed: log.seed, config: { mode: log.config.mode, professionId: log.config.professionId, ...(log.config.junior ? { junior: true } : {}) },
-      at: now, them: { link: r.text, name: log.name ?? '', result: summaryOf(r.them), at: old?.them?.link === r.text ? old.them.at : now, fresh: r.fresh },
-      ...(keepMine ? {} : { me: null }),
-    }));
-  }
-
-  /** A challenge match on the link's seed and rules (profession, mode and junior locked; the receiver's age only scales the display). */
-  async function startChallenge(r) {
-    rememberReceived(r);
-    const log = r.them.log;
-    const cfg = log.config;
-    const v = r.them;
-    const m = newMatch(engine, {
-      mode: cfg.mode, seed: log.seed, junior: !!cfg.junior,
-      players: [{ name: '', professionId: cfg.professionId, age: viewerAge() }],
-      challenge: {
-        log: r.text, name: log.name ?? '', key: r.key, fresh: !!r.fresh,
-        target: v.ok && !r.fresh ? { status: v.status, turns: v.turns, freedomPct: v.freedomPct } : null,
-      },
-    });
-    setCoinScale(seesCoins(m, m.players[0]));
-    setJuniorView(viewerIsJunior());
-    // a brand-new user arriving by link still gets the first family game's story (spec §2.1)
-    if (cfg.mode === 'family' && !loadTutorial().storyDone) {
-      try {
-        const { runFirstGameIntro } = await import('./tutorial/index.js');
-        await runFirstGameIntro({ engine, professionId: cfg.professionId });
-      } catch (err) { console.error(err); }
-    }
-    goPlay(m, { fresh: true });
-  }
-
-  /** A challenge game ended: my log is replayed next to theirs, stored, and compare replaces win / over. */
-  function goChallengeEnd(m) {
-    store.clear(m);
-    countGame();
-    const s = currentState(m);
-    const mine = encodeActionLog(linkLogOf(s));
-    const me = verify(mine);
-    const them = verify(m.challenge.log);
-    const now = Date.now();
-    const st = chStore.load();
-    chStore.save(upsertEntry(st, 'received', m.challenge.key, {
-      seed: s.seed, config: { mode: s.mode, professionId: s.profession.id, ...(s.junior ? { junior: true } : {}) }, at: now,
-      me: { link: mine, result: summaryOf(me), at: now },
-      them: { link: m.challenge.log, name: m.challenge.name ?? '', result: summaryOf(them), at: findEntry(st, 'received', m.challenge.key)?.them?.at ?? now, fresh: !!m.challenge.fresh },
-    }));
-    goCompare({ entry: findEntry(chStore.load(), 'received', m.challenge.key), variant: 'end' });
-    showInterstitial(s.status === 'won' ? 'win' : 'over');
-  }
-
-  /** Compare from a stored entry: both sides re-verified from their link texts (nothing stored is trusted). */
-  async function goCompare({ entry, variant }) {
-    if (!entry?.me?.link) { goStart(); return; }
-    const me = verify(entry.me.link);
-    const them = entry.them?.link ? verify(entry.them.link) : null;
-    viewerScale(entry.config);
-    const { createCompare } = await import('./screens/compare.js');
-    const themName = entry.them?.name ?? '';
-    const cmp = createCompare({
-      engine, me, them, themName, professionId: entry.config?.professionId ?? me.professionId, variant,
-      onHome: () => goStart(),
-      onBoard: () => goBoard(),
-      onReplay: (turn) => goTimeline({ entry, me, them, themName, turn, back: () => goCompare({ entry: findEntry(chStore.load(), entry.role, entry.key) ?? entry, variant }) }),
-      onReply: () => openReply(entry, me, them),
-      onPlaySame: () => startChallenge({ them, key: entry.key, text: entry.them.link, fresh: false, verified: !!them?.ok }),
-      onNewChallenge: () => goPlayers(),
-    });
-    mount(cmp, { start: () => cmp.start() });
-  }
-
-  async function goTimeline({ me, them, themName, turn, back, entry }) {
-    const { createTimeline } = await import('./screens/timeline.js');
-    const tl = createTimeline({ engine, me, them, themName, professionId: entry.config?.professionId ?? me.professionId, focusTurn: turn, onBack: back });
-    mount(tl, { start: () => tl.start() });
-  }
-
-  async function goBoard() {
-    viewerScale({ mode: 'family' });
-    const { createFamilyBoard } = await import('./screens/family-board.js');
-    const st = chStore.load();
-    mount(createFamilyBoard({
-      store: st, professionTitle,
-      onRow: (row) => { const e = findEntry(chStore.load(), row.role, row.key); if (e?.me?.link && e.them?.link) goCompare({ entry: e, variant: 'view' }); },
-      onHome: () => goStart(),
-      onStart: () => goStart(),
-    }));
-  }
-
-  /** "שלחו את התוצאה שלכם": my log as a reply link (#r=), with my optional name. */
-  async function openReply(entry, me, them) {
-    const { openShareSheet } = await import('./challenge/share-sheet.js');
-    const base = me.log;
-    const fresh = !them?.ok || !!them.empty || !them.comparable;
-    const build = (name) => {
-      const text = encodeActionLog({ ...base, ...(name ? { name } : {}) });
-      return { text: shareMessage({ kind: 'reply', fresh, result: me, name, config: base.config, url: linkUrl(text, 'r') }), link: text };
-    };
-    openShareSheet({
-      build,
-      onSend: (name, built) => chStore.save(upsertEntry(chStore.load(), entry.role, entry.key, { me: { sentLink: built.link, name } })),
-    });
-  }
-
-  /** The end screen's "שלחו אתגר" for a game that can send one (null otherwise: the v3.1 layout stays). */
+  /**
+   * The end screen's "שלחו אתגר" (spec §1.1): a cheap check here (single player, not daily / mission / short / a challenge, a v2 game
+   * that ended with a log); the flow chunk replays the log on the tap and picks the whole link or the seed-only one.
+   */
   function challengeHandler(m) {
-    let kind = false;
-    try { kind = challengeEligibility(engine, m); } catch (err) { console.error(err); }
-    if (!kind) return null;
-    return async () => {
-      const s = currentState(m);
-      // a very busy game whose URL would pass LINK_MAX goes out as the seed-only "new challenge" (QA 0.5.1 P2-4)
-      kind = guardLinkKind(kind, (k) => linkUrl(encodeActionLog(linkLogOf(s, { kind: k, name: LONGEST_NAME })), 'c'));
-      const junior = seesCoins(m, m.players[0]) || viewerIsJunior();
-      setJuniorView(junior);
-      const { openShareSheet } = await import('./challenge/share-sheet.js');
-      const full = encodeActionLog(linkLogOf(s));
-      const me = verify(full);
-      const config = configOf(s);
-      const build = (name) => {
-        const text = encodeActionLog(linkLogOf(s, { kind, name }));
-        return { text: shareMessage({ kind: 'invite', fresh: kind === 'fresh', result: me, name, config, url: linkUrl(text, 'c') }), link: text };
-      };
-      openShareSheet({
-        build, fresh: kind === 'fresh',
-        onSend: (name, built) => {
-          const now = Date.now();
-          chStore.save(upsertEntry(chStore.load(), 'sent', challengeKey({ seed: s.seed, config }), {
-            seed: s.seed, config: { mode: s.mode, professionId: s.profession.id, ...(s.junior ? { junior: true } : {}) }, at: now,
-            me: { link: full, sentLink: built.link, name, result: summaryOf(me), at: now, fresh: kind === 'fresh' },
-          }));
-        },
-      });
-    };
+    const s = m?.players?.length === 1 && !m.players[0].bot ? m.players[0].state : null;
+    if (!s || m.daily || m.mission || m.roundCap || m.challenge || s.daily || s.challenge || s.rngVersion !== 2 || s.status === 'playing' || !s.log?.length) return null;
+    return () => challengeFlow().then((f) => f.openCreate(m), (err) => { console.error(err); toast(t('app.loadError'), 4000); });
   }
 
   return { start: () => { if (!openLinkFromHash()) goStart(); }, engine, data, h };

@@ -40,7 +40,7 @@ export const ACTION_CODES = {
 };
 /** Never in a link: a QA force, and the hot-seat auction actions (a link is one player's game; a forged auction card could win). */
 export const REFUSED_IN_LINKS = ['debugForce', 'auctionWin', 'auctionOpen', 'auctionClose'];
-const TYPE_OF = Object.fromEntries(Object.entries(ACTION_CODES).map(([k, v]) => [v, k]));
+const TYPE_OF = /* @__PURE__ */ Object.fromEntries(Object.entries(ACTION_CODES).map(([k, v]) => [v, k]));
 
 const LIGHTS = [null, 'green', 'yellow', 'red'];
 const GUESSES = ['good', 'bad', 'skip'];
@@ -49,7 +49,9 @@ const CORRECT = [null, true, false];
 const MODES = ['family', 'full'];
 
 // ---------- CRC32 (IEEE) ----------
-const CRC_TABLE = (() => {
+// the tables are built on first use: no top-level work, so a bundle that never encodes a link can drop this module (QA 0.5.1 P2-3)
+let CRC_TABLE = null;
+const crcTable = () => CRC_TABLE ??= (() => {
   const t = new Uint32Array(256);
   for (let n = 0; n < 256; n++) {
     let c = n;
@@ -60,13 +62,15 @@ const CRC_TABLE = (() => {
 })();
 export function crc32(bytes) {
   let c = 0xFFFFFFFF;
-  for (const b of bytes) c = CRC_TABLE[(c ^ b) & 0xFF] ^ (c >>> 8);
+  const table = crcTable();
+  for (const b of bytes) c = table[(c ^ b) & 0xFF] ^ (c >>> 8);
   return (c ^ 0xFFFFFFFF) >>> 0;
 }
 
 // ---------- base64url ----------
 const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
-const B64_INDEX = Object.fromEntries([...B64].map((ch, i) => [ch, i]));
+let B64_INDEX = null;
+const b64Index = () => B64_INDEX ??= Object.fromEntries([...B64].map((ch, i) => [ch, i]));
 export function toBase64Url(bytes) {
   let out = '';
   for (let i = 0; i < bytes.length; i += 3) {
@@ -79,9 +83,10 @@ export function toBase64Url(bytes) {
 export function fromBase64Url(str) {
   if (typeof str !== 'string' || !/^[A-Za-z0-9_-]*$/.test(str) || str.length % 4 === 1) fail('not a base64url action log');
   const bytes = [];
+  const index = b64Index();
   for (let i = 0; i < str.length; i += 4) {
     const chunk = str.slice(i, i + 4);
-    const n = [...chunk].reduce((acc, ch, k) => acc | (B64_INDEX[ch] << (18 - 6 * k)), 0);
+    const n = [...chunk].reduce((acc, ch, k) => acc | (index[ch] << (18 - 6 * k)), 0);
     bytes.push((n >> 16) & 255);
     if (chunk.length > 2) bytes.push((n >> 8) & 255);
     if (chunk.length > 3) bytes.push(n & 255);

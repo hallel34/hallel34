@@ -68,14 +68,74 @@ function pruneLearnPlugin() {
   };
 }
 
+/**
+ * QA 0.5.1 P2-3 (home perf): the `challenge.*` strings load only when a challenge screen or the share button needs them.
+ * src/i18n/he.json stays the one source of truth. In a production build the group is cut out of he.json (all but LAZY_EAGER,
+ * which home and the end screens show) and the challenge family overrides out of tutorial.he.json; both come back from the
+ * virtual module `virtual:i18n-lazy/challenge` through ensureStrings('challenge') (src/i18n/index.js). Dev and vitest keep the
+ * whole bundle (nothing is cut), so every string test still sees every string.
+ */
+const LAZY_GROUP = 'challenge';
+const LAZY_EAGER = ['create.button', 'board.title', 'resume', 'resumeInfo'];
+const LAZY_ID = `virtual:i18n-lazy/${LAZY_GROUP}`;
+function lazyStringsPlugin() {
+  let build = false;
+  const eagerKey = (k) => LAZY_EAGER.includes(k.slice(LAZY_GROUP.length + 1));
+  const isLazyOverride = (o) => typeof o?.key === 'string' && o.key.startsWith(`${LAZY_GROUP}.`) && !eagerKey(o.key);
+  const read = (rel) => JSON.parse(readFileSync(new URL(rel, import.meta.url), 'utf8'));
+  return {
+    name: 'passivo-lazy-strings',
+    enforce: 'pre',
+    configResolved(c) { build = c.command === 'build'; },
+    resolveId(id) { return id === LAZY_ID ? `\0${LAZY_ID}` : null; },
+    load(id) {
+      if (id !== `\0${LAZY_ID}`) return null;
+      const strings = read('./src/i18n/he.json')[LAZY_GROUP];
+      const family = Object.fromEntries((read('./src/data/learn/tutorial.he.json').familyStrings.overridesRound11 ?? []).filter(isLazyOverride).map((o) => [o.key, o.family]));
+      return `export default ${JSON.stringify({ strings, family })};`;
+    },
+    transform(code, id) {
+      if (!build) return null;
+      const file = id.split('?')[0].replace(/\\/g, '/');
+      if (file.endsWith('/src/i18n/he.json')) {
+        const json = JSON.parse(code);
+        const keep = {};
+        for (const k of LAZY_EAGER) {
+          const v = k.split('.').reduce((o, x) => o?.[x], json[LAZY_GROUP]);
+          if (v === undefined) throw new Error(`lazy strings: eager key ${LAZY_GROUP}.${k} is missing`);
+          const path = k.split('.');
+          let o = keep;
+          for (const x of path.slice(0, -1)) o = (o[x] ??= {});
+          o[path.at(-1)] = v;
+        }
+        json[LAZY_GROUP] = keep;
+        json.__lazy = [LAZY_GROUP];
+        return { code: JSON.stringify(json), map: null };
+      }
+      if (file.endsWith('/src/data/learn/tutorial.he.json')) {
+        const json = JSON.parse(code);
+        const fs = json.familyStrings;
+        if (fs?.overridesRound11) fs.overridesRound11 = fs.overridesRound11.filter((o) => !isLazyOverride(o));
+        return { code: JSON.stringify(json), map: null };
+      }
+      return null;
+    },
+  };
+}
+
 export default defineConfig({
   base,
   define: { __APP_VERSION__: JSON.stringify(pkg.version) },
-  plugins: [pruneLearnPlugin(), pwaPlugin()],
+  plugins: [pruneLearnPlugin(), lazyStringsPlugin(), pwaPlugin()],
   // the 3D board tiles stay real files (cacheable, preloadable, srcset), never base64 inside the JS bundle
   // modulePreload polyfill off: it was the only module both entries shared, so it became a separate render-path script on the home
   // screen (QA round 19 perf); every browser the app targets supports <link rel=modulepreload> natively
-  build: { modulePreload: { polyfill: false }, rollupOptions: { input: { game: 'index.html', businessDemo: 'business-demo.html' } }, target: 'es2020', assetsInlineLimit: (file) => (/[\\/]tile3d[\\/]/.test(file) ? false : undefined) },
+  build: { modulePreload: { polyfill: false }, rollupOptions: {
+    input: { game: 'index.html', businessDemo: 'business-demo.html' },
+    // QA 0.5.1 P2-3: the action-log codec and the challenge verifier do no top-level work, so a bundle that never uses them (home)
+    // drops them; rollup would otherwise keep them for `class ActionLogError extends Error`
+    treeshake: { moduleSideEffects: (id) => !/[\\/]src[\\/]engine[\\/](actionlog|challenge)\.js$/.test(id) },
+  }, target: 'es2020', assetsInlineLimit: (file) => (/[\\/]tile3d[\\/]/.test(file) ? false : undefined) },
   test: {
     environment: 'node',
     include: ['tests/**/*.test.js'],

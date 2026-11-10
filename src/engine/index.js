@@ -1,4 +1,12 @@
-export { createEngine, juniorSkips, rngVersionOf, DECKS, DEAL_TIERS, DEAL_TIERS_V2, dealTiersOf, dealTierIndex, EngineError, emptyTaxAudit, PASS_OPTION, isFreeOption, decisionCanPass } from './engine.js';
+import { createEngine as createBareEngine } from './engine.js';
+import { verifyResult as verifyLog } from './challenge.js';
+/** The engine with its 0.5.1 verifier: engine.verifyResult(encodedOrDecoded) replays a challenge link (challenge.js). */
+export function createEngine(...args) {
+  const engine = createBareEngine(...args);
+  engine.verifyResult = (log) => verifyLog(engine, log);
+  return engine;
+}
+export { juniorSkips, rngVersionOf, DECKS, DEAL_TIERS, DEAL_TIERS_V2, dealTiersOf, dealTierIndex, EngineError, emptyTaxAudit, PASS_OPTION, isFreeOption, decisionCanPass } from './engine.js';
 export * from './selectors.js';
 export * from './config.js';
 export { serialize, deserialize } from './save.js';
