@@ -142,7 +142,8 @@ export function encodeActionLog({ rngVersion, seed, config = {}, actions = [], n
   const professionRef = ref(strOf(config.professionId, 'professionId'));
   const dateRef = config.daily ? ref(strOf(config.daily.date, 'daily date')) : null;
   if (config.challenge && config.daily) fail('a friend challenge is never the daily challenge');
-  const shown = sanitizeDisplayName(name);
+  // a junior link never carries a name (decision 2026-11-09 (3), QA 0.5.1 P2-1): the child's privacy, and a forwarded link
+  const shown = config.junior ? '' : sanitizeDisplayName(name);
   const nameRef = shown ? ref(shown) : null;
   body.uint(actions.length);
   for (const a of actions) {
@@ -255,5 +256,7 @@ export function decodeActionLog(text) {
     actions.push(a);
   }
   if (r.at !== end) fail('trailing bytes in action log');
+  // a crafted junior link with a name: the name is read (the bytes must still be valid) but never returned (QA 0.5.1 P2-1)
+  if (config.junior) name = null;
   return name ? { rngVersion, seed, config, actions, name } : { rngVersion, seed, config, actions };
 }

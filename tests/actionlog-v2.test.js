@@ -43,6 +43,19 @@ describe('action log format 2', () => {
     expect(() => decodeActionLog(seal(b))).toThrow(/bad display name/);
     expect(() => encodeActionLog({ ...log, config: { ...config, challenge: true, daily: { date: '2026-11-20' } } })).toThrow(ActionLogError);
   });
+  it('a junior link never carries a name: encode drops it, and decode ignores one in a crafted link (QA 0.5.1 P2-1)', () => {
+    const jconfig = { mode: 'family', professionId: 'cook', junior: true };
+    const j = { rngVersion: 2, seed: 77, config: jconfig, actions: [], name: 'נועה' };
+    const text = encodeActionLog(j);
+    expect(decodeActionLog(text)).toEqual({ rngVersion: 2, seed: 77, config: jconfig, actions: [] });
+    expect(encodeActionLog({ ...j, name: '' })).toBe(text); // not a byte of the name is written
+    // crafted: the bytes of a named family link with the junior bit set and a fresh checksum
+    const b = [...fromBase64Url(encodeActionLog({ ...j, config: { mode: 'family', professionId: 'cook' }, name: 'ShouldNotShow' }))].slice(0, -4);
+    b[b.indexOf(16, 3)] |= 2; // the flags byte (bit4 name present) gets bit1 junior
+    const crafted = decodeActionLog(seal(b));
+    expect(crafted.config.junior).toBe(true);
+    expect(crafted.name).toBeUndefined();
+  });
   it('decodes a format 1 link exactly as before (no challenge, no name)', () => {
     const v1 = asFormat1(encodeActionLog(log));
     expect(fromBase64Url(v1)[2]).toBe(1);
