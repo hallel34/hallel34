@@ -73,15 +73,16 @@ export function createTimeline({ engine, me, them, themName = '', professionId, 
     const th = laneText(r.them);
     const split = r.split.length > 0;
     const why = split ? whyLine(r, themName) : null;
-    const name = [ct('timeline.srCell', { lane: lane('you'), turn: String(r.turn), action: y.act }), ct('timeline.srCell', { lane: lane('them'), turn: String(r.turn), action: th.act })].join('. ');
     const square = (r.you ?? r.them).square;
-    const btn = h('button', { type: 'button', class: `tl-row${split ? ' is-split' : ''}`, 'data-turn': String(r.turn), 'data-split': String(split), 'aria-label': name, onClick: () => openTurn(r) },
-      h('span', { class: 'tl-lane', 'data-side': 'you' }, h('b', null, y.act), y.sub ? h('span', { class: 'tl-sub' }, y.sub) : null),
-      h('span', { class: 'tl-spine' }, h('bdi', { class: 'tl-turn', dir: 'ltr' }, String(r.turn)), tileIcon(square, { size: 18 })),
-      h('span', { class: 'tl-lane', 'data-side': 'them' }, h('b', null, th.act), th.sub ? h('span', { class: 'tl-sub' }, th.sub) : null),
+    // QA 0.5.1 P2-2 (WCAG 2.5.3): no aria-label; the name is the row's own text, with the lane names as visually hidden
+    // prefixes ("אתם, תור 4: דילוג. …"), so voice control can say what it sees
+    const vh = (text) => h('span', { class: 'vh' }, text);
+    const btn = h('button', { type: 'button', class: `tl-row${split ? ' is-split' : ''}`, 'data-turn': String(r.turn), 'data-split': String(split), onClick: () => openTurn(r) },
+      h('span', { class: 'tl-lane', 'data-side': 'you' }, vh(`${ct('timeline.srCell', { lane: lane('you'), turn: String(r.turn), action: '' }).trim()} `), h('b', null, y.act), y.sub ? h('span', { class: 'tl-sub' }, vh(' '), y.sub) : null, vh('. ')),
+      h('span', { class: 'tl-spine', 'aria-hidden': 'true' }, h('bdi', { class: 'tl-turn', dir: 'ltr' }, String(r.turn)), tileIcon(square, { size: 18 })),
+      h('span', { class: 'tl-lane', 'data-side': 'them' }, vh(`${ct('timeline.srCell', { lane: lane('them'), turn: String(r.turn), action: '' }).trim()} `), h('b', null, th.act), th.sub ? h('span', { class: 'tl-sub' }, vh(' '), th.sub) : null, vh('. ')),
       why ? h('span', { class: 'tl-why' }, icon('split', { size: 16, width: 2 }), h('span', null, why)) : null,
       !split && r.otherCard ? h('span', { class: 'tl-other' }, ct('timeline.sameTurnOtherCard')) : null);
-    if (why) btn.setAttribute('aria-label', `${name}. ${btn.querySelector('.tl-why').textContent}`);
     const li = h('li', { class: 'tl-item', 'data-split': String(split) }, btn);
     list.append(li);
     items.push(li);

@@ -34,21 +34,21 @@ export function createFamilyBoard({ now = Date.now(), onRow = null, onHome, onSt
   const rowEl = (r) => {
     const name = r.you ? ct('board.you') : r.name || ct('board.anonName');
     const won = r.status === 'won';
-    const result = won ? ct('board.rowWin', { turns: turnsIn(r.turns) }) : ct('board.rowProgress', { pct: String(r.pct) });
     const place = r.tie ? ct('board.placeTie', { n: String(r.rank) }) : ct('board.place', { n: String(r.rank) });
     const subline = [professionTitle(r.professionId) || null, r.junior ? ct('board.juniorTag') : t(r.mode === 'full' ? 'menu.modeFull' : 'menu.modeFamily')].filter(Boolean).join(' · ');
+    // the row's name is its own text (WCAG 2.5.3, QA 0.5.1 P2-2): "מקום 1" is a visually hidden prefix, the rank digit is hidden
     const body = [
-      h('span', { class: 'fb-rank' }, r.rank === 1 ? icon('star', { size: 16, width: 2 }) : null, h('bdi', { dir: 'ltr' }, String(r.rank))),
+      h('span', { class: 'vh' }, `${place}. `),
+      h('span', { class: 'fb-rank', 'aria-hidden': 'true' }, r.rank === 1 ? icon('star', { size: 16, width: 2 }) : null, h('bdi', { dir: 'ltr' }, String(r.rank))),
       h('span', { class: 'cmp-avatar', 'aria-hidden': 'true' }, professionBust(r.professionId)),
       h('span', { class: 'fb-who' }, h('span', { class: 'fb-name' }, name), h('span', { class: 'fb-sub' }, subline)),
       h('span', { class: 'fb-result' }, h('bdi', { class: 'fb-num', dir: 'ltr' }, won ? String(r.turns) : `${r.pct}%`),
         h('span', { class: 'fb-unit' }, won ? tp('plural.label.turns', r.turns) : ct('board.unitProgress'))),
     ];
-    const aria = `${place}. ${ct('board.rowAria', { name, result })}`;
     const cls = `fb-row${r.you ? ' is-you' : ''}`;
     return h('li', { class: 'fb-item', 'data-you': String(r.you) }, onRow
-      ? h('button', { type: 'button', class: cls, 'aria-label': aria, 'data-board-row': r.key, onClick: () => onRow(r) }, body)
-      : h('div', { class: cls, 'aria-label': aria, role: 'group' }, body));
+      ? h('button', { type: 'button', class: cls, 'data-board-row': r.key, onClick: () => onRow(r) }, body)
+      : h('div', { class: cls }, body));
   };
   function paint() {
     const list = rows[mode];
