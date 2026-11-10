@@ -1,10 +1,10 @@
 // 0.5.1: the challenge save slot, the passivo.challenges store, the weekly board ranking and the link router.
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { createEngine, newMatch, botStep, encodeActionLog, serialize, deserialize, configOf, challengeKey, EngineError } from '../src/engine/index.js';
+import { sanitizeDisplayName, createEngine, newMatch, botStep, encodeActionLog, serialize, deserialize, configOf, challengeKey, EngineError } from '../src/engine/index.js';
 import { slotOf, createMatchStore, SLOT_CHALLENGE, SLOT_NORMAL, SLOT_DAILY, SLOT_MISSION } from '../src/services/match-store.js';
 import { loadChallenges, saveChallenges, upsertEntry, findEntry, weekOf, boardRows, summaryOf } from '../src/services/challenge-store.js';
-import { parseChallengeHash, routeChallenge } from '../src/services/challenge-route.js';
+import { parseChallengeHash, routeChallenge, guardLinkKind, LINK_MAX, LONGEST_NAME } from '../src/services/challenge-route.js';
 
 const read = (p) => JSON.parse(readFileSync(new URL(`../src/data/${p}`, import.meta.url), 'utf8'));
 const engine = createEngine({ professions: read('professions.he.json'), cards: read('cards.he.json') });
@@ -137,5 +137,28 @@ describe('challenge link routing', () => {
     expect(routeChallenge({ link, verify, store: empty, saveKey: 'other' })).toMatchObject({ state: 'pendingOther' });
     const played = upsertEntry(empty, 'received', key, { them: { link: text }, me: { result: { ok: true } } });
     expect(routeChallenge({ link, verify, store: played })).toMatchObject({ state: 'played' });
+  });
+});
+
+describe('share length guard (QA 0.5.1 P2-4)', () => {
+  const base = 'https://hallel34.github.io/hallel34/pr-preview/pr-99/';
+  const config = { mode: 'full', professionId: 'lawyer' };
+  const url = (actions) => (k) => `${base}#c=${encodeActionLog({ rngVersion: 2, seed: 9, config, actions: k === 'fresh' ? [] : actions, name: LONGEST_NAME })}`;
+  // a very busy log: many distinct card ids in the string table plus their guesses
+  const busy = Array.from({ length: 160 }, (_, i) => [{ type: 'roll' }, { type: 'chooseDeal', cardId: `opp-x-${i}` }, { type: 'guess', cardId: `opp-x-${i}`, light: 'green', guess: 'good' }, { type: 'pass' }]).flat();
+  it('a URL over 1,800 characters falls back to the seed-only link, which is short', () => {
+    expect(LINK_MAX).toBe(1800);
+    expect(url(busy)('link').length).toBeGreaterThan(LINK_MAX);
+    expect(guardLinkKind('link', url(busy))).toBe('fresh');
+    expect(url(busy)('fresh').length).toBeLessThan(200);
+  });
+  it('a normal game keeps its whole log; fresh and false pass through', () => {
+    expect(guardLinkKind('link', url(busy.slice(0, 60)))).toBe('link');
+    expect(guardLinkKind('fresh', url(busy))).toBe('fresh');
+    expect(guardLinkKind(false, url(busy))).toBe(false);
+  });
+  it('the guard measures with the longest name a link can carry', () => {
+    expect(Array.from(LONGEST_NAME).length).toBe(16);
+    expect(sanitizeDisplayName(LONGEST_NAME)).toBe(LONGEST_NAME);
   });
 });

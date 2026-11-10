@@ -41,3 +41,17 @@ export function routeChallenge({ link, verify, store, saveKey = null }) {
   else if (saveKey) state = 'pendingOther';
   return { screen: 'intro', them: v, key, fresh, verified: !!v.ok, state, entry };
 }
+
+/** A challenge URL longer than this is sent as the seed-only "אתגר חדש באותו משחק" link (QA 0.5.1 P2-4; the plan's ceiling is 2,000). */
+export const LINK_MAX = 1800;
+/** The longest display name a link can carry (16 two-byte letters): the guard measures with it, so no typed name can tip it over. */
+export const LONGEST_NAME = 'אאאאאאאאאאאאאאאא';
+/**
+ * The link kind to send: 'link' (the whole game) unless its URL would pass LINK_MAX, then 'fresh' (seed + config only, the existing
+ * fallback for non-comparable games). false stays false.
+ * @param urlOf (kind) => the full URL with the hash for that kind, built with LONGEST_NAME
+ */
+export function guardLinkKind(kind, urlOf, max = LINK_MAX) {
+  if (kind !== 'link') return kind;
+  return urlOf('link').length > max ? 'fresh' : 'link';
+}

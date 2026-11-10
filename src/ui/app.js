@@ -42,7 +42,7 @@ import { loadMissionStyles } from './mission-styles.js';
 import { challengeEligibility, linkLogOf, encodeActionLog, configOf, challengeKey } from '../engine/index.js';
 import { SLOT_CHALLENGE } from '../services/match-store.js';
 import { loadChallenges, saveChallenges, upsertEntry, findEntry, summaryOf } from '../services/challenge-store.js';
-import { parseChallengeHash, routeChallenge } from '../services/challenge-route.js';
+import { parseChallengeHash, routeChallenge, guardLinkKind, LONGEST_NAME } from '../services/challenge-route.js';
 import { setJuniorView, viewerAge, viewerIsJunior, ct, linkUrl, shareMessage } from './challenge/copy.js';
 
 // The board (play.js: board, cards, bots, auctions, renovation, learning flow) is its own chunk, off the home screen's critical
@@ -572,6 +572,8 @@ export function createApp(host) {
     if (!kind) return null;
     return async () => {
       const s = currentState(m);
+      // a very busy game whose URL would pass LINK_MAX goes out as the seed-only "new challenge" (QA 0.5.1 P2-4)
+      kind = guardLinkKind(kind, (k) => linkUrl(encodeActionLog(linkLogOf(s, { kind: k, name: LONGEST_NAME })), 'c'));
       const junior = seesCoins(m, m.players[0]) || viewerIsJunior();
       setJuniorView(junior);
       const { openShareSheet } = await import('./challenge/share-sheet.js');
