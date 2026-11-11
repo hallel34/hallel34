@@ -1,0 +1,278 @@
+{
+  "_meta": {
+    "version": 1,
+    "date": "2026-11-10",
+    "doc": "docs/v050/career-copy.md",
+    "count": { "total": 16, "learning": 10, "play": 6, "suitsFamily": 15, "suitsJunior": 15 },
+    "fields": {
+      "id": "stable id, also the storage key",
+      "kind": "'learning' (teaches exactly one glossary concept) or 'play'",
+      "title": "full-mode title, first person, no gender ('זיהיתי', 'החזרתי')",
+      "description": "full-mode one-line description, plural address",
+      "family": "optional { title, description } for family mode (11-13). Missing field = use the full-mode one",
+      "junior": "optional { title, description } for junior (up to 10). Missing field = use the family one, then the full-mode one",
+      "concept": "the concept id in src/data/learn/glossary.he.json, or null. 'lifestyle_creep' is NEW: see glossaryProposal in docs/v050/career.he.json",
+      "condition": "the exact engine condition in plain words, with the state fields it reads",
+      "params": "numbers the condition and the texts use. A text slot with the same name is filled from here, so tuning a number is one edit",
+      "scope": "'game' = judged inside one game; 'profile' = counted across the games of one profile",
+      "suits": "which modes may earn and show it"
+    },
+    "slots": {
+      "count / beforeTurn / minAssets / pct / professions": "from this achievement's params",
+      "okYears": "PAYBACK_OK_YEARS phrase with unit ('8 שנים'), the same helper as glossary.he.json",
+      "slowYears": "PAYBACK_SLOW_YEARS phrase with unit ('14 שנים')"
+    },
+    "rules": [
+      "Money never appears in a title or description, so junior needs no coin conversion here.",
+      "Family and junior texts contain no word of FORBIDDEN (tests/kid-vocabulary.test.js). If this file is loaded at runtime, add it to that test's surfaces.",
+      "An achievement is earned once per profile and is never taken away, also when a rank drops (assumption, see needs_review in career.he.json).",
+      "Unless a condition says otherwise, 'a game' means a normal game or a friend-challenge game of the profile's own player. Practice missions never count. Whether the daily challenge counts is the developer's call; the texts do not depend on it.",
+      "'won' means the engine status 'won' (passive income > total monthly expenses). In a short game (roundCap) a win by highest freedom % is NOT 'won' for these conditions.",
+      "Bots and other hot-seat players never earn achievements for a profile."
+    ],
+    "needs_review": [
+      "finance: quarter-early (25% before turn 10) has not been measured. Please report from the simulation how often the sensible bot reaches it in family and full mode. A good learning achievement is reachable in roughly 10-30% of sensible games; tune params.beforeTurn if it is far outside that.",
+      "finance: all-assets-earn and expenses-from-cash need the same check (minAssets 3, count 3). In a short game three unexpected expenses may never happen.",
+      "CEO: challenge-streak-3. The plan says '3 ניצחונות ברצף אתגרים'. I defined a 'win' as reaching freedom in a friend-challenge game, not as beating the other player. Reason: a 'fresh' challenge has no result to beat, an unverified result has no winner, and an achievement for beating a family member rewards the comparison instead of the play.",
+      "CEO: debt-before-asset. 'חוב יקר' is defined by the game's own numbers: the starting debt with the highest monthly payment per shekel owed (card 3% > car 2% > student 1%). For the driver and the police officer that is the car loan. In real life a car-loan payment also pays down the debt, so its 2% is not its interest; the glossary's `liability` entry already labels that simplification.",
+      "CEO: promo-keep rewards one of the two promotion choices. That is the lesson the owner asked for, but it means 'upgrade' never earns anything. The feedback lines keep 'upgrade' a legitimate choice so the achievement does not turn into shame.",
+      "developer: spot-bad-deals needs `afford === true`, which passRecord already stores. repaid-bank-loan and debt-before-asset read the `repaid` event (liabilityId); the learn record has no repay entry today."
+    ]
+  },
+  "achievements": [
+    {
+      "id": "spot-bad-deals",
+      "kind": "learning",
+      "title": "זיהיתי 5 עסקאות פח",
+      "description": "דילגתם על {count} עסקאות עם רמזור אדום: תקופת החזר של יותר מ-{slowYears}, או נכס שמפסיד כסף בכל חודש.",
+      "family": {
+        "title": "דילגתי על 5 עסקאות גרועות",
+        "description": "דילגתם על {count} עסקאות שהכסף חוזר בהן רק אחרי יותר מ-{slowYears}, או לא חוזר בכלל."
+      },
+      "junior": {
+        "description": "דילגתם על {count} עסקאות שהכסף חוזר בהן לאט מאוד, או לא חוזר בכלל."
+      },
+      "concept": "payback",
+      "scope": "profile",
+      "params": { "count": 5 },
+      "condition": "Count, across the profile's games, the entries of state.learn.decisions with kind 'pass', type 'apartment' or 'business', tier 'bad' or 'trap', and afford === true (the player had the cash for the down payment, so the pass was a choice). Earned when the count reaches params.count. Stocks never count (they have no tier).",
+      "suits": { "full": true, "family": true, "junior": true }
+    },
+    {
+      "id": "win-no-bank-loan",
+      "kind": "learning",
+      "title": "ניצחון בלי הלוואה מהבנק",
+      "description": "הגעתם לחופש כלכלי בלי אף הלוואה מהבנק, ולכן לא שילמתם עליהן ריבית.",
+      "family": {
+        "description": "הגעתם לחופש כלכלי בלי אף הלוואה מהבנק, ולכן לא שילמתם עליהן תוספת."
+      },
+      "junior": {
+        "description": "הגעתם לחופש בלי לקחת אף הלוואה מהבנק."
+      },
+      "concept": "interest",
+      "scope": "game",
+      "params": {},
+      "condition": "The game ends with status 'won' and state.stats.loansTaken === 0. Starting debts and the mortgages / business loans that come with a deal do not count; a loan taken through a decision card or to cover an expense does (both raise loansTaken).",
+      "suits": { "full": true, "family": true, "junior": true }
+    },
+    {
+      "id": "debt-before-asset",
+      "kind": "learning",
+      "title": "החזרתי חוב יקר לפני שקניתי נכס",
+      "description": "החזרתם עד הסוף את החוב ההתחלתי שעולה הכי הרבה בכל חודש ביחס לגודלו, ורק אחר כך קניתם נכס ראשון.",
+      "junior": {
+        "title": "החזרתי חוב לפני שקניתי נכס",
+        "description": "קודם החזרתם את החוב שעולה הכי הרבה בכל חודש, ורק אחר כך קניתם נכס ראשון."
+      },
+      "concept": "liability",
+      "scope": "game",
+      "params": {},
+      "condition": "Take the profession's starting liabilities (state.liabilities with kind 'car' / 'card' / 'student' at the start). The 'expensive' one is the one with the highest monthlyPayment / principal (card, else car, else student). Earned at the first asset purchase of the game (stats.dealsBought goes from 0 to 1; an auction win counts) if that liability was already repaid in full (a `repaid` event took its principal to 0) before the purchase.",
+      "suits": { "full": true, "family": true, "junior": true }
+    },
+    {
+      "id": "quarter-early",
+      "kind": "learning",
+      "title": "רבע מהדרך לפני תור 10",
+      "description": "ההכנסה הפסיבית שלכם כיסתה {pct}% מההוצאות החודשיות לפני תור {beforeTurn}.",
+      "family": {
+        "description": "הכסף שעובד בשבילכם כיסה {pct}% מההוצאות של כל חודש לפני תור {beforeTurn}."
+      },
+      "junior": {
+        "description": "הנכסים שלכם כיסו רבע מהחשבונות של כל חודש לפני תור {beforeTurn}."
+      },
+      "concept": "passive_income",
+      "scope": "game",
+      "params": { "pct": 25, "beforeTurn": 10 },
+      "condition": "The engine's milestone event { type: 'milestone', pct: 25 } fires while state.turn < params.beforeTurn (turn 9 or earlier). The milestone fires once per game, the first time passiveRatio x 100 >= 25.",
+      "suits": { "full": true, "family": true, "junior": true }
+    },
+    {
+      "id": "fast-payback",
+      "kind": "learning",
+      "title": "קניתי נכס עם תקופת החזר קצרה",
+      "description": "קניתם דירה או עסק עם תקופת החזר של עד {okYears}: רמזור ירוק.",
+      "family": {
+        "title": "קניתי נכס שהכסף חוזר בו מהר",
+        "description": "קניתם דירה או עסק שהתשלום הראשון חוזר בהם תוך {okYears} או פחות: רמזור ירוק."
+      },
+      "concept": "payback",
+      "scope": "game",
+      "params": {},
+      "condition": "An entry of state.learn.decisions with kind 'buy', type 'apartment' or 'business' and tier 'good' (payback years <= PAYBACK_OK_YEARS, the green light). The plan's wording was 'shorter than 8 years'; the condition is '8 or less' so it is the same line as the traffic light the player sees.",
+      "suits": { "full": true, "family": true, "junior": true }
+    },
+    {
+      "id": "promo-keep",
+      "kind": "learning",
+      "title": "קיבלתי קידום ולא שדרגתי את רמת החיים",
+      "description": "המשכורת עלתה, ההוצאות נשארו כמו שהיו, וכל התוספת נשארה בתזרים.",
+      "family": {
+        "title": "קיבלתי קידום ולא הוספתי הוצאות",
+        "description": "המשכורת עלתה, ההוצאות נשארו כמו שהיו, וכל התוספת נשארת אצלכם בכל חודש."
+      },
+      "concept": "lifestyle_creep",
+      "scope": "game",
+      "params": {},
+      "condition": "The in-game promotion offer was answered with the 'keep' choice (the whole raise goes to cash flow, no new monthly expense). Earned at the moment of the choice.",
+      "suits": { "full": true, "family": true, "junior": true }
+    },
+    {
+      "id": "expenses-from-cash",
+      "kind": "learning",
+      "title": "3 הוצאות לא צפויות, בלי הלוואה",
+      "description": "שילמתם {count} הוצאות לא צפויות במשחק אחד מהמזומן, בלי הלוואה ובלי למכור נכס. זו כרית ביטחון.",
+      "family": {
+        "description": "שילמתם {count} הוצאות לא צפויות במשחק אחד מהמזומן, בלי הלוואה. לזה עוזר כסף בצד."
+      },
+      "concept": "cushion",
+      "scope": "game",
+      "params": { "count": 3 },
+      "condition": "At the end of a finished game (any outcome): state.learn.decisions has at least params.count entries with kind 'expense', and none of the game's 'expense' entries has viaLoan === true or viaSale === true.",
+      "suits": { "full": true, "family": true, "junior": true }
+    },
+    {
+      "id": "all-assets-earn",
+      "kind": "learning",
+      "title": "כל הנכסים שלי מכניסים כסף",
+      "description": "ניצחתם עם {minAssets} נכסים או יותר, וכל אחד מהם מכניס כסף בכל חודש.",
+      "junior": {
+        "description": "הגעתם לחופש עם {minAssets} נכסים או יותר, וכל אחד מהם מכניס כסף בכל חודש."
+      },
+      "concept": "asset",
+      "scope": "game",
+      "params": { "minAssets": 3 },
+      "condition": "The game ends with status 'won', state.assets.length >= params.minAssets, and every asset has assetCashFlow(state, asset) > 0 at that moment (the same figure the win check uses, so a running rent-change effect is included).",
+      "suits": { "full": true, "family": true, "junior": true }
+    },
+    {
+      "id": "three-kinds",
+      "kind": "learning",
+      "title": "דירה, עסק ומניה",
+      "description": "החזקתם באותו זמן דירה, עסק ומניה. זה פיזור: אם נכס אחד נחלש, האחרים ממשיכים להכניס.",
+      "concept": "diversification",
+      "scope": "game",
+      "params": {},
+      "condition": "At any moment of a full-mode game state.assets holds at least one asset of type 'apartment', one of type 'business' and one of type 'stock'. Family and junior games have no stocks, so it cannot be earned or shown there.",
+      "suits": { "full": true, "family": false, "junior": false }
+    },
+    {
+      "id": "repaid-bank-loan",
+      "kind": "learning",
+      "title": "החזרתי הלוואה עד הסוף",
+      "description": "החזרתם הלוואה מהבנק במלואה. מאותו רגע לא משלמים עליה עוד ריבית.",
+      "family": {
+        "description": "החזרתם הלוואה מהבנק עד הסוף. מאותו רגע לא משלמים עליה עוד תוספת."
+      },
+      "junior": {
+        "description": "החזרתם הלוואה מהבנק עד הסוף. מעכשיו לא משלמים עליה יותר."
+      },
+      "concept": "interest",
+      "scope": "game",
+      "params": {},
+      "condition": "A `repaid` event removes a liability of kind 'loan' (a bank loan) because its principal reached 0. A starting debt does not count here (that is debt-before-asset).",
+      "suits": { "full": true, "family": true, "junior": true }
+    },
+    {
+      "id": "first-freedom",
+      "kind": "play",
+      "title": "חופש כלכלי ראשון",
+      "description": "הגעתם לחופש כלכלי במשחק בפעם הראשונה.",
+      "junior": {
+        "title": "החופש הראשון",
+        "description": "הגעתם לחופש בפעם הראשונה!"
+      },
+      "concept": null,
+      "scope": "profile",
+      "params": {},
+      "condition": "The profile's first game that ends with status 'won', in any mode.",
+      "suits": { "full": true, "family": true, "junior": true }
+    },
+    {
+      "id": "challenge-streak-3",
+      "kind": "play",
+      "title": "3 אתגרים ברצף עד החופש",
+      "description": "הגעתם לחופש כלכלי ב-{count} אתגרי חברים ברצף.",
+      "junior": {
+        "description": "הגעתם לחופש ב-{count} אתגרים, אחד אחרי השני."
+      },
+      "concept": null,
+      "scope": "profile",
+      "params": { "count": 3 },
+      "condition": "The profile's last params.count finished friend-challenge games (0.5.1, a game opened from a #c= link or replayed by its creator under challenge rules) all ended with status 'won'. A challenge game that ends any other way restarts the count. The other player's result is not read.",
+      "suits": { "full": true, "family": true, "junior": true }
+    },
+    {
+      "id": "all-professions",
+      "kind": "play",
+      "title": "חופש כלכלי בכל המקצועות",
+      "description": "הגעתם לחופש כלכלי לפחות פעם אחת בכל אחד מ-{professions} המקצועות.",
+      "junior": {
+        "title": "חופש בכל המקצועות",
+        "description": "הגעתם לחופש בכל אחד מ-{professions} המקצועות."
+      },
+      "concept": null,
+      "scope": "profile",
+      "params": { "professions": 8 },
+      "condition": "The set of profession ids of the profile's games that ended with status 'won' contains all 8 ids of professions.he.json. Any rank and any mode count.",
+      "suits": { "full": true, "family": true, "junior": true }
+    },
+    {
+      "id": "first-rank-up",
+      "kind": "play",
+      "title": "עליתי דרגה",
+      "description": "עליתם דרגה בפעם הראשונה, באחד המקצועות.",
+      "concept": null,
+      "scope": "profile",
+      "params": {},
+      "condition": "Any profession of the profile moves from rank 0 to rank 1 for the first time.",
+      "suits": { "full": true, "family": true, "junior": true }
+    },
+    {
+      "id": "top-rank",
+      "kind": "play",
+      "title": "הגעתי לדרגה הגבוהה ביותר",
+      "description": "הגעתם לדרגה הרביעית, הגבוהה ביותר, באחד המקצועות.",
+      "concept": null,
+      "scope": "profile",
+      "params": {},
+      "condition": "Any profession of the profile reaches rank 3 (the fourth and last rank). It stays earned if the rank drops later.",
+      "suits": { "full": true, "family": true, "junior": true }
+    },
+    {
+      "id": "promo-week-freedom",
+      "kind": "play",
+      "title": "חופש כלכלי בשבוע קידום",
+      "description": "הגעתם לחופש כלכלי במקצוע של שבוע הקידום, באותו שבוע.",
+      "junior": {
+        "title": "חופש בשבוע קידום",
+        "description": "הגעתם לחופש במקצוע של שבוע הקידום."
+      },
+      "concept": null,
+      "scope": "profile",
+      "params": {},
+      "condition": "A game ends with status 'won', its profession is the promotion-week profession, and the game ended inside that week (Sunday to Saturday, the same week key the seniority uses).",
+      "suits": { "full": true, "family": true, "junior": true }
+    }
+  ]
+}

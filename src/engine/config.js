@@ -191,8 +191,17 @@ export const RANK_XP_NEEDED = [60, 100, 160];
 /** Seniority: full weeks without a finished game. The first resets the progress to the next rank in every profession, the second in a row drops every rank above 0 by one. */
 export const SENIORITY_RESET_AFTER = 1;
 export const SENIORITY_DROP_AFTER = 2;
-/** After a drop the missed-week count restarts at this number (0 = the next drop needs two more missed weeks; 1 = one drop per further missed week). */
-export const SENIORITY_COUNT_AFTER_DROP = 0;
+/**
+ * After a drop the missed-week count restarts at this number. 1 (CEO, 2026-11-11: "keep the approved rule") = one drop per further missed
+ * week; 0 = the next drop needs two more missed weeks (the educator's first reading).
+ */
+export const SENIORITY_COUNT_AFTER_DROP = 1;
+/** At most this many drops when a player returns after several missed weeks (default unlimited; the owner may choose 1 = one drop per return). */
+export const CAREER_MAX_DROPS_PER_RETURN = Infinity;
+/** The home chip warns from this weekday (0 = Sunday ... 6 = Saturday): Thursday. */
+export const CAREER_WARN_FROM_WEEKDAY = 4;
+/** The weekday the warning counts its days to and names in its wording ("עד סוף יום ..."): Saturday (6) or, for Shabbat-keeping families, Friday (5). The week itself always ends Saturday. */
+export const CAREER_DEADLINE_WEEKDAY = 6;
 /** A date this many weeks past the last one seen cannot be a real clock: it is ignored. */
 export const CAREER_MAX_WEEK_JUMP = 104;
 /** Profiles on one device. */
