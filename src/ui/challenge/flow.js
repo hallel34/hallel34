@@ -2,6 +2,7 @@
 // family board, the share sheets). One lazy chunk with the strings (QA 0.5.1 P2-3): home never loads it, so the engine's
 // verifier and the action-log codec stay out of the main bundle too. `ctx` carries the shell's own navigation.
 import { ensureStrings } from '../../i18n/index.js';
+import { ensureRanks } from '../ranks.js';
 import { toast } from '../fx.js';
 import { setCoinScale } from '../format.js';
 import { setLearnMode } from '../../learn/context.js';
@@ -26,7 +27,8 @@ export function createChallengeFlow(ctx) {
   const { engine, mount, goStart, goPlay, goPlayers, store, countGame, loadChallengeSave } = ctx;
   engine.verifyResult ??= (x) => verifyResult(engine, x); // the main-bundle engine has no verifier until this chunk loads
   const chStore = { load: () => loadChallenges(), save: (st) => saveChallenges(st) };
-  const challengeStrings = () => ensureStrings('challenge').catch((err) => console.error(err));
+  // a ranked link replays and plays with its rank's figures: the rank data loads with the strings (0.5.0)
+  const challengeStrings = () => Promise.all([ensureStrings('challenge'), ensureRanks(engine)]).catch((err) => console.error(err));
   const professionTitle = (id) => engine.data.professions.find((p) => p.id === id)?.title ?? '';
   const verify = (x) => verifyResult(engine, x);
 

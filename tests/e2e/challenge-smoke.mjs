@@ -86,12 +86,13 @@ function decide(policy) {
       if (kind === 'opportunity' && card.dataset.kind === 'choice' && btn('choose-a')) return { click: `${L} [data-action="choose-a"]` };
       if (kind === 'opportunity' && card.dataset.guess === 'ask') return { click: `${L} [data-action="guess-skip"]` };
       if (kind === 'opportunity') {
-        const good = policy === 'eager' ? card.dataset.kind !== 'stock' : card.dataset.kind !== 'stock' && Number(card.dataset.payback) <= 130 && cash - Number(card.dataset.cost) >= expenses * 0.5;
+        const good = policy === 'eager' ? card.dataset.kind !== 'stock' : card.dataset.kind !== 'stock' && Number(card.dataset.payback) <= 96 && cash - Number(card.dataset.cost) >= expenses * 0.5;
         return { click: `${L} [data-action="${card.dataset.afford === 'true' && good && btn('buy') ? 'buy' : 'pass'}"]` };
       }
       if (kind === 'expense') for (const a of ['pay', 'loan', 'sell']) if (btn(a)) return { click: `${L} [data-action="${a}"]` };
       if (kind === 'charity') return { click: `${L} [data-action="skip"]` };
-      if (card.dataset.promotion && btn('pass')) return { click: `${L} [data-action="pass"]` }; // 0.5.0: keep the lifestyle
+      // 0.5.0: the promotion: the eager player upgrades, the others keep (so the two games decide differently)
+      if (card.dataset.promotion) return { click: `${L} [data-action="${policy === 'eager' ? 'option-upgrade' : 'pass'}"]` };
       if (kind === 'market' && btn('accept') && policy === 'buyer') return { click: `${L} [data-action="accept"]` };
       const opt = q('.btn-option:not([disabled])', top);
       if (opt) return { clickEl: true };
