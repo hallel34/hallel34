@@ -393,14 +393,14 @@ figcaption{color:#fff;font:500 14px Rubik;direction:ltr;max-width:360px}
 .t-win{font:900 36px/1.1 Rubik;background:var(--tgold);-webkit-background-clip:text;color:transparent;margin-block-start:2px}
 .t-over{font:900 28px/1.15 Rubik}
 .end-hero .tagline{font-size:15px;margin-block-start:4px;color:var(--muted)}
-.end-card{margin:12px 16px 0;background:var(--surface);border:1px solid var(--border);border-radius:22px;padding:14px 14px 12px;display:flex;flex-direction:column;gap:10px;flex:1;min-block-size:0;overflow:hidden}
+.end-card{margin:12px 16px 0;background:var(--surface);border:1px solid var(--border);border-radius:22px;padding:14px 14px 12px;display:flex;flex-direction:column;gap:10px;flex:none;overflow:hidden}
 .cmpr{display:flex;justify-content:space-between}.cmpr small{display:block;font:500 13px Rubik;color:var(--muted)}.cmpr .end{text-align:end}
 .cmpr .inc{font-size:26px;color:var(--income)}.cmpr .mid{font-size:20px}
 .meter{block-size:10px;border-radius:5px;background:var(--track);overflow:hidden;flex:none}.meter i{display:block;block-size:100%;background:var(--passive)}
 .stats{display:grid;grid-template-columns:repeat(3,1fr);text-align:center}.stats div+div{border-inline-start:1px solid var(--border)}
 .stats b{display:block;font:900 22px Rubik}.stats small{font:500 13px Rubik;color:var(--muted)}
 .cause{font:500 15px/1.4 Rubik}
-.cblock{border-block-start:1px solid var(--border);padding-block-start:10px;display:flex;flex-direction:column;gap:8px;margin-block-start:auto}
+.cblock{border-block-start:1px solid var(--border);padding-block-start:10px;display:flex;flex-direction:column;gap:8px}
 .cb-main{display:flex;gap:10px;align-items:center}
 .cb-av{position:relative;flex:none;display:grid}.cb-rk{position:absolute;inset-block-end:-3px;inset-inline-end:-4px;inline-size:20px;block-size:20px;border-radius:50%;background:var(--surface);box-shadow:0 0 0 1px var(--career);color:var(--career);display:grid;place-items:center}
 .cb-col{flex:1;display:flex;flex-direction:column;gap:5px;min-inline-size:0}
@@ -408,7 +408,7 @@ figcaption{color:#fff;font:500 14px Rubik;direction:ltr;max-width:360px}
 .gain{font:800 15px Rubik;color:var(--career);white-space:nowrap}
 .cb-sub{display:flex;justify-content:space-between;align-items:center;gap:6px;font:400 12px Rubik;color:var(--muted)}
 .cb-kept{display:flex;gap:6px;align-items:center;font:500 13px Rubik;color:var(--text)}.cb-kept svg{color:var(--muted);flex:none}
-.end-actions{padding:12px 16px 16px;display:flex;flex-direction:column;gap:8px;flex:none}
+.end-actions{margin-block-start:auto;padding:12px 16px 16px;display:flex;flex-direction:column;gap:8px;flex:none}
 .is-320 .hammock{block-size:92px}.is-320 .tired{block-size:84px}.is-320 .t-win{font-size:26px}.is-320 .t-over{font-size:22px}.is-320 .end-hero .tagline{font-size:13px}.is-320 .end-hero{padding-block-start:8px}
 .is-320 .end-card{margin-block-start:8px;padding:10px 12px;gap:8px}.is-320 .ghost{block-size:48px;font-size:15px}.is-320 .end-actions{padding-block:8px 10px;gap:6px}
 .is-320 .end-actions .text{display:none}.is-320 .cmpr .inc{font-size:22px}.is-320 .stats b{font-size:18px}.is-320 .cb-sub span{display:none}.is-320 .cb-sub{justify-content:flex-end}
@@ -432,7 +432,7 @@ figcaption{color:#fff;font:500 14px Rubik;direction:ltr;max-width:360px}
 .bk-list{list-style:none;inline-size:100%;background:var(--surface);border:1px solid var(--border);border-radius:22px;text-align:start;margin-block-start:4px}
 .bk-list li{display:flex;gap:10px;align-items:center;padding:10px 12px;min-block-size:64px;border-block-end:1px solid var(--border)}.bk-list li:last-child{border:0}
 .bk-col{flex:1;display:flex;flex-direction:column;gap:4px;min-inline-size:0}.bk-col>b{font:700 15px Rubik}
-.bk-bar{display:flex;align-items:center;gap:8px}.bk-bar small{font:400 12px Rubik;color:var(--muted);white-space:nowrap}
+.bk-bar{display:flex;flex-direction:column;align-items:flex-start;gap:3px}.bk-bar small{font:400 12px Rubik;color:var(--muted)}
 .bk-move{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.bk-move .was .rk{color:var(--muted);font-weight:500;text-decoration:line-through}.bk-move .was svg{color:var(--muted)}
 .bk-move .arr{color:var(--muted);display:grid}
 .bk-more{font:400 13px Rubik;color:var(--muted)}
