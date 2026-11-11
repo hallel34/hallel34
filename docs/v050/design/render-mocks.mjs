@@ -56,9 +56,9 @@ function pick(o) {
   ];
   const cards = P.map(([id, r, pct, sal, exp, promo]) => `
     <div class="prof ${promo ? 'promo' : ''}">
-      <div class="well"><img src="${A(`profession-fox/${id}@2x.webp`)}" alt=""></div>
+      <div class="well">${promo ? x2 : ''}<img src="${A(`profession-fox/${id}@2x.webp`)}" alt=""></div>
       <b class="pname">${NAMES[id]}</b>
-      <div class="career-row">${rank(r, TITLES[id][r])}${promo ? x2 : ''}</div>
+      <div class="career-row">${rank(r, TITLES[id][r])}</div>
       ${xp(pct)}
       <div class="prow"><small>שכר</small><b>${m(sal)}</b><small>•</small></div>
       <div class="prow sub"><small>הוצאות</small><b>${m(exp)}</b></div>
@@ -331,6 +331,7 @@ figcaption{color:#fff;font:500 14px Rubik;direction:ltr;max-width:360px}
 .prof.promo{border-color:var(--career);box-shadow:inset 0 0 0 .5px var(--career)}
 .well{block-size:125px;display:flex;align-items:flex-end;justify-content:center;inline-size:100%;position:relative}
 .well img{block-size:125px}
+.well .x2{position:absolute;inset-block-start:6px;inset-inline-end:4px;block-size:22px;padding:0 8px;font-size:12px;background:var(--surface);box-shadow:inset 0 0 0 1px var(--career)}
 .well::after{content:'';position:absolute;inset-inline:20%;inset-block-end:0;block-size:1px;background:var(--border)}
 .pname{font:900 20px/1.2 Rubik;margin-block-start:6px;white-space:nowrap}
 .career-row{display:flex;align-items:center;justify-content:center;gap:6px;inline-size:100%;block-size:20px;margin-block-start:1px}
