@@ -284,10 +284,12 @@ the accessibility checks).
   rank 0, no promotion).
 - **The career store** (`src/career/`, device store `passivo.career`, schema-versioned, corrupt data starts over): up to 4 profiles (name, age band,
   favourite fox), XP and rank per profession, the 16 achievements (`achievements.he.json`: conditions as pure functions over the final state and
-  a replay of its log), and weekly seniority (a finished game keeps the week, Sunday to Saturday; a full week without one resets the progress, a
-  second in a row drops every profession a rank). A profile aged up to 10 (or with no age) never loses anything. Rules the owner may still change
-  are single values in `src/engine/config.js`: `CAREER_PROTECTED_AGE`, `CAREER_MAX_DROPS_PER_RETURN`, `SENIORITY_COUNT_AFTER_DROP`,
-  `CAREER_WARN_FROM_WEEKDAY`, `CAREER_DEADLINE_WEEKDAY`, the XP numbers.
+  a replay of its log), and weekly seniority (a finished normal one-player game keeps the week, Sunday to Saturday; the deadline is Friday and Saturday
+  is a bonus day that counts for the same week but is never required; a full week without one resets the progress, a second in a row drops every
+  profession ONE rank, and after that nothing more is lost until a game is finished: the profile carries a `dropped` flag). The week is the
+  device's civil date (no clock reads, so daylight saving cannot shift it). The daily challenge does not give XP or seniority yet (open decision).
+  A profile aged up to 10 (or with no age) never loses anything. Rules the owner may still change are single values in
+  `src/engine/config.js`: `CAREER_PROTECTED_AGE`, `CAREER_WARN_FROM_WEEKDAY`, `CAREER_DEADLINE_WEEKDAY` (5 = Friday), the XP numbers.
 - **Load.** Home carries only the chip (`src/career/lite.js`). The screens, strings, rank data and logic are lazy chunks
   (`src/ui/career/`, the `career`, `profile`, `achievement` and `promotion` string groups, `virtual:ranks`).
 - **Add a rank to a profession:** add an entry to its `ranks` list. **Add an achievement:** add it to `src/career/achievements.he.json` and its

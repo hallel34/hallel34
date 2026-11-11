@@ -141,20 +141,48 @@ function decide({ policy, promo }) {
   if (q('[data-action="roll"]:not([disabled])')) return { click: '[data-action="roll"]' };
   return { wait: true };
 }
-async function playToEnd(page, { policy = 'buyer', promo = 'pass', budgetMs = Number(process.env.SMOKE_GAME_MS || 300000) } = {}) {
+/**
+ * The text of every promotion sentence a player can read: the card before the choice and the log / fox lines after it. A node that was
+ * moved between sentences left an amount missing (QA 0.5.0 P1-2); the amounts must be in every sentence, in family, full and junior.
+ */
+function scanPromotionText(label, card, after) {
+  const money = /₪\s?[\d,]+|\d[\d,]*\s?מטבע/g;
+  const has = /₪\s?[\d,]+|\d[\d,]*\s?מטבע/;
+  check((card.match(money) || []).length >= 6, `${label}: the promotion card shows its amounts in every sentence (${(card.match(money) || []).length} found)`);
+  check(!/(עוד|ב-|של|נשארים|נשאר|יוצאים) {2,}\S/.test(card) && !/ב- *[,.]/.test(card), `${label}: no empty slot in the card text (${JSON.stringify(card.match(/.{14} {2,}.{10}/)?.[0] ?? '')})`);
+  const lines = after.split('\n').filter((l) => /קידום בעבודה:|המשכורת עלתה|שדרגתם|מעכשיו יוצאים|נשארים לכם/.test(l));
+  check(lines.length >= 1 && lines.every((l) => has.test(l)), `${label}: the log and the fox line carry their amounts (${lines.length} lines: ${JSON.stringify(lines.slice(0, 2))})`);
+  check(!lines.some((l) => /ב- *[,.]|של {2,}|עוד {2,}/.test(l)), `${label}: no empty slot in the log and fox text`);
+  check(!/אביזר/.test(card + after), `${label}: no accessory is promised`);
+}
+async function playToEnd(page, { policy = 'buyer', promo = 'pass', budgetMs = Number(process.env.SMOKE_GAME_MS || 300000), stopAfterPromotion = false } = {}) {
   const deadline = Date.now() + budgetMs;
-  const seen = { promotion: 0, lifestyle: false, rolls: 0 };
+  const seen = { promotion: 0, lifestyle: false, rolls: 0, cardText: '', afterText: '' };
   while (Date.now() < deadline) {
     const d = await page.evaluate(decide, { policy, promo });
     if (d.done) return { done: d.done, ...seen };
     if (d.clickEl) await page.locator('#modal-root .layer:last-child .btn-option:not([disabled])').last().click({ timeout: 3000, force: true }).catch(() => {});
     else if (d.click) {
       if (d.click === '[data-action="roll"]') seen.rolls += 1;
-      if (d.promotion && !seen.promotion) await layout(page, `promotion-card-${page.viewportSize().width}x${page.viewportSize().height}`);
+      if (d.promotion && !seen.promotion) {
+        for (let i = 0; i < 20 && !/₪|מטבע/.test(seen.cardText); i++) { // the card text can be empty while it opens
+          seen.cardText = await page.evaluate(() => document.querySelector('#modal-root .layer:last-child .card')?.innerText ?? '');
+          if (!/₪|מטבע/.test(seen.cardText)) await page.waitForTimeout(100);
+        }
+        await layout(page, `promotion-card-${page.viewportSize().width}x${page.viewportSize().height}`);
+      }
       await page.locator(d.click).first().click({ timeout: 3000, force: true }).catch(() => {});
       if (d.promotion) {
         seen.promotion += 1;
         await page.waitForTimeout(400);
+        if (seen.promotion === 1) {
+          for (let i = 0; i < 25; i++) { // the log line and the fox line appear a moment after the choice
+            seen.afterText = await page.evaluate(() => document.body.innerText);
+            if (/קידום בעבודה:/.test(seen.afterText) && /המשכורת עלתה, ו|שדרגתם|מעכשיו יוצאים|נשארים לכם עוד/.test(seen.afterText)) break;
+            await page.waitForTimeout(120);
+          }
+        }
+        if (stopAfterPromotion) return { done: 'promotion', ...seen };
         const save = await stored(page, 'save');
         const st = save?.players?.[0]?.state;
         if (promo === 'option-upgrade') seen.lifestyle = !!st?.profession?.expenses?.some((e) => e.id === 'lifestyle') && st?.promotion?.status === 'upgraded';
@@ -166,10 +194,11 @@ async function playToEnd(page, { policy = 'buyer', promo = 'pass', budgetMs = Nu
   return { done: 'timeout', ...seen };
 }
 /** From home: start -> players -> pick `prof` -> (sheet) go. Returns after the board is up. */
-async function startGame(page, { prof = 'teacher', rank = null } = {}) {
-  await page.locator('.mode-card[data-mode="family"]').click();
+async function startGame(page, { prof = 'teacher', rank = null, mode = 'family', age = null } = {}) {
+  await page.locator(`.mode-card[data-mode="${mode}"]`).click();
   await page.locator('[data-action="start"]').click();
   await page.waitForSelector('[data-screen="players"]');
+  if (age) await page.locator(`input[data-age="${age}"]`).check({ force: true });
   await page.locator('[data-action="players-next"]').click();
   await page.waitForSelector('[data-screen="pick"]');
   await page.locator(`.prof-card[data-prof="${prof}"]`).click();
@@ -191,7 +220,7 @@ async function main() {
   await layout(A, 'home-no-profile-360x800');
   await startGame(A);
   const endA = await playToEnd(A, { promo: 'option-upgrade' });
-  check(endA.done === 'win' || endA.done === 'over', `game A ended (${endA.done}, ${endA.rolls} rolls)`);
+  check(endA.done === 'win' || endA.done === 'over', `game A ended (${endA.done}, ${endA.rolls} rolls)${A.errors.length ? ` errors ${JSON.stringify(A.errors.slice(0, 3))}` : ""}`);
   check(endA.promotion === 1, `the promotion card was offered exactly once (${endA.promotion})`);
   check(endA.lifestyle, 'upgrade: the lifestyle expense is in the game and the promotion record says upgraded');
   await A.waitForSelector('[data-career-prompt]', { timeout: 8000 });
@@ -298,6 +327,37 @@ async function main() {
   check(B.errors.length === 0, `no page errors on B${B.errors.length ? ` ${JSON.stringify(B.errors.slice(0, 3))}` : ''}`);
   await ctxB.close();
 
+  // ================= B2. the promotion sentences carry their amounts: family, full and junior, keep and upgrade =================
+  for (const [label, opts, promo] of [['family', { mode: 'family' }, 'pass'], ['family upgrade', { mode: 'family' }, 'option-upgrade'], ['full', { mode: 'full' }, 'pass'], ['full upgrade', { mode: 'full' }, 'option-upgrade'], ['junior', { mode: 'family', age: 'upTo10' }, 'pass'], ['junior upgrade', { mode: 'family', age: 'upTo10' }, 'option-upgrade']]) {
+    const ctxP = await newCtx(browser);
+    const P = await open(ctxP, { waitFor: '[data-screen="start"]' });
+    await startGame(P, opts);
+    const r = await playToEnd(P, { promo, stopAfterPromotion: true });
+    check(r.done === 'promotion', `${label}: the promotion card came up (${r.done})`);
+    if (r.done === 'promotion') scanPromotionText(label, r.cardText, r.afterText);
+    await ctxP.close();
+  }
+
+  // ================= B3. the profile screens on a launch with nothing to settle and no earlier game (QA 0.5.0 P1-1) =================
+  {
+    const ctxQ = await newCtx(browser);
+    const Q = await open(ctxQ, { storage: { career: career(profile()) }, waitFor: '[data-screen="start"]' });
+    const raw = (t) => /\b(career|profile|achievement|promotion|challenge)\.[a-zA-Z]+/.test(t);
+    await Q.locator('[data-action="profile"]').click();
+    await Q.waitForSelector('[data-screen="career-profile"]');
+    await Q.waitForTimeout(300);
+    check(!raw(await Q.locator('section[data-screen="career-profile"]').innerText()), 'the profile screen shows no raw string keys on a launch that loaded no career strings');
+    await Q.locator('[data-action="cr-edit"]').click();
+    await Q.waitForSelector('[data-sheet="profile-edit"]');
+    check(!raw(await Q.locator('[data-sheet="profile-edit"]').innerText()), 'the edit sheet shows no raw string keys');
+    await Q.keyboard.press('Escape');
+    await Q.waitForTimeout(300);
+    await Q.locator('[data-action="cr-switch"]').click().catch(() => {});
+    await Q.waitForTimeout(500);
+    if (await screenOf(Q) === 'career-picker') check(!raw(await Q.locator('section[data-screen="career-picker"]').innerText()), 'the picker shows no raw string keys');
+    await ctxQ.close();
+  }
+
   // ================= C. seniority by moving the clock =================
   const adult = career(profile());
   const show = async (label, at, storage, ctx2) => open(ctx2, { at, storage: { career: storage }, waitFor: '[data-screen]' }).then(async (p) => { console.log(`${label}: ${await screenOf(p)}`); return p; });
@@ -309,7 +369,7 @@ async function main() {
   // next week, Thursday, no game yet: the warning (3 days) on the chip and the sentence on home (800px tall)
   p = await show('next week, Thursday', dayKeyOf(8), adult, ctxC);
   check(await p.locator('.career-chip').getAttribute('data-career-state') === 'warn', 'Thursday with no game this week: the chip is in the warning state');
-  check((await p.locator('.career-chip-label').innerText()).includes('3'), `the amber capsule counts the days (${await p.locator('.career-chip-label').innerText()})`);
+  check((await p.locator('.career-chip-label').innerText()).includes('יומיים'), `Thursday: the deadline is Friday, so two days (the amber capsule counts them:  (${await p.locator('.career-chip-label').innerText()})`);
   check(await p.locator('[data-career-warn]').count() === 1, 'the sentence is shown on home at 800px tall');
   await layout(p, 'home-chip-warn-360x800');
   await axe(p, 'home with the warning chip');
@@ -342,6 +402,16 @@ async function main() {
   await p.waitForSelector('[data-screen]');
   check(await screenOf(p) === 'start', 'the return screen is shown once: a reload goes home');
   await p.close();
+  // nine absent weeks: still exactly one drop, and after it the chip never warns, even on a Thursday
+  p = await show('long absence', dayKeyOf(64), adult, ctxC); // a Thursday
+  c = await stored(p, 'career');
+  check(c.profiles[0].ranks.teacher.rank === 1 && c.profiles[0].ranks.nurse.rank === 0 && c.profiles[0].dropped === true, `a long absence drops one rank once (teacher ${c.profiles[0].ranks.teacher.rank}, nurse ${c.profiles[0].ranks.nurse.rank})`);
+  const dropText = await p.locator('section[data-screen="career-return"]').innerText();
+  check(/פעם אחת בלבד/.test(dropText), 'the return screen says the drop happens once');
+  await p.locator('[data-action="cr-home"]').click();
+  await p.waitForSelector('[data-screen="start"]');
+  check(await p.locator('.career-chip').getAttribute('data-career-state') !== 'warn' && await p.locator('[data-career-warn]').count() === 0, 'after a drop the chip does not warn on a Thursday');
+  await p.close();
   // a clock moved back restores nothing
   p = await show('clock moved back', dayKeyOf(-14), career(profile({ ranks: { teacher: { rank: 1, xp: 0 } }, lastPlayWeek: W, settledWeek: W + 1 })), ctxC);
   check(await screenOf(p) === 'start' && (await stored(p, 'career')).profiles[0].ranks.teacher.rank === 1, 'a clock moved back: nothing happens and nothing is restored');
@@ -368,6 +438,17 @@ async function main() {
   check((await stored(p, 'career')).active === 'p2', 'choosing a tile makes that profile the active one');
   await p.close();
   await ctxC.close();
+
+  // ================= D0. Friday: the last day of the week for the warning; the chip name carries its visible text =================
+  const ctxF = await newCtx(browser, { w: 320, h: 568 });
+  p = await open(ctxF, { at: dayKeyOf(9), storage: { career: adult }, waitFor: '[data-screen="start"]' }); // a Friday
+  check(await p.locator('.career-chip').getAttribute('data-career-state') === 'warn', 'Friday with no game: the chip warns');
+  await axe(p, 'home with the Friday chip at 320x568');
+  await p.close();
+  p = await open(ctxF, { at: dayKeyOf(10), storage: { career: adult }, waitFor: '[data-screen="start"]' }); // a Saturday: a bonus day, the last day
+  check(await p.locator('.career-chip').getAttribute('data-career-state') === 'warn', 'Saturday with no game: the chip still shows the last day (never 0)');
+  await p.close();
+  await ctxF.close();
 
   // ================= D. 320x568 =================
   const ctxS = await newCtx(browser, { w: 320, h: 568 });

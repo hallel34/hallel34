@@ -23,11 +23,14 @@ export function createCareerFlow(ctx) {
   let pickedThisSession = false;
   const professionIds = engine.data.professions.map((p) => p.id);
 
-  /** Words and coins for a protected / junior profile (up to 10), the plain ones otherwise. */
-  function speak(profile) {
+  /**
+   * Words and coins for a protected / junior profile (up to 10), the plain ones otherwise. After a game ({ scale: false }) the coin scale stays
+   * the game's own (its seat age), so the end screen shows one currency (QA 0.5.0 P2-6).
+   */
+  function speak(profile, { scale = true } = {}) {
     const kid = !!profile && isProtectedAge(profile.age);
     setCareerJunior(kid);
-    setCoinScale(profile?.age === 'upTo10');
+    if (scale) setCoinScale(profile?.age === 'upTo10');
     setLearnMode(profile && profile.age === '14plus' ? 'full' : 'family');
     return kid;
   }
@@ -52,7 +55,8 @@ export function createCareerFlow(ctx) {
   }
 
   // ---------- the picker ----------
-  function openPicker(pendingReturn = null) {
+  async function openPicker(pendingReturn = null) {
+    await ensureCareerStrings(); // the strings can still be missing on a launch that skipped boot() (QA 0.5.0 P1-1)
     const career = loadCareer();
     speak(activeProfile(career));
     mount(createPicker({
@@ -68,7 +72,8 @@ export function createCareerFlow(ctx) {
   }
 
   // ---------- the profile ----------
-  function openProfile({ focusAchievement = null } = {}) {
+  async function openProfile({ focusAchievement = null } = {}) {
+    await ensureCareerStrings(); // never render the screen before its strings (QA 0.5.0 P1-1: raw keys on a launch with nothing to settle)
     const career = loadCareer();
     const profile = activeProfile(career);
     if (!profile) { createProfileSheet(() => openProfile()); return; }
@@ -83,7 +88,8 @@ export function createCareerFlow(ctx) {
     mount(screen, { start: () => screen.start?.() });
   }
 
-  function editSheet(profile) {
+  async function editSheet(profile) {
+    await ensureCareerStrings();
     openEditSheet({
       engine, profile,
       onSave: ({ name, age, fox }) => {
@@ -100,7 +106,8 @@ export function createCareerFlow(ctx) {
     });
   }
 
-  function createProfileSheet(done, { onCreated = null } = {}) {
+  async function createProfileSheet(done, { onCreated = null } = {}) {
+    await ensureCareerStrings();
     openEditSheet({
       engine, profile: null,
       onSave: ({ name, age, fox }) => {
@@ -141,7 +148,7 @@ export function createCareerFlow(ctx) {
           const res = finishGame({ engine, profile: created, state, today });
           if (!res) return;
           updateCareer((c) => withProfile(c, res.profile));
-          const kid = speak(res.profile);
+          const kid = speak(res.profile, { scale: false });
           const block = createEndBlock({ engine, res, before: created, kid, onAchievement: (a, earnedOn, variant) => openAchievementSheet({ a, earnedOn, variant }) });
           holder.el.replaceWith(block.el);
           holder.el = block.el;
@@ -154,7 +161,7 @@ export function createCareerFlow(ctx) {
     const res = finishGame({ engine, profile, state, today, professionIds });
     if (!res) return null;
     updateCareer((c) => withProfile(c, res.profile));
-    const kid = speak(res.profile);
+    const kid = speak(res.profile, { scale: false });
     const block = createEndBlock({ engine, res, before: profile, kid, onAchievement: (a, earnedOn, variant) => openAchievementSheet({ a, earnedOn, variant }) });
     return { el: block.el, res, run: async () => { await block.run(); await showRankUps(res.rankUps, win, kid); } };
   }
@@ -168,7 +175,7 @@ export function createCareerFlow(ctx) {
     if (!res) return;
     updateCareer((c) => withProfile(c, res.profile));
     await ensureCareerStrings();
-    speak(res.profile);
+    speak(res.profile, { scale: false });
     toast(t('career.endBlock.toast', { xp: res.xp.game + res.xp.achievements }), 3500);
   }
 

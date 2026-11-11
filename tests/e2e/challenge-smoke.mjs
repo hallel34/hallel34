@@ -92,7 +92,7 @@ function decide(policy) {
       if (kind === 'expense') for (const a of ['pay', 'loan', 'sell']) if (btn(a)) return { click: `${L} [data-action="${a}"]` };
       if (kind === 'charity') return { click: `${L} [data-action="skip"]` };
       // 0.5.0: the promotion: the eager player upgrades, the others keep (so the two games decide differently)
-      if (card.dataset.promotion) return { click: `${L} [data-action="${policy === 'eager' ? 'option-upgrade' : 'pass'}"]` };
+      if (card.dataset.promotion) return { click: `${L} [data-action="${policy === 'eager' ? 'option-upgrade' : 'pass'}"]`, promotion: policy === 'eager' ? 'upgraded' : 'kept' };
       if (kind === 'market' && btn('accept') && policy === 'buyer') return { click: `${L} [data-action="accept"]` };
       const opt = q('.btn-option:not([disabled])', top);
       if (opt) return { clickEl: true };
@@ -122,6 +122,16 @@ async function playToEnd(page, policy, budgetMs = Number(process.env.SMOKE_GAME_
     else if (d.click) {
       if (d.click === '[data-action="roll"]') rolls += 1;
       await page.locator(d.click).first().click({ timeout: 3000, force: true }).catch(() => {});
+      // the promotion choice is the one decision the two games must make differently: under CPU load a click can land on a card that is
+      // still opening, so wait until the game has recorded the choice (and click again if it has not) before reading the next state
+      if (d.promotion) {
+        for (let i = 0; i < 40; i++) {
+          const status = await page.evaluate(() => { try { return JSON.parse(localStorage.getItem('passivo.challengeSave') ?? localStorage.getItem('passivo.save') ?? 'null')?.players?.[0]?.state?.promotion?.status ?? null; } catch { return null; } });
+          if (status === d.promotion) break;
+          if (i % 10 === 9) await page.locator(d.click).first().click({ timeout: 1500, force: true }).catch(() => {});
+          await page.waitForTimeout(100);
+        }
+      }
       await page.waitForTimeout(15);
     } else if (d.reroll) {
       await page.locator('[data-action="roll"]:not([disabled])').first().click({ timeout: 3000 }).catch(() => {});

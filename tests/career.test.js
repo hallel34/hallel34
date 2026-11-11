@@ -13,6 +13,7 @@ import {
   startableRanks, cleanProfileName,
 } from '../src/career/career.js';
 import { ACHIEVEMENTS, achievementById, evaluateGame, evaluateRankBased, gameTimeline, updateCounters, suitsGame } from '../src/career/achievements.js';
+import { recordPlay, streakView, emptyStreak } from '../src/daily/streak.js';
 import { finishGame, endStateVerified } from '../src/career/finish.js';
 import { loadCareer, saveCareer, syncActive, addProfile, updateCareer } from '../src/career/store.js';
 
@@ -606,5 +607,22 @@ describe('a junior profile never loses a thing, whatever happens to the clock', 
     const r = awardGame(p, { professionId: 'teacher', rank: 1, won: true, mode: 'family', junior: true, challenge: false, turns: 20 }, { today: day(7 * 101), professionIds: IDS });
     expect(r.events.every((e) => e.type === 'waited')).toBe(true);
     expect(standing(r.profile, 'teacher').xp).toBe(20 + XP_WIN);
+  });
+});
+
+describe('the daily streak: Saturday is a free day (decisions 2026-11-10, Shabbat rule 2026-11-11)', () => {
+  const FRI = '2026-11-13'; const SAT = '2026-11-14'; const SUN2 = '2026-11-15'; const MON = '2026-11-16'; const THU = '2026-11-12';
+  it('a Friday play followed by a Sunday play continues the streak; a Thursday play followed by a Sunday one does not', () => {
+    const fri = recordPlay(recordPlay(emptyStreak(), THU), FRI);
+    expect(fri.count).toBe(2);
+    expect(recordPlay(fri, SUN2).count).toBe(3);
+    expect(recordPlay(fri, SAT).count).toBe(3);
+    expect(recordPlay(recordPlay(emptyStreak(), THU), SUN2).count).toBe(1); // two free days are not allowed
+    expect(recordPlay(fri, MON).count).toBe(1); // Friday -> Monday skips Sunday: broken
+  });
+  it('the view on Sunday after a Friday play is still alive (pending), on Monday it is broken', () => {
+    const fri = recordPlay(emptyStreak(), FRI);
+    expect(streakView(fri, SUN2)).toMatchObject({ state: 'pending', count: 1 });
+    expect(streakView(fri, MON).state).toBe('broken');
   });
 });

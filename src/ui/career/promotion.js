@@ -1,5 +1,5 @@
 // 0.5.0 in-game promotion card (docs/v050/design/career-spec.md section 5): a decision card with two equal options, "keep your lifestyle"
-// (the whole raise stays free cash) and "upgrade" (80% of the raise becomes a new monthly expense, the fox gets an accessory, no cash).
+// (the whole raise stays free cash) and "upgrade" (80% of the raise becomes a new monthly expense; no cash perk, nothing else).
 // Neither is nudged: both are stacked ghost buttons, keep first. The numbers are the engine's (pending.raise / pending.upgradeCost).
 import '../../styles/career.css';
 import { h } from '../dom.js';
@@ -9,6 +9,12 @@ import { cardShell } from '../modals.js';
 import { animate } from '../fx.js';
 import { motionOK } from '../prefs.js';
 import { PAYDAY_MONTHS } from '../../engine/config.js';
+
+/**
+ * The slot values of one sentence. money() returns a DOM node and a node sits in the DOM once, so every sentence gets its own set: sharing one
+ * set between two tn() calls moved the amounts out of the first sentence (QA 0.5.0 P1-2).
+ */
+export const promotionSlots = (f) => ({ raise: money(f.raise), upgradeCost: money(f.upgradeCost), kept: money(f.kept), perSummary: money(f.perSummary) });
 
 /** What a choice does, as the engine will do it: { raise, upgradeCost, kept, perSummary }. */
 export const promotionFigures = (pending) => ({
@@ -20,7 +26,6 @@ const word = (key) => (coinScale() && t(`${key}Junior`) !== `${key}Junior` ? t(`
 /** Opens the pending promotion. Resolves { action: 'keep' | 'upgrade' } (or null when closed by a debug force). */
 export function promotionModal(state) {
   const f = promotionFigures(state.pending);
-  const slots = { raise: money(f.raise), upgradeCost: money(f.upgradeCost), kept: money(f.kept), perSummary: money(f.perSummary) };
   const bar = (segments) => h('span', { class: 'rbar', 'aria-hidden': 'true' }, segments.map((s) => h('i', { class: s.spend ? 'is-spend' : '', style: `--w:${s.pct}%` })));
   const keepPct = 100;
   const spendPct = Math.round((100 * f.upgradeCost) / f.raise);
@@ -30,16 +35,17 @@ export function promotionModal(state) {
       h('span', { class: 'dec-num', 'data-num': 'cash' }, h('span', { class: 'dec-num-label' }, t('decision.cash')), ' ', t('decision.none')),
       h('span', { class: 'dec-num', 'data-num': 'monthly' }, h('span', { class: 'dec-num-label' }, t('decision.monthly')), ' ', money(monthly, { sign: true }))),
     bars, h('span', { class: 'rbar-legend' }, legend),
-    h('span', { class: 'dec-reason' }, tn(consequence, slots)));
+    h('span', { class: 'dec-reason' }, tn(consequence, promotionSlots(f))));
   const keepRow = option('keep', word('promotion.keep'), coinScale() ? 'promotion.keepConsequenceJunior' : 'promotion.keepConsequence', f.raise,
     bar([{ pct: keepPct }]), h('span', null, word('promotion.legendKeep')));
   const upRow = option('upgrade', word('promotion.upgrade'), coinScale() ? 'promotion.upgradeConsequenceJunior' : 'promotion.upgradeConsequence', f.kept,
     bar([{ pct: spendPct, spend: true }, { pct: 100 - spendPct }]),
     [h('span', null, tn('promotion.legendStays', { amount: money(f.kept) })), h('span', null, tn(coinScale() ? 'promotion.legendNewJunior' : 'promotion.legendNew', { amount: money(f.upgradeCost) }))]);
-  const teaches = h('div', { class: 'banner banner-info dec-teaches' }, h('span', null, h('b', null, `${t('promotion.teachesTitle')}: `), word('promotion.teaches'), ' ', word('promotion.simplificationPace')));
+  // one short lesson line (educator review); the long teaching and the pace note come with the feedback after the choice
+  const teaches = h('div', { class: 'banner banner-info dec-teaches' }, h('span', null, h('b', null, `${t('promotion.teachesTitle')}: `), word('promotion.lesson')));
   const rows = h('ul', { class: 'dec-list', role: 'list' }, keepRow, upRow);
   const modal = cardShell({
-    type: 'payday', kind: t('promotion.kicker'), headChip: null, title: word('promotion.title'), text: tn(coinScale() ? 'promotion.offerJunior' : 'promotion.offer', slots),
+    type: 'payday', kind: t('promotion.kicker'), headChip: null, title: word('promotion.title'), text: tn(coinScale() ? 'promotion.offerJunior' : 'promotion.offer', promotionSlots(f)),
     body: [h('p', { class: 'dec-choose' }, t('decision.choose')), rows, teaches],
     // two equal ghost buttons, keep first; 'pass' is the free option's action id on every decision card (scripted players know it)
     actions: [
@@ -56,11 +62,14 @@ export function promotionModal(state) {
   return modal;
 }
 
-/** The fox line and the log line after the choice (neutral facts, never praise or warning). */
+/** The fox line and the log line after the choice (neutral facts, never praise or warning). Each sentence gets fresh amount nodes. */
 export function promotionLines(choice, state) {
   const p = state.promotion;
-  const slots = { raise: money(p.raise), upgradeCost: money(p.upgradeCost), kept: money(p.raise - p.upgradeCost), perSummary: money(p.raise * PAYDAY_MONTHS) };
+  const f = promotionFigures({ raise: p.raise, upgradeCost: p.upgradeCost });
   const key = choice === 'upgrade' ? 'Upgrade' : 'Keep';
   const feedback = coinScale() && t(`promotion.feedback${key}Junior`) !== `promotion.feedback${key}Junior` ? `promotion.feedback${key}Junior` : `promotion.feedback${key}`;
-  return { log: tn(`promotion.log.${choice}`, slots), body: tn(feedback, slots), months: tp('promotion.plural.months', 1) };
+  const body = tn(feedback, promotionSlots(f));
+  // the lesson in full comes after the choice, where the numbers are already in front of the player
+  body.append(' ', word('promotion.teaches'), ' ', word('promotion.simplificationPace'));
+  return { log: tn(`promotion.log.${choice}`, promotionSlots(f)), body, months: tp('promotion.plural.months', 1) };
 }

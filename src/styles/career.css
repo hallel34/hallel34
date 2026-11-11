@@ -40,7 +40,7 @@
 .cr-rank + .cr-rank { border-block-start: 1px solid var(--border); }
 .cr-rank-main { display: flex; flex-direction: column; gap: 2px; min-inline-size: 0; }
 .cr-row-name { font-size: .8125rem; color: var(--text-muted); }
-.cr-rank-title { font-size: 1rem; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cr-rank-title { font-size: 1rem; font-weight: 800; overflow-wrap: anywhere; } /* wraps at 320: a long title is never cut (QA 0.5.0 P2-5) */
 .cr-row-sub { font-size: .75rem; color: var(--text-muted); }
 .cr-pips { display: flex; gap: 4px; }
 .cr-pip { display: grid; place-items: center; inline-size: 22px; block-size: 22px; border-radius: 50%; border: 1.5px dashed var(--border); color: var(--text-muted); opacity: .6; }
@@ -76,7 +76,7 @@
 .cr-tile img { inline-size: 72px; block-size: 72px; border-radius: 50%; }
 .cr-tile.is-active { box-shadow: 0 0 0 2px var(--sel-ring); }
 .cr-tile.is-add { border: 1.5px dashed var(--border-strong); background: transparent; }
-.cr-tile-name { font-size: 1.125rem; font-weight: 800; max-inline-size: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cr-tile-name { font-size: 1.125rem; font-weight: 800; max-inline-size: 100%; overflow-wrap: anywhere; text-align: center; }
 .cr-tile-meta { display: inline-flex; align-items: center; gap: 4px; font-size: .8125rem; color: var(--text-muted); }
 .cr-tile-meta .icon { color: var(--career); }
 .cr-tile-check { position: absolute; inset-block-start: 8px; inset-inline-end: 8px; display: grid; place-items: center; inline-size: 24px; block-size: 24px; border-radius: 50%; background: var(--surface-2); }
@@ -107,7 +107,7 @@
 .cr-avatar-ring img { inline-size: 44px; block-size: 44px; border-radius: 50%; }
 .cr-ring-glyph { position: absolute; inset-block-end: -4px; inset-inline-end: -4px; display: grid; place-items: center; inline-size: 20px; block-size: 20px; border-radius: 50%; background: var(--surface); border: 1px solid var(--career); color: var(--career); }
 .cr-end-main { display: flex; flex-direction: column; gap: 6px; min-inline-size: 0; }
-.cr-end-title { font-size: 1rem; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cr-end-title { font-size: 1rem; font-weight: 800; overflow-wrap: anywhere; }
 .cr-gain { font-size: .9375rem; font-weight: 800; color: var(--career); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .cr-parts { display: flex; align-items: center; gap: 8px; margin: 0; font-size: .75rem; color: var(--text-muted); }
 .cr-x2 { display: inline-flex; align-items: center; gap: 2px; block-size: 18px; padding-inline: 6px; border-radius: 9px; background: var(--career-tint); color: var(--career); font-size: .6875rem; font-weight: 700; }
@@ -122,7 +122,7 @@
 .cr-rankup { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; max-block-size: 90dvh; overflow-y: auto; }
 .cr-rankup-fox img { inline-size: 148px; block-size: 148px; border-radius: 50%; }
 .cr-kicker { margin: 0; font-size: .9375rem; font-weight: 700; color: var(--career); }
-.cr-rankup-title { margin: 0; font-size: 1.875rem; font-weight: 900; max-inline-size: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cr-rankup-title { margin: 0; font-size: 1.875rem; font-weight: 900; max-inline-size: 100%; overflow-wrap: anywhere; text-align: center; }
 .cr-ladder { display: flex; gap: 10px; list-style: none; margin: 4px 0; padding: 0; }
 .cr-rung { display: grid; place-items: center; inline-size: 36px; block-size: 36px; border-radius: 50%; border: 1.5px dashed var(--border-strong); color: var(--text-muted); }
 .cr-rung.is-done { border: 1.5px solid var(--career); color: var(--career); }

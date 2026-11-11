@@ -273,8 +273,11 @@ export function createApp(host) {
 
   function goPlayers() {
     setCoinScale(false);
+    // 0.5.0: a one-player game starts on the active profile's age, so the profile and the game read in one scale (QA P2-6); a chosen age stays
+    const profileAge = readActiveProfile()?.age;
+    const ages = setup.ages?.some(Boolean) ? setup.ages : (profileAge && setup.count === 1 ? [profileAge] : []);
     mount({ el: createPlayers({
-      count: setup.count, names: setup.names, ages: setup.ages ?? [], bots: setup.bots ?? [], mode, length: setup.length ?? 'standard',
+      count: setup.count, names: setup.names, ages, bots: setup.bots ?? [], mode, length: setup.length ?? 'standard',
       onMode: (m) => { mode = m; writeRaw('mode', m); setLearnMode(m); }, // an age under 14 -> family: the kid vocabulary too (QA r18 P2-2)
       onBack: () => goStart(),
       onNext: ({ count, names, ages, bots, length }) => {
