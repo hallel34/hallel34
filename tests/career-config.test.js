@@ -49,7 +49,7 @@ describe('CAREER_PROTECTED_AGE: widening to 13 is one line', () => {
     expect(c.isProtectedAge('upTo10')).toBe(true);
     expect(c.isProtectedAge('11to13')).toBe(true);
     expect(c.isProtectedAge('14plus')).toBe(false);
-    expect(c.syncSeniority(profile('11to13'), day(7 * 9)).events).toEqual([]);
+    expect(c.syncSeniority(profile('11to13'), day(7 * 9)).events.every((e) => e.type === 'waited')).toBe(true);
     expect(c.syncSeniority(profile('14plus'), day(7 * 9)).events.length).toBeGreaterThan(0);
   });
 });

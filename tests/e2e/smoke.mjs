@@ -255,6 +255,8 @@ function decide(policy) {
         return out({ click: '#modal-root .layer:last-child [data-action="skip"]' });
       }
       if (kind === 'market' && btn('accept')) return out({ click: '#modal-root .layer:last-child [data-action="accept"]' });
+      // 0.5.0: the in-game promotion card (a payday-type decision card): keep the lifestyle (its free option has the action id 'pass')
+      if (card.dataset.promotion && btn('pass')) { shot = 'card-promotion'; return out({ click: '#modal-root .layer:last-child [data-action="pass"]' }); }
       if (btn('ok')) return out({ click: '#modal-root .layer:last-child [data-action="ok"]' });
       if (btn('decline')) return out({ click: '#modal-root .layer:last-child [data-action="decline"]' });
     }

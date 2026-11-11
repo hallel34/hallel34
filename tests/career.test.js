@@ -187,7 +187,7 @@ describe('seniority: reset, drop, never below rank 0', () => {
     for (const age of ['upTo10', null]) {
       const kid = { ...adult(), age };
       const r = sync(kid, 20);
-      expect(r.events).toEqual([]);
+      expect(r.events).toEqual([{ type: 'waited', weeks: 19 }]); // only "the career waited", once (the junior return screen)
       expect(r.profile.ranks).toEqual(kid.ranks);
       expect(r.profile.missed).toBe(0);
       expect(r.profile.settledWeek).toBe(W + 19);
@@ -221,7 +221,7 @@ describe('age edits (free) and the grace week', () => {
   it('growing out of the protected band: the current week counts as played, so the first week never starts with a loss', () => {
     const kid = withRanks({ ...playedIn(fresh('upTo10'), 0) }, { teacher: [2, 10] });
     const r = setAge(kid, '11to13', day(7 * 6)); // six weeks later, the age is edited
-    expect(r.events).toEqual([]);
+    expect(r.events).toEqual([{ type: 'waited', weeks: 5 }]); // settled under the old band: nothing lost
     expect(r.profile.age).toBe('11to13');
     expect(r.profile.lastPlayWeek).toBe(W + 6);
     expect(syncSeniority(r.profile, day(7 * 7)).events).toEqual([]); // the next week is still open
@@ -544,14 +544,14 @@ describe('a junior profile never loses a thing, whatever happens to the clock', 
     const before = JSON.stringify(p.ranks);
     for (const k of [3, 9, 30, 52, 100]) {
       const r = syncSeniority(p, day(7 * k));
-      expect(r.events).toEqual([]);
+      expect(r.events.every((e) => e.type === 'waited')).toBe(true);
       expect(JSON.stringify(r.profile.ranks)).toBe(before);
       p = r.profile;
     }
     expect(seniorityView(p, day(7 * 101))).toEqual({ state: 'waiting' });
     // and a game played after the long wait is simply credited
     const r = awardGame(p, { professionId: 'teacher', rank: 1, won: true, mode: 'family', junior: true, challenge: false, turns: 20 }, { today: day(7 * 101), professionIds: IDS });
-    expect(r.events).toEqual([]);
+    expect(r.events.every((e) => e.type === 'waited')).toBe(true);
     expect(standing(r.profile, 'teacher').xp).toBe(20 + XP_WIN);
   });
 });

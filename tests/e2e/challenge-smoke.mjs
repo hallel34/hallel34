@@ -91,6 +91,7 @@ function decide(policy) {
       }
       if (kind === 'expense') for (const a of ['pay', 'loan', 'sell']) if (btn(a)) return { click: `${L} [data-action="${a}"]` };
       if (kind === 'charity') return { click: `${L} [data-action="skip"]` };
+      if (card.dataset.promotion && btn('pass')) return { click: `${L} [data-action="pass"]` }; // 0.5.0: keep the lifestyle
       if (kind === 'market' && btn('accept') && policy === 'buyer') return { click: `${L} [data-action="accept"]` };
       const opt = q('.btn-option:not([disabled])', top);
       if (opt) return { clickEl: true };

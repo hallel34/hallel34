@@ -22,7 +22,10 @@ export function endStateVerified(engine, state) {
  */
 export function finishGame({ engine, profile, state, today, professionIds = engine.data.professions.map((p) => p.id), mission = false }) {
   const record = recordOf(state, { mission });
-  if (!record || !profile || !endStateVerified(engine, state)) return null;
+  if (!record || !profile) return null;
+  const gameId = `${state.seed}:${record.professionId}:${record.rank}:${state.turn}:${state.status}`;
+  if (profile.lastGame === gameId) return null; // the same finished game is credited once (a screen shown again never pays twice)
+  if (!endStateVerified(engine, state)) return null;
   const week = effectiveWeek(profile, today);
   const promo = promoWeekProfession(week, professionIds);
   const { earned, counters } = evaluateGame({ engine, state, record, profile, promoProfessionId: promo });
@@ -39,5 +42,5 @@ export function finishGame({ engine, profile, state, today, professionIds = engi
     const r = awardAchievements(p, more, { today, professionId: record.professionId, doubled: xp.doubled });
     p = r.profile; rankUps.push(...r.rankUps); newAchievements.push(...more); xp = { ...xp, achievements: xp.achievements + r.xp };
   }
-  return { profile: p, events: first.events, xp, rankUps, newAchievements, record, week: weekNumber(today) };
+  return { profile: { ...p, lastGame: gameId }, events: first.events, xp, rankUps, newAchievements, record, week: weekNumber(today), firstOfWeek: first.firstOfWeek };
 }

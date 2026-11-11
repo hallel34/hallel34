@@ -9,7 +9,7 @@ import {
   MAX_STOCK_QTY, PAYDAY_MONTHS, INFLATION_PRICE_ROUND, TIMED_EFFECT_KINDS, INFLATION_FLOW_ROUND, INFLATION_EXPENSE_ROUND,
   MILESTONES, TAX_AUDIT_PICKS, TAX_AUDIT_POINTS, JUNIOR_ROUND, JUNIOR_PRICE_ROUND, JUNIOR_LOAN_STEP,
   MAX_RANK, PROMOTION_RAISE_PCT, PROMOTION_UPGRADE_SHARE, PROMOTION_ROUND, PROMOTION_FROM_TURN, PROMOTION_TURN_SPAN, PROMOTION_EXPENSE_ID,
-  RANK_DEAL_SCALE_EXPONENT, RANK_DEAL_SCALE_ROUND,
+  RANK_DEAL_SCALE_EXPONENT, RANK_DEAL_SCALE_FACTOR, RANK_DEAL_SCALE_ROUND,
 } from './config.js';
 import { validateData } from './validate.js';
 import { cardView } from './card-view.js';
@@ -87,10 +87,10 @@ function juniorProfession(p) {
   return { ...p, salary: r(p.salary), perChild: r(p.perChild), expenses: p.expenses.map((e) => ({ ...e, amount: r(e.amount) })) };
 }
 
-/** The deal scale of a rank above 0: the rank's own `dealScale`, else (rank salary / base salary) ^ RANK_DEAL_SCALE_EXPONENT, rounded. */
+/** The deal scale of a rank above 0: the rank's own `dealScale`, else RANK_DEAL_SCALE_FACTOR x (rank salary / base salary) ^ RANK_DEAL_SCALE_EXPONENT, rounded. */
 export function rankDealScale(base, rank) {
   if (Number.isFinite(rank?.dealScale)) return rank.dealScale;
-  const raw = (rank.salary / base.salary) ** RANK_DEAL_SCALE_EXPONENT;
+  const raw = RANK_DEAL_SCALE_FACTOR * (rank.salary / base.salary) ** RANK_DEAL_SCALE_EXPONENT;
   return Math.max(1, Number((Math.round(raw / RANK_DEAL_SCALE_ROUND) * RANK_DEAL_SCALE_ROUND).toFixed(2)));
 }
 

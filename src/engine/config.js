@@ -168,9 +168,11 @@ export const PROMOTION_EXPENSE_ID = 'lifestyle';
 /**
  * Deal scale of a rank (docs/BALANCE.md, '0.5.0 ranks'): the prices, down payments and monthly money of NEW deals are multiplied by
  * it, so a higher rank's bigger target is reachable in about the same number of turns. A rank's data may set `dealScale`; without
- * one it is (rank salary / rank 0 salary) ^ RANK_DEAL_SCALE_EXPONENT.
+ * one it is RANK_DEAL_SCALE_FACTOR x (rank salary / rank 0 salary) ^ RANK_DEAL_SCALE_EXPONENT.
  */
 export const RANK_DEAL_SCALE_EXPONENT = 1;
+/** ... times this factor (docs/BALANCE.md, '0.5.0 ranks': 1.0 keeps the sensible bot's medians but lets the reckless bots lose 36-40% at ranks 2-3; 1.3 keeps both in band). */
+export const RANK_DEAL_SCALE_FACTOR = 1.3;
 /** Unit a rank's deal scale is rounded to. */
 export const RANK_DEAL_SCALE_ROUND = 0.05;
 

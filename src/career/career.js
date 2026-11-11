@@ -11,8 +11,8 @@
 //    profession above rank 0 by one rank; the count then restarts at SENIORITY_COUNT_AFTER_DROP (1 = a drop per further week).
 //  - A profile whose age band is protected (CAREER_PROTECTED_AGE and younger, or no band at all) never loses anything: the career waits.
 //  - Clock guards as in streak.js: a clock moved back restores nothing; a date absurdly far ahead is ignored.
-import { dayKey, weekNumber, weekDay, daysLeftInWeek } from '../daily/calendar.js';
-import { keyedInt } from '../engine/rng.js';
+import { dayKey, weekNumber } from '../daily/calendar.js';
+import { chipView, isProtectedAge, promoWeekProfession } from './lite.js';
 import {
   AGE_BANDS, CAREER_PROTECTED_AGE, MAX_RANK, XP_WIN, XP_LOSS, XP_ACHIEVEMENT, XP_LOWER_RANK_SHARE, PROMO_WEEK_XP_MULTIPLIER, RANK_XP_NEEDED,
   SENIORITY_RESET_AFTER, SENIORITY_DROP_AFTER, SENIORITY_COUNT_AFTER_DROP, CAREER_MAX_DROPS_PER_RETURN, CAREER_MAX_WEEK_JUMP, MAX_PROFILES,
@@ -22,13 +22,11 @@ import {
 export const CAREER_SCHEMA = 1;
 export const emptyCareer = () => ({ v: CAREER_SCHEMA, active: null, profiles: [] });
 
-// ---------- the age guard ----------
-/** True when a profile of this age band never loses a rank or progress. No band (null) behaves as the youngest band. */
-export const isProtectedAge = (age) => AGE_BANDS.indexOf(age) <= AGE_BANDS.indexOf(CAREER_PROTECTED_AGE);
+// ---------- the age guard (src/career/lite.js: it ships on home) ----------
+export { isProtectedAge };
 
 // ---------- the promotion week ----------
-/** The profession that pays double XP in week `week`: keyed from the week number only (src/engine/rng.js), the same for everyone. */
-export const promoWeekProfession = (week, professionIds) => (professionIds.length ? professionIds[keyedInt(week, 'promoWeek', 0, 0, professionIds.length)] : null);
+export { promoWeekProfession };
 
 // ---------- XP and ranks ----------
 /** XP needed to leave `rank` (Infinity at the top). */
@@ -85,6 +83,8 @@ export function parseProfile(raw) {
     games: clampInt(raw.games, 0, 99999),
     ranks, peak,
     lastPlayWeek: week(raw.lastPlayWeek), settledWeek: week(raw.settledWeek),
+    lastPlayDate: isKey(raw.lastPlayDate) ? raw.lastPlayDate : null, // the day of the last finished game (the profile's week strip)
+    lastGame: typeof raw.lastGame === 'string' ? raw.lastGame.slice(0, 64) : null, // the id of the last credited game: a game is credited once
     missed: clampInt(raw.missed, 0, 99),
     achievements: ach,
     counters: {
@@ -176,7 +176,7 @@ export function effectiveWeek(profile, today) {
  * Settles every week that ended before `today`'s week. Returns { profile, events } where events are
  *   { type: 'reset', week }                             the progress to the next rank started over, in every profession
  *   { type: 'drop', week, drops: [{ professionId, from, to }] }   every profession above rank 0 dropped one rank
- * A protected profile never has events: its weeks are simply settled. A date before the settled week (a clock moved back) changes nothing,
+ * A protected profile never loses anything: its weeks are settled and the only event is { type: 'waited', weeks } (shown as "the career waited"). A date before the settled week (a clock moved back) changes nothing,
  * and one more than CAREER_MAX_WEEK_JUMP weeks ahead of it is ignored (effectiveWeek).
  */
 export function syncSeniority(profile, today) {
@@ -191,10 +191,11 @@ export function syncSeniority(profile, today) {
   let ranks = profile.ranks;
   const events = [];
   let drops = 0;
+  let waited = 0;
   for (let w = profile.settledWeek + 1; w <= cur - 1; w++) {
     if (w === profile.lastPlayWeek) { missed = 0; continue; } // a game was finished in this week
     if (w < profile.lastPlayWeek) continue; // before the last play (already settled by an earlier sync)
-    if (guarded) continue; // the career waits
+    if (guarded) { waited += 1; continue; } // the career waits
     missed += 1;
     if (missed >= SENIORITY_DROP_AFTER) {
       if (drops < CAREER_MAX_DROPS_PER_RETURN) {
@@ -212,6 +213,8 @@ export function syncSeniority(profile, today) {
       events.push({ type: 'reset', week: w });
     }
   }
+  // a protected profile that was away says so once, in kind words: the career waited (the junior return screen)
+  if (waited) events.push({ type: 'waited', weeks: waited });
   return { profile: { ...profile, ranks, missed, settledWeek: cur - 1 }, events };
 }
 
@@ -226,14 +229,7 @@ export function syncSeniority(profile, today) {
  */
 export function seniorityView(profile, today) {
   if (!profile) return { state: 'none' };
-  const synced = syncSeniority(profile, today).profile;
-  if (isProtectedAge(synced.age)) return { state: 'waiting' };
-  const cur = effectiveWeek(synced, today);
-  if (synced.lastPlayWeek >= cur) return { state: 'kept' };
-  if (weekDay(today) >= CAREER_WARN_FROM_WEEKDAY) {
-    return { state: 'warn', days: daysLeftInWeek(today, CAREER_DEADLINE_WEEKDAY), rank: synced.missed + 1 >= SENIORITY_DROP_AFTER };
-  }
-  return { state: 'open', days: daysLeftInWeek(today, CAREER_DEADLINE_WEEKDAY) };
+  return chipView(syncSeniority(profile, today).profile, today);
 }
 
 // ---------- a finished game ----------
@@ -267,7 +263,7 @@ export function awardGame(profile, record, { today, earned = [], professionIds =
   const synced = syncSeniority(profile, today);
   const week = effectiveWeek(synced.profile, today);
   // the last play never moves back (a clock set back restores nothing); a play always counts for the newest week seen
-  let p = { ...synced.profile, lastPlayWeek: Math.max(synced.profile.lastPlayWeek ?? week, week), missed: 0, games: synced.profile.games + 1 };
+  let p = { ...synced.profile, lastPlayWeek: Math.max(synced.profile.lastPlayWeek ?? week, week), missed: 0, games: synced.profile.games + 1, lastPlayDate: today };
   const doubled = promoWeekProfession(week, professionIds) === record.professionId;
   const careerRank = standing(p, record.professionId).rank;
   const game = gameXp({ won: record.won, gameRank: record.rank, careerRank, doubled });
@@ -279,7 +275,7 @@ export function awardGame(profile, record, { today, earned = [], professionIds =
   const ach = { ...p.achievements };
   for (const id of fresh) ach[id] = today;
   p = { ...p, ranks, peak, achievements: ach };
-  return { profile: p, events: synced.events, xp: { game, achievements, doubled }, rankUps: ups };
+  return { profile: p, events: synced.events, xp: { game, achievements, doubled }, rankUps: ups, firstOfWeek: synced.profile.lastPlayWeek !== week };
 }
 
 /** Credits achievements earned outside a game's end (a rank-based one, found after the XP landed): their XP goes to `professionId`. */

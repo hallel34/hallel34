@@ -675,7 +675,8 @@
             "principal": 12000,
             "monthlyPayment": 120
           }
-        ]
+        ],
+        "dealScale": 1.5
       },
       {
         "rank": 2,
@@ -725,7 +726,8 @@
             "principal": 12000,
             "monthlyPayment": 120
           }
-        ]
+        ],
+        "dealScale": 1.9
       },
       {
         "rank": 3,
@@ -775,7 +777,8 @@
             "principal": 12000,
             "monthlyPayment": 120
           }
-        ]
+        ],
+        "dealScale": 2.35
       }
     ]
   },
@@ -1057,7 +1060,8 @@
             "principal": 27000,
             "monthlyPayment": 540
           }
-        ]
+        ],
+        "dealScale": 1.6
       },
       {
         "rank": 2,
@@ -1100,7 +1104,8 @@
             "principal": 32000,
             "monthlyPayment": 640
           }
-        ]
+        ],
+        "dealScale": 2.1
       },
       {
         "rank": 3,
@@ -1143,7 +1148,8 @@
             "principal": 35000,
             "monthlyPayment": 700
           }
-        ]
+        ],
+        "dealScale": 2.45
       }
     ]
   },
@@ -1231,7 +1237,8 @@
             "principal": 7000,
             "monthlyPayment": 210
           }
-        ]
+        ],
+        "dealScale": 1.2
       },
       {
         "rank": 2,
@@ -1274,7 +1281,8 @@
             "principal": 8000,
             "monthlyPayment": 240
           }
-        ]
+        ],
+        "dealScale": 1.55
       },
       {
         "rank": 3,
@@ -1317,7 +1325,8 @@
             "principal": 9000,
             "monthlyPayment": 270
           }
-        ]
+        ],
+        "dealScale": 2.05
       }
     ]
   },

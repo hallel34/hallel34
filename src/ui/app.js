@@ -24,7 +24,8 @@ import { streakView } from '../daily/streak.js';
 import { dailyStatus } from '../daily/attempt.js';
 import { loadResults, loadStreak, endDailyGame, resetDay } from '../daily/store.js';
 import { showInterstitial } from '../services/ads.js';
-import { getLocale, t, ensureStrings } from '../i18n/index.js';
+import { getLocale, t, ensureStrings, ensureCareerStrings } from '../i18n/index.js';
+import { readActiveProfile, needsSettling, chipView, isProtectedAge, profileCount } from '../career/lite.js';
 import { destroyAllLayers, openLayer } from './modal.js';
 import { button } from './widgets.js';
 import { initTermButtons } from './learn.js';
@@ -241,7 +242,11 @@ export function createApp(host) {
   function goStart() {
     setCoinScale(false);
     const chSave = loadChallengeSave();
+    const lite = readActiveProfile();
+    const careerChipData = lite ? { profile: lite, junior: isProtectedAge(lite.age), view: chipView(lite, dayKey()) } : null;
     const start = createStart({
+      career: careerChipData,
+      onProfile: () => careerFlow().then((f) => f.openProfile()).catch(careerFail),
       save: loadSave(),
       challengeSave: chSave ? { name: chSave.challenge.name || '', turn: currentState(chSave).turn } : null,
       onChallengeResume: () => { const m = loadChallengeSave(); if (m) goPlay(m); },
@@ -272,7 +277,7 @@ export function createApp(host) {
       onMode: (m) => { mode = m; writeRaw('mode', m); setLearnMode(m); }, // an age under 14 -> family: the kid vocabulary too (QA r18 P2-2)
       onBack: () => goStart(),
       onNext: ({ count, names, ages, bots, length }) => {
-        setup = { count, names, ages, bots, professionIds: [], length: length ?? 'standard' };
+        setup = { count, names, ages, bots, professionIds: [], ranks: [], length: length ?? 'standard' };
         // the practice missions follow the last chosen age band (QA r22 P2): the first human player's ('' = none given)
         writeRaw('lastAge', ages.find((a, i) => !bots?.[i]) ?? '');
         goPick(0);
@@ -282,15 +287,18 @@ export function createApp(host) {
 
   // A bot seat picks no profession on screen: startNew derives one from the match seed and the seat (v0.5, docs/RNG.md),
   // so a seed replays the same table and the bot seat never draws on Math.random.
-  function goPick(i) {
+  async function goPick(i) {
     if (i >= setup.count) { startNew(); return; } // the last seats were bots (they sit at the end): every pick is done
     if (setup.bots?.[i]) { setup.professionIds[i] = null; goPick(i + 1); return; }
     setLearnMode(mode); // the pick sheet speaks the mode it shows (family: the children's words, QA r18 P2-2)
     const multi = setup.count > 1;
     const junior = isJuniorSetup(mode, (setup.ages ?? []).map((age) => ({ age })));
     setCoinScale(junior && setup.ages?.[i] === JUNIOR_AGE); // this player's own scale
+    // 0.5.0: a one-player game picks at the profile's ranks (the career strings load first); a hot-seat seat is not a profile
+    const lite = !multi ? readActiveProfile() : null;
+    if (lite) { try { await ensureCareerStrings(); } catch (err) { console.warn(err); } }
     mount({ el: createPick({
-      engine, mode, junior,
+      engine, mode, junior, career: lite ? { profile: lite, today: dayKey() } : null,
       player: multi ? { name: playerName({ name: setup.names[i] }, i), color: i + 1, n: i + 1, total: setup.count } : null,
       onBack: () => {
         // back to the previous person's pick; bot seats pick nothing on screen (going "back" onto one would bounce forward again)
@@ -298,8 +306,9 @@ export function createApp(host) {
         while (j >= 0 && setup.bots?.[j]) j--;
         if (j < 0) goPlayers(); else goPick(j);
       },
-      onGo: (professionId) => {
+      onGo: (professionId, rank = 0) => {
         setup.professionIds[i] = professionId;
+        (setup.ranks ??= [])[i] = rank;
         if (i + 1 < setup.count) goPick(i + 1); else startNew();
       },
     }) });
@@ -310,7 +319,8 @@ export function createApp(host) {
     setup.professionIds = setup.professionIds.map((id, i) => (setup.bots?.[i] ? botProfessionId(seed, i, professionIds) : id));
     const m = newMatch(engine, {
       mode, seed, roundCap: setup.length === 'short' ? SHORT_ROUNDS : null,
-      players: setup.professionIds.map((professionId, i) => ({ name: setup.names[i], professionId, age: setup.ages?.[i] ?? null, bot: setup.bots?.[i] ?? null })),
+      players: setup.professionIds.map((professionId, i) => ({ name: setup.names[i], professionId, age: setup.ages?.[i] ?? null, bot: setup.bots?.[i] ?? null, rank: setup.ranks?.[i] ?? 0 })),
+      promotion: true, // 0.5.0: every new normal game has the in-game promotion (the daily, the missions and v1 saves never do)
     });
     setCoinScale(seesCoins(m, m.players[0])); // the story of a junior first game is told in coins
     // 'המשחק הראשון עם מקסי': the first family game of this device opens with the five-screen story (lazy chunk, skippable)
@@ -326,6 +336,7 @@ export function createApp(host) {
   async function goPlay(m, { fresh = false } = {}) {
     store.save(m);
     if (m.challenge) await challengeStrings(); // the HUD chip, the charity line and the legend speak the challenge rules
+    if (m.promotion) { try { await ensureCareerStrings(); } catch (err) { console.warn(err); } } // the statement and the promotion card speak the career strings
     setLearnMode(m.mode);
     try { await loadBoardStyles(); } catch (err) { console.warn(err); } // the board is usable (if plainer) even without its v4 stylesheet
     try { await prepareBoardImage(); } catch (err) { console.error(err); toast(t('app.loadError'), 4000); return; }
@@ -365,29 +376,42 @@ export function createApp(host) {
     countGame();
     const multi = isMultiplayer(m);
     setCoinScale(seesCoins(m, m.players[m.winnerIndex ?? 0])); // the winner's own scale
+    const career = multi ? null : await careerEnd(m);
     const win = createWin({
       match: m,
       onAgain: () => again(m),
       onMenu: () => { if (multi) { settingsOf(m); goPlayers(); } else goStart(); },
-    }, { onChallenge: challengeHandler(m) });
+    }, { onChallenge: challengeHandler(m), career });
     mount({ el: win.el }, { start: () => win.start() });
     showInterstitial('win');
   }
 
-  function goOver(m) {
+  /** The career part of a finished one-player game ({ el, run } for the end card), or null; a failure never blocks the end screen. */
+  async function careerEnd(m) {
+    if (m.mission || m.daily) return null;
+    try { return await (await careerFlow()).afterGame(m); } catch (err) { console.error(err); return null; }
+  }
+
+  async function goOver(m) {
     if (m.daily) { finishDaily(m); return; }
     if (m.challenge) { goChallengeEnd(m); return; }
     store.clear(m);
     countGame();
     const multi = isMultiplayer(m);
     setCoinScale(!multi && seesCoins(m, m.players[0]));
+    const career = multi ? null : await careerEnd(m);
     const over = createOver({
       match: m,
       onRetry: () => again(m),
       onMenu: () => { if (multi) { settingsOf(m); goPlayers(); } else goStart(); },
-    }, { onChallenge: challengeHandler(m) });
+    }, { onChallenge: challengeHandler(m), career });
     mount({ el: over.el }, { start: () => over.start() });
   }
+
+  // ---------- 0.5.0 career (the screens, strings and logic are a lazy chunk: src/ui/career/flow.js; home reads the profile itself) ----------
+  let careerChunk = null;
+  const careerFlow = () => (careerChunk ??= import('./career/flow.js').then(({ createCareerFlow }) => createCareerFlow({ engine, mount, goStart, goPlayers })).catch((err) => { careerChunk = null; throw err; }));
+  const careerFail = (err) => { console.error(err); toast(t('app.loadError'), 4000); };
 
   // ---------- 0.5.1 friend challenges by link (the flow itself is a lazy chunk: src/ui/challenge/flow.js) ----------
   let flowChunk = null;
@@ -395,7 +419,8 @@ export function createApp(host) {
     engine, mount, goStart, goPlay, goPlayers, store, countGame, loadChallengeSave,
   })).catch((err) => { flowChunk = null; throw err; }));
   const challengeStrings = () => ensureStrings('challenge').catch((err) => console.error(err));
-  const goChallengeEnd = (m) => challengeFlow().then((f) => f.end(m), (err) => { console.error(err); toast(t('app.loadError'), 4000); });
+  const goChallengeEnd = (m) => challengeFlow().then((f) => f.end(m), (err) => { console.error(err); toast(t('app.loadError'), 4000); })
+    .then(() => careerFlow().then((f) => f.afterChallenge(m)).catch((err) => console.error(err)));
   const goBoard = () => challengeFlow().then((f) => f.board(), (err) => { console.error(err); toast(t('app.loadError'), 4000); });
 
   /** A challenge game in progress (its own slot), or null. */
@@ -426,5 +451,12 @@ export function createApp(host) {
     return () => challengeFlow().then((f) => f.openCreate(m), (err) => { console.error(err); toast(t('app.loadError'), 4000); });
   }
 
-  return { start: () => { if (!openLinkFromHash()) goStart(); }, engine, data, h };
+  // launch: a link first; then the weekly settling (a whole week ended since the last one) or the picker (two or more profiles)
+  function launch() {
+    if (openLinkFromHash()) return;
+    const lite = readActiveProfile();
+    if (lite && (needsSettling(lite, dayKey()) || profileCount() >= 2)) careerFlow().then((f) => f.boot()).then((shown) => { if (!shown) goStart(); }).catch((err) => { careerFail(err); goStart(); });
+    else goStart();
+  }
+  return { start: launch, engine, data, h };
 }

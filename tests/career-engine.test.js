@@ -96,7 +96,8 @@ describe('newGame({ rank })', () => {
 describe('the deal scale of a rank', () => {
   it('defaults to the salary ratio, rounded to 0.05, never below 1; a rank may set its own', () => {
     const t = data.professions[0];
-    expect(rankDealScale(t, t.ranks[0])).toBe(1.25); // 11,200 / 8,800 = 1.27
+    expect(rankDealScale(t, t.ranks[0])).toBe(1.65); // 1.3 x 11,200 / 8,800 = 1.65 (the teacher has no dealScale of its own)
+    expect(rankDealScale(data.professions.find((x) => x.id === 'cook'), data.professions.find((x) => x.id === 'cook').ranks[0])).toBe(1.2); // a profession's own value wins
     expect(rankDealScale(t, { ...t.ranks[0], dealScale: 3 })).toBe(3);
     expect(rankDealScale(t, { salary: 100 })).toBe(1);
   });
@@ -129,10 +130,10 @@ describe('the deal scale of a rank', () => {
     }
     expect(compared + r3.out.length).toBeGreaterThan(0);
   });
-  it('each rank wins in about the same number of turns as rank 0 (sensible bot, median of 60 games, within +3)', () => {
+  it('each rank wins in about the same number of turns as rank 0 (sensible bot, median of 300 games, within +3)', () => {
     const med = (a) => [...a].sort((x, y) => x - y)[Math.floor(a.length / 2)];
     for (const id of ['teacher', 'programmer']) {
-      const turns = (rank) => med(Array.from({ length: 60 }, (_, g) => play({ mode: 'family', professionId: id, seed: 1000 + g * 7919, rank, promotion: true })).filter((s) => s.status === 'won').map((s) => s.turn));
+      const turns = (rank) => med(Array.from({ length: 300 }, (_, g) => play({ mode: 'family', professionId: id, seed: 1000 + g * 7919, rank, promotion: true })).filter((s) => s.status === 'won').map((s) => s.turn));
       const base = turns(0);
       for (const rank of [1, 2, 3]) expect(turns(rank) - base, `${id} rank ${rank}`).toBeLessThanOrEqual(3);
     }
