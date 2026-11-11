@@ -11,7 +11,10 @@
 // 8 (v0.4): a match may carry `roundCap` (short mode: the match ends after that many rounds, highest freedom % wins).
 // 9 (v0.5): every player's state carries `rngVersion` (1 = the single mulberry32 stream + deck arrays: every save up to
 // v0.4 keeps it; 2 = keyed decision-independent values, docs/RNG.md) and `log` (the dispatched actions, replay).
-export const SCHEMA_VERSION = 9;
+// 10 (v0.5.0 career): a player's state may carry `rank` (0-3, absent = 0), `dealScale` (the rank's deal factor, absent = 1) and
+// `promotion` (the in-game promotion record, absent = the game has no promotion); `profession.rankTitle` names a rank above 0.
+// Old saves simply have none of them (rank 0, no promotion), so the 9 -> 10 migration only stamps the version.
+export const SCHEMA_VERSION = 10;
 // v0.5: the first daily-challenge date (a 'YYYY-MM-DD' day key, docs/RNG.md) played on rngVersion 2. Every earlier date keeps
 // its v2.5 keyed streams byte-identical (streaks, shared results and stored records stay fair). Set to the first day after the
 // v0.5 release; a date in the past at release time would change a day some players already played.
@@ -145,3 +148,53 @@ export const JUNIOR_ROUND = 100;
 export const JUNIOR_PRICE_ROUND = 1000;
 // The family safety net's floor in a junior game (tuned by simulation, docs/BALANCE.md 'Junior round rules').
 export const JUNIOR_NET_FLOOR = 0; // not raised: 0 already meets the reckless target (15-35%); 500-2,500 changed nothing
+
+// ---- 0.5.0 career and promotions (docs/decisions.md 2026-11-10 / 2026-11-11, docs/v050/) ----
+/** Ranks of a profession: 0 (the base profession) to MAX_RANK. A rank is 2 bits in an action-log link (format 3). */
+export const MAX_RANK = 3;
+/**
+ * The in-game promotion: once per game, on the first payday on or after a keyed turn, a raise of PROMOTION_RAISE_PCT of the salary
+ * (rounded to PROMOTION_ROUND, so a junior game shows whole coins). 'Keep' leaves the whole raise as free cash. 'Upgrade' turns
+ * PROMOTION_UPGRADE_SHARE of it into a new monthly expense and gives a cosmetic fox accessory: no cash perk (decision 2026-11-11).
+ * The offer turn is keyed by the game's seed: PROMOTION_FROM_TURN + (0 .. PROMOTION_TURN_SPAN - 1), so two players on one link get
+ * it on the same turn. Daily, missions and every game created without `promotion: true` have none.
+ */
+export const PROMOTION_RAISE_PCT = 0.12;
+export const PROMOTION_UPGRADE_SHARE = 0.8;
+export const PROMOTION_ROUND = 100;
+export const PROMOTION_FROM_TURN = 5;
+export const PROMOTION_TURN_SPAN = 5;
+export const PROMOTION_EXPENSE_ID = 'lifestyle';
+/**
+ * Deal scale of a rank (docs/BALANCE.md, '0.5.0 ranks'): the prices, down payments and monthly money of NEW deals are multiplied by
+ * it, so a higher rank's bigger target is reachable in about the same number of turns. A rank's data may set `dealScale`; without
+ * one it is (rank salary / rank 0 salary) ^ RANK_DEAL_SCALE_EXPONENT.
+ */
+export const RANK_DEAL_SCALE_EXPONENT = 1;
+/** Unit a rank's deal scale is rounded to. */
+export const RANK_DEAL_SCALE_ROUND = 0.05;
+
+// ---- career store (src/career/): XP, seniority, profiles ----
+/** The oldest age band whose career is protected: that band and every younger one never lose a rank or progress (CEO guard). Widening to 13 = '11to13'. */
+export const CAREER_PROTECTED_AGE = JUNIOR_AGE;
+/** XP of a finished game. A win gives more than a loss; both give XP (a loss counts for seniority too, decision 2026-11-11). */
+export const XP_WIN = 30;
+export const XP_LOSS = 10;
+/** XP of an achievement, once per profile, paid into the profession of the game that earned it. */
+export const XP_ACHIEVEMENT = 20;
+/** A game below the profession's current rank pays this share of the game XP (achievements are paid in full). */
+export const XP_LOWER_RANK_SHARE = 0.5;
+/** The promotion week's profession pays this multiple of the XP of its games. */
+export const PROMO_WEEK_XP_MULTIPLIER = 2;
+/** XP needed to leave rank 0, 1, 2 (index = the current rank). Rank 3 is the top. */
+export const RANK_XP_NEEDED = [60, 100, 160];
+/** Seniority: full weeks without a finished game. The first resets the progress to the next rank in every profession, the second in a row drops every rank above 0 by one. */
+export const SENIORITY_RESET_AFTER = 1;
+export const SENIORITY_DROP_AFTER = 2;
+/** After a drop the missed-week count restarts at this number (0 = the next drop needs two more missed weeks; 1 = one drop per further missed week). */
+export const SENIORITY_COUNT_AFTER_DROP = 0;
+/** A date this many weeks past the last one seen cannot be a real clock: it is ignored. */
+export const CAREER_MAX_WEEK_JUMP = 104;
+/** Profiles on one device. */
+export const MAX_PROFILES = 4;
+export const PROFILE_NAME_MAX = 12;

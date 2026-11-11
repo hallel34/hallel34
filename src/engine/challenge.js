@@ -16,8 +16,11 @@ export function freedomPct(s) {
   return e > 0 ? Math.max(0, Math.min(100, Math.round((passiveIncome(s) / e) * 100))) : 0;
 }
 
-/** The identity of a challenge game: the same seed and the same rules config (mode, profession, junior). */
-export const challengeKey = ({ seed, config = {} }) => `${seed}|${config.mode ?? 'family'}|${config.professionId}|${config.junior ? 1 : 0}`;
+/**
+ * The identity of a challenge game: the same seed and the same rules config (mode, profession, junior, and from 0.5.0 the career rank
+ * and the promotion rule). A rank 0 game without the promotion keeps the 0.5.1 key, so stored challenges stay findable.
+ */
+export const challengeKey = ({ seed, config = {} }) => `${seed}|${config.mode ?? 'family'}|${config.professionId}|${config.junior ? 1 : 0}${config.rank > 0 ? `|r${config.rank}` : ''}${config.promotion ? '|p' : ''}`;
 
 const NOT_IN_CHALLENGE = new Set([...REFUSED_IN_LINKS]);
 const fail = (code, extra = {}) => ({ ok: false, comparable: false, code, ...extra });
@@ -230,7 +233,10 @@ export function challengeEligibility(engine, match) {
 }
 
 /** The rules config of a state, as a link carries it. */
-export const configOf = (s) => ({ mode: s.mode, professionId: s.profession.id, ...(s.junior ? { junior: true } : {}), ...(s.challenge ? { challenge: true } : {}) });
+export const configOf = (s) => ({
+  mode: s.mode, professionId: s.profession.id, ...(s.junior ? { junior: true } : {}), ...(s.challenge ? { challenge: true } : {}),
+  ...(s.rank > 0 ? { rank: s.rank } : {}), ...(s.promotion ? { promotion: true } : {}),
+});
 
 /** The log a finished game sends: its whole log ('link'), or seed + config only ('fresh'). */
 export function linkLogOf(s, { kind = 'link', name = '' } = {}) {

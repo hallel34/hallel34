@@ -135,7 +135,7 @@ describe('verifyResult', () => {
     b[8] ^= 1;
     expect(engine.verifyResult(toBase64Url(Uint8Array.from(b)))).toMatchObject({ ok: false, code: 'CRC' });
     const body = [...fromBase64Url(text)].slice(0, -4);
-    body[2] = 3; // format 3, resealed
+    body[2] = 4; // a format from the future, resealed
     const c = crc32(Uint8Array.from(body));
     expect(engine.verifyResult(toBase64Url(Uint8Array.from([...body, c & 255, (c >>> 8) & 255, (c >>> 16) & 255, (c >>> 24) & 255])))).toMatchObject({ ok: false, code: 'VERSION' });
   });

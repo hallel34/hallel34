@@ -244,7 +244,7 @@ describe('rngVersion 1: old games are untouched', () => {
     const expected = JSON.parse(fixture('save-v0.4-schema8.expected.json'));
     const m = deserialize(raw);
     expect(m.schemaVersion).toBe(SCHEMA_VERSION);
-    expect(m.players.every((p) => p.state.rngVersion === 1 && p.state.schemaVersion === 9)).toBe(true);
+    expect(m.players.every((p) => p.state.rngVersion === 1 && p.state.schemaVersion === 10)).toBe(true);
     expect(m.currentIndex).toBe(expected.currentIndex);
     let s = currentState(m);
     for (const want of expected.after) {

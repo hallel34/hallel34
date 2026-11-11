@@ -14,7 +14,13 @@ export const loanStep = (s) => (s?.junior ? JUNIOR_LOAN_STEP : LOAN_STEP);
 
 // ---- inflation and timed effects (v3 phase 3) ----
 /** Price factor of NEW deals: PRICE_INFLATION_PER_LAP ^ lap; the daily challenge always 1 (same prices for everyone). */
-export const priceFactor = (s) => (s.daily ? DAILY_INFLATION_FACTOR : PRICE_INFLATION_PER_LAP ** (s.lap ?? 0));
+export const priceFactor = (s) => (s.daily ? DAILY_INFLATION_FACTOR : PRICE_INFLATION_PER_LAP ** (s.lap ?? 0) * (s.dealScale ?? 1));
+/** The career rank a game was started at (0-3; a state without the field, e.g. an old save, is rank 0). */
+export const rankOf = (s) => s?.rank ?? 0;
+/** The in-game promotion record, or null (a game created without `promotion: true` has none). */
+export const promotionOf = (s) => s?.promotion ?? null;
+/** True once the player chose 'upgrade' on the promotion card: a cosmetic accessory for the fox, never money. */
+export const hasFoxAccessory = (s) => s?.promotion?.status === 'upgraded';
 /** Factor of unexpected-expense cards (1 while EXPENSE_INFLATION_PER_LAP is 1). */
 export const expenseFactor = (s) => (s.daily ? DAILY_INFLATION_FACTOR : EXPENSE_INFLATION_PER_LAP ** (s.lap ?? 0));
 /** The running timed effect of a kind ('propertyValue' | 'cheapLoan' | 'rentChange'), or null. */
