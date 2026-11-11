@@ -21,7 +21,8 @@
     "smoke:mission": "node tests/e2e/first-asset-smoke.mjs",
     "smoke:missions": "node tests/e2e/short-missions-smoke.mjs",
     "smoke:players": "node tests/e2e/players-seats-smoke.mjs",
-    "smoke:challenge": "node tests/e2e/challenge-smoke.mjs"
+    "smoke:challenge": "node tests/e2e/challenge-smoke.mjs",
+    "smoke:career": "node tests/e2e/career-smoke.mjs"
   },
   "devDependencies": {
     "playwright": "^1.56.1",

@@ -386,6 +386,19 @@ async function main() {
   check(!(await K.locator('[data-ch-preview]').innerText()).includes('₪'), 'junior creator: the message has no shekel sign');
   await ctxK.close();
 
+  // ================= a ranked link (0.5.0): both friends play the same rank, with the promotion rule =================
+  const rankedLink = encodeActionLog({ rngVersion: 2, seed: 909, config: { mode: 'family', professionId: 'teacher', rank: 2, promotion: true }, actions: [], name: 'דנה' });
+  check(decodeActionLog(rankedLink).config.rank === 2 && decodeActionLog(rankedLink).config.promotion === true, 'the ranked link carries the rank and the promotion rule');
+  const ctxR = await newCtx(browser);
+  const R = await open(ctxR, { path: `#c=${rankedLink}`, waitFor: '[data-screen="challenge"]' });
+  await R.locator('[data-action="ch-play"]').click();
+  await R.waitForSelector('section[data-screen="board"]');
+  const rankedSave = JSON.parse(await ls(R, 'challengeSave'));
+  const rs = rankedSave.players[0].state;
+  check(rs.rank === 2 && rs.challenge === true && rs.promotion?.status === 'waiting' && rs.profession.salary === 14500 && rs.dealScale > 1, `the receiver plays the link's rank under challenge rules (rank ${rs.rank}, salary ${rs.profession.salary}, scale ${rs.dealScale})`);
+  check(rankedSave.challenge.key.endsWith('|r2|p'), `the challenge key names the rank and the promotion rule (${rankedSave.challenge.key})`);
+  await ctxR.close();
+
   // ================= 320x568 layout =================
   const ctxS = await newCtx(browser, { w: 320, h: 568 });
   const S = await open(ctxS, { path: `#c=${hashA[2]}`, waitFor: '[data-screen="challenge"]' });
