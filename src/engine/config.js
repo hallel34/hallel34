@@ -188,8 +188,11 @@ export const XP_ACHIEVEMENT = 20;
 export const XP_LOWER_RANK_SHARE = 0.5;
 /** The promotion week's profession pays this multiple of the XP of its games. */
 export const PROMO_WEEK_XP_MULTIPLIER = 2;
-/** XP needed to leave rank 0, 1, 2 (index = the current rank). Rank 3 is the top. */
-export const RANK_XP_NEEDED = [60, 100, 160];
+/**
+ * XP needed to leave rank 0, 1, 2 (index = the current rank). Rank 3 is the top. About 3 wins for the first rank, 6 for the second, 10 for the
+ * third; the 16 achievements are worth 320 XP in all, so a first great game is a boost, never the whole ladder.
+ */
+export const RANK_XP_NEEDED = [90, 180, 300];
 /** Seniority: full weeks without a finished game. The first resets the progress to the next rank in every profession, the second in a row drops every rank above 0 by one. */
 export const SENIORITY_RESET_AFTER = 1;
 export const SENIORITY_DROP_AFTER = 2;

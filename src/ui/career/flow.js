@@ -1,7 +1,8 @@
 // 0.5.0 career flow: one lazy chunk (with the career strings and styles) that the app shell loads on demand: the weekly settling on
 // launch and its return screen, the profile / picker / edit screens, the end-of-game block and rank-up after a finished game.
 // Home never loads it (it reads the active profile from the device store itself, src/career/lite.js).
-import { ensureCareerStrings } from '../../i18n/index.js';
+import { ensureCareerStrings as ensureStringsOnly } from '../../i18n/index.js';
+import { ensureRanks } from '../ranks.js';
 import { toast } from '../fx.js';
 import { setCoinScale } from '../format.js';
 import { setLearnMode } from '../../learn/context.js';
@@ -17,6 +18,8 @@ import {
 
 export function createCareerFlow(ctx) {
   const { engine, mount, goStart, goPlayers } = ctx;
+  /** The career strings and the rank data (titles, figures) load together. */
+  const ensureCareerStrings = () => Promise.all([ensureStringsOnly(), ensureRanks(engine)]);
   let pickedThisSession = false;
   const professionIds = engine.data.professions.map((p) => p.id);
 
@@ -108,6 +111,14 @@ export function createCareerFlow(ctx) {
     });
   }
 
+  /** One dialog for the rank reached, even when the game raised several ranks at once (spec 3.3). */
+  async function showRankUps(rankUps, win, kid) {
+    if (!rankUps.length) return;
+    const first = rankUps[0];
+    const last = rankUps[rankUps.length - 1];
+    await openRankUp({ engine, up: { professionId: last.professionId, from: first.from, to: last.to }, win, kid });
+  }
+
   // ---------- after a finished game ----------
   /**
    * The career part of a finished single-player game: { el, run } for the end card (the block, or the "save your progress" prompt on a
@@ -134,7 +145,7 @@ export function createCareerFlow(ctx) {
           const block = createEndBlock({ engine, res, before: created, kid, onAchievement: (a, earnedOn, variant) => openAchievementSheet({ a, earnedOn, variant }) });
           holder.el.replaceWith(block.el);
           holder.el = block.el;
-          block.run().then(async () => { for (const up of res.rankUps) await openRankUp({ engine, up, win, kid }); });
+          block.run().then(() => showRankUps(res.rankUps, win, kid));
         } }),
       });
       holder.el = el;
@@ -145,7 +156,7 @@ export function createCareerFlow(ctx) {
     updateCareer((c) => withProfile(c, res.profile));
     const kid = speak(res.profile);
     const block = createEndBlock({ engine, res, before: profile, kid, onAchievement: (a, earnedOn, variant) => openAchievementSheet({ a, earnedOn, variant }) });
-    return { el: block.el, res, run: async () => { await block.run(); for (const up of res.rankUps) await openRankUp({ engine, up, win, kid }); } };
+    return { el: block.el, res, run: async () => { await block.run(); await showRankUps(res.rankUps, win, kid); } };
   }
 
   /** A friend-challenge game gives XP and keeps seniority, with one line (no career block on the compare screen). */

@@ -90,13 +90,13 @@ describe('XP and ranks', () => {
     const r1 = awardGame(p, record(), { today: SUN, professionIds: NO_PROMO });
     expect(r1.xp.game).toBe(XP_WIN);
     expect(standing(r1.profile, 'teacher')).toMatchObject({ rank: 0, xp: XP_WIN });
-    const r2 = awardGame(r1.profile, record(), { today: day(1), professionIds: NO_PROMO });
+    const r2 = awardGame(withRanks(p, { teacher: [0, RANK_XP_NEEDED[0] - XP_WIN + 5] }), record(), { today: day(1), professionIds: NO_PROMO });
     expect(r2.rankUps).toEqual([{ professionId: 'teacher', from: 0, to: 1 }]);
-    expect(standing(r2.profile, 'teacher')).toMatchObject({ rank: 1, xp: 2 * XP_WIN - RANK_XP_NEEDED[0] });
+    expect(standing(r2.profile, 'teacher')).toMatchObject({ rank: 1, xp: 5 }); // the remainder carries over
     expect(r2.profile.peak.teacher).toBe(1);
     const big = awardGame(withRanks(p, { teacher: [0, 50] }), record(), { today: SUN, earned: ACHIEVEMENTS.slice(0, 12).map((a) => a.id), professionIds: NO_PROMO });
     expect(big.rankUps.length).toBeGreaterThanOrEqual(1);
-    const top = awardGame(withRanks(p, { teacher: [2, 140] }), record({ rank: 2 }), { today: SUN, professionIds: NO_PROMO });
+    const top = awardGame(withRanks(p, { teacher: [2, RANK_XP_NEEDED[2] - 10] }), record({ rank: 2 }), { today: SUN, professionIds: NO_PROMO });
     expect(standing(top.profile, 'teacher')).toMatchObject({ rank: 3, xp: 0 });
     const again = awardGame(top.profile, record({ rank: 3 }), { today: SUN, professionIds: NO_PROMO });
     expect(standing(again.profile, 'teacher')).toMatchObject({ rank: 3, xp: 0 }); // no XP at the top, no rank beyond it

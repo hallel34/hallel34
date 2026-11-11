@@ -126,14 +126,15 @@ export function createPick({ engine, mode, onBack, onGo, player = null, junior =
     const title = cur.rank > 0 ? rankTitle(p.id, cur.rank) : t('career.pick.word', { n: 1 });
     const b = h('button', {
       type: 'button', class: `prof-card${promoId === p.id ? ' is-promo' : ''}`, 'data-prof': p.id, vars: { '--i': i },
-      'aria-label': profile ? `${p.title}. ${title}, ${t('career.xp.aria', { pct })}` : null,
       onClick: () => { haptic('tap'); preview(p); },
     },
     well,
     promoId === p.id ? h('span', { class: 'pick-promo-x2', 'aria-hidden': 'true' }, icon('promoWeek', { size: 12, width: 2 }), h('bdi', { dir: 'ltr' }, t('career.promoWeek.cardTag'))) : null,
     h('span', { class: 'prof-name' }, p.title),
-    profile ? h('span', { class: 'pick-rank', 'aria-hidden': 'true' }, icon(`rank${cur.rank}`, { size: 14, width: 2 }), h('span', null, title)) : null,
+    // the card stays one button named by its own text (WCAG 2.5.3): the rank title is visible text, the progress is a hidden sentence
+    profile ? h('span', { class: 'pick-rank' }, icon(`rank${cur.rank}`, { size: 14, width: 2 }), h('span', null, title)) : null,
     profile ? h('span', { class: 'xp pick-xp', 'aria-hidden': 'true' }, h('i', { style: `--xp:${pct}%` })) : null,
+    profile ? h('span', { class: 'vh' }, `${t('career.xp.aria', { pct })}. `) : null,
     h('span', { class: 'prof-rows' },
       h('span', { class: 'prof-row prof-row--salary prof-salary' }, h('span', { class: 'prof-row-label' }, t('pick.cardSalary')), money(p.salary), h('span', { class: 'prof-sep', 'aria-hidden': 'true' }, '•')),
       h('span', { class: 'prof-row prof-row--expenses' }, h('span', { class: 'prof-row-label' }, t('pick.cardExpenses')), money(figs(p.id, rankNow(p.id)).st.totalExpenses))),

@@ -134,10 +134,36 @@ function lazyStringsPlugin() {
   };
 }
 
+/**
+ * 0.5.0 (home perf): the career ranks of the professions (24 rank entries) are not needed until a profile picks a rank, a ranked game or link
+ * starts, or a career screen opens. In a production build `ranks` is cut out of professions.he.json and comes back from the virtual module
+ * `virtual:ranks` through ensureRanks(engine) (src/ui/ranks.js). The JSON stays the one source (and the one place to add a rank); dev and
+ * vitest keep it whole.
+ */
+const RANKS_ID = 'virtual:ranks';
+function lazyRanksPlugin() {
+  let build = false;
+  return {
+    name: 'passivo-lazy-ranks',
+    enforce: 'pre',
+    configResolved(c) { build = c.command === 'build'; },
+    resolveId(id) { return id === RANKS_ID ? `\0${RANKS_ID}` : null; },
+    load(id) {
+      if (id !== `\0${RANKS_ID}`) return null;
+      const list = JSON.parse(readFileSync(new URL('./src/data/professions.he.json', import.meta.url), 'utf8'));
+      return `export default ${JSON.stringify(Object.fromEntries(list.filter((p) => p.ranks).map((p) => [p.id, p.ranks])))};`;
+    },
+    transform(code, id) {
+      if (!build || !id.split('?')[0].replace(/\\/g, '/').endsWith('/src/data/professions.he.json')) return null;
+      return { code: JSON.stringify(JSON.parse(code).map(({ ranks, ...rest }) => rest)), map: null };
+    },
+  };
+}
+
 export default defineConfig({
   base,
   define: { __APP_VERSION__: JSON.stringify(pkg.version) },
-  plugins: [pruneLearnPlugin(), lazyStringsPlugin(), pwaPlugin()],
+  plugins: [pruneLearnPlugin(), lazyStringsPlugin(), lazyRanksPlugin(), pwaPlugin()],
   // the 3D board tiles stay real files (cacheable, preloadable, srcset), never base64 inside the JS bundle
   // modulePreload polyfill off: it was the only module both entries shared, so it became a separate render-path script on the home
   // screen (QA round 19 perf); every browser the app targets supports <link rel=modulepreload> natively

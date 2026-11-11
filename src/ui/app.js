@@ -26,6 +26,7 @@ import { loadResults, loadStreak, endDailyGame, resetDay } from '../daily/store.
 import { showInterstitial } from '../services/ads.js';
 import { getLocale, t, ensureStrings, ensureCareerStrings } from '../i18n/index.js';
 import { readActiveProfile, needsSettling, chipView, isProtectedAge, profileCount } from '../career/lite.js';
+import { ensureRanks } from './ranks.js';
 import { destroyAllLayers, openLayer } from './modal.js';
 import { button } from './widgets.js';
 import { initTermButtons } from './learn.js';
@@ -296,7 +297,7 @@ export function createApp(host) {
     setCoinScale(junior && setup.ages?.[i] === JUNIOR_AGE); // this player's own scale
     // 0.5.0: a one-player game picks at the profile's ranks (the career strings load first); a hot-seat seat is not a profile
     const lite = !multi ? readActiveProfile() : null;
-    if (lite) { try { await ensureCareerStrings(); } catch (err) { console.warn(err); } }
+    if (lite) { try { await Promise.all([ensureCareerStrings(), ensureRanks(engine)]); } catch (err) { console.warn(err); } }
     mount({ el: createPick({
       engine, mode, junior, career: lite ? { profile: lite, today: dayKey() } : null,
       player: multi ? { name: playerName({ name: setup.names[i] }, i), color: i + 1, n: i + 1, total: setup.count } : null,
@@ -347,7 +348,8 @@ export function createApp(host) {
   }
 
   /** Same players, mode and professions, new seed. */
-  function again(m) {
+  async function again(m) {
+    if (m.players.some((p) => p.rank > 0)) { try { await ensureRanks(engine); } catch (err) { console.error(err); } }
     let next = rematch(engine, m, nextSeed());
     // Retrying after a practice freeplay win/loss must not overwrite a
     // separately saved ordinary game.
@@ -418,7 +420,7 @@ export function createApp(host) {
   const challengeFlow = () => (flowChunk ??= import('./challenge/flow.js').then(({ createChallengeFlow }) => createChallengeFlow({
     engine, mount, goStart, goPlay, goPlayers, store, countGame, loadChallengeSave,
   })).catch((err) => { flowChunk = null; throw err; }));
-  const challengeStrings = () => ensureStrings('challenge').catch((err) => console.error(err));
+  const challengeStrings = () => Promise.all([ensureStrings('challenge'), ensureRanks(engine)]).catch((err) => console.error(err)); // a ranked link replays with its rank's figures
   const goChallengeEnd = (m) => challengeFlow().then((f) => f.end(m), (err) => { console.error(err); toast(t('app.loadError'), 4000); })
     .then(() => careerFlow().then((f) => f.afterChallenge(m)).catch((err) => console.error(err)));
   const goBoard = () => challengeFlow().then((f) => f.board(), (err) => { console.error(err); toast(t('app.loadError'), 4000); });

@@ -112,7 +112,7 @@
 .cr-parts { display: flex; align-items: center; gap: 8px; margin: 0; font-size: .75rem; color: var(--text-muted); }
 .cr-x2 { display: inline-flex; align-items: center; gap: 2px; block-size: 18px; padding-inline: 6px; border-radius: 9px; background: var(--career-tint); color: var(--career); font-size: .6875rem; font-weight: 700; }
 .cr-ach-rows { display: flex; flex-direction: column; gap: 4px; }
-.cr-ach-row { display: flex; align-items: center; gap: 8px; min-block-size: 40px; padding: 0 8px; border: 0; border-radius: 12px; background: var(--career-tint); color: var(--text); font: inherit; font-size: .8125rem; font-weight: 700; text-align: start; cursor: pointer; }
+.cr-ach-row { display: flex; align-items: center; gap: 8px; min-block-size: 48px; padding: 0 8px; border: 0; border-radius: 12px; background: var(--career-tint); color: var(--text); font: inherit; font-size: .8125rem; font-weight: 700; text-align: start; cursor: pointer; }
 .cr-ach-row .icon { color: var(--career); flex: none; }
 .cr-ach-row b { margin-inline-start: auto; color: var(--career); }
 .cr-prompt { align-items: center; text-align: center; }
@@ -149,3 +149,7 @@
   .screen-win:has(.cr-end) .end-hero .tagline, .screen-over:has(.cr-end) .end-hero .tagline { display: none; }
   .cr-end { margin-block-start: 6px; padding-block-start: 6px; gap: 4px; }
 }
+
+/* the promotion card: two equal ghost buttons, stacked (spec 5.1) */
+.card[data-promotion] .card-actions { flex-direction: column; }
+.card[data-promotion] .card-actions .btn { inline-size: 100%; min-inline-size: 0; white-space: normal; }
