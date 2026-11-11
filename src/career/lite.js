@@ -30,6 +30,7 @@ export function chipView(p, today) {
   const cur = weekNumber(today);
   if ((p.lastPlayWeek ?? -1) >= cur) return { state: 'kept' };
   const days = daysLeftInWeek(today, CAREER_DEADLINE_WEEKDAY);
+  if (p.dropped) return { state: 'open', days }; // a rank drop was applied: nothing more can be lost until a game is finished, so no warning
   if (weekDay(today) >= CAREER_WARN_FROM_WEEKDAY) return { state: 'warn', days, rank: (p.missed ?? 0) + 1 >= SENIORITY_DROP_AFTER };
   return { state: 'open', days };
 }

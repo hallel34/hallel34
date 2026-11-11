@@ -160,22 +160,33 @@ describe('seniority: reset, drop, never below rank 0', () => {
     expect(r.events[1].drops).toEqual([{ professionId: 'teacher', from: 2, to: 1 }, { professionId: 'nurse', from: 1, to: 0 }]);
     expect(r.profile.ranks).toEqual({ teacher: { rank: 1, xp: 0 }, nurse: { rank: 0, xp: 0 }, cook: { rank: 0, xp: 0 } });
   });
-  it('one drop per further missed week, never below rank 0; titles reached stay in the history (peak)', () => {
+  it('at most ONE drop per return: more missed weeks change nothing, in one sync or in weekly ones; titles reached stay (peak)', () => {
     const r = sync(adult(), 4);
-    expect(r.events.filter((e) => e.type === 'drop')).toHaveLength(2);
-    expect(r.profile.ranks.teacher.rank).toBe(0);
-    const far = sync(adult(), 12);
-    expect(Object.values(far.profile.ranks).every((x) => x.rank === 0 && x.xp === 0)).toBe(true);
-    expect(far.profile.peak).toEqual({ teacher: 2, nurse: 1, cook: 0 }); // "הגעתי פעם ל..." survives every drop
+    expect(r.events.map((e) => e.type)).toEqual(['reset', 'drop']);
+    expect(r.profile.ranks).toEqual({ teacher: { rank: 1, xp: 0 }, nurse: { rank: 0, xp: 0 }, cook: { rank: 0, xp: 0 } });
+    expect(r.profile.dropped).toBe(true);
+    const far = sync(adult(), 12); // nine absent weeks in one sync
+    expect(far.events.map((e) => e.type)).toEqual(['reset', 'drop']);
+    expect(far.profile.ranks.teacher.rank).toBe(1);
+    expect(far.profile.peak).toEqual({ teacher: 2, nurse: 1, cook: 0 }); // "הגעתי פעם ל..." survives the drop
     expect(far.profile.settledWeek).toBe(W + 11);
+    // weekly syncs over one absence lower each rank by exactly one
+    let p = adult(); const types = [];
+    for (let k = 1; k <= 12; k++) { const s = syncSeniority(p, day(7 * k)); p = s.profile; types.push(...s.events.map((e) => e.type)); }
+    expect(types).toEqual(['reset', 'drop']);
+    expect(p.ranks).toEqual(far.profile.ranks);
   });
-  it('a finished game ends the run: the count restarts, and the next missed week is a first one again', () => {
+  it('a finished game ends the run: a later absence resets and drops once again', () => {
     const missed = sync(adult(), 3).profile;
-    expect(missed.missed).toBe(1); // a drop happened: one further missed week drops again
+    expect(missed.dropped).toBe(true);
     const back = awardGame(missed, { professionId: 'teacher', rank: 1, won: false, mode: 'family', junior: false, challenge: false, turns: 9 }, { today: day(21), professionIds: IDS }).profile;
     expect(back.missed).toBe(0);
+    expect(back.dropped).toBe(false);
     expect(syncSeniority(back, day(28)).events).toEqual([]);
     expect(syncSeniority(back, day(35)).events).toEqual([{ type: 'reset', week: W + 4 }]);
+    const again = syncSeniority(back, day(49));
+    expect(again.events.map((e) => e.type)).toEqual(['reset', 'drop']);
+    expect(again.profile.ranks.teacher.rank).toBe(back.ranks.teacher.rank - 1);
   });
   it('syncing is idempotent and the order of calls does not matter: two syncs equal one', () => {
     const a = sync(adult(), 5);
@@ -190,6 +201,7 @@ describe('seniority: reset, drop, never below rank 0', () => {
       expect(r.events).toEqual([{ type: 'waited', weeks: 19 }]); // only "the career waited", once (the junior return screen)
       expect(r.profile.ranks).toEqual(kid.ranks);
       expect(r.profile.missed).toBe(0);
+      expect(r.profile.dropped).toBe(false);
       expect(r.profile.settledWeek).toBe(W + 19);
     }
   });
@@ -217,6 +229,42 @@ describe('seniority: reset, drop, never below rank 0', () => {
   });
 });
 
+describe('Shabbat: the week ends Saturday, the deadline is Friday (owner 2026-11-11)', () => {
+  const rec = { professionId: 'teacher', rank: 0, won: true, mode: 'family', junior: false, challenge: false, turns: 20 };
+  const play = (p, d) => awardGame(p, rec, { today: d, professionIds: IDS }).profile;
+  it('Friday 23:59 and Sunday 00:01 are different weeks; Saturday belongs to the week before it', () => {
+    expect(weekNumber('2026-11-13')).toBe(W);          // Friday
+    expect(weekNumber('2026-11-14')).toBe(W);          // Saturday: same week, a bonus day
+    expect(weekNumber('2026-11-15')).toBe(W + 1);      // Sunday
+  });
+  it('daylight-saving weeks (Israel: last Friday of March, last Sunday of October) keep seven-day weeks', () => {
+    for (const fri of ['2026-03-27', '2026-10-23', '2027-03-26', '2027-10-29']) {
+      const sun = addDays(fri, -5);
+      expect(weekDay(sun)).toBe(0);
+      expect(weekNumber(fri)).toBe(weekNumber(sun));
+      expect(weekNumber(addDays(fri, 2))).toBe(weekNumber(sun) + 1);
+    }
+    for (const sun of ['2026-10-25', '2027-03-28']) { expect(weekDay(sun)).toBe(0); expect(weekNumber(addDays(sun, 6))).toBe(weekNumber(sun)); }
+  });
+  it('a Friday-only player and a Saturday-only player are never penalised over ten weeks', () => {
+    for (const wd of [5, 6]) {
+      let p = fresh('14plus', SUN);
+      let events = [];
+      for (let k = 1; k <= 10; k++) {
+        const d = addDays(SUN, 7 * k + wd);
+        const s = syncSeniority(p, d); events = events.concat(s.events); p = play(s.profile, d);
+      }
+      expect(events).toEqual([]);
+      expect(p.dropped).toBe(false);
+      expect(p.ranks.teacher.rank).toBeGreaterThanOrEqual(1); // they earned ranks, and lost nothing
+    }
+  });
+  it('the chip never counts 0 days: Thursday 2, Friday 1, Saturday 1', () => {
+    const p = playedIn(fresh(), 0);
+    expect([4, 5, 6].map((d) => seniorityView(p, day(7 + d)).days)).toEqual([2, 1, 1]);
+  });
+});
+
 describe('age edits (free) and the grace week', () => {
   it('growing out of the protected band: the current week counts as played, so the first week never starts with a loss', () => {
     const kid = withRanks({ ...playedIn(fresh('upTo10'), 0) }, { teacher: [2, 10] });
@@ -232,6 +280,7 @@ describe('age edits (free) and the grace week', () => {
     const p = { ...withRanks(playedIn(fresh('14plus'), 0), { teacher: [1, 5] }), missed: 1 };
     const r = setAge(p, 'upTo10', day(7));
     expect(r.profile.missed).toBe(0);
+    expect(setAge({ ...p, dropped: true }, 'upTo10', day(7)).profile.dropped).toBe(false);
     expect(setAge(p, '14plus', day(7)).profile).toBe(p);
     expect(setAge(p, 'nope', day(7)).profile).toBe(p);
   });
@@ -244,10 +293,14 @@ describe('what the home chip shows', () => {
     expect(seniorityView(p, day(7))).toEqual({ state: 'kept' });
     expect(seniorityView(fresh('upTo10'), day(3))).toEqual({ state: 'waiting' });
     const early = seniorityView(playedIn(fresh(), 0), day(7 + 1)); // Monday, nothing this week yet
-    expect(early).toMatchObject({ state: 'open', days: 6 });
-    expect(seniorityView(playedIn(fresh(), 0), day(7 + 3))).toMatchObject({ state: 'open', days: 4 }); // Wednesday: no warning yet
-    expect(seniorityView(playedIn(fresh(), 0), day(7 + 4))).toEqual({ state: 'warn', days: 3, rank: false }); // Thursday
-    expect(seniorityView(playedIn(fresh(), 0), day(7 + 6))).toEqual({ state: 'warn', days: 1, rank: false });
+    expect(early).toMatchObject({ state: 'open', days: 5 });
+    expect(seniorityView(playedIn(fresh(), 0), day(7 + 3))).toMatchObject({ state: 'open', days: 3 }); // Wednesday: no warning yet
+    expect(seniorityView(playedIn(fresh(), 0), day(7 + 4))).toEqual({ state: 'warn', days: 2, rank: false }); // Thursday: Thu, Fri
+    expect(seniorityView(playedIn(fresh(), 0), day(7 + 5))).toEqual({ state: 'warn', days: 1, rank: false }); // Friday
+    expect(seniorityView(playedIn(fresh(), 0), day(7 + 6))).toEqual({ state: 'warn', days: 1, rank: false }); // Saturday: bonus day, never 0
+    // after a drop nothing more can be lost: no warning on any day
+    const dropped = { ...playedIn(fresh(), 0), dropped: true, missed: 2 };
+    for (let d = 0; d < 7; d++) expect(seniorityView(dropped, day(7 + d)).state).not.toBe('warn');
     // after one missed week the next miss drops every rank
     expect(seniorityView(playedIn(fresh(), 0), day(14 + 5))).toMatchObject({ state: 'warn', rank: true });
   });

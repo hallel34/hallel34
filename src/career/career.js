@@ -15,7 +15,7 @@ import { dayKey, weekNumber } from '../daily/calendar.js';
 import { chipView, isProtectedAge, promoWeekProfession } from './lite.js';
 import {
   AGE_BANDS, CAREER_PROTECTED_AGE, MAX_RANK, XP_WIN, XP_LOSS, XP_ACHIEVEMENT, XP_LOWER_RANK_SHARE, PROMO_WEEK_XP_MULTIPLIER, RANK_XP_NEEDED,
-  SENIORITY_RESET_AFTER, SENIORITY_DROP_AFTER, SENIORITY_COUNT_AFTER_DROP, CAREER_MAX_DROPS_PER_RETURN, CAREER_MAX_WEEK_JUMP, MAX_PROFILES,
+  SENIORITY_RESET_AFTER, SENIORITY_DROP_AFTER, CAREER_MAX_WEEK_JUMP, MAX_PROFILES,
   PROFILE_NAME_MAX, CAREER_WARN_FROM_WEEKDAY, CAREER_DEADLINE_WEEKDAY,
 } from '../engine/config.js';
 
@@ -86,6 +86,7 @@ export function parseProfile(raw) {
     lastPlayDate: isKey(raw.lastPlayDate) ? raw.lastPlayDate : null, // the day of the last finished game (the profile's week strip)
     lastGame: typeof raw.lastGame === 'string' ? raw.lastGame.slice(0, 64) : null, // the id of the last credited game: a game is credited once
     missed: clampInt(raw.missed, 0, 99),
+    dropped: raw.dropped === true, // a rank drop was applied and no game finished since: nothing more can be lost (one drop per return)
     achievements: ach,
     counters: {
       badPasses: clampInt(c.badPasses, 0, 99999),
@@ -157,7 +158,7 @@ export function setAge(profile, age, today) {
   let p = { ...synced.profile, age };
   const cur = weekNumber(today);
   if (isProtectedAge(profile.age) && !isProtectedAge(age)) p = { ...p, lastPlayWeek: cur, settledWeek: Math.max(p.settledWeek ?? cur - 1, cur - 1), missed: 0 };
-  if (!isProtectedAge(profile.age) && isProtectedAge(age)) p = { ...p, missed: 0 };
+  if (!isProtectedAge(profile.age) && isProtectedAge(age)) p = { ...p, missed: 0, dropped: false };
   return { profile: p, events: synced.events };
 }
 
@@ -190,24 +191,22 @@ export function syncSeniority(profile, today) {
   let { missed } = profile;
   let ranks = profile.ranks;
   const events = [];
-  let drops = 0;
+  let dropped = !!profile.dropped;
   let waited = 0;
   for (let w = profile.settledWeek + 1; w <= cur - 1; w++) {
     if (w === profile.lastPlayWeek) { missed = 0; continue; } // a game was finished in this week
     if (w < profile.lastPlayWeek) continue; // before the last play (already settled by an earlier sync)
     if (guarded) { waited += 1; continue; } // the career waits
     missed += 1;
+    if (dropped) continue; // one drop per return: until a game is finished nothing more is reset or dropped
     if (missed >= SENIORITY_DROP_AFTER) {
-      if (drops < CAREER_MAX_DROPS_PER_RETURN) {
-        const dropped = [];
-        ranks = Object.fromEntries(Object.entries(ranks).map(([id, r]) => {
-          if (r.rank > 0) { dropped.push({ professionId: id, from: r.rank, to: r.rank - 1 }); return [id, { rank: r.rank - 1, xp: 0 }]; }
-          return [id, { rank: 0, xp: 0 }];
-        }));
-        drops += 1;
-        if (dropped.length) events.push({ type: 'drop', week: w, drops: dropped });
-        missed = SENIORITY_COUNT_AFTER_DROP;
-      }
+      const list = [];
+      ranks = Object.fromEntries(Object.entries(ranks).map(([id, r]) => {
+        if (r.rank > 0) { list.push({ professionId: id, from: r.rank, to: r.rank - 1 }); return [id, { rank: r.rank - 1, xp: 0 }]; }
+        return [id, { rank: 0, xp: 0 }];
+      }));
+      dropped = true;
+      if (list.length) events.push({ type: 'drop', week: w, drops: list });
     } else if (missed >= SENIORITY_RESET_AFTER) {
       ranks = Object.fromEntries(Object.entries(ranks).map(([id, r]) => [id, { rank: r.rank, xp: 0 }]));
       events.push({ type: 'reset', week: w });
@@ -215,7 +214,7 @@ export function syncSeniority(profile, today) {
   }
   // a protected profile that was away says so once, in kind words: the career waited (the junior return screen)
   if (waited) events.push({ type: 'waited', weeks: waited });
-  return { profile: { ...profile, ranks, missed, settledWeek: cur - 1 }, events };
+  return { profile: { ...profile, ranks, missed, dropped, settledWeek: cur - 1 }, events };
 }
 
 /**
@@ -263,7 +262,7 @@ export function awardGame(profile, record, { today, earned = [], professionIds =
   const synced = syncSeniority(profile, today);
   const week = effectiveWeek(synced.profile, today);
   // the last play never moves back (a clock set back restores nothing); a play always counts for the newest week seen
-  let p = { ...synced.profile, lastPlayWeek: Math.max(synced.profile.lastPlayWeek ?? week, week), missed: 0, games: synced.profile.games + 1, lastPlayDate: today };
+  let p = { ...synced.profile, lastPlayWeek: Math.max(synced.profile.lastPlayWeek ?? week, week), missed: 0, dropped: false, games: synced.profile.games + 1, lastPlayDate: today };
   const doubled = promoWeekProfession(week, professionIds) === record.professionId;
   const careerRank = standing(p, record.professionId).rank;
   const game = gameXp({ won: record.won, gameRank: record.rank, careerRank, doubled });
