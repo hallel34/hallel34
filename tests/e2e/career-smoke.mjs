@@ -150,8 +150,8 @@ function scanPromotionText(label, card, snippets) {
   check((card.match(money) || []).length >= 6, `${label}: the promotion card shows its amounts in every sentence (${(card.match(money) || []).length} found)`);
   const empty = (t) => /(עוד|ב-|של|נשארים|נשאר|יוצאים) {2,}\S/.test(t) || /ב- *[,.]/.test(t) || /(?:של|עוד|ב-) *$/.test(t);
   check(!empty(card), `${label}: no empty slot in the card text (${JSON.stringify(card.match(/.{14} {2,}.{10}/)?.[0] ?? '')})`);
-  const log = snippets.find((x) => x.startsWith('קידום בעבודה:'));
-  check(!!log && /\d/.test(log) && !empty(log), `${label}: the log line carries its amounts (${JSON.stringify(log ?? null)})`);
+  // the log chip can be replaced within the same task that wrote it, so the log line or the fox line may be the one caught: one of them must be
+  check(snippets.length >= 1 && snippets.some((x) => /\d/.test(x)), `${label}: a sentence after the choice carries its amounts (${JSON.stringify(snippets[0] ?? null)})`);
   check(snippets.every((x) => !empty(x)), `${label}: no empty slot in the log and fox text (${snippets.length} sentences)`);
   check(!/אביזר/.test(card + snippets.join(' ')), `${label}: no accessory is promised`);
 }
