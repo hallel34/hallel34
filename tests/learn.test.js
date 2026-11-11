@@ -473,10 +473,10 @@ describe('feedback requests from what changed', () => {
 });
 
 describe('concepts: first-seen logic (spec 3)', () => {
-  it('family mode knows 11 concepts, full mode 14; dividend, net worth and diversification are full only', () => {
-    expect(conceptList()).toHaveLength(14);
-    expect(conceptsForMode('family')).toHaveLength(11);
-    expect(conceptsForMode('full')).toHaveLength(14);
+  it('family mode knows 12 concepts, full mode 15; dividend, net worth and diversification are full only', () => {
+    expect(conceptList()).toHaveLength(15);
+    expect(conceptsForMode('family')).toHaveLength(12);
+    expect(conceptsForMode('full')).toHaveLength(15);
     expect(conceptsForMode('family').map((c) => c.id)).not.toEqual(expect.arrayContaining(['dividend']));
     expect(conceptsForMode('full').filter((c) => c.level === 'full').map((c) => c.id).sort()).toEqual(['diversification', 'dividend', 'net_worth']);
   });
@@ -657,7 +657,7 @@ describe('report (L4)', () => {
     const s = { ...stateWith([]), mode: 'full', status: 'won' };
     s.learn.concepts = ['dividend'];
     const v = reportView(s, { seed: 1 });
-    expect(v.sections.find((x) => x.id === 'concepts').text).toContain('14');
+    expect(v.sections.find((x) => x.id === 'concepts').text).toContain('15');
     const f = reportView({ ...stateWith([]), status: 'won' }, { seed: 1 });
     expect(f.sections.find((x) => x.id === 'concepts').text).toContain(content.report.sections.concepts.none);
   });
