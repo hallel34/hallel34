@@ -69,29 +69,49 @@ function pruneLearnPlugin() {
 }
 
 /**
- * QA 0.5.1 P2-3 (home perf): the `challenge.*` strings load only when a challenge screen or the share button needs them.
- * src/i18n/he.json stays the one source of truth. In a production build the group is cut out of he.json (all but LAZY_EAGER,
- * which home and the end screens show) and the challenge family overrides out of tutorial.he.json; both come back from the
- * virtual module `virtual:i18n-lazy/challenge` through ensureStrings('challenge') (src/i18n/index.js). Dev and vitest keep the
- * whole bundle (nothing is cut), so every string test still sees every string.
+ * QA 0.5.1 P2-3 (home perf): the strings of the challenge and career features load only when a screen of the feature needs them.
+ * src/i18n/he.json stays the one source of truth. In a production build each lazy group is cut out of he.json (all but its eager
+ * keys, which home and the end screens show) and its family overrides out of tutorial.he.json; both come back from the virtual module
+ * `virtual:i18n-lazy/<group>` through ensureStrings('<group>') (src/i18n/index.js). Dev and vitest keep the whole bundle (nothing is
+ * cut), so every string test still sees every string. An eager entry is a dotted path; it keeps its whole subtree.
  */
-const LAZY_GROUP = 'challenge';
-const LAZY_EAGER = ['create.button', 'board.title', 'resume', 'resumeInfo'];
-const LAZY_ID = `virtual:i18n-lazy/${LAZY_GROUP}`;
+const LAZY_GROUPS = {
+  challenge: ['create.button', 'board.title', 'resume', 'resumeInfo'],
+  career: ['seniority', 'plural', 'weekday', 'chipWait', 'untilDay'],
+  profile: ['current'],
+  achievement: [],
+  promotion: [],
+};
+const LAZY_PREFIX = 'virtual:i18n-lazy/';
 function lazyStringsPlugin() {
   let build = false;
-  const eagerKey = (k) => LAZY_EAGER.includes(k.slice(LAZY_GROUP.length + 1));
-  const isLazyOverride = (o) => typeof o?.key === 'string' && o.key.startsWith(`${LAZY_GROUP}.`) && !eagerKey(o.key);
   const read = (rel) => JSON.parse(readFileSync(new URL(rel, import.meta.url), 'utf8'));
+  const isEager = (group, path) => LAZY_GROUPS[group].some((e) => path === e || path.startsWith(`${e}.`));
+  const isLazyOverride = (o) => typeof o?.key === 'string' && Object.keys(LAZY_GROUPS).some((g) => o.key.startsWith(`${g}.`) && !isEager(g, o.key.slice(g.length + 1)));
+  /** The part of a group that stays eager (the eager paths with their subtrees). */
+  const eagerPart = (group, tree) => {
+    const keep = {};
+    for (const e of LAZY_GROUPS[group]) {
+      const path = e.split('.');
+      const v = path.reduce((o, x) => o?.[x], tree);
+      if (v === undefined) throw new Error(`lazy strings: eager key ${group}.${e} is missing`);
+      let o = keep;
+      for (const x of path.slice(0, -1)) o = (o[x] ??= {});
+      o[path.at(-1)] = v;
+    }
+    return keep;
+  };
   return {
     name: 'passivo-lazy-strings',
     enforce: 'pre',
     configResolved(c) { build = c.command === 'build'; },
-    resolveId(id) { return id === LAZY_ID ? `\0${LAZY_ID}` : null; },
+    resolveId(id) { return id.startsWith(LAZY_PREFIX) && LAZY_GROUPS[id.slice(LAZY_PREFIX.length)] ? `\0${id}` : null; },
     load(id) {
-      if (id !== `\0${LAZY_ID}`) return null;
-      const strings = read('./src/i18n/he.json')[LAZY_GROUP];
-      const family = Object.fromEntries((read('./src/data/learn/tutorial.he.json').familyStrings.overridesRound11 ?? []).filter(isLazyOverride).map((o) => [o.key, o.family]));
+      if (!id.startsWith(`\0${LAZY_PREFIX}`)) return null;
+      const group = id.slice(`\0${LAZY_PREFIX}`.length);
+      const strings = read('./src/i18n/he.json')[group];
+      const family = Object.fromEntries((read('./src/data/learn/tutorial.he.json').familyStrings.overridesRound11 ?? [])
+        .filter((o) => o.key.startsWith(`${group}.`) && !isEager(group, o.key.slice(group.length + 1))).map((o) => [o.key, o.family]));
       return `export default ${JSON.stringify({ strings, family })};`;
     },
     transform(code, id) {
@@ -99,17 +119,8 @@ function lazyStringsPlugin() {
       const file = id.split('?')[0].replace(/\\/g, '/');
       if (file.endsWith('/src/i18n/he.json')) {
         const json = JSON.parse(code);
-        const keep = {};
-        for (const k of LAZY_EAGER) {
-          const v = k.split('.').reduce((o, x) => o?.[x], json[LAZY_GROUP]);
-          if (v === undefined) throw new Error(`lazy strings: eager key ${LAZY_GROUP}.${k} is missing`);
-          const path = k.split('.');
-          let o = keep;
-          for (const x of path.slice(0, -1)) o = (o[x] ??= {});
-          o[path.at(-1)] = v;
-        }
-        json[LAZY_GROUP] = keep;
-        json.__lazy = [LAZY_GROUP];
+        for (const group of Object.keys(LAZY_GROUPS)) json[group] = eagerPart(group, json[group]);
+        json.__lazy = Object.keys(LAZY_GROUPS);
         return { code: JSON.stringify(json), map: null };
       }
       if (file.endsWith('/src/data/learn/tutorial.he.json')) {
