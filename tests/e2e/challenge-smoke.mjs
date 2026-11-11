@@ -121,14 +121,14 @@ async function playToEnd(page, policy, budgetMs = Number(process.env.SMOKE_GAME_
     if (d.clickEl) await page.locator('#modal-root .layer:last-child .btn-option:not([disabled])').last().click({ timeout: 3000, force: true }).catch(() => {});
     else if (d.click) {
       if (d.click === '[data-action="roll"]') rolls += 1;
-      await page.locator(d.click).first().click({ timeout: 3000, force: true }).catch(() => {});
+      await page.locator(d.click).first().click(d.promotion ? { timeout: 6000 } : { timeout: 3000, force: true }).catch(() => {}); // the promotion button without force: it waits until the card is stable
       // the promotion choice is the one decision the two games must make differently: under CPU load a click can land on a card that is
       // still opening, so wait until the game has recorded the choice (and click again if it has not) before reading the next state
       if (d.promotion) {
         for (let i = 0; i < 40; i++) {
           const status = await page.evaluate(() => { try { return JSON.parse(localStorage.getItem('passivo.challengeSave') ?? localStorage.getItem('passivo.save') ?? 'null')?.players?.[0]?.state?.promotion?.status ?? null; } catch { return null; } });
           if (status === d.promotion) break;
-          if (i % 10 === 9) await page.locator(d.click).first().click({ timeout: 1500, force: true }).catch(() => {});
+          if (i % 10 === 9) await page.locator(d.click).first().click({ timeout: 3000 }).catch(() => {});
           await page.waitForTimeout(100);
         }
       }

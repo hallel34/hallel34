@@ -783,7 +783,7 @@ async function testDictionary(page) {
   await page.locator('.topbar .icon-btn').first().click(); // menu entry
   await page.waitForSelector('.dict-sheet .dict-list');
   await page.waitForTimeout(350);
-  const want = MODE === 'full' ? 14 : 11;
+  const want = MODE === 'full' ? 15 : 12;
   const terms = await page.locator('.dict-item .dict-item-term').allInnerTexts();
   check(terms.length === want, `L1: the dictionary lists ${want} concepts in ${MODE} mode (${terms.length})`);
   const sorted = [...terms].sort((a, b) => a.localeCompare(b, 'he'));

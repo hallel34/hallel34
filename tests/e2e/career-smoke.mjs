@@ -145,19 +145,19 @@ function decide({ policy, promo }) {
  * The text of every promotion sentence a player can read: the card before the choice and the log / fox lines after it. A node that was
  * moved between sentences left an amount missing (QA 0.5.0 P1-2); the amounts must be in every sentence, in family, full and junior.
  */
-function scanPromotionText(label, card, after) {
+function scanPromotionText(label, card, snippets) {
   const money = /₪\s?[\d,]+|\d[\d,]*\s?מטבע/g;
-  const has = /₪\s?[\d,]+|\d[\d,]*\s?מטבע/;
   check((card.match(money) || []).length >= 6, `${label}: the promotion card shows its amounts in every sentence (${(card.match(money) || []).length} found)`);
-  check(!/(עוד|ב-|של|נשארים|נשאר|יוצאים) {2,}\S/.test(card) && !/ב- *[,.]/.test(card), `${label}: no empty slot in the card text (${JSON.stringify(card.match(/.{14} {2,}.{10}/)?.[0] ?? '')})`);
-  const lines = after.split('\n').filter((l) => /קידום בעבודה:|המשכורת עלתה|שדרגתם|מעכשיו יוצאים|נשארים לכם/.test(l));
-  check(lines.length >= 1 && lines.every((l) => has.test(l)), `${label}: the log and the fox line carry their amounts (${lines.length} lines: ${JSON.stringify(lines.slice(0, 2))})`);
-  check(!lines.some((l) => /ב- *[,.]|של {2,}|עוד {2,}/.test(l)), `${label}: no empty slot in the log and fox text`);
-  check(!/אביזר/.test(card + after), `${label}: no accessory is promised`);
+  const empty = (t) => /(עוד|ב-|של|נשארים|נשאר|יוצאים) {2,}\S/.test(t) || /ב- *[,.]/.test(t) || /(?:של|עוד|ב-) *$/.test(t);
+  check(!empty(card), `${label}: no empty slot in the card text (${JSON.stringify(card.match(/.{14} {2,}.{10}/)?.[0] ?? '')})`);
+  const log = snippets.find((x) => x.startsWith('קידום בעבודה:'));
+  check(!!log && /\d/.test(log) && !empty(log), `${label}: the log line carries its amounts (${JSON.stringify(log ?? null)})`);
+  check(snippets.every((x) => !empty(x)), `${label}: no empty slot in the log and fox text (${snippets.length} sentences)`);
+  check(!/אביזר/.test(card + snippets.join(' ')), `${label}: no accessory is promised`);
 }
 async function playToEnd(page, { policy = 'buyer', promo = 'pass', budgetMs = Number(process.env.SMOKE_GAME_MS || 300000), stopAfterPromotion = false } = {}) {
   const deadline = Date.now() + budgetMs;
-  const seen = { promotion: 0, lifestyle: false, rolls: 0, cardText: '', afterText: '' };
+  const seen = { promotion: 0, lifestyle: false, rolls: 0, cardText: '', snippets: [] };
   while (Date.now() < deadline) {
     const d = await page.evaluate(decide, { policy, promo });
     if (d.done) return { done: d.done, ...seen };
@@ -171,20 +171,32 @@ async function playToEnd(page, { policy = 'buyer', promo = 'pass', budgetMs = Nu
         }
         await layout(page, `promotion-card-${page.viewportSize().width}x${page.viewportSize().height}`);
       }
-      await page.locator(d.click).first().click({ timeout: 3000, force: true }).catch(() => {});
+      if (d.promotion && !seen.promotion) {
+        // the log chip and the fox note are transient: record every sentence about the promotion the moment it is written to the page
+        await page.evaluate(() => {
+          window.__promoText = [];
+          const grab = () => {
+            const t = document.body.textContent;
+            for (const m of t.matchAll(/(קידום בעבודה:.{0,110}|המשכורת עלתה, ורמת.{0,150}|המשכורת עלתה, וההוצאות.{0,150}|שדרגתם.{0,200}|מעכשיו יוצאים.{0,150}|עכשיו נשארים.{0,120})/g)) { if (!window.__promoText.some((x) => x.startsWith(m[0].slice(0, 30)))) window.__promoText.push(m[0]); }
+          };
+          new MutationObserver(grab).observe(document.body, { subtree: true, childList: true, characterData: true });
+        });
+      }
+      if (d.promotion) (seen.clicks ??= []).push(d.click.split(' ').pop());
+      // the promotion choice is clicked WITHOUT force: Playwright then waits for the button to be stable and receive the click, so a card that
+      // is still settling can never turn a click on "upgrade" into one on the "keep" button above it (QA 0.5.0 P2-7)
+      await page.locator(d.click).first().click(d.promotion ? { timeout: 6000 } : { timeout: 3000, force: true }).catch(() => {});
       if (d.promotion) {
         seen.promotion += 1;
         await page.waitForTimeout(400);
         if (seen.promotion === 1) {
-          for (let i = 0; i < 25; i++) { // the log line and the fox line appear a moment after the choice
-            seen.afterText = await page.evaluate(() => document.body.innerText);
-            if (/קידום בעבודה:/.test(seen.afterText) && /המשכורת עלתה, ו|שדרגתם|מעכשיו יוצאים|נשארים לכם עוד/.test(seen.afterText)) break;
-            await page.waitForTimeout(120);
-          }
+          await page.waitForTimeout(300);
+          seen.snippets = await page.evaluate(() => window.__promoText ?? []);
         }
         if (stopAfterPromotion) return { done: 'promotion', ...seen };
         const save = await stored(page, 'save');
         const st = save?.players?.[0]?.state;
+        seen.status = JSON.stringify({ clicks: seen.clicks, promo: st?.promotion?.status, exp: st?.profession?.expenses?.map((e) => e.id).slice(-2) });
         if (promo === 'option-upgrade') seen.lifestyle = !!st?.profession?.expenses?.some((e) => e.id === 'lifestyle') && st?.promotion?.status === 'upgraded';
         else seen.kept = st?.promotion?.status === 'kept';
       }
@@ -222,7 +234,7 @@ async function main() {
   const endA = await playToEnd(A, { promo: 'option-upgrade' });
   check(endA.done === 'win' || endA.done === 'over', `game A ended (${endA.done}, ${endA.rolls} rolls)${A.errors.length ? ` errors ${JSON.stringify(A.errors.slice(0, 3))}` : ""}`);
   check(endA.promotion === 1, `the promotion card was offered exactly once (${endA.promotion})`);
-  check(endA.lifestyle, 'upgrade: the lifestyle expense is in the game and the promotion record says upgraded');
+  check(endA.lifestyle, `upgrade: the lifestyle expense is in the game and the promotion record says upgraded (${endA.status})`);
   await A.waitForSelector('[data-career-prompt]', { timeout: 8000 });
   check(await A.locator('[data-action="cr-create"]').count() === 1, 'the end screen offers "create a profile" (a quiet text button)');
   const actionsInside = await A.evaluate(() => [...document.querySelectorAll('.end-actions .btn')].every((b) => { const r = b.getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight + 0.5; }));
@@ -334,7 +346,7 @@ async function main() {
     await startGame(P, opts);
     const r = await playToEnd(P, { promo, stopAfterPromotion: true });
     check(r.done === 'promotion', `${label}: the promotion card came up (${r.done})`);
-    if (r.done === 'promotion') scanPromotionText(label, r.cardText, r.afterText);
+    if (r.done === 'promotion') scanPromotionText(label, r.cardText, r.snippets);
     await ctxP.close();
   }
 

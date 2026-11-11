@@ -41,7 +41,9 @@ const chipSentence = (view) => t('career.seniority.chipWarn', { days: tp('career
  */
 function chipEl({ profile, view, junior }, onClick) {
   const label = junior ? profile.name : view.state === 'warn' ? tp('career.plural.daysShort', view.days) : t('career.seniority.label');
-  const badge = junior ? null : view.state === 'warn' ? String(view.days) : view.state === 'kept' ? icon('check', { size: 12, width: 3.4 }) : null;
+  // the day count on the compact avatar is generated content (data-n + CSS), not text: axe compares the button's visible TEXT with its name,
+  // and the number is already in the name as a word ("יומיים", "היום האחרון") (QA 0.5.0 P2-4)
+  const badge = junior ? null : view.state === 'warn' ? '' : view.state === 'kept' ? icon('check', { size: 12, width: 3.4 }) : null;
   const aria = junior ? `${t('profile.current', { name: profile.name })}. ${t('career.seniority.textJunior')}`
     : `${t('profile.current', { name: profile.name })}. ${view.state === 'warn' ? chipSentence(view) : view.state === 'kept' ? t('career.seniority.chipKept') : t('career.seniority.chipOpen')}`;
   return h('button', {
@@ -49,7 +51,7 @@ function chipEl({ profile, view, junior }, onClick) {
   },
   professionBust(profile.fox && hasProfessionFox(profile.fox) ? profile.fox : 'teacher'),
   h('span', { class: 'career-chip-label' }, label),
-  badge ? h('span', { class: 'career-chip-badge', 'aria-hidden': 'true' }, badge) : null);
+  badge !== null ? h('span', { class: 'career-chip-badge', 'aria-hidden': 'true', 'data-n': view.state === 'warn' ? String(view.days) : null }, badge) : null);
 }
 
 const SKY = `<svg class="sky" aria-hidden="true" focusable="false" viewBox="0 0 360 800" preserveAspectRatio="xMidYMax slice">
