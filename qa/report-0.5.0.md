@@ -26,3 +26,21 @@ Screenshots: `qa/screens/v050/` (kept locally, not committed). Later commits onl
 - Balance (sensible bot, 40 seeds per cell): family medians 22/22/23/23, full 26/25/28/26, junior 22/22/23/22, 0% lost; reckless 26-35%; drift within +-2 vs docs/BALANCE.md; full mode 25-28 above target 15-25 (pre-existing).
 - Smokes pass except items 7 and 8. Contrast 0 failures. Lighthouse home perf 0.91, a11y/BP/SEO 1.0. Offline and PWA OK.
 - Child safety: upTo10 and no-age profiles protected; the 11-13 loss band remains the owner's Families-policy question (docs/v050/families-policy-check.md).
+
+---
+
+# Delta round (head 46ad01b) — verdict RED: P0 0, P1 1, P2 3
+
+The three round-1 P1s are FIXED and re-verified: profile/picker/edit strings on a second launch in a week; promotion amounts in family/full/junior keep and upgrade (320x568 full upgrade run did not finish); drop rule (one drop per return over many weeks, weekly opens, daily opens; finished game clears `dropped`; upTo10 and no-age never lose; no chip warning after a drop; copy matches). Also verified: Friday deadline, Saturday counts, Fri 23:59 vs Sun 00:01, Israeli DST weeks, Friday-only/Saturday-only players never penalized, streak Fri-Sun free day, wrapping titles at 320, junior profile preselects the junior seat, version 0.5.0, educator strings (no cash, no accessory claim, lifestyle_creep, promo-keep wording), and no string claims the daily counts.
+
+## [P1] smoke:career and smoke:challenge are still flaky
+- smoke:career: 7 of 10 requested runs completed, 2 passed and 5 failed; 5 instrumented runs: 2 pass, 3 fail. smoke:challenge: 5 isolated runs, 3 pass, 2 fail.
+- Failures: "a sentence after the choice carries its amounts (null)", "game A ended (start, 35 rolls)", "upgrade ... promo: kept" after the upgrade click, "B decided differently from A".
+- Root cause (harness race, not load): the promotion's "keep" button reuses `data-action="pass"` (`src/ui/career/promotion.js:52`). The smokes select `#modal-root .layer:last-child [data-action="pass"]`; if the previous card closes and the promotion card opens between `decide()` and the click, the stale selector clicks keep. Page-level capture showed zero clicks in failing runs yet state already `kept`.
+- Fix: give the promotion buttons their own data-action values (not `pass`), and make the smokes click atomically by card identity (`data-promotion` / `data-card`) in `tests/e2e/career-smoke.mjs` and `tests/e2e/challenge-smoke.mjs`. A fast double-tap on "pass" could also answer a fresh promotion card with keep: a real-user hazard, so the own action name also fixes that.
+
+## [P2] Chip fails axe on the last day, at 360x800 and 320x568 (`label-content-name-mismatch`: visible "יום" vs aria "היום הוא היום האחרון"). Screenshot `home-warn-rank-dark-360x800.png`.
+## [P2] Saturday chip shows the amber warn state although Saturday is a bonus day; copy should say so.
+## [P2] SMOKE_PLAYERS=2 still fails (baseline, not in CI).
+
+Gate at 46ad01b: vitest 959/959, build OK, all other smokes pass, contrast-check passes (designer script last run on 201d1c3, re-run needed), Lighthouse home perf 0.93/0.91/0.97, a11y 1.0.
