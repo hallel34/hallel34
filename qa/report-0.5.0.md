@@ -44,3 +44,29 @@ The three round-1 P1s are FIXED and re-verified: profile/picker/edit strings on 
 ## [P2] SMOKE_PLAYERS=2 still fails (baseline, not in CI).
 
 Gate at 46ad01b: vitest 959/959, build OK, all other smokes pass, contrast-check passes (designer script last run on 201d1c3, re-run needed), Lighthouse home perf 0.93/0.91/0.97, a11y 1.0.
+
+---
+
+# Round 3 (head 5b08bd3) — verdict GREEN: P0 0, P1 0, P2 1 (carried, not in CI)
+
+## Flake checks (sequential, one run at a time, axe on)
+- smoke:career x10: **10/10 pass**.
+- smoke:challenge x10: **10/10 pass** (the last run overlapped the start of the next gate step; it still passed).
+- Root cause of the earlier flakes confirmed closed: the promotion buttons no longer share `data-action="pass"`, and the smokes click by card key. No stale-click failure in 20 runs (before: 5 of 7 career runs and 2 of 5 challenge runs failed).
+
+## Delta fixes
+1. **Fast double tap.** The card opens with `promotion-keep` and `promotion-upgrade` both disabled; there is no `pass` on it. I fired programmatic clicks at 0 ms on the new card (keep, upgrade and a stale `pass` selector): nothing answered, card still open, save status `offered` after 150 ms. After the 450 ms settle the buttons were enabled and a real tap on upgrade recorded `upgraded`.
+2. **Chip axe on the last day.** Friday, with and without a missed week, 360x800 and 320x568, dark and light: axe 0 violations, no horizontal scroll, targets >= 48px. The accessible name now leads with the visible text ("יום. ותק: היום הוא היום האחרון").
+3. **Saturday bonus chip.** State `bonus`, label "בונוס", muted (no amber), no warn line on home; aria "שבת היא יום בונוס: משחק שמסתיים היום עדיין נחשב לשבוע הזה, אבל לא חייבים לשחק בשבת". Axe clean at both sizes and both themes. A profile that already played shows `kept`; a dropped profile shows no warning.
+
+## Gate
+- vitest 960/960; build OK.
+- All other smokes pass: smoke (family), SMOKE_MODE=full, SMOKE_H=640, players-seats, daily, tutorial, round11, round12, business-demo, payday-pass, first-asset mission, short missions.
+- contrast-check.py exit 0; designer contrast-v050.py 62 pairs, 0 failing.
+- Lighthouse mobile home, 3 runs: performance 0.91 / 0.93 / 0.91, accessibility 1.0 on all (margin over 0.90 is thin; LCP 2.4-3.4 s).
+
+## Open
+- [P2] `SMOKE_PLAYERS=2` fails on a `roll` click timeout. Same on the 0.5.1 baseline, not in CI, not re-run this round.
+- Not re-run this round: balance simulation, fuzz and offline/PWA (no engine or build-config change since round 2).
+
+Regenerated qa/screens files restored; new untracked evidence only under qa/screens/v050/.
