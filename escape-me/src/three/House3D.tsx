@@ -59,6 +59,23 @@ import phKettleUrl from '../assets/models/ph-kettle.glb?url';
 import phDiningChairUrl from '../assets/models/ph-dining-chair.glb?url';
 import phNightstandUrl from '../assets/models/ph-nightstand.glb?url';
 import phVaseUrl from '../assets/models/ph-vase.glb?url';
+/* v7 realism pass: more Poly Haven CC0 models (512px WebP textures) */
+import phPlantTallUrl from '../assets/models/ph-plant-tall.glb?url';
+import phPlantBigUrl from '../assets/models/ph-plant-big.glb?url';
+import phPlantSmallUrl from '../assets/models/ph-plant-small.glb?url';
+import phCabinetUrl from '../assets/models/ph-cabinet.glb?url';
+import phFrameAUrl from '../assets/models/ph-frame-a.glb?url';
+import phFrameBUrl from '../assets/models/ph-frame-b.glb?url';
+import phFrameCUrl from '../assets/models/ph-frame-c.glb?url';
+import phClockUrl from '../assets/models/ph-clock.glb?url';
+import phPillowsUrl from '../assets/models/ph-pillows.glb?url';
+import phDeskUrl from '../assets/models/ph-desk.glb?url';
+import phDrawerUrl from '../assets/models/ph-drawer.glb?url';
+import phSideTableUrl from '../assets/models/ph-side-table.glb?url';
+import phShelvesUrl from '../assets/models/ph-shelves.glb?url';
+import phStandFrameUrl from '../assets/models/ph-stand-frame.glb?url';
+import phMirrorUrl from '../assets/models/ph-mirror.glb?url';
+import phDeskLampUrl from '../assets/models/ph-desk-lamp.glb?url';
 import dresserUrl from '../assets/models/dresser.glb?url';
 import bathtubUrl from '../assets/models/bathtub.glb?url';
 import bathroomSinkUrl from '../assets/models/bathroom-sink.glb?url';
@@ -228,30 +245,36 @@ function applyFinalLocked(rig: FinalRig, locked: boolean): void {
 /* Small procedural textures                                           */
 /* ------------------------------------------------------------------ */
 function makeWindowTexture(): THREE.CanvasTexture {
+  // Daylight through a sheer curtain: bright hazy sky, soft out-of-focus
+  // greenery and a neighbouring roofline. (v6 painted a cartoon night sky.)
   const c = document.createElement('canvas');
   c.width = 256; c.height = 288;
   const ctx = c.getContext('2d');
   if (ctx) {
     const g = ctx.createLinearGradient(0, 0, 0, 288);
-    g.addColorStop(0, '#232f52');
-    g.addColorStop(0.45, '#5c4066');
-    g.addColorStop(0.75, '#c66a44');
-    g.addColorStop(1, '#ffb45e');
+    g.addColorStop(0, '#cfe3f5');
+    g.addColorStop(0.55, '#eef4f8');
+    g.addColorStop(1, '#f7f3e6');
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, 256, 288);
-    ctx.fillStyle = 'rgba(255,246,220,0.9)';
-    for (let i = 0; i < 26; i++) {
-      const sx = Math.random() * 256; const sy = Math.random() * 120;
-      ctx.fillRect(sx, sy, 2, 2);
+    ctx.filter = 'blur(7px)';
+    ctx.fillStyle = 'rgba(214,205,190,0.9)';
+    ctx.fillRect(150, 170, 130, 130);
+    ctx.fillStyle = 'rgba(176,96,74,0.55)';
+    ctx.beginPath(); ctx.moveTo(140, 172); ctx.lineTo(205, 132); ctx.lineTo(270, 172); ctx.closePath(); ctx.fill();
+    const blobs: [number, number, number, string][] = [
+      [40, 190, 62, 'rgba(96,138,84,0.85)'], [92, 215, 48, 'rgba(120,160,96,0.8)'],
+      [10, 240, 60, 'rgba(78,120,74,0.85)'], [128, 250, 44, 'rgba(110,150,90,0.8)'], [230, 262, 50, 'rgba(100,142,86,0.8)'],
+    ];
+    blobs.forEach(([bx, by, br, col]) => { ctx.fillStyle = col; ctx.beginPath(); ctx.arc(bx, by, br, 0, Math.PI * 2); ctx.fill(); });
+    ctx.filter = 'none';
+    // sheer curtain haze + faint vertical folds
+    ctx.fillStyle = 'rgba(255,255,255,0.34)';
+    ctx.fillRect(0, 0, 256, 288);
+    for (let x = 0; x < 256; x += 13) {
+      ctx.fillStyle = x % 26 === 0 ? 'rgba(255,255,255,0.16)' : 'rgba(170,180,190,0.07)';
+      ctx.fillRect(x, 0, 6, 288);
     }
-    ctx.fillStyle = 'rgba(20,12,24,0.92)';
-    ctx.beginPath();
-    ctx.moveTo(0, 288); ctx.lineTo(0, 238); ctx.lineTo(52, 238); ctx.lineTo(52, 218);
-    ctx.lineTo(96, 218); ctx.lineTo(96, 246); ctx.lineTo(150, 246); ctx.lineTo(150, 226);
-    ctx.lineTo(205, 226); ctx.lineTo(205, 244); ctx.lineTo(256, 244); ctx.lineTo(256, 288);
-    ctx.closePath(); ctx.fill();
-    ctx.fillStyle = 'rgba(255,196,92,0.95)';
-    [[24, 252], [70, 230], [122, 258], [176, 240], [228, 256]].forEach(([wx, wy]) => ctx.fillRect(wx, wy, 5, 7));
   }
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
@@ -386,10 +409,10 @@ export default function House3D(props: House3DProps) {
     const height = mount.clientHeight || 480;
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, touchUi ? 1.5 : 1.75));
     renderer.setSize(width, height);
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 0.95;
+    renderer.toneMappingExposure = 1.0;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.domElement.className = 'house3d-canvas-el';
@@ -403,7 +426,7 @@ export default function House3D(props: House3DProps) {
     const pmrem = new THREE.PMREMGenerator(renderer);
     try {
       scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
-      scene.environmentIntensity = 0.25;
+      scene.environmentIntensity = 0.45;
     } catch { /* environment is a nicety, not a requirement */ }
     pmrem.dispose();
 
@@ -420,21 +443,23 @@ export default function House3D(props: House3DProps) {
     camera.rotation.order = 'YXZ';
 
     /* ---- lights ---- */
-    scene.add(new THREE.HemisphereLight(0xfff1d6, 0x4a3421, 0.35));
+    scene.add(new THREE.HemisphereLight(0xfdf6ea, 0x5a4634, 0.62));
     const roomLightPos: [number, number][] = [
       [-3.85, -2.1], [2.65, -2.9], [4.95, 0.6], [1.1, 0], [-3.85, 2.9], [1.1, 2.9], [4.95, 3.5],
     ];
     roomLightPos.forEach(([lx, lz]) => {
-      const pl = new THREE.PointLight(0xffd2a0, 7.8, 9.5, 1.8);
+      const pl = new THREE.PointLight(0xffdcb4, 5.2, 9.5, 1.8);
       pl.position.set(lx, 2.32, lz);
       scene.add(pl);
     });
-    const spot = new THREE.SpotLight(0xffe3b3, 115, 20, 1.05, 0.85, 1.5);
+    const spot = new THREE.SpotLight(0xffe9c8, 70, 14, 1.12, 0.9, 1.4);
     spot.position.set(-3.85, 2.62, -2.1);
     spot.target.position.set(-3.9, 0, -2.2);
     spot.castShadow = true;
     spot.shadow.mapSize.set(1024, 1024);
-    spot.shadow.bias = -0.0004;
+    spot.shadow.bias = -0.0006;
+    spot.shadow.normalBias = 0.02;
+    spot.shadow.radius = 5;
     scene.add(spot);
     scene.add(spot.target);
 
@@ -471,7 +496,7 @@ export default function House3D(props: House3DProps) {
       let cur = from;
       const seg = (a: number, b: number) => {
         if (b - a < 0.02) return;
-        addBox(b - a, WALL_H, WALL_T, (a + b) / 2, WALL_H / 2, z, wallMatFor(b - a), { collide: true });
+        addBox(b - a, WALL_H, WALL_T, (a + b) / 2, WALL_H / 2, z, wallMatFor(b - a), { collide: true }).receiveShadow = true;
       };
       sorted.forEach((g) => {
         seg(cur, g.c - g.w / 2);
@@ -487,7 +512,7 @@ export default function House3D(props: House3DProps) {
       let cur = from;
       const seg = (a: number, b: number) => {
         if (b - a < 0.02) return;
-        addBox(WALL_T, WALL_H, b - a, x, WALL_H / 2, (a + b) / 2, wallMatFor(b - a), { collide: true });
+        addBox(WALL_T, WALL_H, b - a, x, WALL_H / 2, (a + b) / 2, wallMatFor(b - a), { collide: true }).receiveShadow = true;
       };
       sorted.forEach((g) => {
         seg(cur, g.c - g.w / 2);
@@ -580,12 +605,12 @@ export default function House3D(props: House3DProps) {
     /* ---- windows (evening glow planes + frames) ---- */
     const windowTex = makeWindowTexture();
     const glowTex = makeGlowTexture();
-    const frameMat = new THREE.MeshStandardMaterial({ color: 0x4a3220, roughness: 0.8 });
+    const frameMat = new THREE.MeshStandardMaterial({ color: 0xf1ede4, roughness: 0.6 });
     const addWindow = (x: number, z: number, rotY: number, w = 1.1, h = 1.2, cy = 1.6) => {
       const g = new THREE.Group();
       const pane = new THREE.Mesh(
         new THREE.PlaneGeometry(w, h),
-        new THREE.MeshBasicMaterial({ map: windowTex }),
+        new THREE.MeshBasicMaterial({ map: windowTex, toneMapped: false }),
       );
       pane.position.z = 0.02;
       g.add(pane);
@@ -601,10 +626,10 @@ export default function House3D(props: House3DProps) {
       mkBar(0.045, h, 0, 0);
       mkBar(w, 0.045, 0, 0);
       const glow = new THREE.Sprite(new THREE.SpriteMaterial({
-        map: glowTex, transparent: true, opacity: 0.3,
+        map: glowTex, transparent: true, opacity: 0.22, color: 0xdfeaff,
         blending: THREE.AdditiveBlending, depthWrite: false,
       }));
-      glow.scale.set(w * 1.8, h * 1.8, 1);
+      glow.scale.set(w * 2.2, h * 2.2, 1);
       glow.position.z = 0.22;
       g.add(glow);
       g.position.set(x, cy, z);
@@ -619,24 +644,36 @@ export default function House3D(props: House3DProps) {
     addWindow(0.2, 4.92, Math.PI);
 
     /* ---- framed photos ---- */
-    const photoFrameMat = new THREE.MeshStandardMaterial({ color: 0x3a2415, roughness: 0.7 });
+    const photoFrameMat = new THREE.MeshStandardMaterial({ color: 0xf4f0e6, roughness: 0.95 });
     const addFramedPhoto = (url: string, w: number, h: number, x: number, y: number, z: number, rotY: number) => {
       const g = new THREE.Group();
-      const frame = new THREE.Mesh(new THREE.BoxGeometry(w + 0.1, h + 0.1, 0.05), photoFrameMat);
+      const frame = new THREE.Mesh(new THREE.BoxGeometry(w + 0.02, h + 0.02, 0.01), photoFrameMat);
       g.add(frame);
       const tex = makePhotoTexture(url, { mirror: false });
       tex.wrapS = THREE.ClampToEdgeWrapping;
       tex.wrapT = THREE.ClampToEdgeWrapping;
       const art = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshStandardMaterial({ map: tex, roughness: 0.9 }));
-      art.position.z = 0.03;
+      art.position.z = 0.008;
       g.add(art);
       g.position.set(x, y, z);
       g.rotation.y = rotY;
       scene.add(g);
     };
-    addFramedPhoto(PHOTO.sunset, 0.95, 0.64, -5.7, 1.82, -4.9, 0);
-    addFramedPhoto(PHOTO.alley, 0.9, 0.6, -1.29, 1.72, -3.6, -Math.PI / 2);
-    addFramedPhoto(PHOTO.cameraArt, 1.05, 0.7, 1.2, 1.58, -0.71, 0); // hallway family picture
+    // hallway "family picture": a real family-at-sunset photo behind a white mat.
+    // (v6 hung a 1 m film-set still here — on a phone it swallowed the whole view.)
+    {
+      const mat = new THREE.Mesh(new THREE.BoxGeometry(0.74, 0.56, 0.012),
+        new THREE.MeshStandardMaterial({ color: 0xf4f0e6, roughness: 0.95 }));
+      mat.position.set(1.2, 1.55, -0.705);
+      scene.add(mat);
+      addFramedPhoto(PHOTO.sunset, 0.52, 0.35, 1.2, 1.55, -0.722, 0);
+      const fm = new THREE.MeshStandardMaterial({ color: 0x2b2019, roughness: 0.6 });
+      ([[0.8, 0.035, 0, 0.2975], [0.8, 0.035, 0, -0.2975], [0.035, 0.63, 0.3825, 0], [0.035, 0.63, -0.3825, 0]] as const).forEach(([w, h, dx, dy]) => {
+        const bar = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.035), fm);
+        bar.position.set(1.2 + dx, 1.55 + dy, -0.7);
+        scene.add(bar);
+      });
+    }
 
     /* living rug (photo texture plane between sofa and TV) */
     const rugTex = makePhotoTexture(PHOTO.rug, { mirror: false });
@@ -671,6 +708,7 @@ export default function House3D(props: House3DProps) {
       bathtub: bathtubUrl, bathroomSink: bathroomSinkUrl, bathroomMirror: bathroomMirrorUrl,
       bathroomCabinet: bathroomCabinetUrl, toilet: toiletUrl, washingMachine: washingMachineUrl,
       door: doorUrl,
+      phPlantTall: phPlantTallUrl, phPlantBig: phPlantBigUrl, phPlantSmall: phPlantSmallUrl, phCabinet: phCabinetUrl, phFrameA: phFrameAUrl, phFrameB: phFrameBUrl, phFrameC: phFrameCUrl, phClock: phClockUrl, phPillows: phPillowsUrl, phDesk: phDeskUrl, phDrawer: phDrawerUrl, phSideTable: phSideTableUrl, phShelves: phShelvesUrl, phStandFrame: phStandFrameUrl, phMirror: phMirrorUrl, phDeskLamp: phDeskLampUrl,
     };
     interface Template { wrap: THREE.Group; size: THREE.Vector3 }
     const templates = new Map<string, Template | null>();
@@ -689,7 +727,7 @@ export default function House3D(props: House3DProps) {
           wrap.add(inner);
           inner.traverse((o) => {
             const mesh = o as THREE.Mesh;
-            if (mesh.isMesh) { mesh.castShadow = true; mesh.receiveShadow = false; }
+            if (mesh.isMesh) { mesh.castShadow = true; mesh.receiveShadow = true; }
           });
           templates.set(key, { wrap, size });
         } catch (err) {
@@ -701,10 +739,11 @@ export default function House3D(props: House3DProps) {
 
       const place = (
         key: string,
-        o: { x: number; z: number; y?: number; rotY?: number; s?: number; collide?: boolean; fb?: [number, number, number] },
+        o: { x: number; z: number; y?: number; rotY?: number; s?: number; fitH?: number; fitW?: number; collide?: boolean; fb?: [number, number, number] },
       ): THREE.Group => {
         const t = templates.get(key);
-        const s = o.s ?? 1;
+        // fitH / fitW: scale a real-world model to a target height / width (m)
+        const s = t && o.fitH ? o.fitH / t.size.y : t && o.fitW ? o.fitW / t.size.x : (o.s ?? 1);
         let g: THREE.Group;
         let size: THREE.Vector3;
         if (t) {
@@ -738,9 +777,26 @@ export default function House3D(props: House3DProps) {
       };
 
       /* ---------------- LIVING ---------------- */
-      place('tvStand', { x: -4.2, z: -4.68, s: 1.9, collide: true, fb: [1.5, 0.6, 0.5] });
-      const tvGroup = place('tv', { x: -4.2, z: -4.74, y: 0.59, s: 1.9, fb: [1.3, 0.85, 0.1] });
+      const tvStandG = place('phCabinet', { x: -4.2, z: -4.6, fitW: 1.9, collide: true, fb: [1.9, 0.53, 0.5] });
+      const tvTop = new THREE.Box3().setFromObject(tvStandG).max.y;
       {
+        // flat-screen TV (procedural: thin dark slab, glossy panel, low foot)
+        const tv = new THREE.Group();
+        const body = new THREE.MeshStandardMaterial({ color: 0x0c0d0f, roughness: 0.45, metalness: 0.4 });
+        const panel = new THREE.MeshStandardMaterial({ color: 0x06080b, roughness: 0.12, metalness: 0.6 });
+        const slab = new THREE.Mesh(new THREE.BoxGeometry(1.24, 0.71, 0.035), body);
+        slab.position.y = 0.435; slab.castShadow = true; tv.add(slab);
+        const scr = new THREE.Mesh(new THREE.PlaneGeometry(1.215, 0.685), panel);
+        scr.position.set(0, 0.438, 0.0185); tv.add(scr);
+        const neck = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.03), body);
+        neck.position.set(0, 0.05, -0.01); tv.add(neck);
+        const foot = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.012, 0.2), body);
+        foot.position.y = 0.006; foot.castShadow = true; tv.add(foot);
+        tv.position.set(-4.2, tvTop, -4.62);
+        scene.add(tv);
+      }
+      const tvGroup = new THREE.Group();
+      if (tvGroup.children.length) {
         // TV screen -> dark glossy "off TV" (was a blank near-white slab).
         // tv.glb (Kenney televisionModern) is one mesh with 2 primitives:
         // the body (210 indices, material metalDark) and the screen — a
@@ -785,7 +841,11 @@ export default function House3D(props: House3DProps) {
       // (v6: the shelves are filled by houseDecor's instanced-book wall —
       // hundreds of individual books + the wooden puzzle box.)
       place('phArmchair', { x: -2.0, z: -4.15, rotY: -0.64, s: 1.0, collide: true, fb: [0.82, 1.02, 0.99] });
-      place('plant', { x: -6.02, z: -4.52, s: 1.6, collide: true, fb: [0.35, 1.0, 0.35] });
+      place('phPlantTall', { x: -5.95, z: -4.45, fitH: 1.45, collide: true, fb: [0.5, 1.4, 0.5] });
+      place('phPillows', { x: -4.75, z: -1.3, y: 0.47, rotY: Math.PI, fitW: 0.62, fb: [0.6, 0.4, 0.4] });
+      place('phFrameB', { x: -5.7, z: -4.905, y: 1.5, fitW: 0.95, fb: [0.95, 0.63, 0.03] });
+      place('phFrameC', { x: -4.2, z: 0.705, y: 1.5, rotY: Math.PI, fitW: 0.9, fb: [0.9, 0.7, 0.03] });
+      place('phFrameA', { x: -1.295, z: -3.6, y: 1.25, rotY: -Math.PI / 2, fitH: 0.8, fb: [0.56, 0.8, 0.03] });
       place('floorLamp', { x: -2.92, z: -0.72, s: 1.9, fb: [0.23, 1.63, 0.23] });
       const lampGlow = new THREE.Sprite(new THREE.SpriteMaterial({
         map: glowTex, transparent: true, opacity: 0.4, blending: THREE.AdditiveBlending, depthWrite: false,
@@ -846,14 +906,14 @@ export default function House3D(props: House3DProps) {
 
       /* ---------------- ENTRANCE ---------------- */
       place('coatRack', { x: 6.02, z: -0.42, s: 2.2, collide: true, fb: [0.59, 1.69, 0.59] });
-      place('sideTable', { x: 3.95, z: -0.66, s: 1.9, collide: true, fb: [1.0, 0.72, 0.42] });
-      place('phVase', { x: 4.22, z: -0.62, y: 0.75, s: 0.85, fb: [0.17, 0.34, 0.17] }); // entrance vase
+      place('phSideTable', { x: 3.95, z: -0.4, fitH: 0.75, collide: true, fb: [0.75, 0.75, 0.6] });
+      place('phVase', { x: 4.17, z: -0.42, y: 0.75, s: 0.85, fb: [0.17, 0.34, 0.17] }); // entrance vase
       // key bowl on the side table
       const bowl = new THREE.Mesh(
         new THREE.CylinderGeometry(0.11, 0.07, 0.055, 20),
         new THREE.MeshStandardMaterial({ color: 0xb8452e, roughness: 0.4 }),
       );
-      bowl.position.set(3.95, 0.75, -0.62);
+      bowl.position.set(3.88, 0.778, -0.4);
       bowl.castShadow = true;
       scene.add(bowl);
       const keyRing = new THREE.Mesh(
@@ -861,32 +921,38 @@ export default function House3D(props: House3DProps) {
         new THREE.MeshStandardMaterial({ color: 0xd9a441, metalness: 0.85, roughness: 0.3 }),
       );
       keyRing.rotation.x = Math.PI / 2.4;
-      keyRing.position.set(3.95, 0.79, -0.62);
+      keyRing.position.set(3.88, 0.812, -0.4);
       scene.add(keyRing);
-      place('dresser', { x: 3.95, z: 1.71, rotY: Math.PI, s: 1.9, collide: true, fb: [1.0, 0.72, 0.42] }); // shoe cabinet
+      place('phDrawer', { x: 4.15, z: 1.6, rotY: Math.PI, fitH: 0.78, collide: true, fb: [1.2, 0.78, 0.6] }); // shoe cabinet
+      place('phPlantSmall', { x: 4.45, z: 1.62, y: 0.78, s: 1.0, fb: [0.17, 0.27, 0.17] });
       place('rugRound', { x: 5.0, z: 0.85, y: 0.006, s: 2.4, fb: [2.2, 0.02, 2.2] });
 
       /* ---------------- HALLWAY ---------------- */
       place('wardrobe', { x: 2.6, z: -0.4, s: 2.55, collide: true, fb: [1.0, 2.17, 0.64] }); // hall closet
-      place('bathroomMirror', { x: 0.2, z: 0.68, y: 1.06, rotY: Math.PI, s: 1.9, fb: [0.57, 0.82, 0.1] }); // hall mirror
+      place('phMirror', { x: 0.2, z: 0.705, y: 1.0, rotY: Math.PI, fitH: 0.95, fb: [0.6, 0.95, 0.04] }); // hall mirror
+      place('phClock', { x: 2.8, z: -0.895, y: 1.75, rotY: Math.PI, fitH: 0.34, fb: [0.34, 0.34, 0.05] }); // kitchen wall clock
+      place('phPlantBig', { x: -0.7, z: -1.35, fitH: 0.75, collide: true, fb: [0.6, 0.75, 0.6] });
+      place('phPlantBig', { x: 2.95, z: 4.5, rotY: 1.9, fitH: 0.8, collide: true, fb: [0.6, 0.8, 0.6] });
       place('wallLamp', { x: 2.9, z: 0.66, y: 1.92, rotY: Math.PI, s: 1.8, fb: [0.41, 0.16, 0.27] });
 
       /* ---------------- BEDROOM1 (kids) ---------------- */
       place('bedBunk', { x: -5.44, z: 2.9, rotY: Math.PI / 2, s: 1.8, collide: true, fb: [1.96, 1.53, 1.03] });
-      place('desk', { x: -2.6, z: 1.25, s: 1.9, collide: true, fb: [1.39, 0.72, 0.74] });
+      place('phDesk', { x: -2.6, z: 1.27, fitH: 0.74, collide: true, fb: [1.05, 0.74, 0.66] });
+      place('phDeskLamp', { x: -3.0, z: 1.12, y: 0.74, rotY: 0.6, fitH: 0.5, fb: [0.2, 0.5, 0.3] });
       place('chairDesk', { x: -2.6, z: 1.98, rotY: Math.PI, s: 1.8, collide: true, fb: [0.59, 1.1, 0.56] });
-      place('computerScreen', { x: -2.82, z: 1.13, y: 0.72, s: 1.6, fb: [0.62, 0.46, 0.16] });
-      place('plantSmall', { x: -2.12, z: 1.16, y: 0.72, s: 2.2, fb: [0.2, 0.31, 0.2] });
+      place('computerScreen', { x: -2.62, z: 1.1, y: 0.74, s: 1.6, fb: [0.62, 0.46, 0.16] });
+      place('phPlantSmall', { x: -2.2, z: 1.15, y: 0.74, s: 1.0, fb: [0.17, 0.27, 0.17] });
       place('wardrobe', { x: -1.6, z: 3.6, rotY: -Math.PI / 2, s: 2.55, collide: true, fb: [1.0, 2.17, 0.64] });
-      place('bookshelfLow', { x: -4.6, z: 4.67, rotY: Math.PI, s: 2.0, collide: true, fb: [0.8, 0.8, 0.5] }); // toy shelf
-      place('plantSmall', { x: -4.88, z: 4.62, y: 0.8, s: 2.2, fb: [0.2, 0.31, 0.2] });
+      const toyShelf = place('phShelves', { x: -4.6, z: 4.72, rotY: Math.PI / 2, fitH: 1.1, collide: true, fb: [0.3, 1.1, 0.8] }); // toy shelf
+      const toyTop = new THREE.Box3().setFromObject(toyShelf).max.y;
+      place('phPlantSmall', { x: -4.86, z: 4.72, y: toyTop, s: 1.0, fb: [0.17, 0.27, 0.17] });
       const toyColors = [0xe4572e, 0x2a9d8f, 0xf2a007];
       toyColors.forEach((tc, i) => {
         const toy = new THREE.Mesh(
           new THREE.BoxGeometry(0.15, 0.15, 0.15),
           new THREE.MeshStandardMaterial({ color: tc, roughness: 0.7 }),
         );
-        toy.position.set(-4.78 + i * 0.19, 0.88, 4.66);
+        toy.position.set(-4.62 + i * 0.17, toyTop + 0.075, 4.72);
         toy.rotation.y = i * 0.5;
         toy.castShadow = true;
         scene.add(toy);
@@ -945,7 +1011,9 @@ export default function House3D(props: House3DProps) {
       place('phNightstand', { x: -0.91, z: 1.75, rotY: Math.PI / 2, s: 1.0, collide: true, fb: [0.57, 0.7, 0.42] });
       place('phNightstand', { x: -0.91, z: 4.25, rotY: Math.PI / 2, s: 1.0, fb: [0.57, 0.7, 0.42] });
       place('tableLamp', { x: -0.91, z: 1.75, y: 0.7, s: 1.5, fb: [0.23, 0.47, 0.27] });
-      place('dresser', { x: 1.9, z: 4.71, rotY: Math.PI, s: 1.9, collide: true, fb: [1.0, 0.72, 0.42] });
+      place('phDrawer', { x: 1.9, z: 4.6, rotY: Math.PI, fitH: 0.72, collide: true, fb: [1.14, 0.72, 0.6] });
+      place('phStandFrame', { x: 1.32, z: 4.62, y: 0.72, rotY: Math.PI / 2 + 0.3, fitH: 0.24, fb: [0.1, 0.24, 0.2] });
+      place('phPillows', { x: -0.75, z: 3.0, y: 0.62, rotY: Math.PI / 2, fitW: 0.6, fb: [0.6, 0.4, 0.4] });
       place('wardrobe', { x: 3.0, z: 1.7, rotY: -Math.PI / 2, s: 2.55, collide: true, fb: [1.0, 2.17, 0.64] }); // wardrobe-big
 
       /* the safe (procedural) — default final-target anchor, on the dresser */
@@ -1465,6 +1533,7 @@ export default function House3D(props: House3DProps) {
       const tmpV = new THREE.Vector3();
       let raf = 0;
       let running = true;
+      let perfT = 0; let perfN = 0; let curPR = renderer.getPixelRatio();
 
       const loop = () => {
         if (!running) return;
@@ -1520,6 +1589,9 @@ export default function House3D(props: House3DProps) {
         const rid = roomAt(player.x, player.z);
         if (rid !== lastRoom) {
           lastRoom = rid;
+          const [scx, scz] = ROOM_CENTERS[rid];
+          spot.position.set(scx, 2.62, scz);
+          spot.target.position.set(scx + 0.02, 0, scz + 0.02);
           if (roomNameRef.current) {
             roomNameRef.current.textContent = `${ROOM_MAP[rid].emoji} ${ROOM_MAP[rid].label}`;
           }
@@ -1604,6 +1676,17 @@ export default function House3D(props: House3DProps) {
         }
 
         renderer.render(scene, camera);
+
+        /* adaptive resolution: weak phones drop pixel ratio instead of frame rate */
+        perfT += dt; perfN++;
+        if (perfT >= 2) {
+          const fps = perfN / perfT; perfT = 0; perfN = 0;
+          if (fps < 26 && curPR > 0.75 && elapsed > 3 && !navigator.webdriver) {
+            curPR = Math.max(0.75, curPR - 0.25);
+            renderer.setPixelRatio(curPR);
+            onResize();
+          }
+        }
       };
 
       const startLoop = () => {

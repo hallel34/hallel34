@@ -452,7 +452,6 @@ export function buildLivingDecor(scene: THREE.Scene): void {
   /* Sofa = Poly Haven tufted leather (real cushions are modeled) — dressing
      is throw pillows + a folded throw only. Sofa at (-4.2,-1.4) rotY PI,
      seat top ≈ 0.5, backrest on the +Z side. */
-  cushion(0.34, 0.34, 0.11, -4.78, 0.68, -1.18, 0xa34a2a, { rotZ: 0.16, rotY: 0.2 });  // throw pillows
   cushion(0.32, 0.32, 0.11, -3.62, 0.68, -1.16, 0x51683c, { rotZ: -0.13, rotY: -0.15 });
   cushion(0.3, 0.3, 0.1, -4.2, 0.66, -1.22, 0xc99700, { rotZ: 0.06 });
   /* folded throw over the east arm (arm top ≈ 0.72) */
@@ -478,9 +477,7 @@ export function buildLivingDecor(scene: THREE.Scene): void {
   smallPlant(g, -4.5, 0.5, -3.18, 0.8);
 
   /* Big plant in a real pot by the window corner (plant hotspot) */
-  cyl(g, 0.21, 0.16, 0.34, 16, -6.02, 0.17, -4.52, M.pot, { shadow: true });
-  cyl(g, 0.19, 0.19, 0.03, 16, -6.02, 0.35, -4.52,
-    new THREE.MeshStandardMaterial({ color: 0x3d2b18, roughness: 1 }));
+
 
   /* Extra framed art over the sofa (south partition, faces north) */
   const frameAt = (url: string, w: number, h: number, x: number, y: number, z: number, rotY: number) => {
@@ -496,7 +493,7 @@ export function buildLivingDecor(scene: THREE.Scene): void {
     grp.rotation.y = rotY;
     g.add(grp);
   };
-  frameAt(PHOTO.cameraArt, 0.8, 0.55, -4.2, 1.78, 0.7, Math.PI);
+  void frameAt; // (v7: the over-sofa art is a Poly Haven framed painting placed by House3D)
 
   /* Floor-lamp drum shade glow disc (existing lamp model stays) */
   const shade = cyl(g, 0.14, 0.16, 0.2, 16, -2.92, 1.52, -0.72,
@@ -808,11 +805,7 @@ export function buildHallwayDecor(scene: THREE.Scene): void {
     grp.position.set(x, 1.52, -0.7);
     g.add(grp);
   };
-  mini(PHOTO.sunset, 0.32);
-  mini(PHOTO.alley, 2.08);
-  smallPlant(g, 3.12, 0, 0.52, 1.6);
-  // skirting-shadow plant pot base for the hallway plant
-  cyl(g, 0.13, 0.1, 0.22, 12, 3.12, 0.11, 0.52, M.pot);
+  void mini; // (v7: film-set stills removed from the hallway)
 }
 
 export function buildBedroomsDecor(scene: THREE.Scene): void {
