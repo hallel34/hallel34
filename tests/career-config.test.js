@@ -46,7 +46,7 @@ describe('the warning weekday and the deadline weekday', () => {
     const p = { ...profile(), lastPlayWeek: W, settledWeek: W - 1 };
     expect(d.seniorityView(p, day(7 + 4))).toEqual({ state: 'warn', days: 2, rank: false }); // Thursday: Thu, Fri
     expect(d.seniorityView(p, day(7 + 5))).toEqual({ state: 'warn', days: 1, rank: false }); // Friday: the last day
-    expect(d.seniorityView(p, day(7 + 6))).toEqual({ state: 'warn', days: 1, rank: false }); // Saturday: never 0
+    expect(d.seniorityView(p, day(7 + 6))).toEqual({ state: 'bonus', days: 1 }); // Saturday: a calm bonus day, never a warning
     const f = await career({ CAREER_WARN_FROM_WEEKDAY: 3 });
     expect(f.seniorityView(p, day(7 + 3))).toEqual({ state: 'warn', days: 3, rank: false }); // Wednesday: Wed, Thu, Fri
     expect(f.seniorityView(p, day(7 + 2))).toMatchObject({ state: 'open', days: 4 });

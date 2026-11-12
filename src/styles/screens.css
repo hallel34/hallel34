@@ -512,7 +512,7 @@
 @media (min-width: 390px) { .career-chip { max-inline-size: 120px; } }
 .career-chip .prof-bust, .career-chip img { inline-size: 36px; block-size: 36px; border-radius: 50%; flex: none; }
 .career-chip-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-inline-size: 0; }
-.career-chip.is-open .career-chip-label { color: var(--text-muted); }
+.career-chip.is-open .career-chip-label, .career-chip.is-bonus .career-chip-label { color: var(--text-muted); }
 .career-chip.is-warn .career-chip-label { padding: 3px 6px; border-radius: 14px; background: var(--amber-fill); color: var(--amber-ink); }
 .career-chip-badge { display: none; position: absolute; inset-block-start: 0; inset-inline-end: 0; inline-size: 20px; block-size: 20px; border-radius: 50%; place-items: center; font-size: .6875rem; font-weight: 800; background: var(--surface); border: 1px solid var(--border-strong); }
 .career-chip-badge[data-n]::before { content: attr(data-n); }

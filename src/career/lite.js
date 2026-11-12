@@ -22,6 +22,7 @@ export const needsSettling = (p, today) => !!p && (!Number.isInteger(p.settledWe
 /**
  * What the home chip shows on `today` for a profile whose weeks are settled:
  *  'waiting' (protected band), 'kept' (a game was finished this week), 'open' (not yet, before the warning day),
+ *  'bonus' (after the deadline weekday, still in the week: a game finished today counts, nobody has to play: calm, never a warning),
  *  'warn' (the warning day has come: `days` left to CAREER_DEADLINE_WEEKDAY; `rank` = the next missed week drops every rank).
  */
 export function chipView(p, today) {
@@ -31,6 +32,8 @@ export function chipView(p, today) {
   if ((p.lastPlayWeek ?? -1) >= cur) return { state: 'kept' };
   const days = daysLeftInWeek(today, CAREER_DEADLINE_WEEKDAY);
   if (p.dropped) return { state: 'open', days }; // a rank drop was applied: nothing more can be lost until a game is finished, so no warning
+  // Saturday is a bonus day (owner 2026-11-11): the deadline was Friday, a game finished today still counts, and nobody has to play: a calm state, not a warning
+  if (weekDay(today) > CAREER_DEADLINE_WEEKDAY) return { state: 'bonus', days: 1 };
   if (weekDay(today) >= CAREER_WARN_FROM_WEEKDAY) return { state: 'warn', days, rank: (p.missed ?? 0) + 1 >= SENIORITY_DROP_AFTER };
   return { state: 'open', days };
 }

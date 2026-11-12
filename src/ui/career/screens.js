@@ -140,7 +140,7 @@ export function createProfileScreen({ engine, career, profile, today, onBack, on
       h('p', { class: 'cr-body' }, t('career.seniority.textJunior')))
     : h('section', { class: 'cmp-card cr-sen', 'data-sen': view.state },
       h('div', { class: 'cr-sen-top' }, icon(view.state === 'warn' ? 'seniorityDue' : 'seniority', { size: 20, width: 2 }), h('b', null, t('career.seniority.label')),
-        h('span', { class: `cr-status${view.state === 'warn' ? ' is-warn' : ''}` }, view.state === 'warn' ? t('career.seniority.chipWarn', { days: tp('career.plural.daysLeft', view.days, { day: dayWord() }) }) : view.state === 'kept' ? t('profile.keptWeek') : t('career.seniority.chipOpen'))),
+        h('span', { class: `cr-status${view.state === 'warn' ? ' is-warn' : ''}` }, view.state === 'warn' ? t('career.seniority.chipWarn', { days: tp('career.plural.daysLeft', view.days, { day: dayWord() }) }) : view.state === 'kept' ? t('profile.keptWeek') : view.state === 'bonus' ? t('career.seniority.chipBonusStatus') : t('career.seniority.chipOpen'))),
       strip,
       h('p', { class: 'cr-body' }, [t('career.rules.keep'), t('career.rules.whatCounts'), t('career.rules.week1'), t('career.rules.week2'), t('career.rules.floor')].join(' ')),
       h('p', { class: 'cr-note' }, t('career.rules.gameRule')));

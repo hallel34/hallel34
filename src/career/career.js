@@ -221,6 +221,7 @@ export function syncSeniority(profile, today) {
  * What the home chip shows on `today` (spec: seniority chip):
  *  state 'kept'    a game was finished this week
  *  state 'open'    not yet, before the warning starts
+ *  state 'bonus'   after the deadline weekday (Saturday): a game finished today still counts, but it is a bonus: calm copy, no warning
  *  state 'warn'    not yet, and the warning weekday has come: `days` left (to CAREER_DEADLINE_WEEKDAY), `rank` true when the missed-week
  *                  count means the next missed week drops every rank (otherwise it resets the progress)
  *  state 'waiting' a protected profile: the career waits (never a loss word)

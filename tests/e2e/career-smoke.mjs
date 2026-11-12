@@ -102,8 +102,8 @@ const ls = (page, key) => page.evaluate((k) => localStorage.getItem(`passivo.${k
 const stored = async (page, key) => JSON.parse((await ls(page, key)) ?? 'null');
 const screenOf = (page) => page.evaluate(() => document.querySelector('section[data-screen]')?.dataset.screen ?? null);
 
-/** One UI action of a sensible player; the promotion card is answered with `promo` ('pass' = keep, 'option-upgrade' = upgrade). */
-function decide({ policy, promo }) {
+/** One UI action of a sensible player; the promotion card is answered with `promo` ('promotion-keep' or 'promotion-upgrade'), and only once the harness says `go`. */
+function decide({ policy, promo, go }) {
   const q = (s, r = document) => r.querySelector(s);
   for (const s of ['win', 'over', 'start']) if (q(`section[data-screen="${s}"]`)) return { done: s };
   const layers = [...document.querySelectorAll('#modal-root .layer')].filter((l) => !l.hasAttribute('data-closing'));
@@ -118,7 +118,8 @@ function decide({ policy, promo }) {
     const card = q('.card', top);
     if (card) {
       const kind = card.dataset.card;
-      if (card.dataset.promotion) return { click: `${L} [data-action="${promo}"]`, promotion: true };
+      // keyed by the card's identity (data-promotion), never by a bare action name
+      if (card.dataset.promotion) return go ? { click: `${L} [data-promotion] [data-action="${promo}"]`, promotion: true } : { hold: true, promotion: true };
       if (kind === 'opportunity' && card.dataset.kind === 'choice' && btn('choose-a')) return { click: `${L} [data-action="choose-a"]` };
       if (kind === 'opportunity' && card.dataset.guess === 'ask') return { click: `${L} [data-action="guess-skip"]` };
       if (kind === 'opportunity') {
@@ -142,6 +143,21 @@ function decide({ policy, promo }) {
   return { wait: true };
 }
 /**
+ * decide() and the click in ONE page task: the card that was judged is the card that is clicked (no gap in which a card can close and the
+ * promotion open), and no click is forced (a disabled button simply does nothing and the loop looks again).
+ */
+const STEP = `(arg) => {
+  const decide = ${decide.toString()};
+  const d = decide(arg);
+  if (d.click) { const el = document.querySelector(d.click); d.clicked = !!el && !el.disabled; if (d.clicked) el.click(); }
+  else if (d.clickEl) {
+    const layers = [...document.querySelectorAll('#modal-root .layer')].filter((l) => !l.hasAttribute('data-closing'));
+    const els = [...(layers[layers.length - 1]?.querySelectorAll('.btn-option:not([disabled])') ?? [])];
+    d.clicked = els.length > 0; if (d.clicked) els[els.length - 1].click();
+  }
+  return d;
+}`;
+/**
  * The text of every promotion sentence a player can read: the card before the choice and the log / fox lines after it. A node that was
  * moved between sentences left an amount missing (QA 0.5.0 P1-2); the amounts must be in every sentence, in family, full and junior.
  */
@@ -155,53 +171,45 @@ function scanPromotionText(label, card, snippets) {
   check(snippets.every((x) => !empty(x)), `${label}: no empty slot in the log and fox text (${snippets.length} sentences)`);
   check(!/אביזר/.test(card + snippets.join(' ')), `${label}: no accessory is promised`);
 }
-async function playToEnd(page, { policy = 'buyer', promo = 'pass', budgetMs = Number(process.env.SMOKE_GAME_MS || 300000), stopAfterPromotion = false } = {}) {
+async function playToEnd(page, { policy = 'buyer', promo = 'promotion-keep', budgetMs = Number(process.env.SMOKE_GAME_MS || 300000), stopAfterPromotion = false } = {}) {
   const deadline = Date.now() + budgetMs;
   const seen = { promotion: 0, lifestyle: false, rolls: 0, cardText: '', snippets: [] };
+  let go = false;
   while (Date.now() < deadline) {
-    const d = await page.evaluate(decide, { policy, promo });
+    const d = await page.evaluate(STEP, { policy, promo, go });
     if (d.done) return { done: d.done, ...seen };
-    if (d.clickEl) await page.locator('#modal-root .layer:last-child .btn-option:not([disabled])').last().click({ timeout: 3000, force: true }).catch(() => {});
-    else if (d.click) {
-      if (d.click === '[data-action="roll"]') seen.rolls += 1;
-      if (d.promotion && !seen.promotion) {
-        for (let i = 0; i < 20 && !/₪|מטבע/.test(seen.cardText); i++) { // the card text can be empty while it opens
-          seen.cardText = await page.evaluate(() => document.querySelector('#modal-root .layer:last-child .card')?.innerText ?? '');
-          if (!/₪|מטבע/.test(seen.cardText)) await page.waitForTimeout(100);
-        }
-        await layout(page, `promotion-card-${page.viewportSize().width}x${page.viewportSize().height}`);
+    if (d.hold) {
+      // the promotion card is open: read it, watch the page for the sentences that follow, then answer it (the next step clicks)
+      for (let i = 0; i < 20 && !/₪|מטבע/.test(seen.cardText); i++) {
+        seen.cardText = await page.evaluate(() => document.querySelector('#modal-root .layer:last-child [data-promotion]')?.innerText ?? '');
+        if (!/₪|מטבע/.test(seen.cardText)) await page.waitForTimeout(100);
       }
-      if (d.promotion && !seen.promotion) {
-        // the log chip and the fox note are transient: record every sentence about the promotion the moment it is written to the page
-        await page.evaluate(() => {
-          window.__promoText = [];
-          const grab = () => {
-            const t = document.body.textContent;
-            for (const m of t.matchAll(/(קידום בעבודה:.{0,110}|המשכורת עלתה, ורמת.{0,150}|המשכורת עלתה, וההוצאות.{0,150}|שדרגתם.{0,200}|מעכשיו יוצאים.{0,150}|עכשיו נשארים.{0,120})/g)) { if (!window.__promoText.some((x) => x.startsWith(m[0].slice(0, 30)))) window.__promoText.push(m[0]); }
-          };
-          new MutationObserver(grab).observe(document.body, { subtree: true, childList: true, characterData: true });
-        });
-      }
-      if (d.promotion) (seen.clicks ??= []).push(d.click.split(' ').pop());
-      // the promotion choice is clicked WITHOUT force: Playwright then waits for the button to be stable and receive the click, so a card that
-      // is still settling can never turn a click on "upgrade" into one on the "keep" button above it (QA 0.5.0 P2-7)
-      await page.locator(d.click).first().click(d.promotion ? { timeout: 6000 } : { timeout: 3000, force: true }).catch(() => {});
-      if (d.promotion) {
-        seen.promotion += 1;
-        await page.waitForTimeout(400);
-        if (seen.promotion === 1) {
-          await page.waitForTimeout(300);
-          seen.snippets = await page.evaluate(() => window.__promoText ?? []);
-        }
-        if (stopAfterPromotion) return { done: 'promotion', ...seen };
-        const save = await stored(page, 'save');
-        const st = save?.players?.[0]?.state;
-        seen.status = JSON.stringify({ clicks: seen.clicks, promo: st?.promotion?.status, exp: st?.profession?.expenses?.map((e) => e.id).slice(-2) });
-        if (promo === 'option-upgrade') seen.lifestyle = !!st?.profession?.expenses?.some((e) => e.id === 'lifestyle') && st?.promotion?.status === 'upgraded';
-        else seen.kept = st?.promotion?.status === 'kept';
-      }
-      await page.waitForTimeout(15);
-    } else await page.waitForTimeout(40);
+      await layout(page, `promotion-card-${page.viewportSize().width}x${page.viewportSize().height}`);
+      await page.evaluate(() => {
+        window.__promoText = [];
+        const grab = () => {
+          const t = document.body.textContent;
+          for (const m of t.matchAll(/(קידום בעבודה:.{0,110}|המשכורת עלתה, ורמת.{0,150}|המשכורת עלתה, וההוצאות.{0,150}|שדרגתם.{0,200}|מעכשיו יוצאים.{0,150}|עכשיו נשארים.{0,120})/g)) { if (!window.__promoText.some((x) => x.startsWith(m[0].slice(0, 30)))) window.__promoText.push(m[0]); }
+        };
+        new MutationObserver(grab).observe(document.body, { subtree: true, childList: true, characterData: true });
+      });
+      go = true;
+      continue;
+    }
+    if (d.promotion && d.clicked) {
+      seen.promotion += 1;
+      go = false;
+      await page.waitForTimeout(700);
+      if (seen.promotion === 1) seen.snippets = await page.evaluate(() => window.__promoText ?? []);
+      if (stopAfterPromotion) return { done: 'promotion', ...seen };
+      const save = await stored(page, 'save');
+      const st = save?.players?.[0]?.state;
+      seen.status = JSON.stringify({ promo: st?.promotion?.status, exp: st?.profession?.expenses?.map((e) => e.id).slice(-2) });
+      if (promo === 'promotion-upgrade') seen.lifestyle = !!st?.profession?.expenses?.some((e) => e.id === 'lifestyle') && st?.promotion?.status === 'upgraded';
+      else seen.kept = st?.promotion?.status === 'kept';
+    }
+    if (d.click === '[data-action="roll"]' && d.clicked) seen.rolls += 1;
+    await page.waitForTimeout(d.clicked ? 15 : 40);
   }
   return { done: 'timeout', ...seen };
 }
@@ -231,7 +239,7 @@ async function main() {
   check(await A.locator('.career-chip').count() === 0, 'no profile: no career chip on home');
   await layout(A, 'home-no-profile-360x800');
   await startGame(A);
-  const endA = await playToEnd(A, { promo: 'option-upgrade' });
+  const endA = await playToEnd(A, { promo: 'promotion-upgrade' });
   check(endA.done === 'win' || endA.done === 'over', `game A ended (${endA.done}, ${endA.rolls} rolls)${A.errors.length ? ` errors ${JSON.stringify(A.errors.slice(0, 3))}` : ""}`);
   check(endA.promotion === 1, `the promotion card was offered exactly once (${endA.promotion})`);
   check(endA.lifestyle, `upgrade: the lifestyle expense is in the game and the promotion record says upgraded (${endA.status})`);
@@ -320,7 +328,7 @@ async function main() {
   await B.waitForSelector('section[data-screen="board"]');
   const saveB1 = await stored(B, 'save');
   check(saveB1.players[0].state.rank === undefined && saveB1.promotion === true && saveB1.players[0].state.promotion?.status === 'waiting', 'a rank 0 game carries the promotion rule and no rank field');
-  const endB = await playToEnd(B, { promo: 'pass' });
+  const endB = await playToEnd(B, { promo: 'promotion-keep' });
   check(endB.done === 'win' || endB.done === 'over', `game B ended (${endB.done})`);
   await B.waitForSelector('[data-rankup]', { timeout: 15000 });
   const rankText = await B.locator('[data-rankup]').innerText();
@@ -340,7 +348,7 @@ async function main() {
   await ctxB.close();
 
   // ================= B2. the promotion sentences carry their amounts: family, full and junior, keep and upgrade =================
-  for (const [label, opts, promo] of [['family', { mode: 'family' }, 'pass'], ['family upgrade', { mode: 'family' }, 'option-upgrade'], ['full', { mode: 'full' }, 'pass'], ['full upgrade', { mode: 'full' }, 'option-upgrade'], ['junior', { mode: 'family', age: 'upTo10' }, 'pass'], ['junior upgrade', { mode: 'family', age: 'upTo10' }, 'option-upgrade']]) {
+  for (const [label, opts, promo] of [['family', { mode: 'family' }, 'promotion-keep'], ['family upgrade', { mode: 'family' }, 'promotion-upgrade'], ['full', { mode: 'full' }, 'promotion-keep'], ['full upgrade', { mode: 'full' }, 'promotion-upgrade'], ['junior', { mode: 'family', age: 'upTo10' }, 'promotion-keep'], ['junior upgrade', { mode: 'family', age: 'upTo10' }, 'promotion-upgrade']]) {
     const ctxP = await newCtx(browser);
     const P = await open(ctxP, { waitFor: '[data-screen="start"]' });
     await startGame(P, opts);
@@ -451,16 +459,24 @@ async function main() {
   await p.close();
   await ctxC.close();
 
-  // ================= D0. Friday: the last day of the week for the warning; the chip name carries its visible text =================
-  const ctxF = await newCtx(browser, { w: 320, h: 568 });
-  p = await open(ctxF, { at: dayKeyOf(9), storage: { career: adult }, waitFor: '[data-screen="start"]' }); // a Friday
-  check(await p.locator('.career-chip').getAttribute('data-career-state') === 'warn', 'Friday with no game: the chip warns');
-  await axe(p, 'home with the Friday chip at 320x568');
-  await p.close();
-  p = await open(ctxF, { at: dayKeyOf(10), storage: { career: adult }, waitFor: '[data-screen="start"]' }); // a Saturday: a bonus day, the last day
-  check(await p.locator('.career-chip').getAttribute('data-career-state') === 'warn', 'Saturday with no game: the chip still shows the last day (never 0)');
-  await p.close();
-  await ctxF.close();
+  // ================= D0. Friday (the last day for the warning) and Saturday (a calm bonus day): the chip name carries its visible text, at both sizes =================
+  for (const [w, h] of [[360, 800], [320, 568]]) {
+    const ctxF = await newCtx(browser, { w, h });
+    p = await open(ctxF, { at: dayKeyOf(9), storage: { career: adult }, waitFor: '[data-screen="start"]' }); // a Friday
+    check(await p.locator('.career-chip').getAttribute('data-career-state') === 'warn', `Friday with no game: the chip warns (${w}x${h})`);
+    const nameFri = await p.locator('.career-chip').getAttribute('aria-label');
+    check(nameFri.includes((await p.locator('.career-chip-label').textContent()).trim()), `Friday: the accessible name contains the visible text (${w}x${h}: ${nameFri})`);
+    await axe(p, `home with the Friday chip at ${w}x${h}`);
+    await p.close();
+    p = await open(ctxF, { at: dayKeyOf(10), storage: { career: adult }, waitFor: '[data-screen="start"]' }); // a Saturday
+    check(await p.locator('.career-chip').getAttribute('data-career-state') === 'bonus', `Saturday with no game: a calm bonus state, not a warning (${w}x${h})`);
+    check(await p.locator('[data-career-warn]').count() === 0, 'Saturday: no warning sentence on home');
+    const nameSat = await p.locator('.career-chip').getAttribute('aria-label');
+    check(/בונוס/.test(nameSat) && !/ירד|התאפס|אחרון/.test(nameSat) && nameSat.includes((await p.locator('.career-chip-label').textContent()).trim()), `Saturday: the name says bonus and carries the visible text (${nameSat})`);
+    await axe(p, `home with the Saturday bonus chip at ${w}x${h}`);
+    await p.close();
+    await ctxF.close();
+  }
 
   // ================= D. 320x568 =================
   const ctxS = await newCtx(browser, { w: 320, h: 568 });

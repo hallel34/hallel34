@@ -298,7 +298,9 @@ describe('what the home chip shows', () => {
     expect(seniorityView(playedIn(fresh(), 0), day(7 + 3))).toMatchObject({ state: 'open', days: 3 }); // Wednesday: no warning yet
     expect(seniorityView(playedIn(fresh(), 0), day(7 + 4))).toEqual({ state: 'warn', days: 2, rank: false }); // Thursday: Thu, Fri
     expect(seniorityView(playedIn(fresh(), 0), day(7 + 5))).toEqual({ state: 'warn', days: 1, rank: false }); // Friday
-    expect(seniorityView(playedIn(fresh(), 0), day(7 + 6))).toEqual({ state: 'warn', days: 1, rank: false }); // Saturday: bonus day, never 0
+    expect(seniorityView(playedIn(fresh(), 0), day(7 + 6))).toEqual({ state: 'bonus', days: 1 }); // Saturday: a calm bonus day, never a warning
+    // a missed week before it never makes Saturday a warning either
+    expect(seniorityView(playedIn(fresh(), 0), day(14 + 6)).state).toBe('bonus');
     // after a drop nothing more can be lost: no warning on any day
     const dropped = { ...playedIn(fresh(), 0), dropped: true, missed: 2 };
     for (let d = 0; d < 7; d++) expect(seniorityView(dropped, day(7 + d)).state).not.toBe('warn');
@@ -624,5 +626,15 @@ describe('the daily streak: Saturday is a free day (decisions 2026-11-10, Shabba
     const fri = recordPlay(emptyStreak(), FRI);
     expect(streakView(fri, SUN2)).toMatchObject({ state: 'pending', count: 1 });
     expect(streakView(fri, MON).state).toBe('broken');
+  });
+});
+
+describe('the promotion card answers only to its own action names (QA 0.5.0 delta P1)', () => {
+  const src = readFileSync(new URL('../src/ui/career/promotion.js', import.meta.url), 'utf8');
+  it('its buttons are promotion-keep and promotion-upgrade, never pass / buy / ok, and wake up after the card has settled', () => {
+    const ids = [...src.matchAll(/\{ id: '([^']+)'/g)].map((m) => m[1]);
+    expect(ids).toEqual(['promotion-keep', 'promotion-upgrade']);
+    expect(src).toMatch(/PROMOTION_SETTLE_MS/);
+    expect(src).toMatch(/b\.disabled = true/);
   });
 });

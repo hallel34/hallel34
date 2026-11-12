@@ -40,12 +40,13 @@ const chipSentence = (view) => t('career.seniority.chipWarn', { days: tp('career
  * (the amber day count in the warning state), under 360 the avatar alone with a small badge. Junior: the name only, never a loss word.
  */
 function chipEl({ profile, view, junior }, onClick) {
-  const label = junior ? profile.name : view.state === 'warn' ? tp('career.plural.daysShort', view.days) : t('career.seniority.label');
+  const label = junior ? profile.name : view.state === 'warn' ? tp('career.plural.daysShort', view.days) : view.state === 'bonus' ? t('career.seniority.chipBonus') : t('career.seniority.label');
   // the day count on the compact avatar is generated content (data-n + CSS), not text: axe compares the button's visible TEXT with its name,
   // and the number is already in the name as a word ("יומיים", "היום האחרון") (QA 0.5.0 P2-4)
   const badge = junior ? null : view.state === 'warn' ? '' : view.state === 'kept' ? icon('check', { size: 12, width: 3.4 }) : null;
   const aria = junior ? `${t('profile.current', { name: profile.name })}. ${t('career.seniority.textJunior')}`
-    : `${t('profile.current', { name: profile.name })}. ${view.state === 'warn' ? chipSentence(view) : view.state === 'kept' ? t('career.seniority.chipKept') : t('career.seniority.chipOpen')}`;
+    // the visible text is always part of the name (WCAG 2.5.3): the warning leads with its short day count, the bonus state names itself
+    : `${t('profile.current', { name: profile.name })}. ${view.state === 'warn' ? `${label}. ${chipSentence(view)}` : view.state === 'bonus' ? t('career.seniority.bonusText') : view.state === 'kept' ? t('career.seniority.chipKept') : t('career.seniority.chipOpen')}`;
   return h('button', {
     type: 'button', class: `career-chip glass is-${junior ? 'waiting' : view.state}`, 'data-action': 'profile', 'data-career-state': junior ? 'waiting' : view.state, 'aria-label': aria, onClick,
   },
