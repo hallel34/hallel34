@@ -101,3 +101,6 @@
   border-radius: 14px; padding: 12px 18px; font-weight: 700; font-size: 16px;
   box-shadow: 0 10px 30px rgba(0,0,0,.5); text-align: center;
 }
+
+/* v7: the 3D house is full-screen (z 30) — the notice must float above it */
+.world-toast { position: fixed; left: 0; right: 0; margin-inline: auto; bottom: 150px; z-index: 60; width: min(92vw, 440px); }

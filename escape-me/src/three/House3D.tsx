@@ -6,7 +6,7 @@ import type { RoomId, StageType } from '../types';
 import { ROOM_MAP, hotspotDef } from '../world/catalog';
 import {
   disposeObject, makeBadgeTexture, makeEmojiTexture, makeGlowTexture,
-  makeLabelTexture, makePhotoTexture, PHOTO,
+  makePhotoTexture, makeSparkleTexture, PHOTO,
 } from './canvasTextures';
 import { buildHouseDecor } from './houseDecor';
 import './house3d.css';
@@ -81,6 +81,10 @@ interface House3DProps {
   onStage: (stageIndex: number) => void;
   onPickup: (pickupId: string) => void;
   onFinal: () => void;
+  /** optional: inventory chips rendered inside the HUD (full-screen mode) */
+  inventory?: { id: string; label: string; emoji: string }[];
+  /** optional: exit button inside the HUD */
+  onExit?: () => void;
 }
 
 type SpotProp = House3DProps['spots'][number];
@@ -120,7 +124,7 @@ const ROOM_CENTERS: Record<RoomId, [number, number]> = {
 /** Where teleport() looks after arriving in a room. */
 const ROOM_FOCAL: Record<RoomId, [number, number]> = {
   living: [-4.2, -4.7], kitchen: [1.85, -4.5], entrance: [6.4, 0.6],
-  hallway: [1.2, -0.7], bedroom1: [-2.6, 1.3], bedroom2: [1.9, 4.6], bathroom: [4.6, 2.5],
+  hallway: [1.2, -0.7], bedroom1: [-2.6, 1.3], bedroom2: [1.9, 4.6], bathroom: [4.3, 2.5],
 };
 
 function roomAt(x: number, z: number): RoomId {
@@ -152,7 +156,7 @@ const ANCHORS: Record<string, Anchor> = {
   'living:sofa': { p: [-4.2, 1.0, -2.35], s: [0, -1] },
   'living:tv': { p: [-4.2, 1.15, -4.32], s: [0, 1] },
   'living:coffee-table': { p: [-4.2, 0.65, -3.35], s: [1, 0] },
-  'living:armchair': { p: [-2.6, 0.95, -3.12], s: [-0.5, -0.85] },
+  'living:armchair': { p: [-2.0, 0.95, -4.15], s: [-0.6, 0.8] },
   'living:plant': { p: [-5.78, 0.95, -4.28], s: [0.707, 0.707] },
   'living:window': { p: [-6.28, 1.35, -4.55], s: [1, 0] },
   'kitchen:fridge': { p: [5.95, 1.25, -4.12], s: [0, 1] },
@@ -160,7 +164,7 @@ const ANCHORS: Record<string, Anchor> = {
   'kitchen:oven': { p: [1.85, 0.95, -3.92], s: [0, 1] },
   'kitchen:counter': { p: [0.19, 1.05, -3.92], s: [0, 1] },
   'kitchen:kitchen-cabinet': { p: [-0.67, 1.0, -3.92], s: [0, 1] },
-  'kitchen:dining-table': { p: [4.4, 0.9, -2.5], s: [0, 1] },
+  'kitchen:dining-table': { p: [4.15, 0.9, -1.9], s: [0.5, 0.86] },
   'hallway:picture': { p: [1.2, 1.35, -0.38], s: [0, 1] },
   'hallway:mirror': { p: [0.2, 1.3, 0.38], s: [0, -1] },
   'hallway:hall-closet': { p: [2.6, 1.25, 0.02], s: [0, 1] },
@@ -176,7 +180,7 @@ const ANCHORS: Record<string, Anchor> = {
   'bedroom2:nightstand': { p: [-0.52, 0.7, 1.75], s: [1, 0] },
   'bedroom2:wardrobe-big': { p: [2.52, 1.25, 1.7], s: [-1, 0] },
   'bathroom:mirror-cabinet': { p: [5.92, 1.32, 4.35], s: [-1, 0] },
-  'bathroom:tub': { p: [4.6, 0.8, 3.08], s: [0, 1] },
+  'bathroom:tub': { p: [4.3, 0.8, 3.08], s: [0, 1] },
   'bathroom:sink': { p: [5.78, 0.95, 3.6], s: [-1, 0] },
   'bathroom:washing-machine': { p: [5.9, 0.9, 4.12], s: [0, -1] },
 };
@@ -189,7 +193,7 @@ const anchorFor = (room: RoomId, hotspot: string): Anchor =>
 interface AABB { x0: number; x1: number; z0: number; z1: number }
 interface StageRig {
   group: THREE.Group; ringMat: THREE.MeshBasicMaterial; emojiMat: THREE.SpriteMaterial;
-  badge: THREE.Sprite; emojiSprite: THREE.Sprite; accent: number; done: boolean; phase: number;
+  badge: THREE.Sprite; emojiSprite: THREE.Sprite; accent: number; done: boolean; phase: number; baseY: number;
 }
 interface PickupRig { group: THREE.Group; ringMat: THREE.MeshBasicMaterial; phase: number }
 interface FinalRig {
@@ -209,9 +213,9 @@ interface Rigs {
 function applyStageDone(rig: StageRig, done: boolean): void {
   rig.done = done;
   rig.badge.visible = done;
-  rig.emojiMat.opacity = done ? 0.45 : 1;
+  rig.emojiMat.opacity = done ? 0 : 1;
   rig.ringMat.color.set(done ? 0x71855f : rig.accent);
-  rig.ringMat.opacity = done ? 0.16 : 0.55;
+  rig.ringMat.opacity = done ? 0.1 : 0.4;
 }
 function applyFinalLocked(rig: FinalRig, locked: boolean): void {
   rig.locked = locked;
@@ -403,7 +407,16 @@ export default function House3D(props: House3DProps) {
     } catch { /* environment is a nicety, not a requirement */ }
     pmrem.dispose();
 
-    const camera = new THREE.PerspectiveCamera(68, width / height, 0.08, 80);
+    /* Portrait phones: a fixed 68deg vertical FOV gives only ~35deg horizontally —
+       tunnel vision where every object fills the screen. Keep >= ~64deg
+       horizontal by widening the vertical FOV on narrow aspects. */
+    const fovFor = (aspect: number) => {
+      if (aspect >= 1.25) return 62;
+      const h = THREE.MathUtils.degToRad(aspect >= 1 ? 70 : 64);
+      const v = 2 * Math.atan(Math.tan(h / 2) / aspect);
+      return THREE.MathUtils.clamp(THREE.MathUtils.radToDeg(v), 62, 94);
+    };
+    const camera = new THREE.PerspectiveCamera(fovFor(width / height), width / height, 0.05, 80);
     camera.rotation.order = 'YXZ';
 
     /* ---- lights ---- */
@@ -503,7 +516,7 @@ export default function House3D(props: House3DProps) {
       { c: 5.0, w: 0.95, top: 2.1 },
     ]);
     wallRunZ(3.4, -0.8, 5, [{ c: 0.0, w: 1.4, top: 2.2 }]); // arch hallway<->entrance
-    wallRunX(2.0, 3.4, 6.5, [{ c: 5.0, w: 0.95, top: 2.1 }]);
+    wallRunX(2.0, 3.4, 6.5, [{ c: 5.6, w: 0.95, top: 2.1 }]);
 
     /* ---- floors / ceiling / outside ---- */
     const floorFor = (rect: Rect, texUrl: string, tile: number, y: number) => {
@@ -771,7 +784,7 @@ export default function House3D(props: House3DProps) {
       colliders.push({ x0: -6.44, x1: -5.9, z0: -4.05, z1: -1.35 });
       // (v6: the shelves are filled by houseDecor's instanced-book wall —
       // hundreds of individual books + the wooden puzzle box.)
-      place('phArmchair', { x: -2.35, z: -2.7, rotY: Math.PI + 0.53, s: 1.0, collide: true, fb: [0.82, 1.02, 0.99] });
+      place('phArmchair', { x: -2.0, z: -4.15, rotY: -0.64, s: 1.0, collide: true, fb: [0.82, 1.02, 0.99] });
       place('plant', { x: -6.02, z: -4.52, s: 1.6, collide: true, fb: [0.35, 1.0, 0.35] });
       place('floorLamp', { x: -2.92, z: -0.72, s: 1.9, fb: [0.23, 1.63, 0.23] });
       const lampGlow = new THREE.Sprite(new THREE.SpriteMaterial({
@@ -822,12 +835,14 @@ export default function House3D(props: House3DProps) {
       place('phKettle', { x: -0.78, z: -4.48, y: 0.95, s: 1.0, rotY: -0.5, fb: [0.32, 0.3, 0.25] });
       place('fridge', { x: 5.95, z: -4.65, s: 1.9, collide: true, fb: [0.82, 1.75, 0.55] });
       place('wardrobe', { x: 6.1, z: -2.2, rotY: -Math.PI / 2, s: 2.55, collide: true, fb: [1.0, 2.17, 0.64] }); // pantry
-      place('diningTable', { x: 4.4, z: -2.5, s: 2.1, collide: true, fb: [1.76, 0.7, 0.95] });
-      place('phDiningChair', { x: 3.95, z: -3.3, s: 1.0, collide: true, fb: [0.43, 0.97, 0.58] });
-      place('phDiningChair', { x: 4.85, z: -3.3, s: 1.0, fb: [0.43, 0.97, 0.58] });
-      place('phDiningChair', { x: 3.95, z: -1.7, rotY: Math.PI, s: 1.0, collide: true, fb: [0.43, 0.97, 0.58] });
-      place('phDiningChair', { x: 4.85, z: -1.7, rotY: Math.PI, s: 1.0, fb: [0.43, 0.97, 0.58] });
-      place('phVase', { x: 4.4, z: -2.5, y: 0.69, s: 1.0, fb: [0.2, 0.4, 0.2] }); // dining centerpiece
+      place('diningTable', { x: 4.15, z: -2.5, s: 2.1, collide: true, fb: [1.76, 0.7, 0.95] });
+      // chairs tucked in, and the whole set kept clear of the fridge route and
+      // the entrance door (v6 sealed the fridge behind the dining set)
+      place('phDiningChair', { x: 3.8, z: -3.1, s: 1.0, collide: true, fb: [0.43, 0.97, 0.58] });
+      place('phDiningChair', { x: 4.6, z: -3.1, s: 1.0, collide: true, fb: [0.43, 0.97, 0.58] });
+      place('phDiningChair', { x: 3.6, z: -1.9, rotY: Math.PI, s: 1.0, collide: true, fb: [0.43, 0.97, 0.58] });
+      place('phDiningChair', { x: 4.4, z: -1.9, rotY: Math.PI, s: 1.0, collide: true, fb: [0.43, 0.97, 0.58] });
+      place('phVase', { x: 4.15, z: -2.5, y: 0.69, s: 1.0, fb: [0.2, 0.4, 0.2] }); // dining centerpiece
 
       /* ---------------- ENTRANCE ---------------- */
       place('coatRack', { x: 6.02, z: -0.42, s: 2.2, collide: true, fb: [0.59, 1.69, 0.59] });
@@ -961,7 +976,7 @@ export default function House3D(props: House3DProps) {
       }
 
       /* ---------------- BATHROOM ---------------- */
-      place('bathtub', { x: 4.6, z: 2.48, s: 1.45, collide: true, fb: [1.73, 0.61, 0.81] });
+      place('bathtub', { x: 4.3, z: 2.5, s: 1.45, collide: true, fb: [1.73, 0.61, 0.81] });
       place('bathroomSink', { x: 6.2, z: 3.6, rotY: -Math.PI / 2, s: 1.55, collide: true, fb: [0.45, 0.87, 0.53] });
       place('bathroomMirror', { x: 6.31, z: 3.6, y: 1.06, rotY: -Math.PI / 2, s: 1.9, fb: [0.1, 0.82, 0.57] });
       place('bathroomCabinet', { x: 6.3, z: 4.35, y: 1.12, rotY: -Math.PI / 2, s: 1.9, collide: false, fb: [0.25, 0.74, 0.44] });
@@ -984,7 +999,7 @@ export default function House3D(props: House3DProps) {
       /* Poly Haven pendants: living-room centre + over the dining table
          (lamp is 0.95 m tall, so y 1.75 puts its mount flush with the ceiling) */
       place('phCeilingLamp', { x: -3.85, z: -2.1, y: 1.75, s: 1.0, fb: [0.43, 0.95, 0.43] });
-      place('phCeilingLamp', { x: 4.4, z: -2.5, y: 1.75, s: 1.0, fb: [0.43, 0.95, 0.43] });
+      place('phCeilingLamp', { x: 4.15, z: -2.5, y: 1.75, s: 1.0, fb: [0.43, 0.95, 0.43] });
 
       /* ---------------- doors ---------------- */
       const doorRigs: DoorRig[] = [];
@@ -1034,7 +1049,7 @@ export default function House3D(props: House3DProps) {
       addDoor(0.6, -0.8, 0, 1, { x0: 0.12, x1: 1.08, z0: -0.89, z1: -0.71 }); // kitchen<->hallway
       addDoor(5.0, -0.8, Math.PI, 1, { x0: 4.52, x1: 5.48, z0: -0.89, z1: -0.71 }); // kitchen<->entrance
       addDoor(-1.2, 0.0, -Math.PI / 2, -1, { x0: -1.29, x1: -1.11, z0: -0.48, z1: 0.48 }); // living<->hallway
-      addDoor(5.0, 2.0, Math.PI, -1, { x0: 4.52, x1: 5.48, z0: 1.91, z1: 2.09 }); // entrance<->bathroom
+      addDoor(5.6, 2.0, Math.PI, -1, { x0: 5.12, x1: 6.08, z0: 1.91, z1: 2.09 }); // entrance<->bathroom
       // front door: closed decor on the east wall
       {
         const t = templates.get('door');
@@ -1061,6 +1076,7 @@ export default function House3D(props: House3DProps) {
       /* ---------------- interactable rigs ---------------- */
       const rigs: Rigs = { stages: new Map(), pickups: new Map(), final: null };
       const badgeTex = makeBadgeTexture();
+      const sparkTex = makeSparkleTexture();
       const mkRing = (rIn: number, rOut: number, color: number, opacity: number) => {
         const mat = new THREE.MeshBasicMaterial({
           color, transparent: true, opacity, side: THREE.DoubleSide, depthWrite: false,
@@ -1083,20 +1099,21 @@ export default function House3D(props: House3DProps) {
         const group = new THREE.Group();
         group.position.set(a.p[0], 0, a.p[2]);
         const accent = ACCENTS[spot.type] ?? 0xffc65c;
-        const { ring, mat } = mkRing(0.3, 0.45, accent, 0.55);
+        const baseY = a.p[1] + 0.12;
+        const { ring, mat } = mkRing(0.2, 0.235, accent, 0.4);
+        ring.position.set(a.s[0] * 0.55, 0.02, a.s[1] * 0.55);
         group.add(ring);
-        const emoji = mkSprite(makeEmojiTexture(spot.emoji), 0.36, 0, 1.67, 0);
+        // a small warm sparkle sitting ON the object (reads as "something here")
+        const emoji = mkSprite(sparkTex, 0.2, a.s[0] * 0.12, baseY, a.s[1] * 0.12);
+        emoji.sm.blending = THREE.AdditiveBlending;
         group.add(emoji.sp);
-        const label = mkSprite(makeLabelTexture(spot.title), 1.3, 0, 2.13, 0);
-        label.sp.scale.set(1.3, 0.33, 1);
-        group.add(label.sp);
-        const badge = mkSprite(badgeTex, 0.4, 0.36, 2.03, 0);
+        const badge = mkSprite(badgeTex, 0.15, a.s[0] * 0.12, baseY, a.s[1] * 0.12);
         badge.sp.visible = false;
         group.add(badge.sp);
         scene.add(group);
         const rig: StageRig = {
           group, ringMat: mat, emojiMat: emoji.sm, badge: badge.sp,
-          emojiSprite: emoji.sp, accent, done: false, phase: Math.random() * Math.PI * 2,
+          emojiSprite: emoji.sp, accent, done: false, phase: Math.random() * Math.PI * 2, baseY,
         };
         if (spot.done) applyStageDone(rig, true);
         rigs.stages.set(spot.stageIndex, rig);
@@ -1106,16 +1123,12 @@ export default function House3D(props: House3DProps) {
         const a = anchorFor(pk.room, pk.hotspot);
         const group = new THREE.Group();
         group.position.set(a.p[0], 0, a.p[2]);
-        const { ring, mat } = mkRing(0.26, 0.4, 0x53d8c2, 0.6);
+        const { ring, mat } = mkRing(0.16, 0.19, 0x9fe8dc, 0.4);
+        ring.position.set(a.s[0] * 0.55, 0.02, a.s[1] * 0.55);
         group.add(ring);
-        const s = mkSprite(makeEmojiTexture('🔍'), 0.36, 0, 1.49, 0);
+        const s = mkSprite(sparkTex, 0.16, a.s[0] * 0.12, a.p[1] + 0.1, a.s[1] * 0.12);
+        s.sm.blending = THREE.AdditiveBlending;
         group.add(s.sp);
-        const glow = new THREE.Sprite(new THREE.SpriteMaterial({
-          map: glowTex, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending, depthWrite: false,
-        }));
-        glow.scale.set(1.1, 1.1, 1);
-        glow.position.y = 0.55;
-        group.add(glow);
         group.visible = !pk.collected;
         scene.add(group);
         rigs.pickups.set(pk.id, { group, ringMat: mat, phase: Math.random() * Math.PI * 2 });
@@ -1127,21 +1140,13 @@ export default function House3D(props: House3DProps) {
         const group = new THREE.Group();
         group.position.set(a.p[0], 0, a.p[2]);
         const locked = snap.finalLockedReason !== null;
-        const { ring, mat } = mkRing(0.4, 0.58, locked ? 0x8d7c5f : 0xffc93c, 0.65);
+        const { ring, mat } = mkRing(0.24, 0.28, locked ? 0x8d7c5f : 0xffc93c, 0.5);
+        ring.position.set(a.s[0] * 0.55, 0.02, a.s[1] * 0.55);
         group.add(ring);
         const lockTex = makeEmojiTexture('🔒');
         const giftTex = makeEmojiTexture('🎁');
-        const s = mkSprite(locked ? lockTex : giftTex, 0.36, 0, 1.67, 0);
+        const s = mkSprite(locked ? lockTex : giftTex, 0.17, 0, a.p[1] + 0.42, 0);
         group.add(s.sp);
-        const label = mkSprite(makeLabelTexture(ft.label), 1.3, 0, 2.15, 0);
-        label.sp.scale.set(1.3, 0.33, 1);
-        group.add(label.sp);
-        const glow = new THREE.Sprite(new THREE.SpriteMaterial({
-          map: glowTex, transparent: true, opacity: 0.4, blending: THREE.AdditiveBlending, depthWrite: false,
-        }));
-        glow.scale.set(1.6, 1.6, 1);
-        glow.position.y = 0.7;
-        group.add(glow);
         scene.add(group);
         rigs.final = { group, ringMat: mat, spriteMat: s.sm, lockTex, giftTex, locked };
       }
@@ -1230,6 +1235,36 @@ export default function House3D(props: House3DProps) {
         return false;
       };
 
+      const pushOut = () => {
+        for (let iter = 0; iter < 4; iter++) {
+          let moved = false;
+          const all: AABB[] = colliders.slice();
+          for (const d of doorRigs) if (d.open01 < 0.55) all.push(d.aabb);
+          for (const b of all) {
+            const cx = Math.max(b.x0, Math.min(player.x, b.x1));
+            const cz = Math.max(b.z0, Math.min(player.z, b.z1));
+            const dx = player.x - cx; const dz = player.z - cz;
+            const d2 = dx * dx + dz * dz;
+            if (d2 >= PR * PR) continue;
+            if (d2 > 1e-8) {
+              const d = Math.sqrt(d2); const k = (PR - d + 0.002) / d;
+              player.x += dx * k; player.z += dz * k;
+            } else {
+              // centre is inside the box: leave through the nearest face
+              const l = player.x - b.x0; const r = b.x1 - player.x;
+              const t = player.z - b.z0; const bt = b.z1 - player.z;
+              const m = Math.min(l, r, t, bt);
+              if (m === l) player.x = b.x0 - PR - 0.002;
+              else if (m === r) player.x = b.x1 + PR + 0.002;
+              else if (m === t) player.z = b.z0 - PR - 0.002;
+              else player.z = b.z1 + PR + 0.002;
+            }
+            moved = true;
+          }
+          if (!moved) break;
+        }
+      };
+
       /* ---- prompt DOM ---- */
       const setPrompt = (text: string | null, btnText: string) => {
         if (text === lastPrompt) return;
@@ -1237,11 +1272,7 @@ export default function House3D(props: House3DProps) {
         const bar = promptBarRef.current;
         if (promptTextRef.current) promptTextRef.current.textContent = text ?? '';
         if (interactBtnRef.current && text) interactBtnRef.current.textContent = btnText;
-        if (bar) {
-          bar.style.opacity = text ? '1' : '0';
-          bar.style.pointerEvents = text ? 'auto' : 'none';
-          bar.style.transform = text ? 'translate(-50%, 0)' : 'translate(-50%, 8px)';
-        }
+        if (bar) bar.classList.toggle('show', !!text);
       };
 
       /* ---- keyboard ---- */
@@ -1260,9 +1291,12 @@ export default function House3D(props: House3DProps) {
       /* ---- pointer look: pointer lock (mouse) + drag fallback ---- */
       let locked = false;
       let dragging = false;
+      let lookId: number | null = null;
       let lastPX = 0; let lastPY = 0;
       const onPointerDown = (e: PointerEvent) => {
+        if (lookId !== null && e.pointerType !== 'mouse') return;
         dragging = true;
+        lookId = e.pointerId;
         lastPX = e.clientX; lastPY = e.clientY;
         if (e.pointerType === 'mouse' && !locked) {
           try {
@@ -1274,14 +1308,18 @@ export default function House3D(props: House3DProps) {
         }
       };
       const onPointerMove = (e: PointerEvent) => {
-        if (locked || !dragging) return;
+        if (locked || !dragging || e.pointerId !== lookId) return;
         const dx = e.clientX - lastPX;
         const dy = e.clientY - lastPY;
         lastPX = e.clientX; lastPY = e.clientY;
-        player.yaw -= dx * 0.0042;
-        player.pitch = THREE.MathUtils.clamp(player.pitch - dy * 0.0042, -1.15, 1.15);
+        const sens = e.pointerType === 'mouse' ? 0.0042 : 0.0058;
+        player.yaw -= dx * sens;
+        player.pitch = THREE.MathUtils.clamp(player.pitch - dy * sens, -1.15, 1.15);
       };
-      const onPointerUp = () => { dragging = false; };
+      const onPointerUp = (e: PointerEvent) => {
+        if (e.pointerId !== lookId) return;
+        dragging = false; lookId = null;
+      };
       const onMouseMoveLock = (e: MouseEvent) => {
         if (!locked) return;
         player.yaw -= e.movementX * 0.0022;
@@ -1292,6 +1330,7 @@ export default function House3D(props: House3DProps) {
       canvas.addEventListener('pointerdown', onPointerDown);
       window.addEventListener('pointermove', onPointerMove);
       window.addEventListener('pointerup', onPointerUp);
+      window.addEventListener('pointercancel', onPointerUp);
       document.addEventListener('mousemove', onMouseMoveLock);
       document.addEventListener('pointerlockchange', onLockChange);
 
@@ -1304,6 +1343,7 @@ export default function House3D(props: House3DProps) {
         if (joyKnob) joyKnob.style.transform = 'translate(-50%, -50%)';
       };
       const onJoyDown = (e: PointerEvent) => {
+        e.preventDefault(); e.stopPropagation();
         joyId = e.pointerId;
         joyBase?.setPointerCapture(e.pointerId);
         onJoyMove(e);
@@ -1314,7 +1354,7 @@ export default function House3D(props: House3DProps) {
         let dx = e.clientX - (rect.left + rect.width / 2);
         let dy = e.clientY - (rect.top + rect.height / 2);
         const mag = Math.hypot(dx, dy);
-        const max = 36;
+        const max = 40;
         if (mag > max) { dx = (dx / mag) * max; dy = (dy / mag) * max; }
         if (joyKnob) joyKnob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
         const nx = dx / max; const ny = dy / max;
@@ -1336,16 +1376,20 @@ export default function House3D(props: House3DProps) {
         const w = mount.clientWidth || width;
         const h = mount.clientHeight || height;
         camera.aspect = w / h;
+        camera.fov = fovFor(w / h);
         camera.updateProjectionMatrix();
         renderer.setSize(w, h);
       };
       window.addEventListener('resize', onResize);
+      const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(onResize) : null;
+      ro?.observe(mount);
 
       /* ---- debug hooks (automated verification) ---- */
       interface HouseDebug {
         teleport(room: RoomId): void;
         teleportToHotspot(room: RoomId, hotspot: string): void;
         interact(): void;
+        unreachable(): string[];
         prompt(): string | null;
         pos(): { x: number; z: number; room: RoomId };
       }
@@ -1365,8 +1409,52 @@ export default function House3D(props: House3DProps) {
           player.yaw = Math.atan2(-(a.p[0] - player.x), -(a.p[2] - player.z));
           player.pitch = 0;
           vel.x = 0; vel.z = 0;
+          pushOut();
         },
         interact() { doInteract(); },
+        /** Flood-fill the walkable floor from the spawn (doors open) and
+            report every room centre / hotspot the player can NOT walk to. */
+        unreachable() {
+          const step = 0.1; const key = (i: number, j: number) => i * 1000 + j;
+          const seen = new Set<number>();
+          const free = (x: number, z: number) => !hitsAny(x, z, colliders) && Math.abs(x) <= 6.3 && Math.abs(z) <= 4.8;
+          const q: [number, number][] = [[Math.round(5.2 / step), Math.round(0.6 / step)]];
+          seen.add(key(q[0][0] + 500, q[0][1] + 500));
+          while (q.length) {
+            const [i, j] = q.pop() as [number, number];
+            for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+              const ni = i + di; const nj = j + dj; const k = key(ni + 500, nj + 500);
+              if (seen.has(k) || !free(ni * step, nj * step)) continue;
+              seen.add(k); q.push([ni, nj]);
+            }
+          }
+          const near = (x: number, z: number, r: number) => {
+            const n = Math.ceil(r / step);
+            for (let a = -n; a <= n; a++) for (let b = -n; b <= n; b++) {
+              if (seen.has(key(Math.round(x / step) + a + 500, Math.round(z / step) + b + 500))) return true;
+            }
+            return false;
+          };
+          (window as unknown as { __reachMap?: string }).__reachMap = Array.from({ length: 97 }, (_, r) =>
+            Array.from({ length: 127 }, (_, c) => {
+              const x = (c - 63) * step; const z = (r - 48) * step;
+              return seen.has(key(Math.round(x / step) + 500, Math.round(z / step) + 500)) ? '.' : (free(x, z) ? 'o' : '#');
+            }).join('')).join('\n');
+          (window as unknown as { __colliders?: AABB[] }).__colliders = colliders;
+          const bad: string[] = [];
+          (Object.keys(ROOM_CENTERS) as RoomId[]).forEach((r) => { if (!near(ROOM_CENTERS[r][0], ROOM_CENTERS[r][1], 0.6)) bad.push(`room:${r}`); });
+          // a hotspot is usable when some walkable cell is within prompt range (2.3 m in 3D)
+          Object.entries(ANCHORS).forEach(([id, a]) => {
+            const r = Math.sqrt(Math.max(0, 2.1 * 2.1 - (1.6 - a.p[1]) * (1.6 - a.p[1])));
+            const n = Math.ceil(r / step); let ok = false;
+            for (let u = -n; u <= n && !ok; u++) for (let v = -n; v <= n && !ok; v++) {
+              if (u * u + v * v > n * n) continue;
+              ok = seen.has(key(Math.round(a.p[0] / step) + u + 500, Math.round(a.p[2] / step) + v + 500));
+            }
+            if (!ok) bad.push(id);
+          });
+          return bad;
+        },
         prompt() { return lastPrompt; },
         pos() { return { x: player.x, z: player.z, room: roomAt(player.x, player.z) }; },
       };
@@ -1411,11 +1499,14 @@ export default function House3D(props: House3DProps) {
         const blend = Math.min(1, dt * 10);
         vel.x += (wantX - vel.x) * blend;
         vel.z += (wantZ - vel.z) * blend;
-        const stuck = blocked(player.x, player.z);
+        // Never let an overlap turn into "walk through everything": if the
+        // player ever overlaps a collider (teleport, door closing), push
+        // them back out along the shortest exit instead.
+        pushOut();
         const nx = player.x + vel.x * dt;
-        if (stuck || !blocked(nx, player.z)) player.x = nx; else vel.x = 0;
+        if (!blocked(nx, player.z)) player.x = nx; else vel.x = 0;
         const nz = player.z + vel.z * dt;
-        if (stuck || !blocked(player.x, nz)) player.z = nz; else vel.z = 0;
+        if (!blocked(player.x, nz)) player.z = nz; else vel.z = 0;
         player.x = THREE.MathUtils.clamp(player.x, -6.3, 6.3);
         player.z = THREE.MathUtils.clamp(player.z, -4.8, 4.8);
 
@@ -1497,17 +1588,19 @@ export default function House3D(props: House3DProps) {
         /* rig pulses */
         rigs.stages.forEach((rig) => {
           if (!rig.done) {
-            rig.ringMat.opacity = 0.45 + Math.sin(elapsed * 3 + rig.phase) * 0.18;
+            rig.ringMat.opacity = 0.3 + Math.sin(elapsed * 3 + rig.phase) * 0.14;
+            const k = 0.2 + Math.sin(elapsed * 2.4 + rig.phase) * 0.05;
+            rig.emojiSprite.scale.set(k, k, 1);
+            rig.emojiMat.rotation = elapsed * 0.5 + rig.phase;
           }
-          rig.emojiSprite.position.y = 1.67 + Math.sin(elapsed * 2 + rig.phase) * 0.05;
         });
         rigs.pickups.forEach((rig) => {
-          rig.ringMat.opacity = 0.5 + Math.sin(elapsed * 3.2 + rig.phase) * 0.22;
+          rig.ringMat.opacity = 0.3 + Math.sin(elapsed * 3.2 + rig.phase) * 0.15;
         });
         if (rigs.final) {
           rigs.final.ringMat.opacity = rigs.final.locked
-            ? 0.5 + Math.sin(elapsed * 2) * 0.1
-            : 0.68 + Math.sin(elapsed * 4.2) * 0.28;
+            ? 0.35 + Math.sin(elapsed * 2) * 0.1
+            : 0.6 + Math.sin(elapsed * 4.2) * 0.28;
         }
 
         renderer.render(scene, camera);
@@ -1538,7 +1631,9 @@ export default function House3D(props: House3DProps) {
         window.removeEventListener('keyup', onKeyUp);
         window.removeEventListener('pointermove', onPointerMove);
         window.removeEventListener('pointerup', onPointerUp);
+        window.removeEventListener('pointercancel', onPointerUp);
         window.removeEventListener('resize', onResize);
+        ro?.disconnect();
         document.removeEventListener('mousemove', onMouseMoveLock);
         document.removeEventListener('pointerlockchange', onLockChange);
         canvas.removeEventListener('pointerdown', onPointerDown);
@@ -1571,7 +1666,12 @@ export default function House3D(props: House3DProps) {
     <div className="house3d" data-testid="house-3d">
       <div ref={mountRef} className="house3d-canvas" aria-hidden="true" />
       <div className="house3d-top">
-        <div className="house3d-goal" title={props.goal}>🎯 {props.goal}</div>
+        <div className="house3d-toprow">
+          {props.onExit ? (
+            <button type="button" className="house3d-exit" onClick={props.onExit} aria-label="יציאה">✕</button>
+          ) : null}
+          <div className="house3d-goal" title={props.goal}>🎯 {props.goal}</div>
+        </div>
         <div className="house3d-subrow">
           <span className="house3d-room" ref={roomNameRef}>
             {ROOM_MAP.entrance.emoji} {ROOM_MAP.entrance.label}
@@ -1587,8 +1687,18 @@ export default function House3D(props: House3DProps) {
             </span>
           </div>
         </div>
+        {props.inventory ? (
+          <div className="house3d-inv" data-testid="inventory-bar">
+            <span className="house3d-inv-title">🎒</span>
+            {props.inventory.length === 0
+              ? <span className="house3d-inv-empty">התיק ריק — חפשו פריטים בבית</span>
+              : props.inventory.map((it) => (
+                <span key={it.id} className="house3d-inv-chip">{it.emoji} {it.label}</span>
+              ))}
+          </div>
+        ) : null}
       </div>
-      <div className="house3d-promptbar" ref={promptBarRef} style={{ opacity: 0, pointerEvents: 'none' }}>
+      <div className="house3d-promptbar" ref={promptBarRef}>
         <div className="house3d-prompt" data-testid="house-prompt" ref={promptTextRef} />
         <button
           type="button"
@@ -1605,6 +1715,7 @@ export default function House3D(props: House3DProps) {
           <div className="house3d-joy-knob" ref={joyKnobRef} />
         </div>
       ) : null}
+      {touchUi ? <div className="house3d-lookhint">גררו על המסך כדי להסתכל מסביב 👆</div> : null}
       <div className="house3d-help">⌨️ WASD / חצים לתנועה · 🖱️ גרירה או לחיצה לנעילת מצביע · E לפעולה · Shift לריצה</div>
       <div className="house3d-toast" ref={toastRef} role="status" />
       {loading ? (

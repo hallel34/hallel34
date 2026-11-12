@@ -1,121 +1,128 @@
-/* House3D — first-person wanderable house (Three.js canvas + DOM overlay) */
+/* House3D — first-person wanderable house (Three.js canvas + DOM overlay).
+   v7: the house is FULL-SCREEN (it used to sit in a 480px card column, which
+   on a phone left a small window with tunnel-vision framing). */
 .house3d {
-  position: relative;
-  height: min(76vh, 700px);
-  min-height: 460px;
-  border-radius: 18px;
+  position: fixed; inset: 0; z-index: 30;
+  width: 100vw; height: 100vh; height: 100dvh;
   overflow: hidden;
-  border: 2px solid rgba(217, 164, 65, 0.55);
-  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 246, 233, 0.25);
-  background: #191008;
+  background: #14100c;
   direction: rtl;
-}
-.house3d::after {
-  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 2;
-  background: radial-gradient(ellipse 105% 90% at 50% 42%, transparent 58%, rgba(12, 6, 2, 0.38) 100%);
+  user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+  touch-action: none;
 }
 .house3d-canvas { position: absolute; inset: 0; }
 .house3d-canvas-el { display: block; width: 100%; height: 100%; cursor: grab; }
 .house3d-canvas-el:active { cursor: grabbing; }
 
-/* ---- top bar: goal + room + progress chips ---- */
+/* ---- top HUD: exit + goal, room + progress chips, inventory ---- */
 .house3d-top {
   position: absolute; top: 0; left: 0; right: 0; z-index: 3;
-  display: flex; flex-direction: column; gap: 7px;
-  padding: 10px 12px 22px;
-  background: linear-gradient(180deg, rgba(24, 13, 6, 0.8), transparent);
+  display: flex; flex-direction: column; gap: 6px;
+  padding: calc(8px + env(safe-area-inset-top, 0px)) calc(10px + env(safe-area-inset-right, 0px)) 18px calc(10px + env(safe-area-inset-left, 0px));
+  background: linear-gradient(180deg, rgba(10, 7, 4, 0.62), transparent);
   pointer-events: none;
 }
+.house3d-toprow { display: flex; align-items: center; gap: 8px; }
+.house3d-exit {
+  flex: none; pointer-events: auto;
+  width: 36px; height: 36px; border-radius: 50%; border: none; cursor: pointer;
+  font-family: inherit; font-size: 15px; font-weight: 900; color: #fff6e9;
+  background: rgba(20, 14, 9, 0.6);
+  box-shadow: inset 0 0 0 1.5px rgba(255, 246, 233, 0.35);
+  backdrop-filter: blur(6px);
+}
 .house3d-goal {
-  align-self: center;
-  max-width: 100%;
-  color: #fff6e9; font-size: 14.5px; font-weight: 800; line-height: 1.35;
+  flex: 1 1 auto; min-width: 0;
+  color: #fff6e9; font-size: 13.5px; font-weight: 700; line-height: 1.35;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  background: rgba(24, 13, 6, 0.55); border-radius: 999px; padding: 4px 14px;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+  background: rgba(20, 14, 9, 0.5); border-radius: 999px; padding: 7px 14px;
+  backdrop-filter: blur(6px);
 }
-.house3d-subrow {
-  display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;
-}
+.house3d-subrow { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .house3d-room {
-  color: #ffd97a; font-size: 14px; font-weight: 900;
-  background: linear-gradient(180deg, rgba(62, 40, 22, 0.88), rgba(38, 24, 13, 0.88));
-  border-radius: 999px; padding: 4px 12px;
-  box-shadow: inset 0 0 0 1.5px rgba(217, 164, 65, 0.5);
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+  color: #ffe2a0; font-size: 13px; font-weight: 800;
+  background: rgba(20, 14, 9, 0.5); border-radius: 999px; padding: 4px 12px;
+  backdrop-filter: blur(6px);
 }
-.house3d-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.house3d-chips { display: flex; gap: 5px; flex-wrap: wrap; justify-content: flex-end; }
 .house3d-chip {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 4px 10px; border-radius: 999px;
-  background: linear-gradient(180deg, rgba(62, 40, 22, 0.88), rgba(38, 24, 13, 0.88)); color: #fff6e9;
-  font-size: 13px; font-weight: 800;
-  box-shadow: inset 0 0 0 1.5px rgba(217, 164, 65, 0.5), 0 3px 8px rgba(0, 0, 0, 0.35);
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 3px 8px; border-radius: 999px;
+  background: rgba(20, 14, 9, 0.5); color: #fff6e9;
+  font-size: 12px; font-weight: 800;
+  backdrop-filter: blur(6px);
 }
-.house3d-chip.done { background: rgba(91, 140, 90, 0.9); box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.4); }
+.house3d-chip.done { background: rgba(78, 140, 84, 0.85); }
 .house3d-chip.final-ready { background: rgba(217, 164, 65, 0.92); color: #2a1a05; }
-.house3d-chip.final-locked { background: rgba(70, 60, 48, 0.9); }
+.house3d-chip.final-locked { opacity: 0.75; }
+.house3d-inv { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.house3d-inv-title { font-size: 15px; }
+.house3d-inv-empty { color: rgba(255, 246, 233, 0.7); font-size: 12px; font-weight: 600; text-shadow: 0 1px 3px rgba(0,0,0,.7); }
+.house3d-inv-chip {
+  padding: 3px 10px; border-radius: 999px; font-size: 12.5px; font-weight: 800;
+  background: rgba(255, 246, 233, 0.92); color: #33231a;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
 
 /* ---- prompt bar + interact button ---- */
 .house3d-promptbar {
-  position: absolute; bottom: 18px; left: 50%; z-index: 4;
-  transform: translate(-50%, 0);
-  display: flex; align-items: center; gap: 10px;
-  width: calc(100% - 24px);
-  max-width: calc(100% - 24px);
-  box-sizing: border-box;
-  padding: 10px 12px;
-  background: rgba(24, 13, 6, 0.94);
-  border-radius: 20px;
-  box-shadow: inset 0 0 0 1.5px rgba(217, 164, 65, 0.45), 0 10px 24px rgba(0, 0, 0, 0.5);
+  position: absolute; z-index: 4;
+  bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+  right: calc(14px + env(safe-area-inset-right, 0px));
+  display: flex; flex-direction: column; align-items: stretch; gap: 8px;
+  max-width: min(58vw, 300px);
+  opacity: 0; pointer-events: none; transform: translateY(8px);
   transition: opacity 0.18s ease, transform 0.18s ease;
 }
+.house3d-promptbar.show { opacity: 1; pointer-events: auto; transform: none; }
 .house3d-prompt {
-  flex: 1 1 auto; min-width: 0;
-  color: #fff6e9; font-size: 16px; font-weight: 900; white-space: nowrap;
-  overflow: hidden; text-overflow: ellipsis;
-  background: rgba(24, 13, 6, 0.78); border-radius: 999px; padding: 9px 16px;
-  box-shadow: inset 0 0 0 1.5px rgba(217, 164, 65, 0.55), 0 6px 16px rgba(0, 0, 0, 0.45);
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+  color: #fff6e9; font-size: 14px; font-weight: 800; text-align: center;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  background: rgba(20, 14, 9, 0.62); border-radius: 999px; padding: 7px 14px;
+  backdrop-filter: blur(6px);
 }
 .house3d-interact {
-  flex: none;
   font-family: inherit;
-  font-size: 16.5px; font-weight: 900; color: #fff8ee;
+  font-size: 17px; font-weight: 900; color: #fff8ee;
   background: linear-gradient(180deg, #f0643c, #d94f30);
-  border: none; border-radius: 999px; padding: 12px 22px;
-  box-shadow: 0 6px 18px rgba(217, 79, 48, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  border: none; border-radius: 999px; padding: 15px 26px; min-height: 54px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.35);
   cursor: pointer;
-  animation: house3d-pulse 1.6s ease-in-out infinite;
 }
 .house3d-interact:active { transform: scale(0.96); }
-@keyframes house3d-pulse {
-  0%, 100% { box-shadow: 0 6px 18px rgba(217, 79, 48, 0.45), 0 0 0 0 rgba(255, 180, 84, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.35); }
-  50% { box-shadow: 0 6px 18px rgba(217, 79, 48, 0.55), 0 0 0 9px rgba(255, 180, 84, 0), inset 0 1px 0 rgba(255, 255, 255, 0.35); }
-}
 
 /* ---- virtual joystick (touch) ---- */
 .house3d-joy {
-  position: absolute; bottom: 86px; left: 18px; z-index: 4;
-  width: 110px; height: 110px; border-radius: 50%;
-  background: rgba(24, 13, 6, 0.45);
-  box-shadow: inset 0 0 0 2px rgba(255, 246, 233, 0.35);
+  position: absolute; z-index: 4;
+  bottom: calc(22px + env(safe-area-inset-bottom, 0px));
+  left: calc(18px + env(safe-area-inset-left, 0px));
+  width: 128px; height: 128px; border-radius: 50%;
+  background: rgba(20, 14, 9, 0.28);
+  box-shadow: inset 0 0 0 2px rgba(255, 246, 233, 0.4);
   touch-action: none;
 }
 .house3d-joy-knob {
   position: absolute; top: 50%; left: 50%;
-  width: 48px; height: 48px; border-radius: 50%;
+  width: 54px; height: 54px; border-radius: 50%;
   transform: translate(-50%, -50%);
-  background: radial-gradient(circle at 35% 30%, rgba(255, 220, 160, 0.95), rgba(217, 164, 65, 0.9));
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  background: rgba(255, 246, 233, 0.85);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
   pointer-events: none;
 }
+.house3d-lookhint {
+  position: absolute; left: 50%; top: 46%; z-index: 3; transform: translateX(-50%);
+  color: #fff6e9; font-size: 14px; font-weight: 800; white-space: nowrap;
+  background: rgba(20, 14, 9, 0.6); border-radius: 999px; padding: 8px 16px;
+  pointer-events: none;
+  animation: house3d-hint-out 0.6s ease 5s forwards;
+}
+@keyframes house3d-hint-out { to { opacity: 0; visibility: hidden; } }
 
 /* ---- help line (desktop only) ---- */
 .house3d-help {
   /* lifted clear of the prompt bar (which spans the bottom width) so the
      help text never sits under / shows through behind the prompt */
-  position: absolute; bottom: 96px; right: 10px; z-index: 3;
+  position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); z-index: 3; white-space: nowrap;
   color: rgba(255, 246, 233, 0.66); font-size: 11.5px; font-weight: 700;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
   pointer-events: none;
@@ -126,7 +133,7 @@
 
 /* ---- toast ---- */
 .house3d-toast {
-  position: absolute; top: 76px; left: 50%; z-index: 5;
+  position: absolute; top: 34%; left: 50%; z-index: 5;
   transform: translate(-50%, -8px);
   max-width: calc(100% - 40px);
   color: #fff6e9; font-size: 15px; font-weight: 800; text-align: center; line-height: 1.4;
@@ -154,10 +161,10 @@
   50% { transform: scale(1.04); }
 }
 
-@media (max-width: 560px) {
-  .house3d { min-height: 420px; }
-  .house3d-goal { font-size: 13px; }
-  .house3d-prompt { font-size: 14.5px; padding: 8px 13px; }
-  .house3d-interact { font-size: 15px; padding: 11px 18px; }
-  .house3d-promptbar { bottom: 14px; }
+@media (max-height: 480px) {
+  /* phone in landscape: keep the HUD on one compact line */
+  .house3d-top { gap: 4px; padding-bottom: 10px; }
+  .house3d-goal { font-size: 12.5px; padding: 5px 12px; }
+  .house3d-joy { width: 112px; height: 112px; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); }
+  .house3d-interact { padding: 12px 22px; min-height: 48px; }
 }

@@ -211,7 +211,7 @@ export function buildArchitecture(scene: THREE.Scene): void {
     { c: [1.0, 0.8], axis: 'x', w: 0.95, h: 2.1 },
     { c: [0.6, -0.8], axis: 'x', w: 0.95, h: 2.1 },
     { c: [5.0, -0.8], axis: 'x', w: 0.95, h: 2.1 },
-    { c: [5.0, 2.0], axis: 'x', w: 0.95, h: 2.1 },
+    { c: [5.6, 2.0], axis: 'x', w: 0.95, h: 2.1 },
     { c: [-1.2, 0.0], axis: 'z', w: 0.95, h: 2.1 },
     { c: [-1.2, -1.9], axis: 'z', w: 1.5, h: 2.2 },  // arch living<->kitchen
     { c: [3.4, 0.0], axis: 'z', w: 1.4, h: 2.2 },   // arch hallway<->entrance
@@ -466,7 +466,7 @@ export function buildLivingDecor(scene: THREE.Scene): void {
   throwHang.rotation.y = Math.PI / 2;
   g.add(throwHang);
   /* armchair pillow (Poly Haven armchair, seat ≈ 0.45) */
-  cushion(0.3, 0.3, 0.1, -2.42, 0.58, -2.62, 0x2a6d8a, { rotY: 0.53, rotZ: 0.1 });
+  cushion(0.3, 0.3, 0.1, -2.06, 0.58, -4.06, 0x2a6d8a, { rotY: -0.64, rotZ: 0.1 });
 
   /* Coffee table = Poly Haven round marble (Ø1.3, top y 0.49):
      items pulled inside the round top. */
@@ -637,7 +637,7 @@ export function buildKitchenDecor(scene: THREE.Scene): void {
       new THREE.MeshStandardMaterial({ color: 0x2a6d8a, roughness: 0.4 }), 4);
     const mtx = new THREE.Matrix4();
     const spots: [number, number, number][] = [
-      [3.95, 0.7, -2.62], [4.85, 0.7, -2.62], [3.95, 0.7, -2.38], [4.85, 0.7, -2.38],
+      [3.8, 0.7, -2.68], [4.6, 0.7, -2.68], [3.6, 0.7, -2.32], [4.4, 0.7, -2.32],
     ];
     spots.forEach(([px, py, pz], i) => {
       mtx.makeTranslation(px, py, pz);
@@ -653,11 +653,11 @@ export function buildKitchenDecor(scene: THREE.Scene): void {
     // flowers for the Poly Haven ceramic vase placed by House3D
     // (vase on the table: base 0.69, rim ≈ 1.09)
     [0xe86a92, 0xf2a007, 0xe4572e].forEach((fc, i) => {
-      const stem = cyl(g, 0.004, 0.004, 0.3, 6, 4.4 + (i - 1) * 0.03, 1.0, -2.5 + (i % 2) * 0.03, M.leaf, { rotZ: (i - 1) * 0.25 });
+      const stem = cyl(g, 0.004, 0.004, 0.3, 6, 4.15 + (i - 1) * 0.03, 1.0, -2.5 + (i % 2) * 0.03, M.leaf, { rotZ: (i - 1) * 0.25 });
       stem.rotation.z = (i - 1) * 0.25;
       const head = new THREE.Mesh(new THREE.SphereGeometry(0.032, 10, 8),
         new THREE.MeshStandardMaterial({ color: fc, roughness: 0.7 }));
-      head.position.set(4.4 + (i - 1) * 0.055, 1.18, -2.5 + (i % 2) * 0.03);
+      head.position.set(4.15 + (i - 1) * 0.055, 1.18, -2.5 + (i % 2) * 0.03);
       g.add(head);
     });
     // (the dining pendant is the Poly Haven ceiling lamp, placed by House3D)
@@ -955,14 +955,14 @@ export function buildBathroomDecor(scene: THREE.Scene): void {
   g.add(towel2);
   box(g, 0.03, 0.03, 0.34, 6.4, 1.32, 4.3, M.steel); // its rail
   /* Bottles on the tub rim + a bath mat */
-  [4.25, 4.42].forEach((bx, i) => {
+  [3.95, 4.12].forEach((bx, i) => {
     cyl(g, 0.028, 0.028, 0.13, 10, bx, 0.675, 2.18,
       new THREE.MeshStandardMaterial({ color: [0x2a6d8a, 0xe86a92][i], roughness: 0.35 }));
   });
   const bathMat = new THREE.Mesh(new THREE.PlaneGeometry(0.85, 0.5),
     new THREE.MeshStandardMaterial({ color: 0xa9c6c9, roughness: 1 }));
   bathMat.rotation.x = -Math.PI / 2;
-  bathMat.position.set(4.6, 0.012, 3.35);
+  bathMat.position.set(4.3, 0.012, 3.35);
   bathMat.receiveShadow = true;
   g.add(bathMat);
   /* Toilet brush holder + spare roll on the tank */

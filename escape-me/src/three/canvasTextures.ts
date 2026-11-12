@@ -406,3 +406,27 @@ export function disposeObject(root: THREE.Object3D): void {
     }
   });
 }
+
+/** Four-point warm sparkle used as the in-world "something to do here" marker. */
+export function makeSparkleTexture(): THREE.CanvasTexture {
+  const c = document.createElement('canvas');
+  c.width = 128; c.height = 128;
+  const ctx = c.getContext('2d');
+  if (ctx) {
+    const g = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+    g.addColorStop(0, 'rgba(255,250,225,1)');
+    g.addColorStop(0.18, 'rgba(255,226,150,0.75)');
+    g.addColorStop(0.5, 'rgba(255,200,100,0.16)');
+    g.addColorStop(1, 'rgba(255,190,90,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 128, 128);
+    ctx.fillStyle = 'rgba(255,248,220,0.95)';
+    ctx.beginPath();
+    ctx.moveTo(64, 4); ctx.quadraticCurveTo(67, 61, 124, 64); ctx.quadraticCurveTo(67, 67, 64, 124);
+    ctx.quadraticCurveTo(61, 67, 4, 64); ctx.quadraticCurveTo(61, 61, 64, 4);
+    ctx.fill();
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}

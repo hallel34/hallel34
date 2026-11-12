@@ -282,8 +282,8 @@ export default function Player({ config, onBack }: { config: GameConfig; onBack:
       collected: takenPickups.includes(pk.id),
     }));
     return (
-      <div className="screen-enter" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {inventoryBar}
+      <div className={webglOk ? undefined : 'screen-enter'} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {webglOk ? null : inventoryBar}
         {webglOk ? (
           <Suspense fallback={<div className="card" style={{ textAlign: 'center', fontWeight: 800 }}>טוען את הבית… 🏠</div>}>
             <House3D
@@ -296,6 +296,8 @@ export default function Player({ config, onBack }: { config: GameConfig; onBack:
               onStage={enterStage}
               onPickup={takePickup}
               onFinal={tryFinal}
+              inventory={inventory.map((id) => ({ id, label: world.items[id]?.label ?? id, emoji: world.items[id]?.emoji ?? '📦' }))}
+              onExit={onBack}
             />
           </Suspense>
         ) : (
@@ -309,7 +311,7 @@ export default function Player({ config, onBack }: { config: GameConfig; onBack:
             onFinal={tryFinal}
           />
         )}
-        <button type="button" className="btn btn-ghost" onClick={onBack}>🏠 יציאה</button>
+        {webglOk ? null : <button type="button" className="btn btn-ghost" onClick={onBack}>🏠 יציאה</button>}
         {noticeEl}
       </div>
     );
