@@ -1,0 +1,40 @@
+.life-wrap{display:flex;flex-direction:column;gap:14px}
+.life-progress{display:flex;align-items:center;gap:10px}
+.life-progress-track{flex:1;height:12px;border-radius:999px;background:rgba(139,94,52,.18);overflow:hidden;box-shadow:inset 0 2px 4px rgba(0,0,0,.15)}
+.life-progress-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,var(--mustard),var(--green));transition:width .5s ease}
+/* --- CSS-3D perspective road: the path sits in a 700px perspective scene,
+       the road is a rotateX-tilted plane, stations are standing signs,
+       and the car pops toward the viewer with translateZ. --- */
+.life-path{position:relative;padding:14px 4px 6px;perspective:700px;background:radial-gradient(ellipse 75% 130px at 50% -10px,rgba(242,160,7,.20),transparent 70%)}
+.life-path::before{content:'';position:absolute;top:2px;bottom:2px;left:0;right:0;margin-left:auto;margin-right:auto;width:250px;transform:rotateX(38deg);transform-origin:50% 50%;border-radius:26px;z-index:0;
+  background:
+    repeating-linear-gradient(180deg,rgba(255,217,122,.9) 0 16px,transparent 16px 34px) center/5px 100% no-repeat,
+    linear-gradient(90deg,rgba(255,246,233,.5) 0 4px,transparent 4px calc(100% - 4px),rgba(255,246,233,.5) calc(100% - 4px)),
+    linear-gradient(180deg,#71553a,#54402c 55%,#42301d);
+  box-shadow:inset 0 0 34px rgba(0,0,0,.45),0 10px 22px rgba(0,0,0,.25);
+  -webkit-mask-image:linear-gradient(180deg,transparent,#000 9%,#000 91%,transparent);mask-image:linear-gradient(180deg,transparent,#000 9%,#000 91%,transparent)}
+.life-car{position:absolute;left:50%;transform:translate(-50%,-50%) translateZ(42px);font-size:34px;z-index:3;transition:top .75s cubic-bezier(.34,1.3,.64,1);filter:drop-shadow(0 6px 8px rgba(0,0,0,.35));pointer-events:none;line-height:1}
+.life-car::after{content:'';position:absolute;left:50%;bottom:-8px;width:48px;height:11px;transform:translateX(-50%);background:radial-gradient(ellipse at center,rgba(20,10,4,.55),transparent 70%);border-radius:50%;z-index:-1}
+.life-row{display:flex;position:relative;z-index:1;margin-bottom:20px;perspective:650px}
+.life-row:last-child{margin-bottom:4px}
+.life-row.side-a{justify-content:flex-start}
+.life-row.side-b{justify-content:flex-end}
+/* distance scaling: farther (earlier) stations read slightly smaller */
+.life-row:nth-child(2){--rs:.93}
+.life-row:nth-child(3){--rs:.955}
+.life-row:nth-child(4){--rs:.98}
+.life-row:nth-child(5){--rs:1}
+.life-row:nth-child(6){--rs:1.015}
+.life-row:nth-child(7){--rs:1.03}
+.life-row:nth-child(8){--rs:1.04}
+.life-station{width:78%;min-height:64px;display:flex;align-items:center;gap:12px;text-align:right;background:linear-gradient(180deg,rgba(255,255,255,.9),rgba(255,252,246,.94)),url('../assets/tex-paper.jpg');background-size:auto,cover;border:3px solid rgba(139,94,52,.35);border-radius:18px;padding:14px 14px;cursor:pointer;box-shadow:0 18px 22px rgba(0,0,0,.20),0 4px 8px rgba(0,0,0,.16),inset 0 1px 0 #fff;transition:transform .15s ease,border-color .2s,background .2s;font-family:inherit;transform:rotateX(13deg) scale(var(--rs,1));transform-origin:50% 100%}
+.life-station:active{transform:rotateX(13deg) scale(calc(var(--rs,1)*.97))}
+.life-station:not(.is-done):hover{border-color:var(--mustard);transform:rotateX(13deg) scale(var(--rs,1)) translateY(-2px)}
+.life-station.is-done{background:linear-gradient(180deg,#DFF3DC,#BFE8BB);border-color:var(--green);cursor:default}
+.life-station-emoji{font-size:36px;line-height:1;flex:none;width:58px;height:58px;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#FFF1C9,#FFE29A);border-radius:14px;box-shadow:inset 0 0 0 2px rgba(217,164,65,.5)}
+.life-station.is-done .life-station-emoji{background:#fff}
+.life-station-label{font-size:17px;font-weight:800;color:var(--ink);line-height:1.25;flex:1}
+.life-station-num{font-size:12px;font-weight:800;color:var(--ink-soft)}
+.life-check{width:32px;height:32px;border-radius:50%;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;flex:none;box-shadow:0 4px 10px rgba(0,0,0,.25)}
+.life-success{text-align:center;padding:18px 10px}
+.life-success-emoji{font-size:56px;line-height:1.2}

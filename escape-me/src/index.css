@@ -1,0 +1,545 @@
+/*
+ * EscapeMe — Design System (warm film-studio / director theme)
+ * ============================================================
+ * CSS CLASSES AVAILABLE FOR STAGE IMPLEMENTERS (use these, do not invent new globals):
+ *
+ * Layout:
+ *   .app-shell          — page wrapper: layered spotlight backdrop over #2A1E17, centered 480px column
+ *   .card               — cream paper card (#FFF6E9), radius 18px, soft shadow, gold-cream trim
+ *   .card-dark          — dark wood card variant for contrast sections
+ *   .console            — director-console panel: wood-grain texture (repeating gradients), gold trim, deep shadow
+ *   .clapper            — clapperboard stripe bar (repeating 45deg black/white), decorative
+ *   .film-strip         — film-perforation strip (radial-gradient dot rows on black band)
+ *   .hud                — score/timer bar (wood gradient, cream text); children: .hud-item, .hud-label, .hud-value
+ *   .note               — sticky-note look (mustard, slight rotate, shadow); variant .note-alt (other rotation)
+ *   .chip               — small pill label (variants: .chip-teal .chip-coral .chip-mustard .chip-green .chip-plum)
+ *   .divider            — thin wood-tone dashed rule
+ *   .screen-enter       — screen transition (fade + slide-up) — put on every screen root
+ *   .modal-overlay      — full-screen dim overlay for modals
+ *   .modal-frame        — phone-width modal frame (cream, radius 22px, clapper top) for previews
+ *
+ * Typography / headings:
+ *   .screen-title       — big centered heading block; children: .screen-title-emoji, .screen-title-text (Heebo 900, letterspaced), .screen-title-sub
+ *   .section-title      — section heading inside cards
+ *   .muted              — muted brown helper text
+ *   .big-score          — huge centered score number
+ *   .gold-text          — gold gradient text accent
+ *
+ * Buttons:
+ *   .btn                — base chunky button WITH DEPTH (border-bottom 4px darker shade, active: translateY)
+ *   .btn-teal           — teal bg (#1F8A8C)      .btn-coral   — coral bg (#E4572E)
+ *   .btn-mustard        — mustard bg (#F2A007)   .btn-green   — leaf green bg (#5B8C5A)
+ *   .btn-plum           — plum bg (#7C4D8C)      .btn-ghost   — transparent / outline variant
+ *   .btn-big            — large button modifier (bigger padding + font, full width)
+ *   .btn:disabled / .btn-disabled — disabled state
+ *   .icon-btn           — small square icon button (arrows, remove ×)
+ *   .switch             — custom toggle switch: <label class="switch"><input type="checkbox"><span></span></label>
+ *
+ * Forms (editor):
+ *   .field              — field wrapper; children: .field label, .field input, .field textarea, .field select, .field .field-hint (font ≥16px, RTL)
+ *   .field-row          — horizontal row of fields
+ *   .list-row           — one editable list row (input + remove button)
+ *   .toggle-row         — labelled row hosting a .switch
+ *
+ * Creator / wizard:
+ *   .stepper            — wizard stepper header; children: .stepper-steps, .stepper-step (.active/.done), .stepper-bar (progress track), .stepper-fill
+ *   .autosave-status    — tiny "נשמר אוטומטית ✓" status label
+ *   .stage-picker-grid  — grid container for stage picker
+ *   .stage-picker-item  — one picker tile; modifiers: .selected, .disabled; children: .stage-picker-emoji, .stage-picker-title, .stage-picker-tagline, .stage-picker-badge
+ *   .gallery-card       — rich stage gallery card (gradient art header + body); children: .gallery-art, .gallery-body; modifier .selected
+ *   .art-life-order .art-mirror-text .art-photo-puzzle .art-target-shooting .art-family-tree
+ *   .art-events-calendar .art-hobbies-runner .art-flashlight-objects .art-inspiration-message
+ *   .art-compass-facts .art-values-card   — per-stage-type gradient art classes (put on .gallery-art)
+ *   .selected-list      — ordered list of chosen stages
+ *   .selected-row       — one chosen-stage row with reorder arrows
+ *
+ * Player / game:
+ *   .perm-row           — permissions screen row (icon + label + status + action); children: .perm-icon, .perm-status (.ok/.warn/.unknown)
+ *   .hint-bubble        — shown hint text bubble
+ *   .stage-list         — intro list of stages; children: .stage-list-row
+ *   .breakdown-row      — final per-stage result row
+ *   .recap-list         — "what we learned" bullet list
+ *   .toast              — transient confirmation toast (copied / imported / finished)
+ *
+ * Animation utilities + keyframes (shake, pop, floaty, falldown, slidex, wiggle):
+ *   .shake  .pop-in  .floaty  .falldown  .slidex  .wiggle
+ *
+ * 3D layer (Three.js WebGL, lazily loaded — see src/lib/webgl.ts gate):
+ *   .room-hub           — 3D room hub shell (src/three/room-hub.css); children:
+ *                         .room-hub-canvas, .room-hub-canvas-el, .room-hub-top, .room-hub-title,
+ *                         .room-hub-chips, .room-hub-chip (.done/.next), .room-hub-bottom,
+ *                         .room-hub-hint, .room-hub-alldone
+ *   .fl3d-room          — 3D flashlight diorama mount (src/three/flashlight-room.css);
+ *                         reuses .fl-basket/.fl-toolbar/.fl-msg/.fl-success from the 2D stage
+ * CSS-3D touches (no WebGL):
+ *   .life-path          — perspective road: ::before is a rotateX(38deg) road plane,
+ *                         .life-station standing signs (rotateX + distance scale via --rs),
+ *                         .life-car translateZ(42px) + ::after ellipse shadow (life-order.css)
+ *   .gallery-card:hover — subtle perspective tilt, hover-capable devices only (below)
+ *   .vc-cover.on        — vcCoverFlip rotateX flip-in; .vc-card-btn.tried — vcFlip
+ *                         rotateY flip when a card is tried (values-card.css)
+ *
+ * Palette vars: --bg #2A1E17, --paper #FFF6E9, --wood #8B5E34, --wood-light #A0714A,
+ *   --teal #1F8A8C, --coral #E4572E, --mustard #F2A007, --green #5B8C5A, --plum #7C4D8C,
+ *   --gold #D9A441, --ink #33231A, --radius 18px
+ */
+
+:root {
+  --bg: #2A1E17;
+  --paper: #FFF6E9;
+  --wood: #8B5E34;
+  --wood-light: #A0714A;
+  --wood-dark: #5C3D21;
+  --teal: #1F8A8C;
+  --teal-dark: #14666A;
+  --coral: #E4572E;
+  --coral-dark: #B23C1B;
+  --mustard: #F2A007;
+  --mustard-dark: #C07F04;
+  --green: #5B8C5A;
+  --green-dark: #40663F;
+  --plum: #7C4D8C;
+  --plum-dark: #5C3869;
+  --gold: #D9A441;
+  --ink: #33231A;
+  --ink-soft: #6B5546;
+  --radius: 18px;
+  --font-display: 'Frank Ruhl Libre', 'Heebo', serif;
+  font-family: 'Heebo', system-ui, 'Segoe UI', sans-serif;
+  color: var(--ink);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: #170D07;
+  font-family: 'Heebo', system-ui, 'Segoe UI', sans-serif;
+}
+button, input, textarea, select { font-family: inherit; }
+
+/* ---------- Layout ---------- */
+.app-shell {
+  min-height: 100svh;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 16px 14px 44px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  color: var(--ink);
+  /* v2: standing at a real walnut desk in lamplight — photo surface under a warm shade */
+  background:
+    radial-gradient(ellipse 90% 340px at 50% -60px, rgba(242,160,7,.20), transparent 70%),
+    linear-gradient(180deg, rgba(43,28,16,.90) 0%, rgba(30,19,10,.94) 340px, rgba(22,13,7,.97) 100%),
+    url('./assets/tex-desk.jpg');
+  background-size: auto, auto, 460px auto;
+  box-shadow: 0 0 60px rgba(0,0,0,.5);
+}
+
+.card {
+  /* v2: real aged paper lying on the desk */
+  background:
+    linear-gradient(180deg, rgba(255,251,242,.90), rgba(255,246,233,.94)),
+    url('./assets/tex-paper.jpg');
+  background-size: auto, cover;
+  border-radius: var(--radius);
+  padding: 18px;
+  border: 1px solid rgba(217,164,65,.45);
+  box-shadow: 0 14px 30px rgba(0,0,0,.45), 0 3px 8px rgba(0,0,0,.3), inset 0 1px 0 #fff;
+}
+
+.card-dark {
+  background:
+    linear-gradient(180deg, rgba(107,68,35,.93), rgba(92,61,33,.96)),
+    url('./assets/tex-desk.jpg');
+  background-size: auto, cover;
+  color: var(--paper);
+  border-radius: var(--radius);
+  padding: 18px;
+  border: 1px solid rgba(217,164,65,.35);
+  box-shadow: 0 10px 26px rgba(0,0,0,.4);
+}
+
+.console {
+  border-radius: 20px;
+  padding: 18px;
+  color: var(--paper);
+  border: 1px solid rgba(217,164,65,.55);
+  /* v2: photographed walnut panel instead of gradient "wood" */
+  background:
+    linear-gradient(160deg, rgba(166,116,66,.72) 0%, rgba(139,94,52,.82) 45%, rgba(104,64,33,.9) 100%),
+    url('./assets/tex-desk.jpg');
+  background-size: auto, cover;
+  box-shadow: 0 14px 32px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,246,233,.35), inset 0 -3px 0 rgba(0,0,0,.25);
+}
+
+.clapper {
+  height: 18px;
+  border-radius: 6px;
+  background: repeating-linear-gradient(45deg, #111 0 18px, #fff 18px 36px);
+  border: 2px solid #111;
+  box-shadow: 0 3px 8px rgba(0,0,0,.4);
+}
+
+.film-strip {
+  height: 26px;
+  background:
+    radial-gradient(circle 4px at 14px 50%, #2A1E17 96%, transparent),
+    #141414;
+  background-size: 28px 100%;
+  background-repeat: repeat-x;
+  border-top: 2px solid #000;
+  border-bottom: 2px solid #000;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.08);
+  opacity: .95;
+}
+
+.hud {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;
+  /* v2: a real wooden sign with brass rivets screwed at both ends */
+  background:
+    radial-gradient(circle 3.5px at 11px 50%, #F0CD72 55%, rgba(60,35,10,.85) 78%, transparent 82%),
+    radial-gradient(circle 3.5px at calc(100% - 11px) 50%, #F0CD72 55%, rgba(60,35,10,.85) 78%, transparent 82%),
+    linear-gradient(180deg, rgba(172,120,72,.93), rgba(139,94,52,.96)),
+    url('./assets/tex-desk.jpg');
+  background-size: auto, auto, auto, cover;
+  color: #FFF6E9; border-radius: 14px; padding: 10px 18px;
+  border: 1px solid rgba(217,164,65,.5);
+  box-shadow: 0 8px 18px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,246,233,.3), inset 0 -2px 0 rgba(0,0,0,.25);
+  font-weight: 700;
+  position: sticky; top: 8px; z-index: 5;
+}
+.hud-item { display: flex; align-items: center; gap: 6px; }
+.hud-label { font-size: 12px; opacity: .85; font-weight: 500; }
+.hud-value { font-size: 17px; font-weight: 800; font-family: var(--font-display); letter-spacing: .3px; }
+
+.note {
+  position: relative;
+  /* v2: a real note on aged paper, held by a strip of masking tape */
+  background:
+    linear-gradient(180deg, rgba(255,238,183,.90), rgba(255,233,168,.94)),
+    url('./assets/tex-paper.jpg');
+  background-size: auto, cover;
+  color: #4A3418;
+  border-radius: 4px 14px 14px 14px;
+  padding: 14px 16px;
+  transform: rotate(-1.2deg);
+  box-shadow: 0 10px 18px rgba(0,0,0,.35);
+  font-weight: 500;
+}
+.note::before {
+  content: '';
+  position: absolute; top: -11px; left: 50%;
+  width: 96px; height: 23px;
+  transform: translateX(-50%) rotate(-2deg);
+  background: linear-gradient(180deg, rgba(246,236,205,.82), rgba(238,226,188,.72));
+  box-shadow: 0 2px 5px rgba(0,0,0,.18);
+  border-left: 1.5px dashed rgba(120,95,50,.25);
+  border-right: 1.5px dashed rgba(120,95,50,.25);
+}
+.note-alt { transform: rotate(1.1deg); }
+
+.chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 10px; border-radius: 999px;
+  font-size: 13px; font-weight: 700;
+  background: var(--wood); color: #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,.25);
+}
+.chip-teal { background: var(--teal); }
+.chip-coral { background: var(--coral); }
+.chip-mustard { background: var(--mustard); color: #33231A; }
+.chip-green { background: var(--green); }
+.chip-plum { background: var(--plum); }
+
+.divider { border: none; border-top: 2px dashed rgba(139,94,52,.35); margin: 14px 0; }
+
+.screen-enter { animation: screenIn .38s ease both; }
+@keyframes screenIn {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 50;
+  background: rgba(20,12,7,.72);
+  display: flex; align-items: flex-start; justify-content: center;
+  overflow-y: auto; padding: 18px 10px 30px;
+  backdrop-filter: blur(2px);
+}
+.modal-frame {
+  width: 100%; max-width: 430px;
+  background:
+    linear-gradient(180deg, rgba(255,251,242,.92), rgba(255,246,233,.95)),
+    url('./assets/tex-paper.jpg');
+  background-size: auto, cover;
+  border-radius: 22px; overflow: hidden;
+  border: 1px solid rgba(217,164,65,.6);
+  box-shadow: 0 24px 60px rgba(0,0,0,.6);
+}
+.modal-frame-body { padding: 16px; max-height: 78svh; overflow-y: auto; }
+
+/* ---------- Typography ---------- */
+.screen-title { text-align: center; color: var(--paper); padding: 8px 0 2px; }
+.screen-title-emoji { font-size: 30px; line-height: 1.1; filter: drop-shadow(0 4px 7px rgba(0,0,0,.45)); }
+.screen-title-text { font-family: var(--font-display); font-size: 35px; font-weight: 900; letter-spacing: .4px; margin: 4px 0 2px; color: var(--paper); text-shadow: 0 3px 12px rgba(0,0,0,.55), 0 0 26px rgba(217,164,65,.25); }
+.screen-title-sub { font-size: 15px; opacity: .88; margin: 0; }
+/* gold rule with a center diamond — the v2 title ornament (replaces the giant emoji) */
+.screen-title-ornament { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 2px 0 8px; }
+.screen-title-ornament::before, .screen-title-ornament::after {
+  content: ''; height: 2px; width: 62px; border-radius: 2px;
+  background: linear-gradient(90deg, transparent, rgba(217,164,65,.9));
+}
+.screen-title-ornament::after { background: linear-gradient(90deg, rgba(217,164,65,.9), transparent); }
+.screen-title-ornament span {
+  width: 9px; height: 9px; flex: none;
+  background: linear-gradient(135deg, #F6CE6B, var(--gold));
+  transform: rotate(45deg);
+  box-shadow: 0 0 10px rgba(217,164,65,.85), 0 1px 3px rgba(0,0,0,.5);
+}
+.section-title { font-family: var(--font-display); font-size: 21px; font-weight: 700; margin: 0 0 10px; color: var(--ink); }
+.muted { color: var(--ink-soft); font-size: 14px; }
+.big-score { font-family: var(--font-display); font-size: 58px; font-weight: 900; text-align: center; line-height: 1.1; color: var(--wood-dark); text-shadow: 0 2px 0 rgba(217,164,65,.4); }
+.gold-text { background: linear-gradient(180deg, #F6CE6B, var(--gold) 60%, #B97F22); -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+/* ---------- Buttons (with depth) ---------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  border: none; cursor: pointer;
+  border-radius: 14px; padding: 12px 20px;
+  font-size: 17px; font-weight: 800; letter-spacing: .2px;
+  background: var(--wood); color: #fff;
+  border-bottom: 4px solid var(--wood-dark);
+  box-shadow: 0 6px 14px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.28);
+  transition: transform .08s ease, filter .15s ease, opacity .15s ease;
+  text-align: center;
+}
+.btn:active { transform: translateY(3px); border-bottom-width: 1px; filter: brightness(1.05); }
+.btn-teal { background: linear-gradient(180deg, #25A0A3, var(--teal)); border-bottom-color: var(--teal-dark); }
+.btn-coral { background: linear-gradient(180deg, #F06A41, var(--coral)); border-bottom-color: var(--coral-dark); }
+.btn-mustard { background: linear-gradient(180deg, #FFB61F, var(--mustard)); border-bottom-color: var(--mustard-dark); color: #33231A; }
+.btn-green { background: linear-gradient(180deg, #6DA36C, var(--green)); border-bottom-color: var(--green-dark); }
+.btn-plum { background: linear-gradient(180deg, #9066A3, var(--plum)); border-bottom-color: var(--plum-dark); }
+.btn-ghost { background: transparent; color: var(--paper); border-bottom: none; box-shadow: inset 0 0 0 2px rgba(255,246,233,.65); }
+.card .btn-ghost, .console .btn-ghost { color: inherit; box-shadow: inset 0 0 0 2px currentColor; }
+.btn-big { padding: 16px 24px; font-size: 20px; border-radius: 16px; width: 100%; }
+.btn:disabled, .btn-disabled { opacity: .45; cursor: not-allowed; pointer-events: none; }
+.icon-btn {
+  border: none; cursor: pointer; flex: none;
+  width: 34px; height: 34px; border-radius: 10px;
+  background: rgba(139,94,52,.16); color: var(--ink);
+  font-size: 16px; font-weight: 800;
+  display: inline-flex; align-items: center; justify-content: center;
+  box-shadow: 0 2px 5px rgba(0,0,0,.15);
+}
+.icon-btn:active { transform: scale(.94); }
+
+/* ---------- Switch ---------- */
+.switch { position: relative; display: inline-block; width: 54px; height: 30px; flex: none; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.switch span {
+  position: absolute; inset: 0; cursor: pointer; border-radius: 999px;
+  background: #C9BBA6; transition: background .2s ease;
+  box-shadow: inset 0 2px 5px rgba(0,0,0,.25);
+}
+.switch span::before {
+  content: ''; position: absolute; width: 24px; height: 24px; top: 3px; inset-inline-start: 3px;
+  border-radius: 50%; background: #FFF6E9; transition: transform .2s ease;
+  box-shadow: 0 2px 6px rgba(0,0,0,.35);
+}
+.switch input:checked + span { background: var(--teal); }
+.switch input:checked + span::before { transform: translateX(-24px); }
+[dir="ltr"] .switch input:checked + span::before { transform: translateX(24px); }
+
+/* ---------- Forms ---------- */
+.field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+.field label { font-weight: 700; font-size: 15px; color: var(--ink); }
+.field input, .field textarea, .field select {
+  width: 100%;
+  font-size: 16px; /* ≥16px prevents iOS zoom */
+  padding: 11px 12px;
+  border-radius: 12px;
+  border: 2px solid rgba(139,94,52,.4);
+  background: #fff; color: var(--ink);
+  direction: rtl; text-align: right;
+  box-shadow: inset 0 2px 4px rgba(51,35,26,.06);
+}
+.field input:focus, .field textarea:focus, .field select:focus {
+  outline: none; border-color: var(--teal);
+  box-shadow: 0 0 0 3px rgba(31,138,140,.25);
+}
+.field textarea { min-height: 76px; resize: vertical; }
+.field .field-hint { font-size: 13px; color: var(--ink-soft); }
+.field-row { display: flex; gap: 8px; align-items: flex-start; }
+.field-row > .field { flex: 1; }
+.list-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.list-row input { flex: 1; }
+.toggle-row { display: flex; align-items: center; gap: 10px; font-weight: 700; cursor: pointer; padding: 6px 0; justify-content: space-between; }
+
+/* ---------- Stepper (wizard) ---------- */
+.stepper { color: var(--paper); }
+.stepper-steps { display: flex; justify-content: space-between; gap: 4px; margin-bottom: 8px; }
+.stepper-step { flex: 1; text-align: center; font-size: 12.5px; font-weight: 700; opacity: .55; padding: 4px 2px; }
+.stepper-step.active { opacity: 1; color: #FFD97A; }
+.stepper-step.done { opacity: .9; }
+.stepper-bar { height: 8px; border-radius: 999px; background: rgba(255,246,233,.18); overflow: hidden; box-shadow: inset 0 1px 3px rgba(0,0,0,.4); }
+.stepper-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--mustard), var(--gold)); transition: width .3s ease; }
+.autosave-status { font-size: 12.5px; color: rgba(255,246,233,.85); font-weight: 600; min-height: 18px; }
+
+/* ---------- Stage picker / gallery ---------- */
+.stage-picker-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.stage-picker-item {
+  position: relative; cursor: pointer; text-align: right;
+  background: #fff; border: 2px solid rgba(139,94,52,.3);
+  border-radius: 14px; padding: 12px;
+  transition: border-color .15s ease, background .15s ease, transform .08s ease;
+  box-shadow: 0 4px 10px rgba(0,0,0,.12);
+}
+.stage-picker-item:active { transform: scale(.98); }
+.stage-picker-item.selected { border-color: var(--teal); background: rgba(31,138,140,.1); }
+.stage-picker-item.disabled { opacity: .45; cursor: not-allowed; }
+.stage-picker-emoji { font-size: 26px; }
+.stage-picker-title { font-weight: 800; font-size: 15px; margin-top: 2px; }
+.stage-picker-tagline { font-size: 12.5px; color: var(--ink-soft); }
+.stage-picker-badge {
+  position: absolute; top: 8px; inset-inline-start: 8px;
+  width: 24px; height: 24px; border-radius: 50%;
+  background: var(--teal); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 900;
+  box-shadow: 0 2px 6px rgba(0,0,0,.3);
+}
+.selected-list { display: flex; flex-direction: column; gap: 8px; }
+.selected-row {
+  display: flex; align-items: center; gap: 8px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.9), rgba(255,252,246,.94)),
+    url('./assets/tex-paper.jpg');
+  background-size: auto, cover;
+  border: 2px solid rgba(31,138,140,.4);
+  border-radius: 12px; padding: 8px 10px; font-weight: 700;
+}
+
+.gallery-card {
+  border-radius: 16px; overflow: hidden; cursor: pointer;
+  background:
+    linear-gradient(180deg, rgba(255,251,242,.92), rgba(255,246,233,.96)),
+    url('./assets/tex-paper.jpg');
+  background-size: auto, cover;
+  border: 2.5px solid rgba(139,94,52,.25);
+  box-shadow: 0 8px 16px rgba(0,0,0,.22);
+  transition: transform .1s ease, border-color .15s ease;
+  position: relative; text-align: right; padding: 0; width: 100%;
+}
+.gallery-card:active { transform: scale(.98); }
+@media (hover: hover) {
+  .gallery-card:hover { transform: perspective(650px) rotateX(3deg) rotateY(-3.5deg) translateY(-2px); }
+}
+.gallery-card.selected { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(31,138,140,.3), 0 8px 18px rgba(0,0,0,.22); }
+/* v2: silent-film intertitle — dark walnut card, gold double frame, serif monogram.
+   The per-type hue survives only as a soft tint wash (::before) over the real wood. */
+.gallery-art {
+  position: relative; overflow: hidden;
+  height: 68px; display: flex; align-items: center; justify-content: center;
+  background: url('./assets/tex-desk.jpg') center / cover;
+  box-shadow:
+    inset 0 0 0 2px rgba(217,164,65,.65),
+    inset 0 0 0 5px rgba(16,9,4,.85),
+    inset 0 0 0 6.5px rgba(217,164,65,.35),
+    inset 0 0 26px rgba(0,0,0,.55);
+}
+.gallery-art::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(150deg, var(--art-a, rgba(0,0,0,0)), var(--art-b, rgba(0,0,0,.25)));
+  mix-blend-mode: overlay; opacity: .8;
+}
+.gallery-art-letter {
+  position: relative; z-index: 1;
+  font-family: var(--font-display); font-weight: 900; font-size: 42px; line-height: 1;
+  background: linear-gradient(180deg, #F9DC8E, var(--gold) 55%, #A8741C);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 2px 3px rgba(0,0,0,.65));
+}
+.gallery-body { padding: 9px 11px 11px; }
+.art-life-order { --art-a: rgba(242,160,7,.85); --art-b: rgba(228,87,46,.85); }
+.art-mirror-text { --art-a: rgba(124,77,140,.85); --art-b: rgba(31,138,140,.85); }
+.art-photo-puzzle { --art-a: rgba(31,138,140,.85); --art-b: rgba(91,140,90,.85); }
+.art-target-shooting { --art-a: rgba(228,87,46,.85); --art-b: rgba(124,77,140,.85); }
+.art-family-tree { --art-a: rgba(91,140,90,.85); --art-b: rgba(139,94,52,.85); }
+.art-events-calendar { --art-a: rgba(139,94,52,.85); --art-b: rgba(242,160,7,.85); }
+.art-hobbies-runner { --art-a: rgba(242,160,7,.85); --art-b: rgba(91,140,90,.85); }
+.art-flashlight-objects { --art-a: rgba(20,10,26,.9); --art-b: rgba(124,77,140,.85); }
+.art-inspiration-message { --art-a: rgba(217,164,65,.85); --art-b: rgba(228,87,46,.85); }
+.art-compass-facts { --art-a: rgba(31,138,140,.85); --art-b: rgba(16,10,6,.9); }
+.art-values-card { --art-a: rgba(124,77,140,.85); --art-b: rgba(217,164,65,.85); }
+
+/* ---------- Player / game ---------- */
+.perm-row {
+  display: flex; align-items: center; gap: 12px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.88), rgba(255,252,246,.93)),
+    url('./assets/tex-paper.jpg');
+  background-size: auto, cover;
+  border: 1.5px solid rgba(139,94,52,.25);
+  border-radius: 14px; padding: 12px; margin-bottom: 10px;
+  box-shadow: 0 5px 12px rgba(0,0,0,.16);
+}
+.perm-icon { font-size: 28px; flex: none; }
+.perm-status { font-size: 13px; font-weight: 700; }
+.perm-status.ok { color: var(--green-dark); }
+.perm-status.warn { color: var(--coral-dark); }
+.perm-status.unknown { color: var(--ink-soft); }
+.hint-bubble {
+  background:
+    linear-gradient(180deg, rgba(255,241,201,.92), rgba(255,238,190,.95)),
+    url('./assets/tex-paper.jpg');
+  background-size: auto, cover;
+  border: 2px dashed var(--mustard);
+  border-radius: 14px; padding: 12px 14px; font-weight: 600;
+  box-shadow: 0 6px 14px rgba(0,0,0,.22);
+}
+.stage-list { display: flex; flex-direction: column; gap: 8px; }
+.stage-list-row {
+  display: flex; align-items: center; gap: 10px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.88), rgba(255,252,246,.93)),
+    url('./assets/tex-paper.jpg');
+  background-size: auto, cover;
+  border-radius: 12px; padding: 10px 12px; font-weight: 700;
+  border: 1.5px solid rgba(139,94,52,.25);
+  box-shadow: 0 4px 10px rgba(0,0,0,.14);
+}
+.breakdown-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 4px; border-bottom: 1.5px dashed rgba(139,94,52,.3); font-weight: 600;
+}
+.breakdown-row:last-child { border-bottom: none; }
+.recap-list { margin: 0; padding-inline-start: 20px; display: flex; flex-direction: column; gap: 8px; font-weight: 500; }
+.toast {
+  position: sticky; bottom: 12px; z-index: 20;
+  background: var(--green); color: #fff; font-weight: 800;
+  border-radius: 12px; padding: 12px 16px; text-align: center;
+  box-shadow: 0 10px 22px rgba(0,0,0,.4);
+  border-bottom: 3px solid var(--green-dark);
+}
+
+/* ---------- Animations ---------- */
+@keyframes shake { 0%,100% { transform: translateX(0); } 20% { transform: translateX(-8px); } 40% { transform: translateX(8px); } 60% { transform: translateX(-6px); } 80% { transform: translateX(6px); } }
+@keyframes pop { 0% { transform: scale(.6); opacity: 0; } 60% { transform: scale(1.08); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+@keyframes floaty { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+@keyframes falldown { 0% { transform: translateY(-30px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
+@keyframes slidex { 0% { transform: translateX(40px); opacity: 0; } 100% { transform: translateX(0); opacity: 1; } }
+@keyframes wiggle { 0%,100% { transform: rotate(0deg); } 25% { transform: rotate(-4deg); } 75% { transform: rotate(4deg); } }
+.shake { animation: shake .45s ease; }
+.pop-in { animation: pop .35s ease both; }
+.floaty { animation: floaty 2.6s ease-in-out infinite; }
+.falldown { animation: falldown .5s ease both; }
+.slidex { animation: slidex .45s ease both; }
+.wiggle { animation: wiggle .5s ease-in-out infinite; }
+
+h1, h2 { font-family: var(--font-display), 'Heebo', serif; }
+h3 { font-family: 'Heebo', system-ui, sans-serif; }
+p { margin: 0 0 8px; }

@@ -1,0 +1,22 @@
+/* FlashlightRoom3D — dark 3D diorama room lit by a spotlight beam */
+.fl3d-room {
+  position: relative;
+  height: 430px;
+  border-radius: 16px;
+  overflow: hidden;
+  touch-action: none;
+  cursor: crosshair;
+  background: #070403;
+  border: 3px solid #241811;
+  box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.8), 0 10px 22px rgba(0, 0, 0, 0.4);
+}
+.fl3d-room canvas { display: block; width: 100%; height: 100%; }
+.fl3d-room::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: radial-gradient(transparent 52%, rgba(0, 0, 0, 0.55) 100%);
+  z-index: 1;
+}

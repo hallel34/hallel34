@@ -1,0 +1,103 @@
+/* v5 world UI: in-room puzzles, 2D house fallback, inventory, creator selects. */
+
+.world-select {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 2px solid var(--wood);
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 600;
+}
+
+.world-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.world-row > * { flex: 1 1 140px; }
+
+/* ---------- inventory bar ---------- */
+.inventory-bar {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  background: linear-gradient(180deg, #3a281a, #2a1e17);
+  border: 2px solid var(--gold);
+  border-radius: 14px;
+  padding: 8px 12px;
+  color: #ffebbe;
+  box-shadow: 0 6px 18px rgba(0,0,0,.35);
+}
+.inventory-bar .inv-title { font-weight: 800; }
+.inventory-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(255, 246, 233, .12);
+  border: 1.5px solid rgba(217, 164, 65, .8);
+  border-radius: 999px; padding: 4px 10px; font-weight: 700; font-size: 14px;
+}
+.inventory-empty { opacity: .75; font-size: 14px; }
+
+/* ---------- in-room puzzle ---------- */
+.inroom-card { text-align: right; }
+.inroom-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.inroom-prompt { font-size: 17px; font-weight: 600; line-height: 1.55; }
+.inroom-display { display: flex; gap: 10px; justify-content: center; margin: 14px 0; }
+.inroom-digit {
+  width: 52px; height: 62px; border-radius: 12px;
+  background: #241811; color: #ffd97a;
+  border: 2.5px solid var(--gold);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 30px; font-weight: 900; font-family: monospace;
+  box-shadow: inset 0 0 18px rgba(0,0,0,.7);
+}
+.inroom-digit.filled { color: #ffe9a8; text-shadow: 0 0 12px rgba(255, 200, 80, .9); }
+.inroom-keypad {
+  display: grid; grid-template-columns: repeat(3, 76px); gap: 10px;
+  justify-content: center; margin-bottom: 12px;
+}
+.inroom-key {
+  height: 58px; border-radius: 14px; border: none; cursor: pointer;
+  background: linear-gradient(180deg, #a0714a, #8b5e34);
+  color: #fff6e9; font-size: 24px; font-weight: 800;
+  box-shadow: 0 4px 0 #5c3d21, 0 6px 12px rgba(0,0,0,.3);
+}
+.inroom-key:active { transform: translateY(3px); box-shadow: 0 1px 0 #5c3d21; }
+.inroom-options { display: flex; flex-direction: column; gap: 10px; }
+.inroom-option {
+  background: #fff; color: var(--ink); border: 2.5px solid var(--wood);
+  border-radius: 14px; padding: 13px 16px; font-size: 16.5px; font-weight: 700;
+  text-align: right; cursor: pointer; width: 100%;
+}
+.inroom-option:hover { border-color: var(--teal); }
+.inroom-option.wrong { border-color: var(--coral); background: #fdeae3; opacity: .65; }
+.inroom-searching { font-size: 19px; font-weight: 800; padding: 22px 0; animation: invPulse 0.8s ease-in-out infinite alternate; }
+.inroom-success { text-align: center; padding: 8px 0 2px; }
+@keyframes invPulse { from { opacity: .55; } to { opacity: 1; } }
+.shake { animation: worldShake .38s ease; }
+@keyframes worldShake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(8px); }
+  60% { transform: translateX(-5px); }
+  80% { transform: translateX(5px); }
+}
+
+/* ---------- 2D house fallback ---------- */
+.house2d { display: flex; flex-direction: column; gap: 12px; }
+.house2d-goal { border: 2.5px solid var(--gold); }
+.house2d-items { display: flex; flex-direction: column; gap: 8px; }
+.house2d-item {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  background: #fff; border: 2.5px solid var(--wood); border-radius: 14px;
+  padding: 11px 14px; cursor: pointer; font: inherit; color: var(--ink);
+}
+.house2d-item:hover { border-color: var(--teal); }
+.house2d-item.done { opacity: .72; border-color: var(--green); cursor: default; }
+.house2d-item.final { border-color: var(--gold); background: #fff8e6; }
+.house2d-item.final.ready { background: #fdf3d0; box-shadow: 0 0 0 3px rgba(217,164,65,.35); }
+.house2d-item-emoji { font-size: 24px; }
+
+/* ---------- game notice toast (player-level) ---------- */
+.world-toast {
+  position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%);
+  z-index: 60; max-width: min(92vw, 520px);
+  background: #241811; color: #ffebbe; border: 2px solid var(--gold);
+  border-radius: 14px; padding: 12px 18px; font-weight: 700; font-size: 16px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.5); text-align: center;
+}

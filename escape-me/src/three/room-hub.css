@@ -1,0 +1,55 @@
+/* RoomHub — 3D escape-room hub (Three.js canvas + DOM overlay) */
+.room-hub {
+  position: relative;
+  height: min(74svh, 580px);
+  min-height: 460px;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 2px solid rgba(217, 164, 65, 0.55);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 246, 233, 0.25);
+  background: #2a1e17;
+}
+.room-hub::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 2;
+  background: radial-gradient(ellipse 105% 90% at 50% 42%, transparent 55%, rgba(12, 6, 2, 0.42) 100%);
+}
+.room-hub-canvas { position: absolute; inset: 0; }
+.room-hub-canvas-el { display: block; width: 100%; height: 100%; }
+.room-hub-top {
+  position: absolute; top: 0; left: 0; right: 0; z-index: 3;
+  display: flex; flex-direction: column; gap: 8px; align-items: center;
+  padding: 12px 12px 20px;
+  background: linear-gradient(180deg, rgba(24, 13, 6, 0.78), transparent);
+  pointer-events: none;
+}
+.room-hub-title {
+  font-family: 'Frank Ruhl Libre', 'Heebo', serif;
+  color: #fff6e9; font-size: 21px; font-weight: 900; letter-spacing: 0.3px;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
+}
+.room-hub-chips { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.room-hub-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 10px; border-radius: 999px;
+  background: linear-gradient(180deg, rgba(62, 40, 22, 0.88), rgba(38, 24, 13, 0.88)); color: #fff6e9;
+  font-size: 13.5px; font-weight: 800;
+  box-shadow: inset 0 0 0 1.5px rgba(217, 164, 65, 0.5), 0 3px 8px rgba(0, 0, 0, 0.35);
+}
+.room-hub-chip.done { background: rgba(91, 140, 90, 0.88); box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.4); }
+.room-hub-chip.next { background: rgba(228, 87, 46, 0.92); box-shadow: 0 0 0 2px rgba(255, 217, 122, 0.75), 0 4px 12px rgba(0, 0, 0, 0.4); }
+.room-hub-bottom {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 3;
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 22px 14px 14px;
+  background: linear-gradient(0deg, rgba(24, 13, 6, 0.82), transparent);
+}
+.room-hub-hint {
+  align-self: center;
+  color: rgba(255, 246, 233, 0.92); font-size: 13.5px; font-weight: 700;
+  background: rgba(24, 13, 6, 0.55); border-radius: 999px; padding: 4px 12px;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+}
+.room-hub-alldone {
+  text-align: center; color: #ffd97a; font-size: 20px; font-weight: 900;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7); padding: 10px 0 4px;
+}

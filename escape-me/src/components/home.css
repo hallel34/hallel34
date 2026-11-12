@@ -1,0 +1,207 @@
+/* Home v2 — full-bleed photoreal studio scene, lit marquee, tactile plaques.
+   The photo is the invitation; UI sits inside the scene like set furniture. */
+
+.home-scene {
+  position: relative;
+  margin: -16px -14px -44px; /* bleed over the app-shell padding, edge to edge */
+  height: calc(100svh - 60px);
+  min-height: 560px;
+  overflow: hidden;
+  background: #170d07;
+}
+
+.home-photo {
+  position: absolute;
+  inset: -3.5%;
+  background: url('../assets/hero-studio.jpg') center 32% / cover no-repeat;
+  animation: homeDrift 30s ease-in-out infinite alternate;
+  will-change: transform;
+}
+@keyframes homeDrift {
+  from { transform: scale(1.03) translateY(0.4%); }
+  to { transform: scale(1.13) translateY(-1.4%); }
+}
+
+.home-shade {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 125% 72% at 50% 38%, transparent 52%, rgba(10, 4, 1, 0.52) 100%),
+    linear-gradient(180deg, rgba(18, 9, 3, 0.5) 0%, rgba(18, 9, 3, 0.1) 26%, rgba(18, 9, 3, 0) 46%, rgba(15, 7, 2, 0.5) 72%, rgba(11, 5, 1, 0.92) 100%);
+}
+
+.home-content {
+  position: relative;
+  z-index: 2;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 30px 22px 22px;
+}
+
+/* ---- lit marquee plaque ---- */
+.home-marquee {
+  margin-top: 3.5svh;
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+  padding: 16px 20px 15px;
+  border-radius: 18px;
+  background: linear-gradient(165deg, rgba(46, 28, 14, 0.84), rgba(23, 12, 5, 0.9));
+  border: 1px solid rgba(233, 197, 106, 0.8);
+  box-shadow:
+    0 18px 44px rgba(0, 0, 0, 0.55),
+    0 0 46px rgba(255, 176, 66, 0.16),
+    inset 0 1px 0 rgba(255, 240, 200, 0.35),
+    inset 0 0 0 4px rgba(14, 8, 3, 0.4),
+    inset 0 0 0 5px rgba(233, 197, 106, 0.32);
+  backdrop-filter: blur(2px);
+}
+
+.home-bulbs {
+  height: 12px;
+  margin: 0 4px;
+  background-image: radial-gradient(circle, #ffe1a0 2.4px, rgba(255, 183, 77, 0.75) 4.4px, rgba(255, 160, 50, 0) 7.5px);
+  background-size: 27px 12px;
+  background-repeat: repeat-x;
+  background-position: center;
+  filter: drop-shadow(0 0 5px rgba(255, 190, 80, 0.9));
+  animation: bulbGlow 3.4s ease-in-out infinite alternate;
+}
+.home-marquee .home-bulbs:first-child { margin-bottom: 9px; }
+.home-marquee .home-bulbs:last-child { margin-top: 11px; }
+@keyframes bulbGlow {
+  from { opacity: 0.82; }
+  to { opacity: 1; }
+}
+
+.home-kicker {
+  margin: 0 0 3px;
+  font-size: 13.5px;
+  font-weight: 700;
+  letter-spacing: 2.2px;
+  color: #f0cd72;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.65);
+}
+
+.home-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: clamp(48px, 14.5vw, 68px);
+  line-height: 1.04;
+  letter-spacing: 0.5px;
+  background: linear-gradient(180deg, #fce9b8 8%, #f6ce6b 38%, #d9a441 62%, #9a6b1d 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.65)) drop-shadow(0 0 24px rgba(255, 183, 77, 0.3));
+}
+
+.home-line {
+  margin: 9px 0 1px;
+  font-size: 16.5px;
+  font-weight: 500;
+  line-height: 1.55;
+  color: #fff3dc;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+}
+
+/* ---- tactile plaques ---- */
+.home-actions {
+  margin-top: auto;
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: stretch;
+}
+
+.home-chip {
+  align-self: center;
+  padding: 4px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #33200a;
+  background: linear-gradient(180deg, #f6ce6b, #d9a441);
+  border: 1px solid #8a5f16;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.btn-plaque {
+  position: relative;
+  border-radius: 15px;
+  padding: 14px 20px 12px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  text-align: center;
+  font-family: inherit;
+  transition: transform 0.09s ease, filter 0.15s ease;
+}
+.btn-plaque::before,
+.btn-plaque::after {
+  content: '';
+  position: absolute;
+  top: 9px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ffe9b0, #c9962e 70%, #7a5510);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
+}
+.btn-plaque::before { inset-inline-start: 10px; }
+.btn-plaque::after { inset-inline-end: 10px; }
+.btn-plaque:active { transform: translateY(3px); filter: brightness(1.06); }
+.btn-plaque-label {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 22px;
+  letter-spacing: 0.3px;
+  line-height: 1.2;
+}
+.btn-plaque-sub { font-size: 13px; font-weight: 600; opacity: 0.92; }
+
+.btn-plaque-brass {
+  color: #33200a;
+  background: linear-gradient(180deg, #f2c96b 0%, #dfa93f 45%, #b9822a 100%);
+  border: 1px solid #8a5f16;
+  box-shadow:
+    0 12px 26px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 248, 214, 0.9),
+    inset 0 -3px 0 rgba(90, 58, 10, 0.55),
+    0 0 26px rgba(255, 183, 77, 0.22);
+}
+.btn-plaque-brass .btn-plaque-sub { color: rgba(51, 32, 10, 0.85); }
+
+.btn-plaque-wood {
+  color: #ffefc4;
+  text-shadow: 0 2px 5px rgba(0, 0, 0, 0.6);
+  background:
+    linear-gradient(180deg, rgba(122, 79, 40, 0.9), rgba(86, 53, 25, 0.94)),
+    url('../assets/tex-desk.jpg');
+  background-size: auto, cover;
+  border: 1px solid rgba(233, 197, 106, 0.8);
+  box-shadow:
+    0 12px 26px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 240, 200, 0.4),
+    inset 0 -3px 0 rgba(0, 0, 0, 0.4);
+}
+
+.home-foot {
+  margin: 13px 0 0;
+  font-size: 12.5px;
+  color: rgba(255, 243, 220, 0.85);
+  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.85);
+  text-align: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-photo { animation: none; }
+  .home-bulbs { animation: none; }
+}

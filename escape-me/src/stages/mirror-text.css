@@ -1,0 +1,17 @@
+.mirror-wrap{display:flex;flex-direction:column;gap:14px}
+.mirror-aged{position:relative;background:linear-gradient(160deg,#F7E7C3,#EFD9A7 55%,#E8CE96);border-radius:6px 18px 18px 18px;padding:20px 18px 18px;box-shadow:0 12px 26px rgba(0,0,0,.3),inset 0 0 40px rgba(139,94,52,.18);border:1px solid rgba(139,94,52,.4);overflow:hidden}
+.mirror-aged::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 15% 20%,rgba(139,94,52,.14),transparent 40%),radial-gradient(circle at 85% 80%,rgba(139,94,52,.12),transparent 40%);pointer-events:none}
+.mirror-aged-title{font-weight:900;font-size:15px;color:#6B4423;text-align:center;margin-bottom:10px;letter-spacing:.3px}
+.mirror-mirrored{transform:scaleX(-1);font-size:19px;line-height:1.75;font-weight:600;color:#3A2A18;text-align:right;user-select:none}
+.mirror-tools{display:flex;gap:8px;flex-wrap:wrap}
+.mirror-panel{position:relative;border-radius:22px;padding:18px;background:linear-gradient(160deg,#DFF6F7,#BFECEC 60%,#A8DEDE);border:6px solid #C9A86A;box-shadow:0 14px 30px rgba(0,0,0,.35),inset 0 0 0 3px rgba(255,255,255,.6),inset 0 0 34px rgba(255,255,255,.55);overflow:hidden}
+.mirror-panel::after{content:'';position:absolute;inset:0;background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.55) 45%,transparent 60%);animation:mirrorShimmer 2.8s ease-in-out infinite;pointer-events:none}
+@keyframes mirrorShimmer{0%{transform:translateX(70%)}55%,100%{transform:translateX(-70%)}}
+.mirror-panel-text{font-size:19px;line-height:1.75;font-weight:600;color:#173F40;position:relative;z-index:1}
+.mirror-panel-label{text-align:center;font-weight:900;color:#14666A;margin-bottom:8px;position:relative;z-index:1}
+.mirror-cam-wrap{display:flex;flex-direction:column;align-items:center;gap:10px}
+.mirror-handmirror{width:230px;height:230px;border-radius:50%;overflow:hidden;border:10px solid #C9A86A;box-shadow:0 16px 34px rgba(0,0,0,.45),inset 0 0 0 3px rgba(255,255,255,.5);background:#111;position:relative}
+.mirror-handmirror video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1);display:block}
+.mirror-handle{width:34px;height:74px;border-radius:0 0 18px 18px;background:linear-gradient(180deg,#C9A86A,#9A7B3F);box-shadow:0 10px 18px rgba(0,0,0,.35);margin-top:-6px}
+.mirror-answer-input{width:100%;font-size:17px;padding:13px 14px;border-radius:12px;border:2px solid rgba(139,94,52,.4);background:#fff;color:var(--ink);direction:rtl;text-align:right}
+.mirror-answer-input:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 3px rgba(31,138,140,.25)}

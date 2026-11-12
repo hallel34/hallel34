@@ -1,0 +1,104 @@
+/* EventsCalendar — אירועים משמעותיים */
+.ec-board {
+  /* v2: a real cork board — the notes are pinned to actual cork */
+  background:
+    radial-gradient(circle 3px at 18px 18px, rgba(0,0,0,.28) 96%, transparent),
+    radial-gradient(circle 3px at calc(100% - 18px) 18px, rgba(0,0,0,.28) 96%, transparent),
+    linear-gradient(160deg, rgba(146,102,52,.16), rgba(110,74,34,.22)),
+    url('../assets/tex-cork.jpg');
+  background-size: auto, auto, auto, cover;
+  border: 3px solid var(--wood-dark);
+  border-radius: 16px;
+  padding: 16px 12px 14px;
+  box-shadow: inset 0 2px 14px rgba(0,0,0,.35), 0 8px 18px rgba(0,0,0,.25);
+}
+.ec-board-head {
+  text-align: center;
+  color: #FFF6E9;
+  font-size: 19px;
+  font-weight: 900;
+  text-shadow: 0 2px 5px rgba(0,0,0,.5);
+  margin-bottom: 14px;
+  background: rgba(42,30,23,.35);
+  border-radius: 10px;
+  padding: 8px 6px;
+}
+.ec-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 12px;
+}
+.ec-note {
+  position: relative;
+  width: 100%;
+  min-height: 92px;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: right;
+  font-size: 15px;
+  line-height: 1.35;
+  transform: rotate(var(--rot, 0deg));
+  transition: transform .16s ease, box-shadow .16s ease;
+}
+.ec-note:active { transform: rotate(var(--rot, 0deg)) scale(.97); }
+.ec-note.selected {
+  transform: rotate(0deg) translateY(-6px) scale(1.04);
+  box-shadow: 0 0 0 3.5px var(--gold), 0 16px 24px rgba(0,0,0,.4);
+  z-index: 2;
+}
+.ec-note.locked {
+  background: linear-gradient(180deg, #D8F2D2, #B7E3B0) !important;
+  transform: rotate(0deg);
+  cursor: default;
+  box-shadow: 0 0 0 2.5px var(--green), 0 8px 16px rgba(0,0,0,.3);
+}
+.ec-pin {
+  position: absolute;
+  top: -13px;
+  inset-inline-start: 10px;
+  font-size: 19px;
+  filter: drop-shadow(0 3px 3px rgba(0,0,0,.4));
+}
+.ec-check {
+  position: absolute;
+  bottom: 7px;
+  inset-inline-end: 8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--green);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0,0,0,.3);
+}
+.ec-counter {
+  text-align: center;
+  font-weight: 800;
+  margin: 12px 0 8px;
+  min-height: 22px;
+}
+.ec-msg {
+  text-align: center;
+  font-weight: 800;
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-top: 12px;
+}
+.ec-msg.bad { background: #FDE3D8; color: var(--coral-dark); border: 2px solid var(--coral); }
+.ec-msg.good { background: #E4F3DF; color: var(--green-dark); border: 2px solid var(--green); }
+.ec-success {
+  margin-top: 14px;
+  text-align: center;
+  font-size: 19px;
+  font-weight: 900;
+  color: var(--green-dark);
+  background: linear-gradient(180deg, #E4F3DF, #CDEBC8);
+  border: 2px solid var(--green);
+  border-radius: 14px;
+  padding: 12px;
+}
