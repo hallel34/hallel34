@@ -157,6 +157,7 @@ const STEP = `(arg) => {
   }
   return d;
 }`;
+const STEP_FN = new Function(`return ${STEP}`)(); // a real function, so page.evaluate calls it with the argument
 /**
  * The text of every promotion sentence a player can read: the card before the choice and the log / fox lines after it. A node that was
  * moved between sentences left an amount missing (QA 0.5.0 P1-2); the amounts must be in every sentence, in family, full and junior.
@@ -176,7 +177,7 @@ async function playToEnd(page, { policy = 'buyer', promo = 'promotion-keep', bud
   const seen = { promotion: 0, lifestyle: false, rolls: 0, cardText: '', snippets: [] };
   let go = false;
   while (Date.now() < deadline) {
-    const d = await page.evaluate(STEP, { policy, promo, go });
+    const d = await page.evaluate(STEP_FN, { policy, promo, go });
     if (d.done) return { done: d.done, ...seen };
     if (d.hold) {
       // the promotion card is open: read it, watch the page for the sentences that follow, then answer it (the next step clicks)

@@ -128,12 +128,13 @@ const STEP = `(policy) => {
   }
   return d;
 }`;
+const STEP_FN = new Function(`return ${STEP}`)(); // a real function, so page.evaluate calls it with the argument
 async function playToEnd(page, policy, budgetMs = Number(process.env.SMOKE_GAME_MS || 300000)) {
   const deadline = Date.now() + budgetMs;
   let rolls = 0;
   let rerollSeen = false;
   while (Date.now() < deadline) {
-    const d = await page.evaluate(STEP, policy);
+    const d = await page.evaluate(STEP_FN, policy);
     if (d.done) return { done: d.done, rolls, rerollSeen };
     if (d.reroll) rerollSeen = true;
     if (d.clicked && (d.click === '[data-action="roll"]' || d.reroll)) rolls += 1;
