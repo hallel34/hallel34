@@ -24,3 +24,27 @@ The owner played v6 on his Android phone and rejected it ("על הפנים"). Hi
 - Reproduce on a real phone viewport (touch joystick path, not just desktop WASD + scripted Playwright): fix spawn points, camera collision/clipping, and per-room texture scales.
 - Raise house modeling realism toward the reference video (hero rooms: living room bookshelf wall, kitchen).
 - Keep: all 11 mini-games, creator flow, scoring/hints, 2D fallback, Hebrew RTL.
+
+---
+
+## v7 update (2026-11-12) — real-device failures diagnosed and fixed
+
+**Root causes found (v6 passed its sandbox test only because the test teleported):**
+- The living-room TV zone was sealed by sofa + armchair + bookshelf, the fridge by the dining set, and the bathtub sat directly behind the bathroom door. Collision had a "stuck => free movement" rule, so on a phone the player squeezed through furniture and ended up inside meshes (the "inside a white bathtub" screenshot).
+- The house rendered in a small card inside the 480px `.app-shell` column with a fixed 68° vertical FOV: in portrait that is ~35° horizontal, so any object filled the view (the hallway picture, a 1 m film-set still, swallowed the screen; the stage emoji sprite floated over it).
+- Touch: the joystick finger also drove camera look (shared pointer state).
+
+**What changed**
+- Layout made walkable; `window.__escapeHouse.unreachable()` flood-fills the floor from spawn and must return `[]` (run it after any furniture change). Overlaps are pushed out, never walked through.
+- House is full-screen (`position: fixed`), HUD overlays (goal, room, chips, inventory, exit) live inside `House3D`; FOV adapts to aspect; landscape supported; `House3D` got optional `inventory` / `onExit` props.
+- Look-drag bound to one pointer id; adaptive pixel ratio when fps < 26; no `backdrop-filter` over the canvas.
+- Stage/pickup markers are small sparkles on the object (no emoji billboards / sign boards). Film-set stills removed from the house; hallway "family picture" is the family-at-sunset photo in a matted frame.
+- Realism: 13 more Poly Haven CC0 models (TV cabinet, plants, drawers, desk, side table, shelves, mirror, clock, pillows, framed painting, desk lamp), procedural flat TV, daylight windows, shadow light follows the player's room.
+
+**Verified (Playwright, emulated Pixel 7 touch + landscape, software GL):** unreachable `[]`, joystick + second-finger look, pickup -> inventory, locked final target, in-room riddle, overlay stage opens, 2D fallback, 0 console errors. **NOT verified on a physical phone** — frame rate on real GPUs is unmeasured.
+
+**Still stylized / next steps toward the reference video**
+- Kenney low-poly pieces remain: kitchen cabinets, fridge, stove, wardrobes, beds, bathroom fixtures, doors, bookshelf units. Replace or rebuild procedurally with PBR materials (kitchen first).
+- Lighting is unbaked: 7 point lights + 1 shadow spot. Baked lightmaps / AO would be the biggest remaining realism win.
+- Windows are textured planes (no real openings / sun shafts). Hallway is only 1.6 m wide.
+- Mini-games, creator flow, scoring were not touched.

@@ -38,11 +38,13 @@
 }
 .house3d-subrow { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .house3d-room {
+  white-space: nowrap; flex: none;
   color: #ffe2a0; font-size: 13px; font-weight: 800;
   background: rgba(20, 14, 9, 0.66); border-radius: 999px; padding: 4px 12px;
 }
-.house3d-chips { display: flex; gap: 5px; flex-wrap: wrap; justify-content: flex-end; }
+.house3d-chips { display: flex; gap: 4px; flex-wrap: nowrap; justify-content: flex-end; min-width: 0; overflow: hidden; }
 .house3d-chip {
+  flex: none; white-space: nowrap;
   display: inline-flex; align-items: center; gap: 3px;
   padding: 3px 8px; border-radius: 999px;
   background: rgba(20, 14, 9, 0.66); color: #fff6e9;

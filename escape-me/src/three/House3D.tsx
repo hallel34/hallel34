@@ -22,12 +22,7 @@ import phTilesNorUrl from '../assets/ph-tiles-nor.jpg';
 import phSubwayDiffUrl from '../assets/ph-subway-diff.jpg';
 import phSubwayNorUrl from '../assets/ph-subway-nor.jpg';
 
-import tvUrl from '../assets/models/tv.glb?url';
-import tvStandUrl from '../assets/models/tv-stand.glb?url';
 import bookshelfUrl from '../assets/models/bookshelf.glb?url';
-import bookshelfLowUrl from '../assets/models/bookshelf-low.glb?url';
-import plantUrl from '../assets/models/plant.glb?url';
-import plantSmallUrl from '../assets/models/plant-small.glb?url';
 import floorLampUrl from '../assets/models/floor-lamp.glb?url';
 import ceilingLampUrl from '../assets/models/ceiling-lamp.glb?url';
 import kitchenCabinetUrl from '../assets/models/kitchen-cabinet.glb?url';
@@ -41,10 +36,8 @@ import microwaveUrl from '../assets/models/microwave.glb?url';
 import wardrobeUrl from '../assets/models/wardrobe.glb?url';
 import diningTableUrl from '../assets/models/dining-table.glb?url';
 import coatRackUrl from '../assets/models/coat-rack.glb?url';
-import sideTableUrl from '../assets/models/side-table.glb?url';
 import rugRoundUrl from '../assets/models/rug-round.glb?url';
 import wallLampUrl from '../assets/models/wall-lamp.glb?url';
-import deskUrl from '../assets/models/desk.glb?url';
 import chairDeskUrl from '../assets/models/chair-desk.glb?url';
 import computerScreenUrl from '../assets/models/computer-screen.glb?url';
 import bedBunkUrl from '../assets/models/bed-bunk.glb?url';
@@ -64,8 +57,6 @@ import phPlantTallUrl from '../assets/models/ph-plant-tall.glb?url';
 import phPlantBigUrl from '../assets/models/ph-plant-big.glb?url';
 import phPlantSmallUrl from '../assets/models/ph-plant-small.glb?url';
 import phCabinetUrl from '../assets/models/ph-cabinet.glb?url';
-import phFrameAUrl from '../assets/models/ph-frame-a.glb?url';
-import phFrameBUrl from '../assets/models/ph-frame-b.glb?url';
 import phFrameCUrl from '../assets/models/ph-frame-c.glb?url';
 import phClockUrl from '../assets/models/ph-clock.glb?url';
 import phPillowsUrl from '../assets/models/ph-pillows.glb?url';
@@ -73,10 +64,8 @@ import phDeskUrl from '../assets/models/ph-desk.glb?url';
 import phDrawerUrl from '../assets/models/ph-drawer.glb?url';
 import phSideTableUrl from '../assets/models/ph-side-table.glb?url';
 import phShelvesUrl from '../assets/models/ph-shelves.glb?url';
-import phStandFrameUrl from '../assets/models/ph-stand-frame.glb?url';
 import phMirrorUrl from '../assets/models/ph-mirror.glb?url';
 import phDeskLampUrl from '../assets/models/ph-desk-lamp.glb?url';
-import dresserUrl from '../assets/models/dresser.glb?url';
 import bathtubUrl from '../assets/models/bathtub.glb?url';
 import bathroomSinkUrl from '../assets/models/bathroom-sink.glb?url';
 import bathroomMirrorUrl from '../assets/models/bathroom-mirror.glb?url';
@@ -412,7 +401,7 @@ export default function House3D(props: House3DProps) {
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, touchUi ? 1.5 : 1.75));
     renderer.setSize(width, height);
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.0;
+    renderer.toneMappingExposure = 0.86;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.domElement.className = 'house3d-canvas-el';
@@ -426,7 +415,7 @@ export default function House3D(props: House3DProps) {
     const pmrem = new THREE.PMREMGenerator(renderer);
     try {
       scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
-      scene.environmentIntensity = 0.45;
+      scene.environmentIntensity = 0.3;
     } catch { /* environment is a nicety, not a requirement */ }
     pmrem.dispose();
 
@@ -443,7 +432,7 @@ export default function House3D(props: House3DProps) {
     camera.rotation.order = 'YXZ';
 
     /* ---- lights ---- */
-    scene.add(new THREE.HemisphereLight(0xfdf6ea, 0x5a4634, 0.62));
+    scene.add(new THREE.HemisphereLight(0xfdf6ea, 0x5a4634, 0.42));
     const roomLightPos: [number, number][] = [
       [-3.85, -2.1], [2.65, -2.9], [4.95, 0.6], [1.1, 0], [-3.85, 2.9], [1.1, 2.9], [4.95, 3.5],
     ];
@@ -452,7 +441,7 @@ export default function House3D(props: House3DProps) {
       pl.position.set(lx, 2.32, lz);
       scene.add(pl);
     });
-    const spot = new THREE.SpotLight(0xffe9c8, 70, 14, 1.12, 0.9, 1.4);
+    const spot = new THREE.SpotLight(0xffe9c8, 42, 14, 1.12, 0.9, 1.4);
     spot.position.set(-3.85, 2.62, -2.1);
     spot.target.position.set(-3.9, 0, -2.2);
     spot.castShadow = true;
@@ -664,9 +653,9 @@ export default function House3D(props: House3DProps) {
     {
       const mat = new THREE.Mesh(new THREE.BoxGeometry(0.74, 0.56, 0.012),
         new THREE.MeshStandardMaterial({ color: 0xf4f0e6, roughness: 0.95 }));
-      mat.position.set(1.2, 1.55, -0.705);
+      mat.position.set(1.2, 1.55, -0.715);
       scene.add(mat);
-      addFramedPhoto(PHOTO.sunset, 0.52, 0.35, 1.2, 1.55, -0.722, 0);
+      addFramedPhoto(PHOTO.sunset, 0.52, 0.35, 1.2, 1.55, -0.697, 0);
       const fm = new THREE.MeshStandardMaterial({ color: 0x2b2019, roughness: 0.6 });
       ([[0.8, 0.035, 0, 0.2975], [0.8, 0.035, 0, -0.2975], [0.035, 0.63, 0.3825, 0], [0.035, 0.63, -0.3825, 0]] as const).forEach(([w, h, dx, dy]) => {
         const bar = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.035), fm);
@@ -692,23 +681,19 @@ export default function House3D(props: House3DProps) {
     /* template is normalized: bbox bottom-center becomes the origin.  */
     /* ================================================================ */
     const MODEL_URLS: Record<string, string> = {
-      tv: tvUrl, tvStand: tvStandUrl,
-      bookshelf: bookshelfUrl, bookshelfLow: bookshelfLowUrl,
-      plant: plantUrl, plantSmall: plantSmallUrl, floorLamp: floorLampUrl, ceilingLamp: ceilingLampUrl,
+            bookshelf: bookshelfUrl,       floorLamp: floorLampUrl, ceilingLamp: ceilingLampUrl,
       kitchenCabinet: kitchenCabinetUrl, kitchenCabinetDrawer: kitchenCabinetDrawerUrl,
       kitchenCabinetUpper: kitchenCabinetUpperUrl, kitchenSink: kitchenSinkUrl, stove: stoveUrl,
       rangeHood: rangeHoodUrl, fridge: fridgeUrl, microwave: microwaveUrl, wardrobe: wardrobeUrl,
       diningTable: diningTableUrl, coatRack: coatRackUrl,
-      sideTable: sideTableUrl, rugRound: rugRoundUrl, wallLamp: wallLampUrl, desk: deskUrl,
-      chairDesk: chairDeskUrl, computerScreen: computerScreenUrl, bedBunk: bedBunkUrl,
-      bedDouble: bedDoubleUrl, tableLamp: tableLampUrl, dresser: dresserUrl,
-      phSofa: phSofaUrl, phArmchair: phArmchairUrl, phCoffeeTable: phCoffeeTableUrl,
+      rugRound: rugRoundUrl, wallLamp: wallLampUrl,       chairDesk: chairDeskUrl, computerScreen: computerScreenUrl, bedBunk: bedBunkUrl,
+      bedDouble: bedDoubleUrl, tableLamp: tableLampUrl,       phSofa: phSofaUrl, phArmchair: phArmchairUrl, phCoffeeTable: phCoffeeTableUrl,
       phCeilingLamp: phCeilingLampUrl, phKettle: phKettleUrl, phDiningChair: phDiningChairUrl,
       phNightstand: phNightstandUrl, phVase: phVaseUrl,
       bathtub: bathtubUrl, bathroomSink: bathroomSinkUrl, bathroomMirror: bathroomMirrorUrl,
       bathroomCabinet: bathroomCabinetUrl, toilet: toiletUrl, washingMachine: washingMachineUrl,
       door: doorUrl,
-      phPlantTall: phPlantTallUrl, phPlantBig: phPlantBigUrl, phPlantSmall: phPlantSmallUrl, phCabinet: phCabinetUrl, phFrameA: phFrameAUrl, phFrameB: phFrameBUrl, phFrameC: phFrameCUrl, phClock: phClockUrl, phPillows: phPillowsUrl, phDesk: phDeskUrl, phDrawer: phDrawerUrl, phSideTable: phSideTableUrl, phShelves: phShelvesUrl, phStandFrame: phStandFrameUrl, phMirror: phMirrorUrl, phDeskLamp: phDeskLampUrl,
+      phPlantTall: phPlantTallUrl, phPlantBig: phPlantBigUrl, phPlantSmall: phPlantSmallUrl, phCabinet: phCabinetUrl, phFrameC: phFrameCUrl, phClock: phClockUrl, phPillows: phPillowsUrl, phDesk: phDeskUrl, phDrawer: phDrawerUrl, phSideTable: phSideTableUrl, phShelves: phShelvesUrl, phMirror: phMirrorUrl, phDeskLamp: phDeskLampUrl,
     };
     interface Template { wrap: THREE.Group; size: THREE.Vector3 }
     const templates = new Map<string, Template | null>();
@@ -843,9 +828,9 @@ export default function House3D(props: House3DProps) {
       place('phArmchair', { x: -2.0, z: -4.15, rotY: -0.64, s: 1.0, collide: true, fb: [0.82, 1.02, 0.99] });
       place('phPlantTall', { x: -5.95, z: -4.45, fitH: 1.45, collide: true, fb: [0.5, 1.4, 0.5] });
       place('phPillows', { x: -4.75, z: -1.3, y: 0.47, rotY: Math.PI, fitW: 0.62, fb: [0.6, 0.4, 0.4] });
-      place('phFrameB', { x: -5.7, z: -4.905, y: 1.5, fitW: 0.95, fb: [0.95, 0.63, 0.03] });
+      place('phFrameC', { x: -5.7, z: -4.905, y: 1.45, fitW: 0.85, fb: [0.85, 0.65, 0.03] });
       place('phFrameC', { x: -4.2, z: 0.705, y: 1.5, rotY: Math.PI, fitW: 0.9, fb: [0.9, 0.7, 0.03] });
-      place('phFrameA', { x: -1.295, z: -3.6, y: 1.25, rotY: -Math.PI / 2, fitH: 0.8, fb: [0.56, 0.8, 0.03] });
+      place('phFrameC', { x: -1.295, z: -3.6, y: 1.4, rotY: -Math.PI / 2, fitW: 0.7, fb: [0.7, 0.54, 0.03] });
       place('floorLamp', { x: -2.92, z: -0.72, s: 1.9, fb: [0.23, 1.63, 0.23] });
       const lampGlow = new THREE.Sprite(new THREE.SpriteMaterial({
         map: glowTex, transparent: true, opacity: 0.4, blending: THREE.AdditiveBlending, depthWrite: false,
@@ -1012,7 +997,6 @@ export default function House3D(props: House3DProps) {
       place('phNightstand', { x: -0.91, z: 4.25, rotY: Math.PI / 2, s: 1.0, fb: [0.57, 0.7, 0.42] });
       place('tableLamp', { x: -0.91, z: 1.75, y: 0.7, s: 1.5, fb: [0.23, 0.47, 0.27] });
       place('phDrawer', { x: 1.9, z: 4.6, rotY: Math.PI, fitH: 0.72, collide: true, fb: [1.14, 0.72, 0.6] });
-      place('phStandFrame', { x: 1.32, z: 4.62, y: 0.72, rotY: Math.PI / 2 + 0.3, fitH: 0.24, fb: [0.1, 0.24, 0.2] });
       place('phPillows', { x: -0.75, z: 3.0, y: 0.62, rotY: Math.PI / 2, fitW: 0.6, fb: [0.6, 0.4, 0.4] });
       place('wardrobe', { x: 3.0, z: 1.7, rotY: -Math.PI / 2, s: 2.55, collide: true, fb: [1.0, 2.17, 0.64] }); // wardrobe-big
 
@@ -1172,7 +1156,7 @@ export default function House3D(props: House3DProps) {
         ring.position.set(a.s[0] * 0.55, 0.02, a.s[1] * 0.55);
         group.add(ring);
         // a small warm sparkle sitting ON the object (reads as "something here")
-        const emoji = mkSprite(sparkTex, 0.2, a.s[0] * 0.12, baseY, a.s[1] * 0.12);
+        const emoji = mkSprite(sparkTex, 0.13, a.s[0] * 0.12, baseY, a.s[1] * 0.12);
         emoji.sm.blending = THREE.AdditiveBlending;
         group.add(emoji.sp);
         const badge = mkSprite(badgeTex, 0.15, a.s[0] * 0.12, baseY, a.s[1] * 0.12);
@@ -1194,7 +1178,7 @@ export default function House3D(props: House3DProps) {
         const { ring, mat } = mkRing(0.16, 0.19, 0x9fe8dc, 0.4);
         ring.position.set(a.s[0] * 0.55, 0.02, a.s[1] * 0.55);
         group.add(ring);
-        const s = mkSprite(sparkTex, 0.16, a.s[0] * 0.12, a.p[1] + 0.1, a.s[1] * 0.12);
+        const s = mkSprite(sparkTex, 0.11, a.s[0] * 0.12, a.p[1] + 0.1, a.s[1] * 0.12);
         s.sm.blending = THREE.AdditiveBlending;
         group.add(s.sp);
         group.visible = !pk.collected;
@@ -1661,7 +1645,7 @@ export default function House3D(props: House3DProps) {
         rigs.stages.forEach((rig) => {
           if (!rig.done) {
             rig.ringMat.opacity = 0.3 + Math.sin(elapsed * 3 + rig.phase) * 0.14;
-            const k = 0.2 + Math.sin(elapsed * 2.4 + rig.phase) * 0.05;
+            const k = 0.13 + Math.sin(elapsed * 2.4 + rig.phase) * 0.03;
             rig.emojiSprite.scale.set(k, k, 1);
             rig.emojiMat.rotation = elapsed * 0.5 + rig.phase;
           }
