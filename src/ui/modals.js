@@ -19,7 +19,7 @@ import { haptic, countUp } from './fx.js';
 import { categoryOf, categoryChip, categoryIcon } from './categories.js';
 import {
   monthlyCashFlow, passiveIncome, totalExpenses, maxLoan, loanCap, loanLimits, saleValue, canSell, loanPaydayImpact,
-  paybackTier, PAYDAY_MONTHS, MONTHS_PER_YEAR, purchasePlan, loanTerms, dealMetrics, balanceSheet, assetLoanPayment, loanRateNow,
+  paybackTier, PAYDAY_MONTHS, MONTHS_PER_YEAR, purchasePlan, loanTerms, dealMetrics, balanceSheet, projectedDebt, assetLoanPayment, loanRateNow,
 } from '../engine/index.js';
 import { loanStep, TIMED_EFFECT_KINDS as TIMED_EFFECTS, auctionStep, auctionMinBid } from '../engine/index.js';
 import { cafeScene } from './cafe-scene.js';
@@ -313,6 +313,16 @@ export function dealChoiceModal(state) {
 }
 
 /** 'down payment + loan = price' as three label/value columns: the debt that comes with the deal stays visible. */
+/** The projected debt after buying, as rows that add up: today's debts, the deal's loan, a bank loan for the down payment (only when needed), the total. */
+function debtLedger({ c, debtNow, bankLoan, debt, scope }) {
+  const row = (cls, label, value, op = '') => h('div', { class: `dl-row ${cls}` }, h('span', { class: 'dl-label' }, op ? `${op} ` : '', label), h('span', { class: 'dl-value' }, money(value)));
+  return h('div', { class: 'debt-after debt-ledger', 'data-debt-after': String(debt) },
+    row('dl-now', t('card.debtNow'), debtNow),
+    c.mortgage > 0 ? row('dl-deal', tn(c.type === 'business' ? 'card.businessLoan' : 'card.mortgage', {}, { scope }), c.mortgage, '+') : null,
+    bankLoan > 0 ? row('dl-bank', t('card.debtBank'), bankLoan, '+') : null,
+    row('dl-total', t('card.debtAfter'), debt, '='));
+}
+
 function priceEquation(c, scope) {
   const cell = (cls, label, value) => { const tile = statTile(label, value); tile.classList.add('pe-cell', cls); return tile; };
   return h('div', { class: 'price-eq', 'data-price-eq': '' },
@@ -383,10 +393,14 @@ export function opportunityModal(state, { guess = null, tour = null, reno = null
     // no monthly breakdown (their 4-5 digit coin amounts and the loan inside the price are for grown-ups). The buy hint stays.
     // v0.4 exception: the freedom-gain line is a percent (scale-free, no money amount), so juniors see it too.
     if (coinScale()) return { key, quiet: [freedomGainLine(state, c)] };
-    const debt = balanceSheet(state).liabilitiesTotal + c.mortgage + (plan.status === 'loan' ? plan.need : 0);
+    // The projected debt is a ledger the player can add up: today's debts (the same total as the financial report: starting debts, the loans of
+    // assets already owned, bank loans) + the deal's own loan + the bank loan the buy flow will open when cash is short. That loan is
+    // plan.loanAmount (the need rounded UP to the loan step, the smallest amount the loan dialog offers), not plan.need: the old figure was up
+    // to a step minus 1 too low (live QA F6, traced with the coffee-cart card).
+    const { now: debtNow, bank: bankLoan, total: debt } = projectedDebt(state, c, plan);
     const quiet = [
       priceEquation(c, scope),
-      h('p', { class: 'debt-after', 'data-debt-after': String(debt) }, tn('card.debtAfter', { debt: money(debt) })),
+      debtLedger({ c, debtNow, bankLoan, debt, scope }),
       breakdown(c, scope),
       c.monthlyCashFlow < 0
         ? h('div', { class: 'banner banner-warn' }, icon('expense', { size: 20 }), h('span', null, tn('card.negativeFlow', { amount: money(-c.monthlyCashFlow) })))

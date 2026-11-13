@@ -86,7 +86,8 @@ export function createPick({ engine, mode, onBack, onGo, player = null, junior =
         expenseRows.hidden = !open;
       });
       const rk = rankNow(id);
-      scroll.replaceChildren(
+      // native replaceChildren() turns a null argument into the text "null" (h() skips nulls, this call does not): optional blocks are filtered out
+      scroll.replaceChildren(...[
         h('div', { class: 'pick-head' },
           h('span', { class: 'pick-fox', 'aria-hidden': 'true' }, professionFox(id, { width: 104, eager: true })),
           h('div', null, h('h2', { class: 'dialog-title' }, rk > 0 ? rankTitle(id, rk) : p0.title), h('p', { class: 'muted' }, tn('pick.perMonth', { amount: money(p.salary) })))),
@@ -102,7 +103,7 @@ export function createPick({ engine, mode, onBack, onGo, player = null, junior =
           h('h3', { class: 'st-title' }, tn('pick.liabilities', {}, { scope })),
           ...p.liabilities.map((l) => row(l.label, money(l.principal)))) : null,
         row(tn('pick.cashflow', {}, { scope }), money(st.monthlyCashFlow, { sign: true }), 'total'),
-        h('div', { class: 'banner banner-info' }, icon('star', { size: 24 }), h('span', null, tn('pick.goal', {}, { scope }))));
+        h('div', { class: 'banner banner-info' }, icon('star', { size: 24 }), h('span', null, tn('pick.goal', {}, { scope })))].filter(Boolean));
     }
     const content = h('div', { class: 'sheet pick-sheet' },
       h('button', { type: 'button', class: 'sheet-handle', 'aria-label': t('a11y.sheetHandle'), onClick: () => layer.close() }, h('i')),

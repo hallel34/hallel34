@@ -127,6 +127,18 @@ export function purchasePlan(s, cost) {
 }
 
 /**
+ * The debt a deal card projects, as parts that add up: today's debts (the financial report's total: starting debts, the loans of assets already
+ * owned, bank loans) + the deal's own loan (mortgage / business loan) + the bank loan the purchase will open when cash is short. That loan is
+ * plan.loanAmount (the need rounded up to the loan step: the smallest loan the dialog offers), never the bare need (live QA F6).
+ */
+export function projectedDebt(s, card, plan = purchasePlan(s, card.downPayment)) {
+  const now = balanceSheet(s).liabilitiesTotal;
+  const deal = card.mortgage ?? 0;
+  const bank = plan.status === 'loan' ? plan.loanAmount : 0;
+  return { now, deal, bank, total: now + deal + bank };
+}
+
+/**
  * Monthly interest rate of a bank loan (a fraction): the one stored with the loan, else what its payment says. Loans taken
  * before the 1%/month rule (10% of the principal) carry no `rate`; they must be labelled with THEIR rate, not today's.
  */

@@ -4,7 +4,7 @@ import { t, tp } from '../../i18n/index.js';
 import { foxImg, riseIn } from '../fox.js';
 import { motionOK } from '../prefs.js';
 import { button } from '../widgets.js';
-import { money, moneyIsolated, numberText } from '../format.js';
+import { money, moneyIsolated, numberText, coinScale } from '../format.js';
 import { shareText } from './daily.js';
 import { meter } from '../widgets.js';
 import { confetti, haptic, sound, toast, animate } from '../fx.js';
@@ -49,7 +49,13 @@ export function createWin({ match, onAgain, onMenu }) {
   const st = statement(state);
   const m = meter({ large: true });
   m.set(st.passiveIncome, st.totalExpenses, { animate: false });
-  const text = t('win.shareText', { turns: tp('plural.turnsIn', state.turn), passive: moneyIsolated(st.passiveIncome) });
+  // The headline follows the REAL win condition (the engine sets state.status 'won' only when passive income > total monthly expenses). A short
+  // game that ran out of rounds ends with match.status 'won' + shortFinish but the player's state still 'playing': that is an honest "rounds over"
+  // result with the percent reached, never "חופש כלכלי!" (live QA F3).
+  const freedom = state.status === 'won';
+  const text = freedom
+    ? t('win.shareText', { turns: tp('plural.turnsIn', state.turn), passive: moneyIsolated(st.passiveIncome) })
+    : t('win.shortShareText', { rounds: numberText(match.roundCap ?? state.turn), passive: moneyIsolated(st.passiveIncome), expenses: moneyIsolated(st.totalExpenses) });
   const share = async () => {
     haptic('tap');
     // the Web Share API when there is one; otherwise (or when it fails) the clipboard, then a toast says what happened
@@ -63,13 +69,15 @@ export function createWin({ match, onAgain, onMenu }) {
   };
   const shareBox = h('textarea', { class: 'daily-sharebox win-sharebox', readonly: '', hidden: true, rows: 3, 'aria-label': t('daily.shareBox'), 'data-sharebox': '' });
   shareBox.value = text.replace(/[\u2066-\u2069]/g, '');
-  const hammock = foxImg('hammock', { height: 250, altKey: 'fox.alt.hammock', cls: 'hammock', lazy: true });
-  const winFox = h('div', { class: 'win-fox' }, h('div', { class: 'fox-halo fox-halo-win', 'aria-hidden': 'true' }), hammock, h('i', { class: 'glint', 'aria-hidden': 'true' }));
-  const el = h('section', { class: 'screen screen-win', 'data-screen': 'win' },
+  const hammock = freedom ? foxImg('hammock', { height: 250, altKey: 'fox.alt.hammock', cls: 'hammock', lazy: true }) : foxImg('think', { size: 190, altKey: 'fox.alt.think', cls: 'sway' });
+  const winFox = freedom
+    ? h('div', { class: 'win-fox' }, h('div', { class: 'fox-halo fox-halo-win', 'aria-hidden': 'true' }), hammock, h('i', { class: 'glint', 'aria-hidden': 'true' }))
+    : h('div', { class: 'over-fox' }, h('div', { class: 'fox-halo fox-halo-muted', 'aria-hidden': 'true' }), hammock);
+  const el = h('section', { class: `screen screen-win${freedom ? '' : ' is-rounds'}`, 'data-screen': 'win', 'data-freedom': String(freedom) },
     h('div', { class: 'end-hero' },
       winFox,
-      h('h1', { class: 'title title-win' }, t('win.title')),
-      h('p', { class: 'tagline' }, match.shortFinish ? t('win.shortText') : t('win.text'))),
+      h('h1', { class: `title ${freedom ? 'title-win' : 'title-over'}` }, t(freedom ? 'win.title' : 'win.shortTitle')),
+      h('p', { class: 'tagline' }, freedom ? t('win.text') : coinScale() ? t('win.shortTextJunior') : t('win.shortText'))),
     h('div', { class: 'end-card' },
       h('div', { class: 'win-compare' },
         h('div', null, h('span', { class: 'stat-label' }, t('win.passive')), h('div', { class: 'win-big tone-income' }, money(st.passiveIncome))),
@@ -93,9 +101,11 @@ export function createWin({ match, onAgain, onMenu }) {
   return {
     el,
     start() {
-      haptic('win'); sound('win');
-      confetti(el);
-      dropIn(hammock);
+      if (freedom) {
+        haptic('win'); sound('win');
+        confetti(el);
+        dropIn(hammock);
+      } else riseIn(hammock); // a calm arrival: no confetti, no win sound
       careerRun(career);
     },
   };
