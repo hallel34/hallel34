@@ -63,6 +63,7 @@ import { yearsPhrase, fillSlots } from '../learn/slots.js';
 import coinUrl from '../assets/coin.svg?url';
 import pawnUrl from '../assets/pawn.svg?url';
 import { challengeChip } from './challenge/hud-chip.js';
+import { ensureCareerStrings } from '../i18n/index.js';
 
 // v4 stage (docs/v4/design/board-spec.md section 5): the HOME skyline (start.js SKY: 10 buildings, 8 windows, no stars) as one
 // inline SVG behind the board plate's lower half and the fox strip (viewBox 0 640 360 160, meet, so % maps exactly). Two windows
@@ -1341,6 +1342,17 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
           const slots = foxSlotsText(before, state);
           const pick = nextDecisionLine(decisionFoxVariants(p.card, r.option, state.mode), (v) => fillSlots(v, slots)); // per device
           if (pick) flow.notes.push({ kind: 'feedback', group: 'decision', pose: 'think', tone: 'neutral', plain: pick.text, body: feedbackNodes(pick.line, slots) });
+        }
+      } else if (p.kind === 'promotion') {
+        // 0.5.0: the in-game promotion (a decision card, lazy chunk with its strings): keep the lifestyle or upgrade it
+        await ensureCareerStrings();
+        const { promotionModal, promotionLines } = await import('./career/promotion.js');
+        r = await promotionModal(state);
+        if (!r) break; // closed by debug force
+        if (apply((s) => engine.dispatch(s, { type: r.action === 'upgrade' ? 'promotionUpgrade' : 'promotionKeep' }))) {
+          const lines = promotionLines(r.action, state);
+          pushLog(lines.log);
+          flow.notes.push({ kind: 'feedback', group: 'promotion', pose: 'think', tone: 'neutral', plain: lines.body.textContent ?? '', body: lines.body });
         }
       } else if (p.kind === 'taxAudit') {
         // v4 stage 4: the tax-audit quiz; knowledge points only (the engine never moves money here)

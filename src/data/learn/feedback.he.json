@@ -1,7 +1,7 @@
 {
   "version": 2,
   "notes": {
-    "endGroups": "lose is ONLY for a player who is actually out (negative cash flow, no cash, loan limit reached; its lines say the cash ran out). A multiplayer player who did not win but is still in the game gets end.neutral (its lines never mention cash). win lines are true for any win; the optional win.fastPayback / win.diversified / win.noBankLoan lines may be appended as a second line only when their condition holds (spec section 2.4).",
+    "endGroups": "end.rounds = a player whose SHORT game ended on the round limit (solo or hot-seat): nobody reached freedom, so end.neutral (\"someone else reached it\") would be false. lose is ONLY for a player who is actually out (negative cash flow, no cash, loan limit reached; its lines say the cash ran out). A multiplayer player who did not win but is still in the game gets end.neutral (its lines never mention cash). win lines are true for any win; the optional win.fastPayback / win.diversified / win.noBankLoan lines may be appended as a second line only when their condition holds (spec section 2.4).",
     "loanTotalLabel": {
       "label": "סך הכול להחזיר",
       "qualifier": "אם תחזירו את ההלוואה בסיכום הקרוב",
@@ -359,6 +359,18 @@
         "הסיבוב נגמר כשמישהו אחר הגיע לחופש כלכלי. הדוח מראה את ההחלטות שלכם, ובו אפשר לבדוק מה עבד ומה אפשר לשפר.",
         "הפעם מישהו אחר היה ראשון לחופש כלכלי. השוו בדוח את ההכנסה הפסיבית וההוצאות שלכם, ובדקו מה היה משנה את התמונה.",
         "הניצחון הפעם היה של מישהו אחר. לפני סיבוב נוסף כדאי לבדוק בדוח איזו החלטה אחת הייתם משנים."
+      ]
+    },
+    "end.rounds": {
+      "family": [
+        "הסיבובים נגמרו. הכסף שעובד בשבילכם הגיע ל-{passive} בחודש, וההוצאות הן {expenses}. בפעם הבאה אפשר לנסות לקנות עסקה טובה מוקדם יותר.",
+        "נגמרו הסיבובים, ועוד לא הגעתם לחופש כלכלי: {passive} בחודש מכסף שעובד מול {expenses} הוצאות. בדקו בדוח איזו החלטה אפשר לשנות.",
+        "המשחק נעצר כאן: כסף שעובד {passive}, הוצאות {expenses}. כדי להגיע לחופש צריך שהכסף שעובד יהיה גדול מההוצאות. נסו לחפש עסקאות שמכניסות יותר בכל חודש."
+      ],
+      "full": [
+        "הסיבובים נגמרו לפני שהגעתם לחופש כלכלי: הכנסה פסיבית של {passive} בחודש מול הוצאות של {expenses}. בדוח אפשר לעבור על ההחלטות שלכם.",
+        "במשחק קצר יש מעט סיבובים, ולכן {passive} הכנסה פסיבית מול {expenses} הוצאות הם עדיין שלב בדרך. בפעם הבאה נסו לקנות נכס מניב מוקדם יותר, אחרי שבדקתם את תקופת ההחזר שלו.",
+        "נגמרו הסיבובים. כדי להגיע לחופש כלכלי צריך הכנסה פסיבית גבוהה מההוצאות החודשיות ({expenses}), ואצלכם היא {passive}. לפני משחק נוסף בחרו החלטה אחת לשנות."
       ]
     },
     "lose": {

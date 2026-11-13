@@ -204,7 +204,7 @@ describe('the engine records every decision (state.learn)', () => {
 
 describe('save schema 3 and migration', () => {
   it('the schema is 5 and a round trip keeps the learn record', () => {
-    expect(SCHEMA_VERSION).toBe(9);
+    expect(SCHEMA_VERSION).toBe(10);
     let m = newMatch(engine, { mode: 'family', seed: 3, players: [{ professionId: 'teacher' }] });
     m = { ...m, players: [{ ...m.players[0], state: unlockConcept(markShown(engine.buy(withCard('opp-apt-001')), 'x'), 'yield') }] };
     const back = deserialize(serialize(m));
@@ -218,7 +218,7 @@ describe('save schema 3 and migration', () => {
     old.schemaVersion = 2;
     for (const p of old.players) { delete p.state.learn; p.state.schemaVersion = 2; }
     const back = deserialize(JSON.stringify(old));
-    expect(back.schemaVersion).toBe(9);
+    expect(back.schemaVersion).toBe(10);
     expect(back.players.map((p) => p.state.learn)).toEqual([emptyLearn(), emptyLearn()]);
     expect(back.players[0].state.profession.id).toBe('teacher');
   });
@@ -227,7 +227,7 @@ describe('save schema 3 and migration', () => {
     const v1 = { ...s, schemaVersion: 1 };
     delete v1.learn;
     const back = deserialize(JSON.stringify(v1));
-    expect(back.schemaVersion).toBe(9);
+    expect(back.schemaVersion).toBe(10);
     expect(back.players[0].state.learn).toEqual(emptyLearn());
   });
   it('an old game that has no interestPaid still reports without that section', () => {
@@ -473,10 +473,10 @@ describe('feedback requests from what changed', () => {
 });
 
 describe('concepts: first-seen logic (spec 3)', () => {
-  it('family mode knows 11 concepts, full mode 14; dividend, net worth and diversification are full only', () => {
-    expect(conceptList()).toHaveLength(14);
-    expect(conceptsForMode('family')).toHaveLength(11);
-    expect(conceptsForMode('full')).toHaveLength(14);
+  it('family mode knows 12 concepts, full mode 15; dividend, net worth and diversification are full only', () => {
+    expect(conceptList()).toHaveLength(15);
+    expect(conceptsForMode('family')).toHaveLength(12);
+    expect(conceptsForMode('full')).toHaveLength(15);
     expect(conceptsForMode('family').map((c) => c.id)).not.toEqual(expect.arrayContaining(['dividend']));
     expect(conceptsForMode('full').filter((c) => c.level === 'full').map((c) => c.id).sort()).toEqual(['diversification', 'dividend', 'net_worth']);
   });
@@ -657,7 +657,7 @@ describe('report (L4)', () => {
     const s = { ...stateWith([]), mode: 'full', status: 'won' };
     s.learn.concepts = ['dividend'];
     const v = reportView(s, { seed: 1 });
-    expect(v.sections.find((x) => x.id === 'concepts').text).toContain('14');
+    expect(v.sections.find((x) => x.id === 'concepts').text).toContain('15');
     const f = reportView({ ...stateWith([]), status: 'won' }, { seed: 1 });
     expect(f.sections.find((x) => x.id === 'concepts').text).toContain(content.report.sections.concepts.none);
   });

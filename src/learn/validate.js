@@ -11,7 +11,7 @@ export const FEEDBACK_GROUPS = [
   'expense.cushion', 'expense.loan', 'expense.forcedSale',
   'charity.donate', 'charity.skip', 'baby', 'baby.max',
   'market.sold', 'market.kept', 'market.priceUp', 'market.priceDown', 'market.cashGood', 'market.cashBad',
-  'win', 'lose', 'end.neutral', 'win.fastPayback', 'win.diversified', 'win.noBankLoan',
+  'win', 'lose', 'end.neutral', 'end.rounds', 'win.fastPayback', 'win.diversified', 'win.noBankLoan',
 ];
 export const CONCEPT_LEVELS = ['family', 'full'];
 export const GLOSSARY_SLOTS = ['months', 'monthlyRate', 'rate', 'amount', 'monthlyPayment', 'interest', 'total'];

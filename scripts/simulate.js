@@ -1,3 +1,5 @@
+// 0.5.0: --promotion=on|off (default on: the shipping rules, the in-game promotion in every game; off = the 0.5.1 game), --rank=0..3 (every
+// game at that career rank), --rankTable (profession x rank medians of the sensible bot, both modes + junior; --perRankBots adds more bots).
 // npm run simulate [-- --rng=v1|turn|positional --games=100 --max=200 --bots=sensible,alwaysBuy,... --modes=family,full,junior --perProfession --json=out.json --multiplayer=0]
 // mode 'junior' = a family game on the 'צעירים' round rules (owner 2026-10-26).
 // Plays N games per mode / bot / profession and prints balance statistics.
@@ -23,6 +25,8 @@ const args = Object.fromEntries(process.argv.slice(2).map((a) => {
   return [k, v ?? true];
 }));
 const GAMES = Number(args.games ?? 100);
+const PROMOTION = (args.promotion ?? 'on') !== 'off';
+const RANK = Number(args.rank ?? 0);
 const MAX_TURNS = Number(args.max ?? 200);
 const botNames = (args.bots ?? 'sensible,cautious,alwaysBuy,overBorrow,overBorrowLite,alwaysPass').split(',');
 
@@ -30,8 +34,9 @@ const pct = (a, q) => { const s = [...a].sort((x, y) => x - y); return s.length 
 const avg = (a) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : NaN);
 const f1 = (x) => (Number.isNaN(x) ? '-' : x.toFixed(1));
 
-function play(mode, bot, professionId, seed) {
-  let s = mode === 'junior' ? engine.newGame({ mode: 'family', professionId, seed, junior: true, rngVersion }) : engine.newGame({ mode, professionId, seed, rngVersion });
+function play(mode, bot, professionId, seed, rank = RANK) {
+  const career = { rank, promotion: PROMOTION && rngVersion === 2 };
+  let s = mode === 'junior' ? engine.newGame({ mode: 'family', professionId, seed, junior: true, rngVersion, ...career }) : engine.newGame({ mode, professionId, seed, rngVersion, ...career });
   let cash10 = null;
   let guard = 0;
   while (s.status === 'playing' && s.turn < MAX_TURNS && guard++ < 5000) {
@@ -41,11 +46,11 @@ function play(mode, bot, professionId, seed) {
   return { s, cash10 };
 }
 
-function run(mode, bot, professionIds, games) {
+function run(mode, bot, professionIds, games, rank = RANK) {
   const res = { wins: [], lost: 0, timeout: 0, loans: [], cash10: [], n: 0 };
   for (let g = 0; g < games; g++) {
     const professionId = professionIds[g % professionIds.length];
-    const { s, cash10 } = play(mode, bot, professionId, 1000 + g * 7919);
+    const { s, cash10 } = play(mode, bot, professionId, 1000 + g * 7919, rank);
     res.n++;
     if (cash10 !== null) res.cash10.push(cash10);
     res.loans.push(s.stats.loansTaken);
@@ -68,7 +73,25 @@ const record = (mode, bot, profession, r) => out.rows.push({
 });
 
 const allProfs = data.professions.map((p) => p.id);
-console.log(`Simulation: ${GAMES} games per row, cap ${MAX_TURNS} turns (professions rotated)\n`);
+console.log(`Simulation: ${GAMES} games per row, cap ${MAX_TURNS} turns (professions rotated), promotion ${PROMOTION ? 'on' : 'off'}, rank ${RANK}\n`);
+if (args.rankTable) {
+  // profession x rank: median / p90 / lost % (timeouts in brackets), per mode, for each bot of --perRankBots
+  for (const bot of String(args.perRankBots ?? 'sensible').split(',')) {
+    for (const mode of String(args.modes ?? 'family,full,junior').split(',')) {
+      console.log(`== ${bot}, ${mode}: median / p90 / lost%  (rank 0 | 1 | 2 | 3)`);
+      for (const p of data.professions) {
+        const cells = [0, 1, 2, 3].map((rank) => {
+          if (rank > 0 && !p.ranks?.[rank - 1]) return '-';
+          const r = run(mode, bot, [p.id], GAMES, rank);
+          return `${f1(pct(r.wins, 0.5)).replace('.0', '')}/${f1(pct(r.wins, 0.9)).replace('.0', '')}/${(100 * r.lost / r.n).toFixed(0)}${r.timeout ? `(T${r.timeout})` : ''}`;
+        });
+        console.log(`  ${p.id.padEnd(11)} ${cells.map((c) => c.padStart(14)).join(' |')}`);
+        record(mode, bot, `${p.id}@ranks`, { n: 0, wins: [], lost: 0, timeout: 0, loans: [], cash10: [] });
+      }
+    }
+  }
+  process.exit(0);
+}
 const modes = String(args.modes ?? 'family,full').split(',');
 for (const mode of modes) {
   console.log(`== mode: ${mode}`);

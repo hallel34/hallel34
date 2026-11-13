@@ -30,6 +30,17 @@ const PATHS = {
   familyBoard: '<path d="M3 20.5V15h6v5.5M9 20.5V11h6v9.5M15 20.5V13.5h6v7M2 20.5h20"/><path d="M12 3.2l.9 1.9 2 .3-1.5 1.4.4 2-1.8-1-1.8 1 .4-2-1.5-1.4 2-.3z"/>',
   replay: '<path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3"/><path d="M4.2 3.8v3.4h3.4"/><path d="M10.5 9.2v5.6l4.4-2.8z"/>',
   split: '<path d="M12 21v-7"/><path d="M12 14L6.4 6.4M12 14l5.6-7.6"/><path d="M6 10.5V6h4.5M18 10.5V6h-4.5"/>',
+  // 0.5.0 career icons (src/assets/career/*.svg, stroke 2: pass { width: 2 })
+  rank0: '<circle cx="12" cy="12" r="3.5"/>',
+  rank1: '<path d="M6 14.5l6-5 6 5"/>',
+  rank2: '<path d="M6 11.7l6-5 6 5"/><path d="M6 17.3l6-5 6 5"/>',
+  rank3: '<path d="M6 9l6-5 6 5"/><path d="M6 14.5l6-5 6 5"/><path d="M6 20l6-5 6 5"/>',
+  seniority: '<rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M8 3v4M16 3v4M3.5 10h17"/><path d="M8.7 15.2l2.3 2.3 4.4-4.6"/>',
+  seniorityDue: '<rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M8 3v4M16 3v4M3.5 10h17"/><path d="M12 12.8v2.9l2 1.3"/>',
+  seniorityWait: '<rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M8 3v4M16 3v4M3.5 10h17"/><path d="M10.2 13.3v4M13.8 13.3v4"/>',
+  promoWeek: '<path d="M12 20.5V9"/><path d="M7 13.5l5-5 5 5"/><path d="M5 3.5v3M3.5 5h3"/><path d="M19 3.5v3M17.5 5h3"/>',
+  achievementEarned: '<circle cx="12" cy="9.5" r="6"/><path d="M8.6 14.6L7 21l5-2.6 5 2.6-1.6-6.4"/><path d="M9.5 9.6l1.8 1.8 3.2-3.5"/>',
+  achievementLocked: '<rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/><path d="M12 14.5v2"/>',
   bank: '<path d="M3 10l9-6 9 6M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20h18"/>',
 };
 

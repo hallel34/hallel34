@@ -19,8 +19,8 @@ function sectionNode(sec, extra = null) {
 }
 
 /** The report of one player's final state as DOM (also used by tests through its data attributes). */
-export function reportBody(state, { seed, theme, onTheme, onDictionary }) {
-  const v = reportView(state, { seed, theme });
+export function reportBody(state, { seed, theme, onTheme, onDictionary, shortFinish = false }) {
+  const v = reportView(state, { seed, theme, shortFinish });
   const conv = h('section', { class: 'rep-sec rep-conv', 'data-section': 'conversation', 'data-theme': v.conversation.theme, 'aria-live': 'polite' },
     h('h3', { class: 'rep-title' }, v.conversation.title),
     h('p', { class: 'rep-intro' }, v.conversation.intro),
@@ -70,7 +70,7 @@ export function openReport({ match, index = null }) {
     paintPicker();
     scroll.setAttribute('aria-label', multi ? `${t('learn.reportPlayer')} ${playerName(p, who)}` : t('learn.reportOpen'));
     const body = reportBody(p.state, {
-      seed: p.state.seed, theme,
+      seed: p.state.seed, theme, shortFinish: !!match.shortFinish,
       onTheme: () => { theme += 1; haptic('tap'); render('[data-action="next-theme"]'); scroll.querySelector('[data-section="conversation"]')?.scrollIntoView?.({ block: 'nearest' }); },
       onDictionary: () => openDictionary(),
     });

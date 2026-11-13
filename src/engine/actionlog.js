@@ -1,14 +1,15 @@
 // Compact action log (v0.5, docs/RNG.md): { rngVersion, seed, config, actions } <-> a base64url string for a link.
 // Pure: no DOM. Layout (all integers are unsigned LEB128 varints):
-//   'M' 'F'  format byte (2)  rngVersion  seed  flags (bit0 full mode, bit1 junior, bit2 daily date present,
-//            format 2 only: bit3 friend challenge (0.5.1), bit4 display name present)
+//   'M' 'F'  format byte (3)  rngVersion  seed  flags (bit0 full mode, bit1 junior, bit2 daily date present,
+//            format 2+: bit3 friend challenge (0.5.1), bit4 display name present,
+//            format 3 (0.5.0 career): bits 5-6 the career rank (0-3), bit7 the game has the in-game promotion)
 //   string-table: count, then each string as (byte length, UTF-8 bytes)   professionId (table index)   [daily date (index)]
 //   [display name (index), format 2 only]
 //   action count, then each action: 1 type byte (ACTION_CODES) + its arguments (strings are table indexes); a roll has none
 //   CRC32 (4 bytes, little endian) over every byte before it
 // decode() refuses a bad header, version, type code, argument, length, trailing byte or checksum with an ActionLogError.
 // The checksum catches a damaged or hand-edited link; the proof that a result is real is replaying the decoded log.
-// Decode accepts format 1 (v0.5 step 1: no challenge bit, no name) and format 2; encode always writes format 2.
+// Decode accepts format 1 (v0.5 step 1: no challenge bit, no name), format 2 (0.5.1: no rank, no promotion = rank 0) and format 3; encode always writes format 3.
 
 /** code: 'FORMAT' (malformed / truncated), 'CRC' (checksum mismatch), 'VERSION' (another format or rng version). */
 export class ActionLogError extends Error {
@@ -16,8 +17,8 @@ export class ActionLogError extends Error {
 }
 const fail = (msg, code) => { throw new ActionLogError(msg, code); };
 
-export const FORMAT_VERSION = 2;
-export const FORMATS_READ = [1, 2];
+export const FORMAT_VERSION = 3;
+export const FORMATS_READ = [1, 2, 3];
 /** A creator's display name in a link: at most this many characters (code points) after sanitizing. */
 export const NAME_MAX_CHARS = 16;
 /**
@@ -37,7 +38,10 @@ export const ACTION_CODES = {
   roll: 1, armReroll: 2, chooseDeal: 3, guess: 4, buy: 5, pass: 6, renovate: 7, auctionWin: 8, acceptOffer: 9,
   declineOffer: 10, donate: 11, declineCharity: 12, takeLoan: 13, repayLoan: 14, sellAsset: 15, decide: 16,
   answerAudit: 17, forfeit: 18, debugForce: 19, auctionOpen: 20, auctionClose: 21,
+  promotionKeep: 22, promotionUpgrade: 23, // format 3 (0.5.0): the answer to the in-game promotion
 };
+/** The first action code a format 3 link may use that earlier formats never had. */
+const FIRST_FORMAT3_CODE = 22;
 /** Never in a link: a QA force, and the hot-seat auction actions (a link is one player's game; a forged auction card could win). */
 export const REFUSED_IN_LINKS = ['debugForce', 'auctionWin', 'auctionOpen', 'auctionClose'];
 const TYPE_OF = /* @__PURE__ */ Object.fromEntries(Object.entries(ACTION_CODES).map(([k, v]) => [v, k]));
@@ -147,6 +151,9 @@ export function encodeActionLog({ rngVersion, seed, config = {}, actions = [], n
   const professionRef = ref(strOf(config.professionId, 'professionId'));
   const dateRef = config.daily ? ref(strOf(config.daily.date, 'daily date')) : null;
   if (config.challenge && config.daily) fail('a friend challenge is never the daily challenge');
+  const rank = config.rank ?? 0;
+  if (!Number.isInteger(rank) || rank < 0 || rank > 3) fail(`bad rank ${config.rank}`);
+  if (config.daily && (rank > 0 || config.promotion)) fail('the daily challenge is always rank 0 and has no promotion');
   // a junior link never carries a name (decision 2026-11-09 (3), QA 0.5.1 P2-1): the child's privacy, and a forwarded link
   const shown = config.junior ? '' : sanitizeDisplayName(name);
   const nameRef = shown ? ref(shown) : null;
@@ -175,7 +182,7 @@ export function encodeActionLog({ rngVersion, seed, config = {}, actions = [], n
   w.byte(FORMAT_VERSION);
   w.uint(rngVersion);
   w.uint(seed);
-  w.byte((config.mode === 'full' ? 1 : 0) | (config.junior ? 2 : 0) | (dateRef !== null ? 4 : 0) | (config.challenge ? 8 : 0) | (nameRef !== null ? 16 : 0));
+  w.byte((config.mode === 'full' ? 1 : 0) | (config.junior ? 2 : 0) | (dateRef !== null ? 4 : 0) | (config.challenge ? 8 : 0) | (nameRef !== null ? 16 : 0) | (rank << 5) | (config.promotion ? 128 : 0));
   if (!MODES.includes(config.mode ?? 'family')) fail(`bad mode ${config.mode}`);
   const enc = new TextEncoder();
   w.uint(strings.length);
@@ -209,8 +216,9 @@ export function decodeActionLog(text) {
   const seed = r.uint();
   if (seed > 0xFFFFFFFF) fail('bad seed');
   const flags = r.byte();
-  if (flags & (format === 1 ? ~7 : ~31)) fail('bad config flags');
+  if (flags & (format === 1 ? ~7 : format === 2 ? ~31 : ~255)) fail('bad config flags');
   if ((flags & 8) && (flags & 4)) fail('a friend challenge is never the daily challenge');
+  if ((flags & 4) && (flags & 0xE0)) fail('the daily challenge is always rank 0 and has no promotion');
   const dec = new TextDecoder('utf-8', { fatal: true });
   const count = r.uint();
   if (count > end) fail('bad string table length');
@@ -227,6 +235,8 @@ export function decodeActionLog(text) {
   if (flags & 2) config.junior = true;
   if (flags & 4) config.daily = { date: str() };
   if (flags & 8) config.challenge = true;
+  if ((flags >> 5) & 3) config.rank = (flags >> 5) & 3;
+  if (flags & 128) config.promotion = true;
   let name = null;
   if (flags & 16) {
     name = str();
@@ -238,6 +248,7 @@ export function decodeActionLog(text) {
   for (let i = 0; i < n; i++) {
     const code = r.byte();
     const type = TYPE_OF[code] ?? fail(`unknown action code ${code}`);
+    if (code >= FIRST_FORMAT3_CODE && format < 3) fail(`action code ${code} needs format 3`);
     if (REFUSED_IN_LINKS.includes(type)) fail(`${type} cannot be in a link (debugForce is a QA force; auctions are hot-seat only)`);
     const a = { type };
     switch (type) {

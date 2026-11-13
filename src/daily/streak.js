@@ -1,12 +1,15 @@
 // Day streak (D4): consecutive local calendar days on which the daily challenge was played (finished or given up).
 // Stored on the device only. Schema-versioned; unknown / corrupt data starts over instead of crashing.
-import { dayNumber, addDays } from './calendar.js';
+import { dayNumber, addDays, weekDay } from './calendar.js';
 
 export const STREAK_SCHEMA = 1;
 export const STREAK_BADGES = [3, 7, 30]; // streak lengths that earn a badge (kept for good once earned)
 
 export const MAX_COUNT = 9999; // a stored count above this cannot be real: clamped
 const clampCount = (n) => (Number.isFinite(n) && n >= 0 ? Math.min(Math.floor(n), MAX_COUNT) : 0);
+
+/** Saturday is a free day (decisions 2026-11-10, owner Shabbat rule 2026-11-11): after a Friday play, Sunday still continues the streak. */
+const gapAllowed = (last, date) => { const gap = dayNumber(date) - dayNumber(last); return gap === 1 || (gap === 2 && weekDay(last) === 5); };
 
 export const emptyStreak = () => ({ v: STREAK_SCHEMA, last: null, count: 0, best: 0, badges: [] });
 
@@ -30,7 +33,7 @@ export function recordPlay(streak, date) {
   // backup): it is ignored instead of freezing the streak. One day ahead is a clock set back a little: nothing changes then.
   if (s.last != null && dayNumber(s.last) > dayNumber(date) + 1) return recordPlay({ ...s, last: null, count: 0 }, date);
   if (s.last != null && dayNumber(date) <= dayNumber(s.last)) return s;
-  const count = s.last != null && dayNumber(date) - dayNumber(s.last) === 1 ? Math.min(s.count + 1, MAX_COUNT) : 1;
+  const count = s.last != null && gapAllowed(s.last, date) ? Math.min(s.count + 1, MAX_COUNT) : 1;
   const badges = [...new Set([...s.badges, ...STREAK_BADGES.filter((b) => count >= b)])].sort((a, b) => a - b);
   return { v: STREAK_SCHEMA, last: date, count, best: Math.max(s.best, count), badges };
 }
@@ -47,7 +50,7 @@ export function streakView(streak, today) {
   const base = { best: s.best, badges: s.badges, newBadges: [] };
   if (s.last == null) return { ...base, state: 'none', count: 0 };
   if (s.last === today) return { ...base, state: 'today', count: s.count };
-  if (s.last === addDays(today, -1)) return { ...base, state: 'pending', count: s.count };
+  if (s.last === addDays(today, -1) || (weekDay(s.last) === 5 && s.last === addDays(today, -2))) return { ...base, state: 'pending', count: s.count }; // Friday -> Sunday: Saturday is free
   const ahead = dayNumber(s.last) - dayNumber(today);
   if (ahead === 1) return { ...base, state: 'today', count: s.count }; // clock set back by a day: keep what we have
   if (ahead > 1) return { ...base, state: 'none', count: 0 }; // 'last' too far in the future (tampering / restore): ignored, the streak is not frozen

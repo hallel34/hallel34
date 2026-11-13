@@ -255,6 +255,8 @@ function decide(policy) {
         return out({ click: '#modal-root .layer:last-child [data-action="skip"]' });
       }
       if (kind === 'market' && btn('accept')) return out({ click: '#modal-root .layer:last-child [data-action="accept"]' });
+      // 0.5.0: the in-game promotion card (a payday-type decision card): keep the lifestyle (its own action id promotion-keep)
+      if (card.dataset.promotion && btn("promotion-keep")) { shot = "card-promotion"; return out({ click: "#modal-root .layer:last-child [data-action=\"promotion-keep\"]" }); }
       if (btn('ok')) return out({ click: '#modal-root .layer:last-child [data-action="ok"]' });
       if (btn('decline')) return out({ click: '#modal-root .layer:last-child [data-action="decline"]' });
     }
@@ -781,7 +783,7 @@ async function testDictionary(page) {
   await page.locator('.topbar .icon-btn').first().click(); // menu entry
   await page.waitForSelector('.dict-sheet .dict-list');
   await page.waitForTimeout(350);
-  const want = MODE === 'full' ? 14 : 11;
+  const want = MODE === 'full' ? 15 : 12;
   const terms = await page.locator('.dict-item .dict-item-term').allInnerTexts();
   check(terms.length === want, `L1: the dictionary lists ${want} concepts in ${MODE} mode (${terms.length})`);
   const sorted = [...terms].sort((a, b) => a.localeCompare(b, 'he'));

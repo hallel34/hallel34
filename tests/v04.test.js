@@ -155,7 +155,7 @@ describe('short mode: 12 rounds, highest freedom % wins (v0.4)', () => {
     old.schemaVersion = 7;
     for (const p of old.players) p.state.schemaVersion = 7;
     const loaded = deserialize(JSON.stringify(old));
-    expect(loaded.schemaVersion).toBe(9);
+    expect(loaded.schemaVersion).toBe(10);
     expect(loaded.roundCap).toBeNull();
   });
 });

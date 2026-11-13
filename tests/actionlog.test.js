@@ -33,7 +33,7 @@ describe('action log: encode / decode', () => {
       { type: 'acceptOffer' }, { type: 'declineOffer' }, { type: 'donate' }, { type: 'declineCharity' }, { type: 'takeLoan', amount: 25000 },
       { type: 'repayLoan', id: 'loan-7', amount: 1000 }, { type: 'sellAsset', id: 'asset-2' }, { type: 'sellAsset', id: 'asset-5', qty: 0 },
       { type: 'decide', option: 'pass' }, { type: 'answerAudit' }, { type: 'answerAudit', questionId: 'tax-3', correct: false },
-      { type: 'forfeit' },
+      { type: 'forfeit' }, { type: 'promotionKeep' }, { type: 'promotionUpgrade' },
     ];
     expect(new Set(actions.map((a) => a.type))).toEqual(new Set(Object.keys(ACTION_CODES).filter((t) => !REFUSED_IN_LINKS.includes(t))));
     for (const config of [{ mode: 'full', professionId: 'lawyer' }, { mode: 'family', professionId: 'cook', junior: true }, { mode: 'family', professionId: 'nurse', daily: { date: '2026-11-20' } }]) {

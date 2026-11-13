@@ -11,14 +11,17 @@ const data = { professions: read('professions.he.json'), cards: read('cards.he.j
 const engine = createEngine(data);
 const GAMES = 500;
 
+/** v0.5.0: most games carry the in-game promotion and a career rank 0-3 (the daily kinds never do). Drawn after everything else, so older draws stay put. */
+const career = (rnd) => ({ rank: Math.floor(rnd() * 4), promotion: true });
+
 /** Game i's setup: family / full / junior / a daily on either side of the v2 boundary. */
 function configOf(i, rnd) {
   const professionId = data.professions[Math.floor(rnd() * data.professions.length)].id;
   const kind = i % 10;
   if (kind === 8) return { mode: 'family', professionId, daily: { date: '2026-11-03' } };
   if (kind === 9) return { mode: 'family', professionId, daily: { date: DAILY_RNG_V2_FROM } };
-  if (kind === 7) return { mode: 'family', professionId, junior: true };
-  return { mode: kind % 2 ? 'full' : 'family', professionId };
+  if (kind === 7) return { mode: 'family', professionId, junior: true, ...career(rnd) };
+  return { mode: kind % 2 ? 'full' : 'family', professionId, ...(kind > 1 ? career(rnd) : {}) };
 }
 
 describe('replay fuzz: 500 random legal games replay exactly from their encoded log', () => {

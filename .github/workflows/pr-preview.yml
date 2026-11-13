@@ -35,6 +35,10 @@ jobs:
         run: npm run smoke:players
       - name: Friend challenge smoke test (link, same dice, compare, reply, tampered, junior; 360x800 + 320x568)
         run: npm run smoke:challenge
+      - name: Career smoke test (promotion, profile, rank-up, seniority by clock, junior; 360x800 + 320x568)
+        run: npm run smoke:career
+      - name: Live-play smoke test (unseeded real games: null-literal scan, rounds-over end at 320x568, junior, two players)
+        run: LIVE_ONLY=scan,short,junior,two npm run smoke:live
       - name: First-asset mission smoke test
         run: |
           npm run preview -- --host 127.0.0.1 --port 4182 &

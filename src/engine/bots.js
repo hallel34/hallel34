@@ -7,16 +7,18 @@ import { renovationOption } from './renovation.js';
 import { maybeStartAuction, runAuction } from './auction.js';
 import { LOAN_STEP, JUNIOR_LOAN_STEP } from './config.js';
 
+// upgrade (v0.5.0): the answer to the in-game promotion card. The reckless bots take 'upgrade' (a new monthly expense, like they take
+// every deal); the others keep their lifestyle (the whole raise is free cash).
 // reserveMonths: cash buffer (in months of expenses) kept after a purchase.
 // maxPayback: reject deals whose down payment takes longer than this many months of cash flow.
 export const BOTS = {
-  alwaysBuy: { reserveMonths: 0, maxPayback: Infinity, borrow: true, charity: true, acceptOffers: false },
+  alwaysBuy: { reserveMonths: 0, maxPayback: Infinity, borrow: true, charity: true, acceptOffers: false, upgrade: true },
   sensible: { reserveMonths: 0.5, maxPayback: 130, borrow: true, charity: true, acceptOffers: 1.2 },
   cautious: { reserveMonths: 2, maxPayback: 80, borrow: false, charity: true, acceptOffers: 1.15 },
   // finance's over-borrowing bots (docs/v3/economy-experiments.md). Both buy everything and skip the "does the deal still pay
   // after the loan payment" check. overBorrow takes the MAXIMUM loan whenever it is short; overBorrowLite borrows only the gap.
-  overBorrow: { reserveMonths: 0, maxPayback: Infinity, borrow: true, charity: true, acceptOffers: false, overBorrow: 'max' },
-  overBorrowLite: { reserveMonths: 0, maxPayback: Infinity, borrow: true, charity: true, acceptOffers: false, overBorrow: 'gap' },
+  overBorrow: { reserveMonths: 0, maxPayback: Infinity, borrow: true, charity: true, acceptOffers: false, overBorrow: 'max', upgrade: true },
+  overBorrowLite: { reserveMonths: 0, maxPayback: Infinity, borrow: true, charity: true, acceptOffers: false, overBorrow: 'gap', upgrade: true },
   alwaysPass: { reserveMonths: 0, maxPayback: -1, borrow: false, charity: false, acceptOffers: false },
 };
 
@@ -140,6 +142,7 @@ export function step(engine, s, bot) {
       ? engine.dispatch(s, { type: 'donate' }) : engine.dispatch(s, { type: 'declineCharity' });
   }
   if (p.kind === 'decision') return decideBot(engine, s, cfg);
+  if (p.kind === 'promotion') return engine.dispatch(s, { type: cfg.upgrade ? 'promotionUpgrade' : 'promotionKeep' });
   if (p.kind === 'taxAudit') return engine.dispatch(s, { type: 'answerAudit', questionId: null, correct: null }); // knowledge only: never money
   throw new Error(`bot cannot handle ${p.kind}`);
 }

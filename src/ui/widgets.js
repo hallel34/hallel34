@@ -115,6 +115,15 @@ export function meter({ large = false } = {}) {
   };
 }
 
+/**
+ * 0.5.0 career XP bar (4px, 8px with `lg`): a progressbar named and valued in words; `before` draws the earlier progress as a hatched
+ * layer under the fill. Fills from the inline-start. `label` is the value text ("92 אחוז לדרגה הבאה"), `name` the accessible name.
+ */
+export function xpBar(pct, { before = null, lg = false, label = '', name = t('career.xp.name') } = {}) {
+  return h('span', { class: `xp${lg ? ' lg' : ''}`, role: 'progressbar', 'aria-label': name, 'aria-valuemin': '0', 'aria-valuemax': '100', 'aria-valuenow': String(pct), 'aria-valuetext': label || `${pct}%` },
+    before !== null ? h('u', { style: `--xp:${before}%` }) : null, h('i', { style: `--xp:${pct}%` }));
+}
+
 /** Thin passive-income progress bar for another player's row (pct 0-1). */
 export function miniMeter(pct, valueText, cls = 'or-bar') {
   return h('div', { class: cls, role: 'progressbar', 'aria-label': t('a11y.passiveMeter'), 'aria-valuemin': '0', 'aria-valuemax': '100', 'aria-valuenow': String(Math.round(pct * 100)), 'aria-valuetext': valueText },
