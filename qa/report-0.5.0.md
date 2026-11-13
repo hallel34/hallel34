@@ -70,3 +70,41 @@ Gate at 46ad01b: vitest 959/959, build OK, all other smokes pass, contrast-check
 - Not re-run this round: balance simulation, fuzz and offline/PWA (no engine or build-config change since round 2).
 
 Regenerated qa/screens files restored; new untracked evidence only under qa/screens/v050/.
+
+---
+
+# Round 4 (head 1c8b5ce, live-play pass) — verdict GREEN: P0 0, P1 0, P2 3
+
+Method: my own unseeded games in a real browser (random dice, my own driver, not the developer's smoke), plus the full gate. Screens: qa/screens/v050/r4/.
+
+## Findings F1-F6, verified by playing
+- **F1 career at each ending.**
+  - Real short family game to rounds-over (360x800, no profile; 320x568, with a profile at rank 1): no career block, no profile prompt, no XP, profile `games` unchanged (3 before and after), no console error. This is the open owner decision, not a bug.
+  - Real standard win (no profile): headline "חופש כלכלי!", the prompt "שמרו את ההתקדמות בפרופיל" appears; after creating a profile the game is credited (+380 XP = 60 for the game + 8 achievements, promotion week x2, teacher to rank 2 xp 110, 8 achievements stored), the rank-up shows, and a relaunch (reload) shows the home chip "ותק: שיחקתם השבוע" and a correct profile screen. No console errors.
+- **F2 literal null/undefined/NaN.** My own scan of 105 screens (players, pick, preview sheets for 8 professions x ranks 0-3 with a profile and rank 0 without, family and full, board HUD for 8 professions x 2 modes, profile screen), text plus aria-label/alt/title: 0 hits.
+- **F3 rounds-over end.** Headline "נגמרו הסיבובים", `data-freedom=false`, calm thinking fox (no confetti, no win sound), tagline "עוד לא הגעתם לחופש כלכלי: הכסף שעובד בשבילכם עוד לא מכסה את כל ההוצאות" (shown at 360x800; the tagline is hidden at 320x568 by the existing layout). Share text is honest: "שיחקנו 12 סיבובים ב-MaxiFox. כסף שעובד: ₪1,520, הוצאות: ₪8,210".
+- **F4 recap and multiplayer copy.**
+  - Solo recap ("מה למדתי"): "נגמרו הסיבובים, ועוד לא הגעתם לחופש כלכלי: ₪1,520 בחודש…". It never says someone else finished.
+  - Hot-seat short game (2 players): winner by progress "הניצחון של שחקן1! … מי שהגיע הכי רחוק" and both recaps are honest. Player 2 reads "נגמרו הסיבובים, ועוד לא הגעתם לחופש".
+  - Hot-seat full standard game: "…כשמישהו אחר הגיע לחופש כלכלי" appears only for the non-winner, which is correct there.
+- **F5 glossary yield vs roi.** Distinct entries, each explicit that in the game they are the same calculation, with correct numbers (3,400 x 12 = 40,800 on 200,000 = 20.4%; 10,800 / 40,000 = 27% = about 3.7 years; 10,800 / 320,000 = about 3.4%; 12,200 x 12 / 1,800,000 = 8.1%). Family wording is child-appropriate; the repo's kid-vocabulary and glossary tests pass. I read the data, not the rendered dictionary.
+- **F6 coffee cart (opp-biz-002) ledger.**
+  - Played a seeded replay to the card at 360x800 and 320x568: rows "חובות היום 23,000", "+ הלוואה 80,000", "+ הלוואה מהבנק לתשלום הראשון 23,000", "= סך החובות אחרי הקנייה 126,000", exact. Cash short by 22,760, loan rounded up to 23,000.
+  - Engine check over 30,960 deal-card states (400 seeds x 3 bots): total = report liabilities + mortgage + bank loan every time, bank loan always a multiple of 1,000. No clipping or horizontal scroll at either size.
+
+## Other checks
+- Real 2-player hot-seat: short family and standard full both played to the end. No horizontal scroll, no targets under 48px, no console errors.
+- Junior profile at 320x568: junior seat preselected, all coins (end screen "110 מטבעות", "89 מטבעות"), no number over 999 outside cash, rank-up in child wording, relaunch shows the child chip "הקריירה שלכם תמיד מחכה לכם".
+- 'Verified working' list: payday on the first roll "₪1,490 × 12 חודשים = ₪17,880, 9,000 to 26,880"; promotion keep/upgrade amounts (family, full, junior) correct in the cards and log; save and resume after reload (cash 26,880, turn 1 restored). Report math consistent in every recap.
+
+## Gate
+- vitest 969/969, build OK.
+- `npm run smoke:live` x3: 3/3 pass.
+- Smokes pass: smoke (family), SMOKE_MODE=full, SMOKE_H=640, career, challenge, players-seats, daily, tutorial, round11, round12, business-demo, payday-pass, first-asset mission, short missions.
+- contrast-check.py exit 0, designer script 62 pairs 0 failing.
+- Lighthouse mobile home x3: performance 0.93 / 0.91 / 0.93, accessibility 1.0.
+
+## Open (P2)
+1. Rounds-over end screen says "13 תורות" while the headline and share text say 12 rounds (the turn counter is one past the cap).
+2. A solo share text reads "שיחקנו" (plural) for a one-player game.
+3. The coffee-cart hint says "חסרים לכם ₪22,760" while the ledger shows a ₪23,000 bank loan; the rounding to 1,000 is not mentioned there.
