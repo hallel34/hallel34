@@ -461,6 +461,7 @@
     "shortfallText": "צריך לכסות חוב של {amount} לפני שממשיכים",
     "noFundsMax": "אין מספיק כסף, גם עם הלוואה מקסימלית",
     "needLoan": "חסרים לכם {amount}. הלחיצה על קנו תפתח הלוואה בסכום הנכון",
+    "needLoanRounded": "חסרים לכם {amount}. הבנק נותן הלוואה רק בכפולות של {step}, ולכן תיפתח הלוואה של {loan}.",
     "decrease": "פחות",
     "increase": "יותר",
     "perMonthCaption": "בחודש",

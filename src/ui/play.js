@@ -720,6 +720,8 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     // One player (or the last one standing): the turn closes silently and the roll button returns, no hand-over.
     if ((!multi || lastPlayerStanding(match)) && canEndTurn(match) && state.status === 'playing') {
       match = endTurn(match); store.save(match); state = currentState(match); refreshHud();
+      // a short game ends after its last round (owner 2026-11-15): endTurn has just said so, so there is no roll button for a 13th turn
+      if (match.status !== 'playing') { setBusy(false); finishIfOver(); return; }
     }
     if (multi && state.status === 'playing' && canEndTurn(match) && !lastPlayerStanding(match)) { handOver(); return; }
     setBusy(false);
@@ -1145,6 +1147,8 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     flow.newTurn(); // the old fox note goes away: it belongs to the player who just finished
     match = endTurn(match);
     store.save(match);
+    // the same rule in hot-seat: when the last player's last round closes the match, go to the end screen instead of handing the phone on
+    if (match.status !== 'playing') { handingOver = false; busy = false; await finishIfOver(); return; }
     switchPlayer();
     handingOver = false;
     await handoverAndRoll({ recap, extra });

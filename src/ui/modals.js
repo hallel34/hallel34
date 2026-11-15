@@ -489,7 +489,10 @@ function finishOpportunity({ state, c, body, qtyGetter, plan, ctl = null, deferr
     ? h('div', { class: 'banner banner-warn', role: 'status', id: hintId, 'data-hint': 'blocked' }, icon('bank', { size: 20 }),
       h('span', null, t('card.noFundsMax'), cap.capBinds ? [' ', tn('loan.capBlocked', { salaries: ltr(numberText(cap.salaries)) })] : ''))
     : plan.status === 'loan'
-      ? h('div', { class: 'banner banner-warn', role: 'status', id: hintId, 'data-hint': 'loan' }, icon('bank', { size: 20 }), h('span', null, tn('card.needLoan', { amount: money(plan.need) })))
+      ? h('div', { class: 'banner banner-warn', role: 'status', id: hintId, 'data-hint': 'loan' }, icon('bank', { size: 20 }), h('span', null, plan.loanAmount === plan.need
+        ? tn('card.needLoan', { amount: money(plan.need) })
+        // the bank lends in whole steps: the hint names the need AND the loan that will open (the ledger below shows the same loan)
+        : tn('card.needLoanRounded', { amount: money(plan.need), step: money(loanStep(state)), loan: money(plan.loanAmount) })))
       : null;
   const actions = [
     { id: 'pass', label: t('card.pass'), variant: 'secondary', value: { action: 'pass' } },

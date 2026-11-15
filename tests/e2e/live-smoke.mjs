@@ -100,7 +100,11 @@ function decide({ policy, answerPromotion }) {
         // F6: the projected-debt ledger on the card (rows that add up), read in the same task as the decision
         const led = q('.debt-ledger', card);
         const ledger = led ? [...led.querySelectorAll('.dl-value')].map((e) => Number(e.textContent.replace(/[^\d]/g, ''))) : null;
-        const withLedger = (d) => (ledger ? { ...d, ledger, ledgerTotal: Number(led.dataset.debtAfter) } : d);
+        const bankRow = led?.querySelector('.dl-bank .dl-value');
+        const hintEl = q('[data-hint="loan"]', card.closest('.layer') ?? document);
+        const hintNums = hintEl ? [...hintEl.textContent.matchAll(/₪\s?([\d,]+)/g)].map((m) => Number(m[1].replace(/,/g, ''))) : null;
+        const loanPair = bankRow && hintNums ? { bank: Number(bankRow.textContent.replace(/[^\d]/g, '')), hint: hintNums } : null;
+        const withLedger = (d) => (ledger ? { ...d, ledger, ledgerTotal: Number(led.dataset.debtAfter), loanPair } : d);
         // 'buyer' buys sensible deals, 'reckless' buys everything it can open a loan for
         if (policy === 'spendthrift') return withLedger({ click: `${L} [data-action="pass"]` });
         // 'saboteur' buys only the bad deals (a long or endless payback), with a loan when cash is short, and pays every expense by loan
@@ -142,14 +146,16 @@ async function playToEnd(page, { policy = 'buyer', budgetMs = Number(process.env
   const deadline = Date.now() + budgetMs;
   let rolls = 0;
   const ledgers = [];
+  const loanPairs = [];
   while (Date.now() < deadline) {
     const d = await page.evaluate(STEP_FN, { policy, answerPromotion: 'promotion-keep' });
+    if (d.loanPair && !loanPairs.some((l) => JSON.stringify(l) === JSON.stringify(d.loanPair))) loanPairs.push(d.loanPair);
     if (d.ledger && !ledgers.some((l) => l.join() === d.ledger.join())) ledgers.push(d.ledger.concat(d.ledgerTotal));
-    if (d.done) return { done: d.done, rolls, ledgers };
+    if (d.done) return { done: d.done, rolls, ledgers, loanPairs };
     if (d.clicked && /\[data-action="roll(-next)?"\]$/.test(d.click)) rolls += 1; // hot-seat: the one-tap hand-over rolls
     await page.waitForTimeout(d.clicked ? 15 : 40);
   }
-  return { done: 'timeout', rolls, ledgers };
+  return { done: 'timeout', rolls, ledgers, loanPairs };
 }
 
 /** Home -> players (length, age, count) -> pick `prof` -> go. Returns on the board. */
@@ -360,10 +366,12 @@ async function main() {
   if (ONLY.includes('full')) {
     const ctx = await newCtx(browser);
     const p = await open(ctx);
-    await startGame(p, { prof: 'engineer', mode: 'full', short: true });
-    const end = await playToEnd(p, { policy: 'buyer' });
+    await startGame(p, { prof: 'cook', mode: 'full', short: true });
+    const end = await playToEnd(p, { policy: 'reckless' }); // buys whatever it can open a loan for, so the loan hint and ledger appear
     check(end.done === 'win' || end.done === 'over', `a full-mode short game ended (${end.done}, ${end.rolls} rolls)`);
     // F6: every deal card's debt ledger adds up: today's debts (+ the deal's loan) (+ a bank loan) = the total it shows
+    // the loan hint names the loan that will open: its last figure is the ledger's bank row (when a deal needed a loan in this game)
+    check(end.loanPairs.every((l) => l.hint[l.hint.length - 1] === l.bank && l.bank % 1000 === 0 && l.hint[0] <= l.bank), `the loan hint matches the ledger bank row (${end.loanPairs.length} deals with a loan: ${JSON.stringify(end.loanPairs.slice(0, 2))})`);
     check(end.ledgers.length > 0, `full mode showed ${end.ledgers.length} deal cards with a debt ledger`);
     check(end.ledgers.every((l) => l.slice(0, -2).reduce((a, b) => a + b, 0) === l[l.length - 1] && l[l.length - 2] === l[l.length - 1]), `every debt ledger adds up ${JSON.stringify(end.ledgers.slice(0, 3))}`);
     await p.waitForTimeout(1500);
