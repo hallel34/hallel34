@@ -1,7 +1,7 @@
 // PR #20 live-QA findings F3-F6 (the seeded smokes missed them): the headline copy, the end feedback group, the glossary and the projected debt.
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { createEngine, purchasePlan, projectedDebt, balanceSheet, passiveIncome, totalExpenses } from '../src/engine/index.js';
+import { createEngine, purchasePlan, projectedDebt, balanceSheet, passiveIncome, totalExpenses, newMatch, currentState, setCurrentState, endTurn, canEndTurn, botStep } from '../src/engine/index.js';
 import { feedbackForEnd } from '../src/learn/feedback.js';
 
 const read = (p) => JSON.parse(readFileSync(new URL(`../src/${p}`, import.meta.url), 'utf8'));
@@ -122,31 +122,42 @@ describe('F2: no producer hands a null to a native DOM call', () => {
   });
 });
 
-// Read-only documentation of the "13 turns in a 12-round game" finding (nothing here changes behaviour): the ENGINE ends a short match after round
-// 12, but the solo UI re-enables the roll button because turn() in src/ui/play.js guards only the player's own state, which is still 'playing' and
-// in phase 'roll'. This pins the engine side of that fact. The fix (end the match one roll earlier in the UI) is on hold for an owner decision.
-describe('short game: the engine ends the match at round 12; the player state stays rollable', () => {
-  it('after the 12th turn the match is won (shortFinish) yet the player state can still roll a 13th time', async () => {
-    const { newMatch, currentState, setCurrentState, endTurn, canEndTurn, botStep } = await import('../src/engine/index.js');
-    let found = null;
-    for (let seed = 1; seed <= 40 && !found; seed++) {
-      let m = newMatch(engine, { mode: 'family', seed, roundCap: 12, players: [{ name: '', professionId: 'teacher' }] });
+// The "13 turns in a 12-round game" finding. The ENGINE ends a short match after round 12 while the player's own state is still 'playing' and in
+// phase 'roll' (so the engine alone would allow a 13th roll). The solo / hot-seat UI used to re-enable the roll button because it did not look at
+// the match status after endTurn; owner decision 2026-11-15: a short game ends after the round cap (src/ui/play.js settleButton / handOver now go
+// to the end screen). These tests pin the engine facts the UI relies on, and that standard games and real wins are unaffected.
+describe('short game: the match is over after round 12 (the UI must stop there)', () => {
+  const play = (roundCap, seeds = 40) => {
+    for (let seed = 1; seed <= seeds; seed++) {
+      let m = newMatch(engine, { mode: 'family', seed, roundCap, players: [{ name: '', professionId: 'teacher' }] });
       let guard = 0;
-      while (m.status === 'playing' && guard++ < 400) {
+      while (m.status === 'playing' && guard++ < 400 && !(m.roundCap == null && currentState(m).turn >= 12 && canEndTurn(m))) {
         let s = currentState(m);
         if (canEndTurn(m)) { m = endTurn(m); continue; }
         s = s.pending ? botStep(engine, s, 'sensible') : engine.dispatch(s, { type: 'roll' });
         m = setCurrentState(m, s);
       }
-      if (m.shortFinish) found = m;
+      if (roundCap ? m.shortFinish : currentState(m).turn >= 12) return m;
     }
-    expect(found, 'a sensible bot reaches the round limit on some seed').toBeTruthy();
-    const s = currentState(found);
-    expect(found.status).toBe('won');
-    expect(found.roundCap).toBe(12);
-    expect(s.turn).toBe(12);
+    return null;
+  };
+  it('after the 12th turn endTurn() marks the match won (shortFinish) with the player at turn 12, state still rollable', () => {
+    const m = play(12);
+    expect(m, 'a sensible bot reaches the round limit on some seed').toBeTruthy();
+    const s = currentState(m);
+    expect([m.status, m.roundCap, s.turn]).toEqual(['won', 12, 12]);
     expect([s.status, s.phase]).toEqual(['playing', 'roll']);
-    const thirteenth = engine.dispatch(s, { type: 'roll' }); // what the UI's turn() does when the player taps the re-enabled roll button
-    expect(thirteenth.turn).toBe(13);
+  });
+  it('a standard game is unaffected: after 12 turns endTurn() leaves the match playing', () => {
+    const m = play(null);
+    expect(m, 'a standard game reaches turn 12').toBeTruthy();
+    expect(canEndTurn(m)).toBe(true);
+    expect(endTurn(m).status).toBe('playing');
+    expect(endTurn(m).shortFinish).toBeUndefined();
+  });
+  it('a real win on the 12th turn is a win (no shortFinish), decided before endTurn', () => {
+    const m0 = newMatch(engine, { mode: 'family', seed: 3, roundCap: 12, players: [{ name: '', professionId: 'teacher' }] });
+    const m = setCurrentState(m0, { ...currentState(m0), turn: 12, status: 'won', phase: 'ended' });
+    expect([m.status, m.winnerIndex, m.shortFinish]).toEqual(['won', 0, undefined]);
   });
 });

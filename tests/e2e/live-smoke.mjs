@@ -244,6 +244,7 @@ async function main() {
     await startGame(p, { prof: 'teacher', short: true });
     const end = await playToEnd(p, { policy: 'buyer' });
     check(end.done === 'win' || end.done === 'over', `a short game ended (${end.done}, ${end.rolls} rolls)`);
+    const turnsShown = Number((await p.locator('.win-stat-num').first().innerText().catch(() => '0')).replace(/\D/g, ''));
     await p.waitForTimeout(1500);
     await noHScroll(p, 'the short game end screen at 320x568');
     await scanLeaks(p, 'the short game end screen');
@@ -257,6 +258,7 @@ async function main() {
     if (info.screen === 'win' && info.freedom === 'false') {
       check(!/חופש כלכלי!/.test(info.title) && /נגמרו הסיבובים/.test(info.title), `F3: a rounds-over end does not announce freedom ("${info.title}")`);
       check(/עוד לא הגעתם לחופש/.test(info.tagline), `F3: the text says freedom is not reached yet ("${info.tagline}")`);
+      check(end.rolls === 12 && turnsShown === 12, `a 12-round game is exactly 12 rolls and 12 turns on the end screen (${end.rolls} rolls, ${turnsShown} turns)`);
       check(!info.career && !info.prompt, 'F1 (current behaviour): a rounds-over end shows no career block and no profile prompt');
       const career0 = await stored(p, 'career');
       check(career0 === null, 'F1 (current behaviour): a rounds-over end writes nothing to the career store');
@@ -354,6 +356,7 @@ async function main() {
     await startGame(p, { mode: 'family', short: true, players: 2 });
     const end = await playToEnd(p, { policy: 'buyer' });
     check(end.done === 'win' || end.done === 'over', `a two-player short game ended (${end.done}, ${end.rolls} rolls)`);
+    if (/אחרי 12 סיבובים/.test(await p.locator('section[data-screen]').innerText())) check(end.rolls === 24, `two players, 12 rounds each: exactly 24 rolls (${end.rolls})`);
     await p.waitForTimeout(1500);
     check(await p.locator('.stand-row').count() === 2, 'the end screen lists both players in the standings');
     await scanLeaks(p, 'the two-player end screen');
@@ -369,6 +372,7 @@ async function main() {
     await startGame(p, { prof: 'cook', mode: 'full', short: true });
     const end = await playToEnd(p, { policy: 'reckless' }); // buys whatever it can open a loan for, so the loan hint and ledger appear
     check(end.done === 'win' || end.done === 'over', `a full-mode short game ended (${end.done}, ${end.rolls} rolls)`);
+    if ((await p.locator('section[data-screen]').getAttribute('data-freedom')) === 'false') check(end.rolls === 12, `full mode: a 12-round game is exactly 12 rolls (${end.rolls})`);
     // F6: every deal card's debt ledger adds up: today's debts (+ the deal's loan) (+ a bank loan) = the total it shows
     // the loan hint names the loan that will open: its last figure is the ledger's bank row (when a deal needed a loan in this game)
     check(end.loanPairs.every((l) => l.hint[l.hint.length - 1] === l.bank && l.bank % 1000 === 0 && l.hint[0] <= l.bank), `the loan hint matches the ledger bank row (${end.loanPairs.length} deals with a loan: ${JSON.stringify(end.loanPairs.slice(0, 2))})`);

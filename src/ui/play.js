@@ -721,7 +721,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     if ((!multi || lastPlayerStanding(match)) && canEndTurn(match) && state.status === 'playing') {
       match = endTurn(match); store.save(match); state = currentState(match); refreshHud();
       // a short game ends after its last round (owner 2026-11-15): endTurn has just said so, so there is no roll button for a 13th turn
-      if (match.status !== 'playing') { setBusy(false); finishIfOver(); return; }
+      if (match.status !== 'playing') { finishIfOver(); return; } // the roll button stays disabled during the short pause before the end screen
     }
     if (multi && state.status === 'playing' && canEndTurn(match) && !lastPlayerStanding(match)) { handOver(); return; }
     setBusy(false);
@@ -910,7 +910,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
 
   let priorPrices = {};
   async function turn() {
-    if (busy || destroyed || state.phase !== 'roll' || state.status !== 'playing') return;
+    if (busy || destroyed || state.phase !== 'roll' || state.status !== 'playing' || match.status !== 'playing') return;
     setBusy(true, 'rolling');
     releaseUnshownHint();
     hints.drop('h-roll'); // the roll hint belongs to the moment before the first roll
