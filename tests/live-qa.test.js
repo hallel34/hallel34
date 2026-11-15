@@ -25,6 +25,16 @@ describe('F3: a short finish never says freedom was reached', () => {
   });
 });
 
+describe('solo share text speaks in the singular (the solo end screen is one player)', () => {
+  it('the family override of win.shortShareText is "שיחקתי", never "שיחקנו"', () => {
+    const t = read('data/learn/tutorial.he.json').familyStrings;
+    const o = [...t.overrides, ...t.overridesRound11].find((x) => x.key === 'win.shortShareText');
+    expect(o.family).toMatch(/^שיחקתי /);
+    expect(o.family).not.toMatch(/שיחקנו/);
+    expect(he.win.shortShareText).toMatch(/^שיחקתי /);
+  });
+});
+
 describe('F4: the end feedback group', () => {
   const st = (status) => ({ ...engine.newGame({ professionId: 'teacher', mode: 'full', seed: 5 }), status });
   it('won -> win, lost -> lose, a short finish that nobody won -> end.rounds (solo or hot-seat), a multiplayer win by someone else -> end.neutral', () => {

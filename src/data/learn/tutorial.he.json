@@ -1138,7 +1138,7 @@
       {
         "key": "win.shortShareText",
         "was": "שיחקתי {rounds} סיבובים ב-MaxiFox. הכנסה פסיבית: {passive}, הוצאות: {expenses}",
-        "family": "שיחקנו {rounds} סיבובים ב-MaxiFox. כסף שעובד: {passive}, הוצאות: {expenses}"
+        "family": "שיחקתי {rounds} סיבובים ב-MaxiFox. כסף שעובד: {passive}, הוצאות: {expenses}"
       },
       {
         "key": "win.passive",
