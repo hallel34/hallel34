@@ -1,11 +1,13 @@
 import { chromium } from 'playwright';
+import { launchOptions, previewServer } from './env.mjs';
 import assert from 'node:assert/strict';
 import { mkdirSync, readFileSync } from 'node:fs';
 import { createEngine, newMatch, serialize } from '../../src/engine/index.js';
 import { dayKey } from '../../src/daily/calendar.js';
 import { newFirstAsset } from '../../src/engine/first-asset.js';
 
-const base = process.env.MISSION_URL || 'http://127.0.0.1:5173/';
+const preview = await previewServer({ url: process.env.MISSION_URL || '' }); // no MISSION_URL: serves dist on SMOKE_PORT (default 4190)
+const base = preview.url;
 const readData = (name) => JSON.parse(readFileSync(new URL(`../../src/data/${name}.he.json`, import.meta.url), 'utf8'));
 const engine = createEngine({ professions: readData('professions'), cards: readData('cards') });
 const repayId = 'repay-debt-v1', bufferId = 'cash-buffer-v1';
@@ -14,9 +16,7 @@ const daily = serialize(newMatch(engine, { mode: 'family', seed: 12, players: [{
 const first = serialize(newFirstAsset(engine));
 const out = 'test-results/short-missions';
 mkdirSync(out, { recursive: true });
-const browser = await chromium.launch({
-  headless: true, ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : { channel: 'chromium' }),
-});
+const browser = await chromium.launch(launchOptions());
 const errors = [];
 const openHub = async (p) => { await p.locator('[data-action=missions]').click(); await p.locator('.screen-mission[data-screen=missions]').waitFor(); };
 const enter = (p, id) => p.locator(`[data-mission="${id}"]`).click();
@@ -137,4 +137,4 @@ try {
   }
   assert.deepEqual(errors, [], 'no JS errors');
   console.log('SHORT MISSIONS SMOKE PASSED');
-} finally { await browser.close(); }
+} finally { await browser.close(); preview.stop(); }

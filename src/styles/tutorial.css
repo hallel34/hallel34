@@ -310,3 +310,16 @@
 .fp-total { white-space: nowrap; }
 @media (max-width: 340px) { .fp-total { font-size: .875rem; } .fp-eq { gap: 4px; } }
 .fp-foot .nowrap { display: inline-block; }
+
+/* annual equation at 360 and below: a smaller type step and tighter spacing keep '₪1,490 × 12 חודשים = +₪17,880' on ONE line where it fits (360);
+   at 320 it wraps into its two controlled lines (operands, then '= result') only because it truly cannot fit */
+@media (max-width: 360px) {
+  .summary-card { padding-inline: 12px; } .sc-cta { margin-inline: -12px; padding-inline: 12px; }
+  .sc-eq { column-gap: 6px; padding-inline: 6px; }
+  .sc-eq-lhs, .sc-eq-rhs { gap: 4px; }
+  .sc-eq .eq-monthly { font-size: 1rem; } .sc-eq .eq-months { font-size: .875rem; } .sc-eq .eq-op { font-size: 1rem; } .sc-result { font-size: 1.25rem; }
+}
+@media (max-width: 340px) {
+  .sc-eq { column-gap: 4px; padding-inline: 4px; } .sc-eq-lhs, .sc-eq-rhs { gap: 3px; }
+  .sc-eq .eq-monthly { font-size: .9375rem; } .sc-eq .eq-months { font-size: .8125rem; } .sc-eq .eq-op { font-size: .9375rem; } .sc-result { font-size: 1.125rem; }
+}

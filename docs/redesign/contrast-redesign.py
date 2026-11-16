@@ -38,12 +38,17 @@ rows=[ # label, fg, bg, min
  ('light: wordmark / sel-gold #8A5200 on light bg','#8A5200','#FBF3E1',4.5),('light: white on #8A5200 (badge, check)','#FFFFFF','#8A5200',4.5),
  ('light: income-ink on pocket strip','#0B6B43','#%02x%02x%02x'%over(h('#0B6B43'),.09,h('#FFFFFF')),4.5),
  ('light: text-muted / bg','#3F4C78','#FBF3E1',4.5),
+ ('light: text / missions panel (--bg-2 #FFF9EC)','#0F172A','#FFF9EC',4.5),('light: text-muted / missions panel','#3F4C78','#FFF9EC',4.5),
+ ('light: gold-brown selected border / white card (non-text)','#8A5200','#FFFFFF',3),('light: gold-brown dots / missions panel (non-text)','#8A5200','#FFF9EC',3),
+ ('light: ink-on-white badge text on gold-brown (round badge)','#FFFFFF','#8A5200',4.5),
+ ('dark: verified mint #5FE0AE on its tint (challenge badge)','#5FE0AE','#%02x%02x%02x'%over(h('#5FE0AE'),.14,h('#2A3F55')),4.5),
+ ('dark: NEW income #48C99A on that tint (the 4.39 failure, why --verified keeps the old mint)','#48C99A','#%02x%02x%02x'%over(h('#5FE0AE'),.14,h('#2A3F55')),4.5),
 ]
 bad=0
 for lab,fg,bg,mn in rows:
     f=h(fg) if isinstance(fg,str) else fg; b=h(bg) if isinstance(bg,str) else bg
     r=cr(f,b); ok=r>=mn
-    expected_fail='fails' in lab
+    expected_fail='fails' in lab or 'failure' in lab
     flag='ok  ' if ok else ('known' if expected_fail else 'FAIL')
     if not ok and not expected_fail: bad+=1
     print(f'{flag} {r:5.2f} (>={mn})  {lab}  {fg} on {bg}')

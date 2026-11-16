@@ -616,10 +616,13 @@ button, [role="button"] { touch-action: manipulation; min-block-size: var(--tap-
   --sel-gold: var(--mf-gold);               /* selected-card border + check badge (Family/Full cards, previewed profession) */
   --sel-gold-ink: var(--mf-gold-ink);
   --pocket-bg: rgb(72 201 154 / .10);       /* "left in pocket" summary strip: subtle tint, no border */
+  --verified: #5FE0AE;                      /* the challenge badge keeps its pre-redesign mint (the new --income #48C99A is 4.39:1 on its tint) */
 }
 :root[data-theme="light"] {
   --danger-text: var(--expense-ink);
   --sel-gold: #8A5200;                      /* gold text/border on the light surfaces keeps the shipped dark amber (AA) */
   --sel-gold-ink: #FFFFFF;
   --pocket-bg: rgb(11 107 67 / .09);
+  --verified: var(--income);
+  --bg-2: #FFF9EC;                          /* secondary surface (the home missions panel): the dark #111B32 made its dark text 1.04:1 */
 }
