@@ -56,9 +56,7 @@
 .fox-guide { position: relative; }
 .fox-guide[data-has-tip]::after { content: ""; position: absolute; inset-block-start: 4px; inset-inline-end: 4px; inline-size: 14px; block-size: 14px; border-radius: 50%; background: var(--sel-gold); border: 2px solid var(--bg); }
 /* small phones: the chip gives the cash its room back; at <= 340 the chevron goes (the coin stays: QA r18, the junior coin display needs it) */
-@media (max-width: 359px) { .screen-board.board-full .hud .flow-chip { max-inline-size: 122px; padding-inline: 8px; } }
+@media (max-width: 359px) { .screen-board.board-full .hud .flow-chip { max-inline-size: 108px; padding-inline: 6px; font-size: .75rem; } }
 @media (max-width: 340px) { .screen-board.board-full .hud .flow-chip .fc-chev { display: none; } }
 /* a long name wraps (two lines at most), never an ellipsis */
 .screen-board.board-full .hud-idline .hud-prof { white-space: normal; overflow: visible; text-overflow: clip; max-inline-size: 100%; }
-/* a 9+ digit cash on a small phone: the word 'מזומן' steps aside so the number keeps its size (the coin and the sign stay) */
-@media (max-width: 359px) { .screen-board.board-full .hud .hud-cash:has(.cash-num[data-len="9"], .cash-num[data-len="10"], .cash-num[data-len="11"], .cash-num[data-len="12"]) .cash-label { display: none; } }
