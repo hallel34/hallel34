@@ -28,11 +28,11 @@ function pwaPlugin() {
       handler(html, ctx) {
         const fonts = Object.keys(ctx.bundle || {}).filter((f) => /rubik-(hebrew|latin)-(700|900)-normal.*\.woff2$/.test(f));
         const tags = fonts.map((f) => `<link rel="preload" as="font" type="font/woff2" crossorigin href="${base.endsWith('/') ? base : `${base}/`}${f}">`).join('\n  ');
-        // LCP image: the start screen shows the MaxiFox logo (alpha WebP, @1x/@2x) on every launch, so one static preload
+        // LCP image: the start screen shows the MaxiFox fox emblem (WebP, @1x/@2x; also the splash) on every launch, so one static preload
         // with an imagesrcset replaces the old tired/wave pick (the first-launch greeting moved to the board guide).
         const prefix = base.endsWith('/') ? base : `${base}/`;
         const files = Object.keys(ctx.bundle || {});
-        const find = (d) => files.find((f) => new RegExp(`(^|/)maxifox-logo-alpha-${d}-[\\w-]+\\.webp$`).test(f));
+        const find = (d) => files.find((f) => new RegExp(`(^|/)maxifox-emblem-${d}-[\\w-]+\\.webp$`).test(f));
         const [logo1, logo2] = [find('1x'), find('2x')];
         const lcp = logo1 && logo2
           ? `<link rel="preload" as="image" href="${prefix}${logo1}" imagesrcset="${prefix}${logo1} 1x, ${prefix}${logo2} 2x">`
