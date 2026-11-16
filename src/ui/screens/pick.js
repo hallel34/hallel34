@@ -111,6 +111,14 @@ export function createPick({ engine, mode, onBack, onGo, player = null, junior =
       h('div', { class: 'sheet-cta' }, button(t('pick.go'), { variant: 'primary', size: 'lg', 'data-action': 'go', 'data-autofocus': '', onClick: () => { layer.close(); onGo(id, rankNow(id)); } })));
     renderSheet();
     layer = openLayer(content, { kind: 'sheet', label: p0.title });
+    return layer;
+  }
+
+  /** The card whose preview sheet is open: gold border + check (CSS, [aria-pressed]) and a hidden word, never the word "chosen". */
+  function setPreviewing(card, on) {
+    card.setAttribute('aria-pressed', String(on));
+    card.querySelector('.prof-preview-note')?.remove();
+    if (on) card.append(h('span', { class: 'vh prof-preview-note' }, ` ${t('pick.previewing')}`));
   }
 
   // owner override 2026-10-24b (docs/v4/design/professions.md 2): art well with the profession fox on a hairline floor, the name,
@@ -127,9 +135,13 @@ export function createPick({ engine, mode, onBack, onGo, player = null, junior =
     const title = cur.rank > 0 ? rankTitle(p.id, cur.rank) : t('career.pick.word', { n: 1 });
     const b = h('button', {
       type: 'button', class: `prof-card${promoId === p.id ? ' is-promo' : ''}`, 'data-prof': p.id, vars: { '--i': i },
-      onClick: () => { haptic('tap'); preview(p); },
+      // tapping a card OPENS the preview sheet; only its "יוצאים לדרך" commits (onGo). While the sheet is open the card is marked as the one being
+      // previewed (gold border + check + aria-pressed): the state is cleared when the sheet closes, so a preview never reads as a choice
+      'aria-pressed': 'false',
+      onClick: () => { haptic('tap'); setPreviewing(b, true); preview(p).closed.then(() => setPreviewing(b, false)); },
     },
     well,
+    h('span', { class: 'prof-check', 'aria-hidden': 'true' }, icon('check', { size: 14, width: 3.4 })),
     promoId === p.id ? h('span', { class: 'pick-promo-x2', 'aria-hidden': 'true' }, icon('promoWeek', { size: 12, width: 2 }), h('bdi', { dir: 'ltr' }, t('career.promoWeek.cardTag'))) : null,
     h('span', { class: 'prof-name' }, p.title),
     // the card stays one button named by its own text (WCAG 2.5.3): the rank title is visible text, the progress is a hidden sentence
@@ -137,20 +149,20 @@ export function createPick({ engine, mode, onBack, onGo, player = null, junior =
     profile ? h('span', { class: 'xp pick-xp', 'aria-hidden': 'true' }, h('i', { style: `--xp:${pct}%` })) : null,
     profile ? h('span', { class: 'vh' }, `${t('career.xp.aria', { pct })}. `) : null,
     h('span', { class: 'prof-rows' },
-      h('span', { class: 'prof-row prof-row--salary prof-salary' }, h('span', { class: 'prof-row-label' }, t('pick.cardSalary')), money(p.salary), h('span', { class: 'prof-sep', 'aria-hidden': 'true' }, '•')),
+      h('span', { class: 'prof-row prof-row--salary prof-salary' }, h('span', { class: 'prof-row-label' }, t('pick.cardSalary')), money(p.salary)),
       h('span', { class: 'prof-row prof-row--expenses' }, h('span', { class: 'prof-row-label' }, t('pick.cardExpenses')), money(figs(p.id, rankNow(p.id)).st.totalExpenses))),
-    h('span', { class: `prof-pocket${flow < 0 ? ' is-neg' : ''}` }, tn('pick.cardLeftPocket', { amount: money(flow) })));
+    h('span', { class: `prof-pocket${flow < 0 ? ' is-neg' : ''}` }, tn('pick.cardLeftPocket', { amount: money(flow, { sign: true }) })));
     return b;
   });
 
   return h('section', { class: 'screen screen-pick', 'data-screen': 'pick' },
     h('div', { class: 'pick-top' },
+      // Back is the FIRST control: the upper right in Hebrew (inline-start), with the back chevron ('>' in RTL, icon-dir); the action is unchanged (onBack)
+      iconButton('arrow', t('pick.back'), onBack, 'icon-btn-glass pick-back'),
       player ? playerToken(player.color, { cls: 'ptoken-lg' }) : null,
       h('div', { class: 'pick-heading' },
         h('h1', { class: 'screen-title' }, player ? t('players.pickTitle', { name: player.name }) : t('pick.title')),
         h('p', { class: 'muted' }, player ? t('players.pickStep', { n: player.n, total: player.total }) : t('pick.subtitleFox')),
-        promoId ? h('p', { class: 'pick-promo-strip', 'data-promo-strip': '' }, icon('promoWeek', { size: 16, width: 2 }), h('span', null, t('career.promoWeek.strip', { profession: engine.data.professions.find((x) => x.id === promoId).title }))) : null),
-      // the back button at the inline-end (left in RTL), a 48px round ghost centred with the title
-      iconButton('arrow', t('pick.back'), onBack, 'icon-btn-glass pick-back')),
+        promoId ? h('p', { class: 'pick-promo-strip', 'data-promo-strip': '' }, icon('promoWeek', { size: 16, width: 2 }), h('span', null, t('career.promoWeek.strip', { profession: engine.data.professions.find((x) => x.id === promoId).title }))) : null)),
     h('div', { class: 'prof-grid' }, cards));
 }
