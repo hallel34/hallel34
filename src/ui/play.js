@@ -152,7 +152,6 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     ? h('button', { type: 'button', class: 'flow-chip flow-chip-btn', 'aria-expanded': 'false', 'aria-haspopup': 'true', 'data-action': 'flow' })
     : h('span', { class: 'flow-chip' });
   const goalLine = h('p', { class: 'goal-line', hidden: true, 'data-goal': '' });
-  const freeLine = h('p', { class: 'free-line', hidden: true, 'data-free': '' });
   // Family: 'מזומן' is named once in words ('הכסף שיש לכם עכשיו'): a caption under the number on tall screens, a tap-for-tooltip on short ones
   const cashUi = isFamily ? tut().ui : null;
   const cashWrap = h('span', { class: 'cash-wrap', 'aria-label': cashUi ? `${t('game.cash')}, ${cashUi.cashLabel}` : t('game.cash'), title: cashUi?.cashTooltip }, cash.el);
@@ -162,45 +161,42 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   const cashLabel = h('span', { class: 'cash-label cap-short', 'aria-hidden': 'true' }, t('game.cash'));
   if (cashUi) cashWrap.addEventListener('click', () => { if (getComputedStyle(cashCap).display === 'none') toast(cashUi.cashTooltip, 3500); });
   fitText(cash.el, { minScale: 0.4, box: cashWrap }); // very narrow screens (320px): a long amount shrinks to fit instead of overflowing
-  const passiveVal = h('b', { class: 'tone-income' });
-  const expenseVal = h('b', { class: 'tone-expense' });
   const m = meter();
-  const meterPct = h('span', { class: 'meter-pct', 'data-meter-pct': '' });
-  // rank 2 of the 3-second test: "המטרה: ..." above the bar (the long sentence on turns 1-3), a flag at the bar's inline-end
-  const goalCapText = h('span', { class: 'goal-cap-text' });
-  const goalCap = h('p', { class: 'goal-cap', 'data-goal-cap': '' }, goalCapText, icon('flag', { size: 16, width: 2.2, cls: 'goal-flag' }));
+  // redesign phase B: ONE integrated progress line under the bar: 'כסף שעובד ₪0 מתוך הוצאות ₪7,310 (0%)'. The old goal caption, the
+  // two-corner labels and the repeated 'עוד ₪X ועוד קצת...' line are gone; the first-game tutorial sentence (goalLine) is the single caption.
+  const progressLine = h('p', { class: 'hud-progress', 'data-hud-progress': '' });
+  const roundBadge = h('span', { class: 'round-badge', hidden: true, 'data-round-badge': '' });
   const openGameSettings = () => openSettings({ onQuit: () => goHome(), version: __APP_VERSION__, mode: state.mode, professionId: state.profession.id });
   const stmtBtn = iconButton('statement', t('game.statement'), () => openStmt(), 'icon-btn-glass');
   stmtBtn.dataset.action = 'statement';
   // board-spec 14.3 (CEO decision): home and settings merge into ONE menu button (the menu sheet = the home confirm + settings,
   // sound and vibration). It keeps the data-action="home" hook of the old home button.
+  // the board legend ('מקרא המשבצות', the old floating '?') lives in the toolbar now: same action, same label
+  const legendBtn = h('button', { type: 'button', class: 'icon-btn icon-btn-glass legend-btn', 'aria-label': t('legend.open'), 'aria-haspopup': 'dialog', 'data-action': 'legend', onClick: () => { haptic('tap'); openLegend({ mode: state.mode, challenge: !!state.challenge }); } }, icon('help', { size: 24 }));
   const homeBtn = iconButton('menu', t('game.menu'), () => askHome(), 'icon-btn-glass');
   homeBtn.dataset.action = 'home';
   homeBtn.setAttribute('aria-haspopup', 'dialog');
 
   // owner override 2026-10-24b (board-spec 14.3): one slim bar. Row 1: avatar · "מורה · תור 3" over the coin + cash · statement, menu.
   // Row 2: the goal caption, the bar with its 25/50/75 ticks, passive income at the start and expenses at the end.
+  // Row A: avatar (+ the round badge when a cap exists) · name / turn · toolbar (legend, statement, menu).
+  // Row B: coin + cash (the hero number) · the monthly flow chip. Row C: the bar, the one progress line, the first-game goal sentence.
   const hud = h('header', { class: 'hud glass hud-slim' },
     h('div', { class: 'hud-top' },
-      h('div', { class: 'hud-avatar' }, avatar, babies), // kids: a small badge on the avatar, so the text column keeps all its width
+      h('div', { class: 'hud-avatar' }, avatar, babies, roundBadge), // kids: a small badge on the avatar; the round badge sits at its other corner
       h('div', { class: 'hud-id' },
         h('div', { class: 'hud-idline' }, hudProf, h('span', { class: 'hud-sub' }, profEl, turnEl), chChip?.el ?? null)),
-      h('div', { class: 'hud-btns' }, stmtBtn, homeBtn),
-      // QA round 14 P1: the cash has its own row under the name and the buttons (the full width beside the avatar), so the ₪ sign,
-      // every digit and a minus sign always show (up to -₪99,999 / ₪9,999,999 at 320); fitText shrinks it as the last resort
+      h('div', { class: 'hud-btns' }, legendBtn, stmtBtn, homeBtn),
+      // QA round 14 P1: the cash has its own row (the full width) so the sign, every digit and a minus always show; fitText is the last resort
       h('div', { class: 'hud-cash' },
         h('img', { class: 'hud-coin', src: coinUrl, alt: '', width: 20, height: 20 }),
-        h('div', { class: 'cash-col' }, cashLabel, cashWrap))),
+        h('div', { class: 'cash-col' }, cashLabel, cashWrap)),
+      flowChip),
     cashCap,
-    goalLine,
-    goalCap,
     m.el,
-    h('div', { class: 'meter-labels' },
-      // under the bar: start = passive income (+ how far along, "0% מהדרך"), end = expenses. Family: its kid word for passive income
-      h('span', { class: 'ml-start' }, h('span', { class: 'ml-label' }, t('game.passive')), ' ', passiveVal, ' · ', meterPct),
-      h('span', { class: 'ml-end' }, h('span', { class: 'ml-label' }, t('game.expenses')), ' ', expenseVal)),
-    freeLine);
-  const famHud = isFamily ? createFamilyHud({ hud, chip: flowChip, goalLine, freeLine }) : null;
+    progressLine,
+    goalLine);
+  const famHud = isFamily ? createFamilyHud({ hud, chip: flowChip, goalLine }) : null;
   const tutorialDevice = () => ({ mode: state.mode, helpOn: loadTutorial().helpOn, gamesFinished: gamesFinished(), daily: !!match.daily });
   // the hints belong to the first game since they were (re-)armed: 'הפעילו שוב את הרמזים' in the settings re-arms them
   const hintsDevice = () => { const d = tutorialDevice(); return { ...d, gamesFinished: d.gamesFinished - loadTutorial().hintsFrom }; };
@@ -233,8 +229,6 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   const hereLine = h('p', { class: 'here-line', 'data-here': '' }, hereIcon, hereText);
   // the landing caption: icon + full label, shown at every landing before the card opens
   const landCap = h('div', { class: 'land-cap', 'aria-hidden': 'true', hidden: true });
-  const legendBtn = h('button', { type: 'button', class: 'icon-btn legend-btn', 'aria-label': t('legend.open'), 'aria-haspopup': 'dialog', 'data-action': 'legend', onClick: () => { haptic('tap'); openLegend({ mode: state.mode, challenge: !!state.challenge }); } },
-    h('span', { class: 'legend-q', 'aria-hidden': 'true' }, '?'));
   // Hot-seat: compact strip with the other players (tap to expand into a panel over the board, never over the roll button).
   const othersCells = h('span', { class: 'os-cells' }); // each cell starts with a visually hidden player name, so the button's name contains its visible text
   const othersBtn = multi ? h('button', { type: 'button', class: 'others-strip', 'aria-expanded': 'false', 'aria-controls': 'others-panel', 'data-action': 'others', onClick: () => toggleOthers() }, h('span', { class: 'vh' }, `${t('game.othersOpen')}: `), othersCells) : null;
@@ -242,9 +236,8 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   const othersClose = h('button', { type: 'button', class: 'icon-btn others-close', 'aria-label': t('game.othersClose'), onClick: () => toggleOthers(false) }, icon('close', { size: 22 }));
   const othersPanel = multi ? h('div', { class: 'others-panel glass glass-strong', id: 'others-panel', role: 'region', 'aria-label': t('game.others'), hidden: true },
     h('div', { class: 'others-head' }, h('strong', null, t('game.others')), othersClose), othersList) : null;
-  // owner override 2026-10-24b (board-spec 14.4): the plaza is a flex column. Top row: the flow chip (start) and "?" (end);
+  // owner override 2026-10-24b (board-spec 14.4): the plaza is a flex column. (Phase B: the flow chip and the legend moved into the HUD.)
   // spacer; die (the landing caption takes its place on a landing); status + "you are here"; spacer; the fox row; the CTA.
-  const plazaTop = h('div', { class: 'plaza-top' }, flowChip, legendBtn);
   const center = h('div', { class: 'board-center' }, h('i', { class: 'plaza-spacer', 'aria-hidden': 'true' }),
     h('div', { class: 'plaza-die' }, landCap, dice.el), h('div', { class: 'status-wrap' }, status, hereLine), charityChip, othersBtn,
     h('i', { class: 'plaza-spacer', 'aria-hidden': 'true' }));
@@ -252,8 +245,9 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   let currentTile = null;
 
   const rollLabel = h('span', null, t('game.roll'));
-  // owner 2026-10-26: no die icon inside the button (the plaza die above it is the die)
-  const rollBtn = button([rollLabel], { variant: 'primary', cls: 'btn-roll', 'data-action': 'roll', onClick: () => turn() });
+  // owner 2026-10-26 'no die icon' is REVERSED in redesign phase B (docs/decisions.md 2026-11-16): the centre die is small now, so the button carries a STATIC
+  // cube glyph (no pips: it never shows or animates a result). The label and the disabled rules are unchanged.
+  const rollBtn = button([icon('die', { size: 24, width: 2.2, cls: 'roll-die' }), rollLabel], { variant: 'primary', cls: 'btn-roll', 'data-action': 'roll', onClick: () => turn() });
   // v0.4: the reroll-token toggle sits under the roll button — visible only while a token is held and a roll is due
   const rerollBtn = button('', { variant: 'secondary', cls: 'btn-reroll', 'data-action': 'reroll', hidden: true, onClick: () => { if (apply((s) => engine.dispatch(s, { type: 'armReroll' }))) refreshRerollBtn(); } });
   const actions = h('div', { class: 'board-actions' }, rollBtn, rerollBtn);
@@ -282,6 +276,8 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     onCompact: (on) => { el.dataset.foxCompact = String(on); },
   });
   zone.prepend(guide.el);
+  // the small dot on the fox: only while a tap would show something (an earlier tip / note can be re-opened)
+  function syncFoxDot() { guide.button.toggleAttribute('data-has-tip', !!flow?.notes.canReopen && !flow.notes.visible); }
   // The bubble takes the strip while it is shown; the pose that was wanted meanwhile returns after it.
   let noteShown = false;
   let poseAfterNote = 'roll';
@@ -295,10 +291,12 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     setState: (next) => { state = next; commit(); },
     onDismiss: () => rollBtn.focus?.({ preventScroll: true }),
     onShown: (item) => {
+      syncFoxDot();
       guide.setBase(item.kind === 'tip' ? 'think' : item.pose);
       zone.dataset.pose = item.kind === 'tip' ? 'tip' : 'note';
     },
     onActive: (on) => {
+      queueMicrotask(syncFoxDot);
       if (on === noteShown) return;
       noteShown = on;
       if (on) { if (zone.dataset.pose !== 'note' && zone.dataset.pose !== 'tip') poseAfterNote = zone.dataset.pose || 'roll'; zone.dataset.pose = 'note'; guide.settle(); }
@@ -452,7 +450,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
   // the fox row and the CTA live INSIDE the plaza now (14.4 items 7-8); the plate sits under the slim HUD
   const dock = h('div', { class: 'play-dock' }, zone, actions);
   const el = h('section', { class: 'screen screen-board board-full', 'data-screen': 'board' },
-    h('h1', { class: 'vh' }, `${t('app.title')} · ${t('game.boardTitle')}`), hud, plazaTop, board, dock);
+    h('h1', { class: 'vh' }, `${t('app.title')} · ${t('game.boardTitle')}`), hud, board, dock);
   // board-spec 14.2: the 6x8 ring fills the screen. JS sets --tile-c (width-bound, clamped 40-60) and the side-column row gap
   // --tile-gap-v (the spare height of a tall phone goes there, capped at c/2; leftover goes above the plate). Height-bound
   // (split screen / landscape): a smaller cell with the 4px gap. Below c = 40 the plate scales down as a whole, never scrolls.
@@ -484,7 +482,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     if (changed) refreshHud(); // the goal caption form follows the bar
     if (f.cell < 50) el.dataset.small = ''; else delete el.dataset.small;
     const dockH = Math.max(dock.offsetHeight || 0, H < 700 ? 124 : 152);
-    const room = Math.max(190, H - safeT - safeB - Math.max(hud.offsetHeight, H < 700 ? 108 : 138) - 48 - dockH - 24);
+    const room = Math.max(190, H - safeT - safeB - Math.max(hud.offsetHeight, H < 700 ? 108 : 120) - dockH - 24);
     const sceneW = Math.min(Math.min(innerWidth, 480) - 16, room * BOARD_GEO.aspect);
     el.style.setProperty('--scene-w', `${sceneW}px`);
     el.style.setProperty('--scene-ratio', String(BOARD_GEO.aspect));
@@ -639,19 +637,27 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
       flowChip.replaceChildren(tn('game.perMonth', { amount: money(st.monthlyCashFlow, { sign: true }) }));
       flowChip.classList.toggle('is-negative', st.monthlyCashFlow < 0);
     }
-    passiveVal.replaceChildren(money(st.passiveIncome));
-    expenseVal.replaceChildren(money(st.totalExpenses));
     m.set(st.passiveIncome, st.totalExpenses);
-    const pct = st.totalExpenses > 0 ? Math.round((st.passiveIncome / st.totalExpenses) * 100) : 0;
-    meterPct.replaceChildren(tn('hud.progress', { pct: h('b', { class: 'meter-pct-num', dir: 'ltr' }, `${pct}%`) }));
-    // the goal caption: hidden while the first-game family goal line says it; the smallest screens get the one-line figures
-    const tutorialGoal = famHud ? !goalLine.hidden : false;
-    // the smallest screens and the compact top bar (board-spec 14.3) show the one-line figures "המטרה: ₪0 מתוך ₪X" (QA round 14 P2-9)
-    const tiny = (mqMin?.matches ?? false) || el.dataset.hud === 'compact';
-    goalCap.hidden = tutorialGoal;
-    hud.dataset.goalCap = tutorialGoal ? 'tutorial' : tiny ? 'short' : 'long';
-    if (tiny) goalCapText.replaceChildren(tn('hud.goalShort', { passive: money(st.passiveIncome), expenses: money(st.totalExpenses) }));
-    else goalCapText.textContent = state.turn <= 3 ? t('hud.goalFirst') : t('hud.goal');
+    // the integrated progress line: label + amount of money that works, 'מתוך', label + amount of expenses, then the percent. Display only: the
+    // percent never reads 100% before the real win (passive strictly above expenses, the unchanged win condition); on the line it stays 99%.
+    const won = st.passiveIncome > st.totalExpenses;
+    const pct = st.totalExpenses > 0 ? (won ? 100 : Math.min(99, Math.floor((st.passiveIncome / st.totalExpenses) * 100))) : 0;
+    const fvNote = famHud ? freedomView(state) : null;
+    progressLine.replaceChildren(tn('hud.progressLine', {
+      passiveLabel: t('game.passive'), passive: h('b', { class: 'tone-income' }, money(st.passiveIncome)), expensesLabel: t('game.expenses'), expenses: h('b', { class: 'tone-expense' }, money(st.totalExpenses)),
+      pct: h('bdi', { class: 'meter-pct-num', dir: 'ltr', 'data-meter-pct': '' }, `${pct}%`),
+    }));
+    if (fvNote && (fvNote.kind === 'won' || fvNote.kind === 'onTheLine')) progressLine.append(' ', h('b', { class: 'hud-progress-note' }, fillNodes(tut().goalLine.progress[fvNote.kind === 'won' ? 'won' : 'onTheLine'])));
+    // round badge: only when a cap exists (a short game's 12 rounds, a daily's turn cap); an unlimited game shows no '/cap'
+    const cap = match.roundCap || (isDaily ? state.daily.turnCap : 0);
+    const roundN = match.roundCap ? roundNow : (isDaily && state.turn ? state.turn : 0);
+    roundBadge.hidden = !(cap && roundN);
+    if (cap && roundN) {
+      roundBadge.replaceChildren(h('bdi', { dir: 'ltr' }, `${roundN}/${cap}`));
+      roundBadge.setAttribute('aria-label', match.roundCap ? t('game.roundOf', { turn: roundN, cap }) : t('daily.turnOf', { turn: roundN, cap }));
+      roundBadge.setAttribute('role', 'img');
+    }
+    hud.dataset.cap = cap ? 'true' : 'false';
     // one baby icon plus the count (up to three icons would not fit next to the buttons on a 320px screen)
     babies.replaceChildren(...(state.kids ? [icon('baby', { size: 18, width: 2.2 }), h('b', null, String(state.kids))] : []));
     babies.setAttribute('aria-label', t('game.kids', { n: state.kids }));

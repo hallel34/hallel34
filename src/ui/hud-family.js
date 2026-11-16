@@ -1,5 +1,5 @@
 // Family-mode HUD additions (spec sections 4 and 6): the 'נשאר בחודש' chip and its popover (money in, money out, what is left),
-// the goal line above the meter and the 'עוד X בחודש לחופש' line under it. Pure presentation of engine numbers.
+// the first-game goal sentence under the bar (phase B: the repeated 'עוד X בחודש לחופש' line was removed). Pure presentation of engine numbers.
 import { h } from './dom.js';
 import { icon } from './icons.js';
 import { money, moneyText, moneyIsolated, numberText } from './format.js';
@@ -7,7 +7,7 @@ import { animate } from './fx.js';
 import { motionOK } from './prefs.js';
 import { statement, PAYDAY_MONTHS } from '../engine/index.js';
 import { freedomView } from '../learn/tutorial.js';
-import { tut, fillNodes, leftNodes, leftWords } from './hint-ui.js';
+import { tut, fillNodes, leftWords } from './hint-ui.js';
 import { fillSlots } from '../learn/slots.js';
 import { t } from '../i18n/index.js';
 
@@ -27,7 +27,7 @@ export const flowChipText = (monthly) => fillSlots(tut().hudFamily.chip, { month
  * @param hud       the .hud element (the popover anchors under it)
  * @param chip      the flow chip <button>
  */
-export function createFamilyHud({ hud, chip, goalLine, freeLine }) {
+export function createFamilyHud({ hud, chip, goalLine }) {
   let open = false;
   let pop = null;
   let last = null;
@@ -104,26 +104,16 @@ export function createFamilyHud({ hud, chip, goalLine, freeLine }) {
       if (open) paintPop(st);
       const gl = tut().goalLine;
       goalLine.hidden = !goal;
-      freeLine.hidden = !goal;
       if (goal) {
         const short = window.matchMedia?.(`(max-height: ${gl.shortFromHeightPx}px)`).matches;
         const minimal = window.matchMedia?.(`(max-height: ${GOAL_MIN_HEIGHT}px)`).matches; // never hidden: at the smallest screens it is one short line
         goalLine.textContent = minimal ? t('goal.min') : short ? gl.textShort : gl.text;
         const fv = freedomView(state);
         goalLine.setAttribute('aria-label', fv.left > 0 ? fillSlots(leftWords(gl.a11y, state), { left: moneyIsolated(fv.left) }) : `${gl.text}. ${fv.kind === 'won' ? gl.progress.won : gl.progress.onTheLine}`);
-        freeLine.replaceChildren(freeText(fv, gl.progress, state));
-        freeLine.dataset.kind = fv.kind;
       }
     },
     close: () => setOpen(false),
     get isOpen() { return open; },
     destroy() { setOpen(false); },
   };
-}
-
-/** 'עוד ₪6,410 בחודש לחופש' / 'כמעט חופשיים! עוד ...' / 'ממש על הקו! עוד קצת' / 'חופשיים!' */
-function freeText(fv, p, state) {
-  if (fv.kind === 'won') return fillNodes(p.won);
-  if (fv.kind === 'onTheLine') return fillNodes(p.onTheLine);
-  return leftNodes(fv.kind === 'almost' ? p.almost : p.text, state);
 }

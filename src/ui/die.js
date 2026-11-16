@@ -148,6 +148,8 @@ export function createDice() {
         { scale: '1', offset: 0, easing: 'ease-in' },
         { scale: '.94', offset: o(tl.windup) },
         { scale: '1', offset: o(tl.windup + 120) },
+        // phase B: the idle die is small (38px); at the apex of the toss the wrapper scales up ~1.5x (transform only, no layout change), then settles
+        { scale: '1.5', offset: o(tl.apex), easing: easeFall },
         { scale: '1', offset: o(tl.tumbleEnd), easing: easeSettle },
         { scale: '1.06', offset: o(tl.tumbleEnd + tl.settle * 0.35) },
         { scale: '.98', offset: o(tl.tumbleEnd + tl.settle * 0.7) },

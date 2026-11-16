@@ -43,6 +43,8 @@ const PATHS = {
   achievementLocked: '<rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/><path d="M12 14.5v2"/>',
   bank: '<path d="M3 10l9-6 9 6M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20h18"/>',
   // redesign phase A: the home 'more' menu button (2x2 grid), the Family mode (house with a heart-free roof: reuses the opportunity house) and Full mode (bars)
+  // redesign phase B: the roll button's static die glyph: a plain cube outline, no pips, so it can never show (or disagree with) a roll result
+  die: '<path d="M12 3l7.5 4.2v9.6L12 21l-7.5-4.2V7.2z"/><path d="M4.5 7.2L12 11.4l7.5-4.2M12 11.4V21"/>',
   grid: '<rect x="4" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.8"/>',
 };
 

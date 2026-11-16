@@ -348,7 +348,8 @@
     "goal": "המטרה: חופש כלכלי",
     "goalFirst": "המטרה: שהכנסה הפסיבית תעבור את ההוצאות",
     "goalShort": "המטרה: {passive} מתוך {expenses}",
-    "progress": "{pct} מהדרך"
+    "progress": "{pct} מהדרך",
+    "progressLine": "{passiveLabel} {passive} מתוך {expensesLabel} {expenses} ({pct})"
   },
   "deal": {
     "badge": { "a": "חזקה", "b": "סבירה", "c": "חלשה", "cFamily": "איטית" },
