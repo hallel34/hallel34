@@ -62,9 +62,12 @@
 /* ===== Itemised summary card ===== */
 .layer-summary .scrim { background: rgb(5 12 32 / .30); }
 .layer-summary { max-inline-size: 448px; max-block-size: calc(100dvh - 168px); }
+/* redesign phase A (5.7): the paper is the warm cream --paper (#EFE6D5, ink 14.4:1) inside an 8px dark frame, so the card no longer flashes white on the navy app */
+.layer-summary { background: var(--paper-frame); padding: 8px 8px 0; border-start-start-radius: 32px; border-start-end-radius: 32px; box-shadow: 0 -10px 40px rgb(0 0 0 / .45), inset 0 0 0 1px var(--border); }
 .summary-card {
+  --card-bg: var(--paper); --card-text: var(--paper-ink); --card-muted: var(--paper-muted); --card-border: #D5C8AB; --card-income-bg: #E6EFDC; --card-highlight: rgb(255 255 255 / .35);
   min-block-size: 0; max-block-size: 100%; overflow-y: auto; gap: 6px; padding: 14px 16px 6px;
-  background-color: var(--card-bg); color: var(--card-text); border: 1px solid var(--card-border); border-block-end: 0; box-shadow: inset 0 1px 0 var(--card-highlight), 0 -10px 40px rgb(0 0 0 / .45);
+  background-color: var(--card-bg); color: var(--card-text); border: 0; box-shadow: inset 0 1px 0 var(--card-highlight);
   border-start-start-radius: 24px; border-start-end-radius: 24px; cursor: pointer;
 }
 .sc-title { margin: 0; text-align: center; font-size: 1.0625rem; font-weight: var(--fw-black); color: var(--card-muted); letter-spacing: 0; }
@@ -82,21 +85,33 @@
 .summary-card.is-positive .sc-left .sc-big { color: var(--income-ink); }
 .summary-card { --amber-ink: #6E4200; --amber-fill: #FFEBC2; } /* the card is cream in both themes */
 .summary-card.is-negative .sc-left .sc-big { color: var(--amber-ink); }
-.sc-band { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 0 2px; text-align: center; }
-.sc-calc { white-space: nowrap; font-variant-numeric: tabular-nums; }
-.sc-result { font-size: 1.75rem; font-weight: 900; color: var(--income-ink); font-variant-numeric: tabular-nums; }
-.summary-card.is-negative .sc-result { color: var(--negative-ink); }
+.sc-band { display: flex; flex-direction: column; align-items: stretch; gap: 4px; padding: 6px 0 2px; text-align: center; }
+/* the one highlighted expression: warm darker paper, a soft gold-brown edge; flex row of isolates in natural RTL order (monthly at the right, result at the left) */
+.sc-eq { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; column-gap: 8px; row-gap: 2px; padding: 10px 8px; border-radius: var(--r-md); background: var(--paper-2); border: 1.5px solid #C9B98F; font-variant-numeric: tabular-nums; }
+.sc-eq-lhs, .sc-eq-rhs { display: inline-flex; align-items: baseline; justify-content: center; gap: 6px; white-space: nowrap; }
+.sc-eq .eq-op { font-size: 1.125rem; font-weight: var(--fw-bold); color: var(--card-muted); line-height: 1; }
+.sc-eq .eq-monthly { font-size: 1.125rem; font-weight: 900; color: var(--card-text); }
+.sc-eq .eq-months { font-size: .9375rem; font-weight: var(--fw-bold); color: var(--card-muted); }
+.sc-result { font-size: 1.375rem; font-weight: 900; color: var(--income-ink); font-variant-numeric: tabular-nums; }
+.summary-card.is-negative .sc-result, .sc-eq.is-neg .eq-monthly { color: var(--negative-ink); }
 .sc-passive.has-loss { background: var(--amber-fill); }
 .sc-passive.has-loss .sc-amt { color: var(--amber-ink); }
 .sc-losstag { display: block; font-size: .75rem; font-weight: var(--fw-bold); color: var(--amber-ink); }
 .sc-note { font-size: .8125rem; font-weight: var(--fw-medium); color: var(--card-muted); }
 .sc-idle { font-size: .8125rem; font-weight: var(--fw-medium); color: var(--card-muted); margin-block: 6px 0; }
-.sc-cash { margin: 0; text-align: center; font-size: .8125rem; line-height: 1.3; color: var(--card-muted); }
-.sc-arrow { display: inline-block; margin-inline: 4px; }
-.sc-pair { display: inline-block; white-space: nowrap; }
-.sc-cash { text-wrap: balance; }
+.sc-cash { margin: 0; display: flex; flex-direction: column; align-items: stretch; gap: 6px; text-align: center; font-size: .8125rem; line-height: 1.3; color: var(--card-muted); }
+.sc-cash-label { text-wrap: balance; }
+/* previous (לפני) at the inline-start = the right in Hebrew, new (אחרי) at the inline-end; the arrow between them points the way the balance moves (left in RTL) */
+.sc-pair { display: flex; align-items: stretch; justify-content: center; gap: 8px; white-space: nowrap; }
+.sc-bal { flex: 1 1 0; min-inline-size: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; padding: 6px 8px; border-radius: var(--r-sm); background: var(--paper-2); border: 1px solid #D5C8AB; }
+.sc-bal-k { font-size: .75rem; font-weight: var(--fw-bold); color: var(--card-muted); }
+.sc-bal .money { font-size: 1.125rem; font-weight: 900; color: var(--card-text); }
+.sc-bal-after { border-color: color-mix(in srgb, var(--income-ink) 45%, transparent); }
+.sc-bal-after .money { color: var(--income-ink); }
+.summary-card.is-negative .sc-bal-after .money { color: var(--negative-ink); }
+.sc-arrow { flex: none; align-self: center; font-size: 1.25rem; font-weight: var(--fw-bold); color: var(--card-muted); }
 [dir="rtl"] .sc-arrow { transform: scaleX(-1); }
-.sc-cta { position: sticky; inset-block-end: 0; padding-block: 4px 6px; background: var(--card-bg); margin-inline: -16px; padding-inline: 16px; }
+.sc-cta { position: sticky; inset-block-end: 0; padding-block: 4px 6px; background: var(--paper); margin-inline: -16px; padding-inline: 16px; }
 .sc-cta .btn { inline-size: 100%; min-block-size: var(--tap-min); font-size: 1.1875rem; }
 .summary-card .hint-strip { cursor: default; }
 @media (max-height: 600px) { .summary-card { padding-block-start: 8px; gap: 3px; } .sc-row { min-block-size: 30px; } .sc-title { display: none; } }

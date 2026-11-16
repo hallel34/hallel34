@@ -56,7 +56,8 @@ export function summaryCard({ figures: f, hint = null }) {
   const sb = tut().summaryBreakdown;
   const neg = f.negative;
   const bigAmount = h('bdi', { class: 'sc-big money', dir: 'ltr' }, moneyText(f.monthly, { sign: true }));
-  const result = h('bdi', { class: 'sc-result money', dir: 'ltr' }, moneyText(f.amount)); // the final total from the first frame (no 0 flash)
+  // the credited total from the first frame (no 0 flash), signed: a positive credit reads '+₪17,880', a negative one keeps its minus
+  const result = h('bdi', { class: 'sc-result money', dir: 'ltr' }, moneyText(f.amount, { sign: true }));
   const descId = 'summary-desc';
   const row = (cls, label, value, extra = {}) => h('li', { class: `sc-row ${cls}`, ...extra },
     h('span', { class: 'sc-label' }, label), value);
@@ -71,20 +72,29 @@ export function summaryCard({ figures: f, hint = null }) {
   ];
   const leftRow = h('div', { class: 'sc-left', 'data-row': 'left' },
     neg ? fillNodes(sb.negativeMonthly, { monthlyAbs: h('bdi', { class: 'sc-big money', dir: 'ltr' }, moneyText(Math.abs(f.monthly))) }) : fillNodes(sb.resultMonthly, { monthly: bigAmount }));
-  // the stacked equation (spec 4.9): monthly / x months / rule / = total, one LTR grid, every amount its own isolate, nothing wraps
-  const eqRow = (cls, op, value) => h('span', { class: `eq-row ${cls}` }, h('span', { class: 'eq-op', 'aria-hidden': op ? null : 'true' }, op), h('span', { class: 'eq-val' }, value));
+  // ONE centred, highlighted expression: '₪1,490 × 12 חודשים = +₪17,880' (redesign 5.7). Natural RTL flow (no dir on the container): the monthly amount
+  // sits at the right, the result at the left. Every number run is its own isolate (bdi dir=ltr for amounts, bdi dir=rtl for '12 חודשים'), the
+  // operators are aria-hidden spans glued to their operand by the nowrap groups: lhs = 'monthly × months', rhs = '= result'. When the whole line
+  // does not fit (320px) the two groups wrap: the operands on one line, '= result' on the next, never an operator alone at an edge.
+  const op = (ch) => h('span', { class: 'eq-op', 'aria-hidden': 'true' }, ch);
   const band = h('div', { class: 'sc-band', 'data-row': 'total' },
-    h('div', { class: `eq sc-calc${neg ? ' is-neg' : ''}`, dir: 'ltr' },
-      eqRow('eq-monthly', '', h('bdi', { dir: 'ltr', class: 'money' }, moneyText(f.monthly, { sign: neg }))),
-      eqRow('eq-months', '×', h('bdi', { dir: 'rtl' }, t('payday.a.months', { months: numberText(f.months) }))),
-      h('i', { class: 'eq-rule', 'aria-hidden': 'true' }),
-      eqRow('eq-total', '=', result)),
+    h('div', { class: `sc-eq${neg ? ' is-neg' : ''}` },
+      h('span', { class: 'sc-eq-lhs' },
+        h('span', { class: 'eq-monthly' }, h('bdi', { dir: 'ltr', class: 'money' }, moneyText(f.monthly, { sign: neg }))),
+        op('×'),
+        h('span', { class: 'eq-months' }, h('bdi', { dir: 'rtl' }, t('payday.a.months', { months: numberText(f.months) })))),
+      h('span', { class: 'sc-eq-rhs eq-total' }, op('='), result)),
     neg ? h('span', { class: 'sc-note' }, sb.negativeNote) : null);
   const [arrA, arrB] = sb.arrival.split('→');
-  // the label may wrap, the two amounts and the arrow never split (7-digit cash on a 320px screen): they move to the next line as one piece
+  // the cash line: a short label, then two LABELLED balances: 'לפני' (the previous balance, at the right) and 'אחרי' (the new one, at the left), joined by
+  // an arrow that points left in Hebrew (the '→' glyph is mirrored in RTL by CSS). The two boxes and the arrow never split (7-digit cash at 320px).
   const [arrLabel] = arrA.split('{cashBefore}');
-  const caption = h('p', { class: 'sc-cash', 'data-row': 'cash' }, arrLabel,
-    h('span', { class: 'sc-pair' }, fillNodes('{cashBefore}', { cashBefore: money(f.cashBefore) }), h('span', { class: 'sc-arrow', 'aria-hidden': 'true' }, '→'), fillNodes(`{cashAfter}${arrB.replace('{cashAfter}', '')}`, { cashAfter: money(f.cashAfter) })));
+  const caption = h('p', { class: 'sc-cash', 'data-row': 'cash' },
+    h('span', { class: 'sc-cash-label' }, arrLabel.trim()),
+    h('span', { class: 'sc-pair' },
+      h('span', { class: 'sc-bal sc-bal-before' }, h('span', { class: 'sc-bal-k' }, t('payday.c.before')), money(f.cashBefore)),
+      h('span', { class: 'sc-arrow', 'aria-hidden': 'true' }, '→'),
+      h('span', { class: 'sc-bal sc-bal-after' }, h('span', { class: 'sc-bal-k' }, t('payday.c.after')), fillNodes(`{cashAfter}${arrB.replace('{cashAfter}', '')}`, { cashAfter: money(f.cashAfter) }))));
   // v0.4: Maxi's idle-cash mirror (figures.idle is computed by the play controller; no penalty, just the mirror)
   const idleLine = f.idle ? h('p', { class: 'sc-idle', 'data-idle': '' }, tn('payday.idle', { cash: money(f.idle.cash), gain: money(f.idle.gain, { sign: true }) })) : null;
   const strip = hint ? hintStrip({ body: hint.body, more: hint.more, cls: 'in-summary' }) : null;
