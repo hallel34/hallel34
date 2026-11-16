@@ -688,7 +688,7 @@ async function testExplainers(page) {
     if (layerOpen) {
       const btn = page.locator('#modal-root .layer:last-child [data-action="guess-bad"], #modal-root .layer:last-child [data-action="pass"], #modal-root .layer:last-child [data-action="ok"], #modal-root .layer:last-child [data-action="pay"], #modal-root .layer:last-child [data-action="skip"], #modal-root .layer:last-child [data-action="loan"], #modal-root .layer:last-child [data-action="take"], #modal-root .layer:last-child [data-action="decline"], #modal-root .layer:last-child [data-action="summary-ok"]').first();
       if (await btn.count()) await btn.click().catch(() => {});
-      await page.waitForTimeout(250);
+      await page.waitForTimeout(700); // 250 raced the note: it waits for the layer to leave and retries every 400 ms, and a roll in between pushes it to a later turn
       continue;
     }
     note = await page.locator('.note-explain').count() ? true : null;
