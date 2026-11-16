@@ -1,0 +1,1821 @@
+{
+  "_comment": "v0.5.0 career ranks 1-3. Rank 0 = src/data/professions.he.json unchanged. Titles are working titles; the educator finalizes them. Every liability payment equals principal x BASE_DEBT_RATES (car 2%, student 1%, card 3%) rounded to 10, as validate.js requires.",
+  "promotionInGame": {
+    "raisePctOfSalary": 12,
+    "upgradeLifestyle": {
+      "shareOfRaiseBecomesMonthlyExpense": "80%",
+      "oneTimeCashPerkPctOfSalary": 20,
+      "perkNote": "Round the perk to 100; for example salary 8,800 gives raise 1,056 -> 1,100, new expense about 900, perk about 1,800."
+    },
+    "keepLifestyle": {
+      "shareOfRaiseBecomesMonthlyExpense": "0% (only the tax line should rise, see note)",
+      "oneTimeCashPerk": 0
+    },
+    "reasoning": "A 12% bump is smaller than a rank step (20-45%), so a promotion mid-game is a nudge, not a new game; 80% is what a rank step does anyway (expenses = salary / (1 + the profession's free-cash share), so about 83-75% of any extra gross becomes expense), so upgrading keeps the same difficulty as a higher rank and pays a small one-time perk, while keeping the old lifestyle is the honest 'live below your means' choice that makes the game easier and teaches why.",
+    "notes": [
+      "Salary is gross and the game's tax line is an expense: if the engine does not raise the tax line with the raise, the keep-lifestyle option is more generous than 12% suggests. Suggest tax +30% of the raise in both options (marginal income tax plus national insurance in the 14-31% brackets is about 26-43%, ESTIMATE from the 2026 brackets); then the 80% above should be read as 80% of the raise after that tax."
+    ]
+  },
+  "assumptions": [
+    "Tax line = Israeli 2026 monthly income tax (brackets 10% to 7,010; 14% to 10,060; 20% to 19,000; 31% to 25,100; 35% to 46,690; 47% above) minus 2.25 credit points x 242, plus employee national insurance + health (4.27% to 7,703, 12.17% above), rounded to 50. Brackets and rates VERIFIED in docs/v3/real-world-verified.md. No pension credit, no child credit (child points NOT VERIFIED per v3 notes), no employer pension.",
+    "Rank 0 tax lines in the file are within a few tens of shekels of this formula (lawyer 2,400 vs 2,628 is the largest gap, rank 0 left unchanged). The tax line ends at 22-33% of salary at rank 3.",
+    "Total expenses per rank = salary / (1 + the profession's rank 0 free-cash share), so the share stays within -0.7 to +0.4 points of rank 0 for all 24 rows. Housing, food, transport grow with a power of the expense growth (about 0.92, 0.6, 0.85), 'other' absorbs the remainder to 100.",
+    "Liabilities: only the kinds the validator knows (car, student, card) are used; the kinds are the same as rank 0. NO mortgage-like debt: BASE_DEBT_RATES has no such kind and a starting mortgage is not in the existing data. Car and card principal grow with expense growth to the power 0.8; student loans stay as at rank 0 (a study loan does not grow with a promotion). Savings grow with salary to the power 0.75, perChild with total expenses.",
+    "Programmer keeps the extra 'pension' expense id as rank 0 does, scaled with salary."
+  ],
+  "balanceCheck": {
+    "method": "300 games per cell, seeds 1000+g*7919, rngVersion 2, 200-turn cap, sensible bot, using the new numbers in a copy of the engine in memory (src untouched). Each cell is median turns / p90 / lost % (/T = games not finished in 200 turns, out of 300). Columns: rank 0, 1, 2, 3.",
+    "sensibleBot": {
+      "teacher": {
+        "family": [
+          "24/36/0",
+          "24/35/0",
+          "25/37/0",
+          "28/41/0"
+        ],
+        "full": [
+          "28/43/0",
+          "28/40/0",
+          "30/45/0",
+          "37/58/0"
+        ],
+        "junior": [
+          "25/37/0",
+          "25/36/0",
+          "26/37/0",
+          "30/41/0"
+        ]
+      },
+      "engineer": {
+        "family": [
+          "24/36/0",
+          "28/38/0",
+          "33/53/0",
+          "45/75/0"
+        ],
+        "full": [
+          "28/42/0",
+          "33/54/0",
+          "44/84/0",
+          "59/105/0/T2"
+        ],
+        "junior": [
+          "25/35/0",
+          "29/39/0",
+          "36/66/0",
+          "52/94/0"
+        ]
+      },
+      "driver": {
+        "family": [
+          "27/42/0",
+          "28/43/0",
+          "27/40/0",
+          "29/40/0"
+        ],
+        "full": [
+          "31/50/1",
+          "32/50/0",
+          "31/48/0",
+          "32/51/0"
+        ],
+        "junior": [
+          "27/41/0",
+          "28/44/1",
+          "27/40/0",
+          "29/41/0"
+        ]
+      },
+      "nurse": {
+        "family": [
+          "21/31/0",
+          "22/31/0",
+          "24/34/0",
+          "26/38/0"
+        ],
+        "full": [
+          "25/36/0",
+          "25/37/0",
+          "28/43/0",
+          "31/53/0"
+        ],
+        "junior": [
+          "22/33/0",
+          "23/33/0",
+          "24/33/0",
+          "27/39/0"
+        ]
+      },
+      "programmer": {
+        "family": [
+          "27/38/0",
+          "31/42/0",
+          "48/78/0",
+          "78/123/0"
+        ],
+        "full": [
+          "31/48/0",
+          "38/58/0",
+          "60/104/0/T1",
+          "111/169/0/T51"
+        ],
+        "junior": [
+          "27/37/0",
+          "31/45/0",
+          "50/96/0",
+          "94/159/0/T12"
+        ]
+      },
+      "police": {
+        "family": [
+          "21/30/0",
+          "22/32/0",
+          "24/35/0",
+          "26/38/0"
+        ],
+        "full": [
+          "25/37/0",
+          "25/36/0",
+          "28/44/0",
+          "31/52/0"
+        ],
+        "junior": [
+          "21/31/0",
+          "23/33/0",
+          "25/35/0",
+          "27/39/0"
+        ]
+      },
+      "cook": {
+        "family": [
+          "19/30/0",
+          "19/29/0",
+          "20/29/0",
+          "21/31/0"
+        ],
+        "full": [
+          "22/38/0",
+          "22/34/0",
+          "23/34/0",
+          "25/38/0"
+        ],
+        "junior": [
+          "19/29/0",
+          "20/29/0",
+          "21/29/0",
+          "22/32/0"
+        ]
+      },
+      "lawyer": {
+        "family": [
+          "25/36/0",
+          "27/40/0",
+          "38/63/0",
+          "56/93/0"
+        ],
+        "full": [
+          "29/43/0",
+          "33/54/0",
+          "46/84/0/T1",
+          "99/164/0/T36"
+        ],
+        "junior": [
+          "25/35/0",
+          "28/40/0",
+          "41/84/0",
+          "63/116/0/T1"
+        ]
+      }
+    },
+    "finding": "Because the win target grows with expenses but deal sizes (cards) stay the same, engineer, programmer and lawyer ranks 2-3 become very hard: programmer rank 3 in full mode needs a median of 111 turns with 51/300 unfinished; lawyer rank 3 full 99 turns with 36/300 unfinished; engineer rank 3 full 59. Teacher, driver, nurse, police and cook stay within about +3 to +9 turns (full) of rank 0. This is harder, not easier, so it satisfies the rule, but it misses the 15-25 turn target (family) for the top three. Options for the CEO: scale deal sizes by rank, shorten the top ladder for those three (rank 3 at about 22,000-24,000 programmer / 21,000-23,000 lawyer), or accept them as 'expert' ranks. The numbers in this file were NOT tuned for turns, only for the share rule."
+  },
+  "professions": {
+    "teacher": {
+      "title0": "מורה",
+      "sources": "Rank 0 anchor: docs/v3/real-world-verified.md (8,800 teacher, VERIFIED tax and NI). Ranks 1-3: role pay for coordinator / deputy / principal. Bizportal gives principal range about 19,000-28,000 gross (undated). NOT VERIFIED: coordinator and deputy figures (searches found no published average); they are estimates, set conservatively below the principal range.",
+      "rank0": {
+        "salary": 8800,
+        "totalExpenses": 7310,
+        "freeCash": 1490,
+        "freeCashSharePct": 20.4,
+        "taxLine": 900,
+        "taxExactTotal": 870
+      },
+      "ranks": [
+        {
+          "rank": 1,
+          "title": "רכז/ת שכבה",
+          "titleEn": "Grade-level coordinator (homeroom teacher with a coordination role)",
+          "salary": 11200,
+          "savings": 11000,
+          "perChild": 550,
+          "expenses": [
+            {
+              "id": "tax",
+              "label": "מסים וביטוח לאומי",
+              "amount": 1550
+            },
+            {
+              "id": "housing",
+              "label": "שכר דירה",
+              "amount": 4200
+            },
+            {
+              "id": "food",
+              "label": "סופר ואוכל",
+              "amount": 1500
+            },
+            {
+              "id": "transport",
+              "label": "תחבורה",
+              "amount": 600
+            },
+            {
+              "id": "other",
+              "label": "חוגים, פלאפון ושונות",
+              "amount": 900
+            }
+          ],
+          "liabilities": [
+            {
+              "id": "car",
+              "label": "הלוואת רכב",
+              "debt": "car",
+              "principal": 21000,
+              "monthlyPayment": 420
+            },
+            {
+              "id": "card",
+              "label": "חוב בכרטיס אשראי",
+              "debt": "card",
+              "principal": 6000,
+              "monthlyPayment": 180
+            }
+          ],
+          "check": {
+            "expenses": 8750,
+            "liabilityPayments": 600,
+            "totalExpenses": 9350,
+            "freeCash": 1850,
+            "freeCashSharePct": 19.8,
+            "rank0FreeCashSharePct": 20.4,
+            "deltaPp": -0.6,
+            "taxExact": {
+              "incomeTax": 812,
+              "nationalInsuranceAndHealth": 755,
+              "total": 1566
+            },
+            "taxPctOfSalary": 13.8
+          }
+        },
+        {
+          "rank": 2,
+          "title": "סגן/ית מנהל/ת",
+          "titleEn": "Deputy principal",
+          "salary": 14500,
+          "savings": 13000,
+          "perChild": 750,
+          "expenses": [
+            {
+              "id": "tax",
+              "label": "מסים וביטוח לאומי",
+              "amount": 2650
+            },
+            {
+              "id": "housing",
+              "label": "שכר דירה",
+              "amount": 5000
+            },
+            {
+              "id": "food",
+              "label": "סופר ואוכל",
+              "amount": 1600
+            },
+            {
+              "id": "transport",
+              "label": "תחבורה",
+              "amount": 700
+            },
+            {
+              "id": "other",
+              "label": "חוגים, פלאפון ושונות",
+              "amount": 1400
+            }
+          ],
+          "liabilities": [
+            {
+              "id": "car",
+              "label": "הלוואת רכב",
+              "debt": "car",
+              "principal": 24000,
+              "monthlyPayment": 480
+            },
+            {
+              "id": "card",
+              "label": "חוב בכרטיס אשראי",
+              "debt": "card",
+              "principal": 7000,
+              "monthlyPayment": 210
+            }
+          ],
+          "check": {
+            "expenses": 11350,
+            "liabilityPayments": 690,
+            "totalExpenses": 12040,
+            "freeCash": 2460,
+            "freeCashSharePct": 20.4,
+            "rank0FreeCashSharePct": 20.4,
+            "deltaPp": 0.0,
+            "taxExact": {
+              "incomeTax": 1472,
+              "nationalInsuranceAndHealth": 1156,
+              "total": 2628
+            },
+            "taxPctOfSalary": 18.3
+          }
+        },
+        {
+          "rank": 3,
+          "title": "מנהל/ת בית ספר",
+          "titleEn": "School principal",
+          "salary": 19500,
+          "savings": 16000,
+          "perChild": 1000,
+          "expenses": [
+            {
+              "id": "tax",
+              "label": "מסים וביטוח לאומי",
+              "amount": 4300
+            },
+            {
+              "id": "housing",
+              "label": "שכר דירה",
+              "amount": 6200
+            },
+            {
+              "id": "food",
+              "label": "סופר ואוכל",
+              "amount": 1900
+            },
+            {
+              "id": "transport",
+              "label": "תחבורה",
+              "amount": 800
+            },
+            {
+              "id": "other",
+              "label": "חוגים, פלאפון ושונות",
+              "amount": 2200
+            }
+          ],
+          "liabilities": [
+            {
+              "id": "car",
+              "label": "הלוואת רכב",
+              "debt": "car",
+              "principal": 30000,
+              "monthlyPayment": 600
+            },
+            {
+              "id": "card",
+              "label": "חוב בכרטיס אשראי",
+              "debt": "card",
+              "principal": 8000,
+              "monthlyPayment": 240
+            }
+          ],
+          "check": {
+            "expenses": 15400,
+            "liabilityPayments": 840,
+            "totalExpenses": 16240,
+            "freeCash": 3260,
+            "freeCashSharePct": 20.1,
+            "rank0FreeCashSharePct": 20.4,
+            "deltaPp": -0.3,
+            "taxExact": {
+              "incomeTax": 2526,
+              "nationalInsuranceAndHealth": 1765,
+              "total": 4291
+            },
+            "taxPctOfSalary": 22.1
+          }
+        }
+      ]
+    },
+    "engineer": {
+      "title0": "מהנדס/ת",
+      "sources": "Drushim/Jobinfo salary table and Bizportal (read through search snippets, column layout of the table unclear): mechanical/civil engineer 18-22k at 2-3 years, 22-25k at 3-5, team lead 25-30k, senior in defense firms 30-40k. Ranks sit in the lower half of those ranges. Partly verified (ranges), exact column mapping NOT VERIFIED.",
+      "rank0": {
+        "salary": 12500,
+        "totalExpenses": 10450,
+        "freeCash": 2050,
+        "freeCashSharePct": 19.6,
+        "taxLine": 1950,
+        "taxExactTotal": 1984
+      },
+      "ranks": [
+        {
+          "rank": 1,
+          "title": "מהנדס/ת מנוסה",
+          "titleEn": "Experienced engineer (2-3 years)",
+          "salary": 18000,
+          "savings": 18000,
+          "perChild": 850,
+          "expenses": [
+            {
+              "id": "tax",
+              "label": "מסים וביטוח לאומי",
+              "amount": 3750
+            },
+            {
+              "id": "housing",
+              "label": "שכר דירה",
+              "amount": 5800
+            },
+            {
+              "id": "food",
+              "label": "סופר ואוכל",
+              "amount": 1800
+            },
+            {
+              "id": "transport",
+              "label": "תחבורה",
+              "amount": 900
+            },
+            {
+              "id": "other",
+              "label": "כושר, בילויים ושונות",
+              "amount": 1600
+            }
+          ],
+          "liabilities": [
+            {
+              "id": "car",
+              "label": "הלוואת רכב",
+              "debt": "car",
+              "principal": 50000,
+              "monthlyPayment": 1000
+            },
+            {
+              "id": "student",
+              "label": "הלוואת סטודנט",
+              "debt": "student",
+              "principal": 20000,
+              "monthlyPayment": 200
+            }
+          ],
+          "check": {
+            "expenses": 13850,
+            "liabilityPayments": 1200,
+            "totalExpenses": 15050,
+            "freeCash": 2950,
+            "freeCashSharePct": 19.6,
+            "rank0FreeCashSharePct": 19.6,
+            "deltaPp": -0.0,
+            "taxExact": {
+              "incomeTax": 2172,
+              "nationalInsuranceAndHealth": 1582,
+              "total": 3754
+            },
+            "taxPctOfSalary": 20.8
+          }
+        },
+        {
+          "rank": 2,
+          "title": "מהנדס/ת בכיר/ה",
+          "titleEn": "Senior engineer (3-5 years)",
+          "salary": 23000,
+          "savings": 22000,
+          "perChild": 1100,
+          "expenses": [
+            {
+              "id": "tax",
+              "label": "מסים וביטוח לאומי",
+              "amount": 5800
+            },
+            {
+              "id": "housing",
+              "label": "שכר דירה",
+              "amount": 6900
+            },
+            {
+              "id": "food",
+              "label": "סופר ואוכל",
+              "amount": 2000
+            },
+            {
+              "id": "transport",
+              "label": "תחבורה",
+              "amount": 1000
+            },
+            {
+              "id": "other",
+              "label": "כושר, בילויים ושונות",
+              "amount": 2200
+            }
+          ],
+          "liabilities": [
+            {
+              "id": "car",
+              "label": "הלוואת רכב",
+              "debt": "car",
+              "principal": 58000,
+              "monthlyPayment": 1160
+            },
+            {
+              "id": "student",
+              "label": "הלוואת סטודנט",
+              "debt": "student",
+              "principal": 20000,
+              "monthlyPayment": 200
+            }
+          ],
+          "check": {
+            "expenses": 17900,
+            "liabilityPayments": 1360,
+            "totalExpenses": 19260,
+            "freeCash": 3740,
+            "freeCashSharePct": 19.4,
+            "rank0FreeCashSharePct": 19.6,
+            "deltaPp": -0.2,
+            "taxExact": {
+              "incomeTax": 3612,
+              "nationalInsuranceAndHealth": 2191,
+              "total": 5802
+            },
+            "taxPctOfSalary": 25.2
+          }
+        },
+        {
+          "rank": 3,
+          "title": "ראש צוות הנדסה",
+          "titleEn": "Engineering team lead",
+          "salary": 28000,
+          "savings": 26000,
+          "perChild": 1350,
+          "expenses": [
+            {
+              "id": "tax",
+              "label": "מסים וביטוח לאומי",
+              "amount": 8100
+            },
+            {
+              "id": "housing",
+              "label": "שכר דירה",
+              "amount": 7700
+            },
+            {
+              "id": "food",
+              "label": "סופר ואוכל",
+              "amount": 2100
+            },
+            {
+              "id": "transport",
+              "label": "תחבורה",
+              "amount": 1200
+            },
+            {
+              "id": "other",
+              "label": "כושר, בילויים ושונות",
+              "amount": 2800
+            }
+          ],
+          "liabilities": [
+            {
+              "id": "car",
+              "label": "הלוואת רכב",
+              "debt": "car",
+              "principal": 64000,
+              "monthlyPayment": 1280
+            },
+            {
+              "id": "student",
+              "label": "הלוואת סטודנט",
+              "debt": "student",
+              "principal": 20000,
+              "monthlyPayment": 200
+            }
+          ],
+          "check": {
+            "expenses": 21900,
+            "liabilityPayments": 1480,
+            "totalExpenses": 23380,
+            "freeCash": 4620,
+            "freeCashSharePct": 19.8,
+            "rank0FreeCashSharePct": 19.6,
+            "deltaPp": 0.1,
+            "taxExact": {
+              "incomeTax": 5278,
+              "nationalInsuranceAndHealth": 2799,
+              "total": 8077
+            },
+            "taxPctOfSalary": 28.9
+          }
+        }
+      ]
+    },
+    "driver": {
+      "title0": "נהג/ת מונית",
+      "sources": "Bizportal: taxi driver 8,000-18,000 depending on hours/app (single source, not an official survey). Ranks 1-3 (own licence, two cars, station manager) are ESTIMATES; no net figure for an owner-driver was found. The game treats the salary as the player's taxable monthly income.",
+      "rank0": {
+        "salary": 8200,
+        "totalExpenses": 7100,
+        "freeCash": 1100,
+        "freeCashSharePct": 15.5,
+        "taxLine": 700,
+        "taxExactTotal": 713
+      },
+      "ranks": [
+        {
+          "rank": 1,
+          "title": "בעל/ת מונית",
+          "titleEn": "Owner-driver (owns the taxi licence instead of renting it)",
+          "salary": 9800,
+          "savings": 7000,
+          "perChild": 500,
+          "expenses": [
+            {
+              "id": "tax",
+              "label": "מסים וביטוח לאומי",
+              "amount": 1150
+            },
+            {
+              "id": "housing",
+              "label": "שכר דירה",
+              "amount": 3600
+            },
+            {
+              "id": "food",
+              "label": "סופר ואוכל",
+              "amount": 1400
+            },
+            {
+              "id": "transport",
+              "label": "דלק וטיפולים",
+              "amount": 900
+            },
+            {
+              "id": "other",
+              "label": "פלאפון ושונות",
+              "amount": 800
+            }
+          ],
+          "liabilities": [
+            {
+              "id": "car",
+              "label": "הלוואת רכב",
+              "debt": "car",
+              "principal": 33000,
+              "monthlyPayment": 660
+            }
+          ],
+          "check": {
+            "expenses": 7850,
+            "liabilityPayments": 660,
+            "totalExpenses": 8510,
+            "freeCash": 1290,
+            "freeCashSharePct": 15.2,
+            "rank0FreeCashSharePct": 15.5,
+            "deltaPp": -0.3,
+            "taxExact": {
+              "incomeTax": 547,
+              "nationalInsuranceAndHealth": 584,
+              "total": 1131
+            },
+            "taxPctOfSalary": 11.7
+          }
+        },
+        {
+          "rank": 2,
+          "title": "בעל/ת שתי מוניות",
+          "titleEn": "Owner of two taxis (drives one, a hired driver on the other)",
+          "salary": 12000,
+          "savings": 8000,
+          "perChild": 600,
+          "expenses": [
+            {
+              "id": "tax",
+              "label": "מסים וביטוח לאומי",
+              "amount": 1800
+            },
+            {
+              "id": "housing",
+              "label": "שכר דירה",
+              "amount": 4200
+            },
+            {
+              "id": "food",
+              "label": "סופר ואוכל",
+              "amount": 1600
+            },
+            {
+              "id": "transport",
+              "label": "דלק וטיפולים",
+              "amount": 1000
+            },
+            {
+              "id": "other",
+              "label": "פלאפון ושונות",
+              "amount": 1000
+            }
+          ],
+          "liabilities": [
+            {
+              "id": "car",
+              "label": "הלוואת רכב",
+              "debt": "car",
+              "principal": 38000,
+              "monthlyPayment": 760
+            }
+          ],
+          "check": {
+            "expenses": 9600,
+            "liabilityPayments": 760,
+            "totalExpenses": 10360,
+            "freeCash": 1640,
+            "freeCashSharePct": 15.8,
+            "rank0FreeCashSharePct": 15.5,
+            "deltaPp": 0.3,
+            "taxExact": {
+              "incomeTax": 972,
+              "nationalInsuranceAndHealth": 852,
+              "total": 1823
+            },
+            "taxPctOfSalary": 15.0
+          }
+        },
+        {
+          "rank": 3,
+          "title": "מנהל/ת תחנת מוניות",
+          "titleEn": "Taxi station manager",
+          "salary": 14500,
+          "savings": 9000,
+          "perChild": 700,
+          "expenses": [
+            {
+              "id": "tax",
+              "label": "מסים וביטוח לאומי",
+              "amount": 2650
+            },
+            {
+              "id": "housing",
+              "label": "שכר דירה",
+              "amount": 4800
+            },
+            {
+              "id": "food",
+              "label": "סופר ואוכל",
+              "amount": 1700
+            },
+            {
+              "id": "transport",
+              "label": "דלק וטיפולים",
+              "amount": 1200
+            },
+            {
+              "id": "other",
+              "label": "פלאפון ושונות",
+              "amount": 1300
+            }
+          ],
+          "liabilities": [
+            {
+              "id": "car",
+              "label": "הלוואת רכב",
+              "debt": "car",
+              "principal": 43000,
+              "monthlyPayment": 860
+            }
+          ],
+          "check": {
+            "expenses": 11650,
+            "liabilityPayments": 860,
+            "totalExpenses": 12510,
+            "freeCash": 1990,
+            "freeCashSharePct": 15.9,
+            "rank0FreeCashSharePct": 15.5,
+            "deltaPp": 0.4,
+            "taxExact": {
+              "incomeTax": 1472,
+              "nationalInsuranceAndHealth": 1156,
+              "total": 2628
+            },
+            "taxPctOfSalary": 18.3
+          }
+        }
+      ]
+    },
+    "nurse": {
+      "title0": "אח/ות",
+      "sources": "Search found conflicting figures (an entry nurse about 19,700 in a government-hospital report vs 9,500-13,000 before shifts in another article); head-nurse / deputy figures NOT FOUND. Ranks are ESTIMATES kept near rank 0 plus seniority and role pay. NOT VERIFIED.",
+      "rank0": {
+        "salary": 9800,
+        "totalExpenses": 7720,
+        "freeCash": 2080,
+        "freeCashSharePct": 26.9,
+        "taxLine": 1100,
+        "taxExactTotal": 1131
+      },
+      "ranks": [
+        {
+          "rank": 1,
+          "title": "אח/ות בכיר/ה",
+          "titleEn": "Senior registered nurse (post-basic course, shifts)",
+          "salary": 12800,
+          "savings": 10000,
+          "perChild": 650,
+          "expenses": [
+            {
+              "id": "tax",
+              "label": "מסים וביטוח לאומי",
+              "amount": 2100
+            },
+            {
+              "id": "housing",
+              "label": "שכר דירה",
+              "amount": 4300
+            },
+            {
+              "id": "food",
+              "label": "סופר ואוכל",
+              "amount": 1500
+            },
+            {
+              "id": "transport",
+              "label": "תחבורה",
+              "amount": 700
+            },
+            {
+              "id": "other",
+              "label": "קפה של אחרי משמרת ושונות",
+              "amount": 900
+            }
+          ],
+          "liabilities": [
+            {
+              "id": "car",
+              "label": "הלוואת רכב",
+              "debt": "car",
+              "principal": 23000,
+              "monthlyPayment": 460
+            },
+            {
+              "id": "student",
+              "label": "הלוואת לימודים",
+              "debt": "student",
+              "principal": 12000,
+              "monthlyPayment": 120
+            }
+          ],
+          "check": {
+            "expenses": 9500,
+            "liabilityPayments": 580,
+            "totalExpenses": 10080,
+            "freeCash": 2720,
+            "freeCashSharePct": 27.0,
+            "rank0FreeCashSharePct": 26.9,
+            "deltaPp": 0.0,
+            "taxExact": {
+              "incomeTax": 1132,
+              "nationalInsuranceAndHealth": 949,
+              "total": 2081
+            },
+            "taxPctOfSalary": 16.4
+          }
+        },
+        {
+          "rank": 2,
+          "title": "סגן/ית אח/ות אחראי/ת",
+          "titleEn": "Deputy head nurse",
+          "salary": 16000,
+          "savings": 12000,
+          "perChild": 800,
+          "expenses": [
+            {
+              "id": "tax",
+              "label": "מסים וביטוח לאומי",
+              "amount": 3100
+            },
+            {
+              "id": "housing",
+              "label": "שכר דירה",
+              "amount": 5000
+            },
+            {
+              "id": "food",
+              "label": "סופר ואוכל",
+              "amount": 1600
+            },
+            {
+              "id": "transport",
+              "label": "תחבורה",
+              "amount": 800
+            },
+            {
+              "id": "other",
+              "label": "קפה של אחרי משמרת ושונות",
+              "amount": 1400
+            }
+          ],
+          "liabilities": [
+            {
+              "id": "car",
+              "label": "הלוואת רכב",
+              "debt": "car",
+              "principal": 27000,
+              "monthlyPayment": 540
+            },
+            {
+              "id": "student",
+              "label": "הלוואת לימודים",
+              "debt": "student",
+              "principal": 12000,
+              "monthlyPayment": 120
+            }
+          ],
+          "check": {
+            "expenses": 11900,
+            "liabilityPayments": 660,
+            "totalExpenses": 12560,
+            "freeCash": 3440,
+            "freeCashSharePct": 27.4,
+            "rank0FreeCashSharePct": 26.9,
+            "deltaPp": 0.4,
+            "taxExact": {
+              "incomeTax": 1772,
+              "nationalInsuranceAndHealth": 1339,
+              "total": 3110
+            },
+            "taxPctOfSalary": 19.4
+          }
+        },
+        {
+          "rank": 3,
+          "title": "אח/ות אחראי/ת מחלקה",
+          "titleEn": "Head nurse of a ward",
+          "salary": 20000,
+          "savings": 14000,
+          "perChild": 1000,
+          "expenses": [
+            {
+              "id": "tax",
+              "label": "מסים וביטוח לאומי",
+              "amount": 4500
+            },
+            {
+              "id": "housing",
+              "label": "שכר דירה",
+              "amount": 5900
+            },
+            {
+              "id": "food",
+              "label": "סופר ואוכל",
+              "amount": 1800
+            },
+            {
+              "id": "transport",
+              "label": "תחבורה",
+              "amount": 900
+            },
+            {
+              "id": "other",
+              "label": "קפה של אחרי משמרת ושונות",
+              "amount": 1900
+            }
+          ],
+          "liabilities": [
+            {
+              "id": "car",
+              "label": "הלוואת רכב",
+              "debt": "car",
+              "principal": 31000,
+              "monthlyPayment": 620
+            },
+            {
+              "id": "student",
+              "label": "הלוואת לימודים",
+              "debt": "student",
+              "principal": 12000,
+              "monthlyPayment": 120
+            }
+          ],
+          "check": {
+            "expenses": 15000,
+            "liabilityPayments": 740,
+            "totalExpenses": 15740,
+            "freeCash": 4260,
+            "freeCashSharePct": 27.1,
+            "rank0FreeCashSharePct": 26.9,
+            "deltaPp": 0.1,
+            "taxExact": {
+              "incomeTax": 2682,
+              "nationalInsuranceAndHealth": 1825,
+              "total": 4507
+            },
+            "taxPctOfSalary": 22.5
+          }
+        }
+      ]
+    },
+    "programmer": {
+      "title0": "מפתח/ת תוכנה",
+      "sources": "Nisha / GotFriends 2025 survey: hi-tech average about 39,810 gross, developer with 5+ years about 38,183 (survey averages skew high). Ranks are deliberately conservative (19k, 27k, 35k) because the game's rank 0 is 13,500. Not an exact table; Drushim software table could not be read. Partly verified.",
+      "rank0": {
+        "salary": 13500,
+        "totalExpenses": 11640,
+        "freeCash": 1860,
+        "freeCashSharePct": 16.0,
+        "taxLine": 2300,
+        "taxExactTotal": 2306
+      },
+      "ranks": [
+        {
+          "rank": 1,
+          "title": "מפתח/ת מנוסה",
+          "titleEn": "Mid-level software developer",
+          "salary": 19000,
+          "savings": 21000,
+          "perChild": 850,
+          "expenses": [
+            {
+              "id": "tax",
+              "label": "מסים וביטוח לאומי",
+              "amount": 4100
+            },
+            {
+              "id": "housing",
+              "label": "שכר דירה",
+              "amount": 6700
+            },
+            {
+              "id": "food",
+              "label": "סופר ומשלוחים",
+              "amount": 2000
+            },
+            {
+              "id": "transport",
+              "label": "תחבורה",
+              "amount": 800
+            },
+            {
+              "id": "other",
+              "label": "מנויים וקפה",
+              "amount": 1500
+            },
+            {
+              "id": "pension",
+              "label": "פנסיה והשתלמות",
+              "amount": 1000
+            }
+          ],
+          "liabilities": [
+            {
+              "id": "card",
+              "label": "חוב בכרטיס אשראי",
+              "debt": "card",
+              "principal": 10000,
+              "monthlyPayment": 300
+            }
+          ],
+          "check": {
+            "expenses": 16100,
+            "liabilityPayments": 300,
+            "totalExpenses": 16400,
+            "freeCash": 2600,
+            "freeCashSharePct": 15.9,
+            "rank0FreeCashSharePct": 16.0,
+            "deltaPp": -0.1,
+            "taxExact": {
+              "incomeTax": 2372,
+              "nationalInsuranceAndHealth": 1704,
+              "total": 4075
+            },
+            "taxPctOfSalary": 21.6
+          }
+        },
+        {
+          "rank": 2,
+          "title": "מפתח/ת בכיר/ה",
+          "titleEn": "Senior software developer",
+          "salary": 27000,
+          "savings": 27000,
+          "perChild": 1200,
+          "expenses": [
+            {
+              "id": "tax",
+              "label": "מסים וביטוח לאומי",
+              "amount": 7600
+            },
+            {
+              "id": "housing",
+              "label": "שכר דירה",
+              "amount": 8400
+            },
+            {
+              "id": "food",
+              "label": "סופר ומשלוחים",
+              "amount": 2300
+            },
+            {
+              "id": "transport",
+              "label": "תחבורה",
+              "amount": 900
+            },
+            {
+              "id": "other",
+              "label": "מנויים וקפה",
+              "amount": 2300
+            },
+            {
+              "id": "pension",
+              "label": "פנסיה והשתלמות",
+              "amount": 1400
+            }
+          ],
+          "liabilities": [
+            {
+              "id": "card",
+              "label": "חוב בכרטיס אשראי",
+              "debt": "card",
+              "principal": 12000,
+              "monthlyPayment": 360
+            }
+          ],
+          "check": {
+            "expenses": 22900,
+            "liabilityPayments": 360,
+            "totalExpenses": 23260,
+            "freeCash": 3740,
+            "freeCashSharePct": 16.1,
+            "rank0FreeCashSharePct": 16.0,
+            "deltaPp": 0.1,
+            "taxExact": {
+              "incomeTax": 4928,
+              "nationalInsuranceAndHealth": 2677,
+              "total": 7605
+            },
+            "taxPctOfSalary": 28.1
+          }
+        },
+        {
+          "rank": 3,
+          "title": "ראש צוות פיתוח",
+          "titleEn": "Development team lead",
+          "salary": 35000,
+          "savings": 33000,
+          "perChild": 1550,
+          "expenses": [
+            {
+              "id": "tax",
+              "label": "מסים וביטוח לאומי",
+              "amount": 11400
+            },
+            {
+              "id": "housing",
+              "label": "שכר דירה",
+              "amount": 9900
+            },
+            {
+              "id": "food",
+              "label": "סופר ומשלוחים",
+              "amount": 2600
+            },
+            {
+              "id": "transport",
+              "label": "תחבורה",
+              "amount": 1100
+            },
+            {
+              "id": "other",
+              "label": "מנויים וקפה",
+              "amount": 3000
+            },
+            {
+              "id": "pension",
+              "label": "פנסיה והשתלמות",
+              "amount": 1800
+            }
+          ],
+          "liabilities": [
+            {
+              "id": "card",
+              "label": "חוב בכרטיס אשראי",
+              "debt": "card",
+              "principal": 14000,
+              "monthlyPayment": 420
+            }
+          ],
+          "check": {
+            "expenses": 29800,
+            "liabilityPayments": 420,
+            "totalExpenses": 30220,
+            "freeCash": 4780,
+            "freeCashSharePct": 15.8,
+            "rank0FreeCashSharePct": 16.0,
+            "deltaPp": -0.2,
+            "taxExact": {
+              "incomeTax": 7728,
+              "nationalInsuranceAndHealth": 3651,
+              "total": 11378
+            },
+            "taxPctOfSalary": 32.6
+          }
+        }
+      ]
+    },
+    "police": {
+      "title0": "שוטר/ת",
+      "sources": "Bizportal (undated, official Treasury data of the prior year): inspector (mefake'ach) about 17,100, chief inspector (pakad) about 20,000, rasal-to-rasar band 14,000-18,000 at 5-15 years, new officer 11,000-11,500. Ranks 1-3 are set at or just under those figures. Verified as ranges from a news article, not from the Treasury report itself.",
+      "rank0": {
+        "salary": 9300,
+        "totalExpenses": 7340,
+        "freeCash": 1960,
+        "freeCashSharePct": 26.7,
+        "taxLine": 1000,
+        "taxExactTotal": 1000
+      },
+      "ranks": [
+        {
+          "rank": 1,
+          "title": "רב-סמל/ת",
+          "titleEn": "Sergeant first class (rasal), experienced patrol officer",
+          "salary": 13000,
+          "savings": 9000,
+          "perChild": 650,
+          "expenses": [
+            {
+              "id": "tax",
+              "label": "מסים וביטוח לאומי",
+              "amount": 2150
+            },
+            {
+              "id": "housing",
+              "label": "שכר דירה",
+              "amount": 4300
+            },
+            {
+              "id": "food",
+              "label": "סופר ואוכל",
+              "amount": 1500
+            },
+            {
+              "id": "transport",
+              "label": "תחבורה",
+              "amount": 700
+            },
+            {
+              "id": "other",
+              "label": "שונות",
+              "amount": 1100
+            }
+          ],
+          "liabilities": [
+            {
+              "id": "car",
+              "label": "הלוואת רכב",
+              "debt": "car",
+              "principal": 27000,
+              "monthlyPayment": 540
+            }
+          ],
+          "check": {
+            "expenses": 9750,
+            "liabilityPayments": 540,
+            "totalExpenses": 10290,
+            "freeCash": 2710,
+            "freeCashSharePct": 26.3,
+            "rank0FreeCashSharePct": 26.7,
+            "deltaPp": -0.4,
+            "taxExact": {
+              "incomeTax": 1172,
+              "nationalInsuranceAndHealth": 974,
+              "total": 2145
+            },
+            "taxPctOfSalary": 16.5
+          }
+        },
+        {
+          "rank": 2,
+          "title": "מפקח/ת",
+          "titleEn": "Inspector (first officer rank)",
+          "salary": 17000,
+          "savings": 11000,
+          "perChild": 800,
+          "expenses": [
+            {
+              "id": "tax",
+              "label": "מסים וביטוח לאומי",
+              "amount": 3450
+            },
+            {
+              "id": "housing",
+              "label": "שכר דירה",
+              "amount": 5200
+            },
+            {
+              "id": "food",
+              "label": "סופר ואוכל",
+              "amount": 1700
+            },
+            {
+              "id": "transport",
+              "label": "תחבורה",
+              "amount": 900
+            },
+            {
+              "id": "other",
+              "label": "שונות",
+              "amount": 1500
+            }
+          ],
+          "liabilities": [
+            {
+              "id": "car",
+              "label": "הלוואת רכב",
+              "debt": "car",
+              "principal": 32000,
+              "monthlyPayment": 640
+            }
+          ],
+          "check": {
+            "expenses": 12750,
+            "liabilityPayments": 640,
+            "totalExpenses": 13390,
+            "freeCash": 3610,
+            "freeCashSharePct": 27.0,
+            "rank0FreeCashSharePct": 26.7,
+            "deltaPp": 0.3,
+            "taxExact": {
+              "incomeTax": 1972,
+              "nationalInsuranceAndHealth": 1460,
+              "total": 3432
+            },
+            "taxPctOfSalary": 20.3
+          }
+        },
+        {
+          "rank": 3,
+          "title": "פקד/ית",
+          "titleEn": "Chief inspector (pakad); the rank name itself is not gendered in police use",
+          "salary": 20000,
+          "savings": 12000,
+          "perChild": 950,
+          "expenses": [
+            {
+              "id": "tax",
+              "label": "מסים וביטוח לאומי",
+              "amount": 4500
+            },
+            {
+              "id": "housing",
+              "label": "שכר דירה",
+              "amount": 5800
+            },
+            {
+              "id": "food",
+              "label": "סופר ואוכל",
+              "amount": 1800
+            },
+            {
+              "id": "transport",
+              "label": "תחבורה",
+              "amount": 1000
+            },
+            {
+              "id": "other",
+              "label": "שונות",
+              "amount": 2000
+            }
+          ],
+          "liabilities": [
+            {
+              "id": "car",
+              "label": "הלוואת רכב",
+              "debt": "car",
+              "principal": 35000,
+              "monthlyPayment": 700
+            }
+          ],
+          "check": {
+            "expenses": 15100,
+            "liabilityPayments": 700,
+            "totalExpenses": 15800,
+            "freeCash": 4200,
+            "freeCashSharePct": 26.6,
+            "rank0FreeCashSharePct": 26.7,
+            "deltaPp": -0.1,
+            "taxExact": {
+              "incomeTax": 2682,
+              "nationalInsuranceAndHealth": 1825,
+              "total": 4507
+            },
+            "taxPctOfSalary": 22.5
+          }
+        }
+      ]
+    },
+    "cook": {
+      "title0": "טבח/ית",
+      "sources": "No Israeli chef pay source was found (results were US data or job ads without pay). Ranks 1-3 are ESTIMATES: 9,500 senior line cook, 12,000 sous-chef, 16,000 head chef; minimum wage 6,443.85 from April 2026 is VERIFIED (docs/v3/real-world-verified.md). NOT VERIFIED.",
+      "rank0": {
+        "salary": 7800,
+        "totalExpenses": 5780,
+        "freeCash": 2020,
+        "freeCashSharePct": 34.9,
+        "taxLine": 600,
+        "taxExactTotal": 608
+      },
+      "ranks": [
+        {
+          "rank": 1,
+          "title": "טבח/ית קו בכיר/ה",
+          "titleEn": "Senior line cook",
+          "salary": 9500,
+          "savings": 6000,
+          "perChild": 500,
+          "expenses": [
+            {
+              "id": "tax",
+              "label": "מסים וביטוח לאומי",
+              "amount": 1050
+            },
+            {
+              "id": "housing",
+              "label": "שכר דירה",
+              "amount": 3400
+            },
+            {
+              "id": "food",
+              "label": "סופר (אוכלים במטבח...)",
+              "amount": 1100
+            },
+            {
+              "id": "transport",
+              "label": "תחבורה",
+              "amount": 600
+            },
+            {
+              "id": "other",
+              "label": "שונות",
+              "amount": 700
+            }
+          ],
+          "liabilities": [
+            {
+              "id": "card",
+              "label": "חוב בכרטיס אשראי",
+              "debt": "card",
+              "principal": 7000,
+              "monthlyPayment": 210
+            }
+          ],
+          "check": {
+            "expenses": 6850,
+            "liabilityPayments": 210,
+            "totalExpenses": 7060,
+            "freeCash": 2440,
+            "freeCashSharePct": 34.6,
+            "rank0FreeCashSharePct": 34.9,
+            "deltaPp": -0.4,
+            "taxExact": {
+              "incomeTax": 505,
+              "nationalInsuranceAndHealth": 548,
+              "total": 1053
+            },
+            "taxPctOfSalary": 11.1
+          }
+        },
+        {
+          "rank": 2,
+          "title": "סו-שף/ית",
+          "titleEn": "Sous-chef",
+          "salary": 12000,
+          "savings": 7000,
+          "perChild": 600,
+          "expenses": [
+            {
+              "id": "tax",
+              "label": "מסים וביטוח לאומי",
+              "amount": 1800
+            },
+            {
+              "id": "housing",
+              "label": "שכר דירה",
+              "amount": 4000
+            },
+            {
+              "id": "food",
+              "label": "סופר (אוכלים במטבח...)",
+              "amount": 1200
+            },
+            {
+              "id": "transport",
+              "label": "תחבורה",
+              "amount": 700
+            },
+            {
+              "id": "other",
+              "label": "שונות",
+              "amount": 1000
+            }
+          ],
+          "liabilities": [
+            {
+              "id": "card",
+              "label": "חוב בכרטיס אשראי",
+              "debt": "card",
+              "principal": 8000,
+              "monthlyPayment": 240
+            }
+          ],
+          "check": {
+            "expenses": 8700,
+            "liabilityPayments": 240,
+            "totalExpenses": 8940,
+            "freeCash": 3060,
+            "freeCashSharePct": 34.2,
+            "rank0FreeCashSharePct": 34.9,
+            "deltaPp": -0.7,
+            "taxExact": {
+              "incomeTax": 972,
+              "nationalInsuranceAndHealth": 852,
+              "total": 1823
+            },
+            "taxPctOfSalary": 15.0
+          }
+        },
+        {
+          "rank": 3,
+          "title": "שף/ית ראשי/ת",
+          "titleEn": "Head chef",
+          "salary": 16000,
+          "savings": 9000,
+          "perChild": 800,
+          "expenses": [
+            {
+              "id": "tax",
+              "label": "מסים וביטוח לאומי",
+              "amount": 3100
+            },
+            {
+              "id": "housing",
+              "label": "שכר דירה",
+              "amount": 4900
+            },
+            {
+              "id": "food",
+              "label": "סופר (אוכלים במטבח...)",
+              "amount": 1400
+            },
+            {
+              "id": "transport",
+              "label": "תחבורה",
+              "amount": 800
+            },
+            {
+              "id": "other",
+              "label": "שונות",
+              "amount": 1400
+            }
+          ],
+          "liabilities": [
+            {
+              "id": "card",
+              "label": "חוב בכרטיס אשראי",
+              "debt": "card",
+              "principal": 9000,
+              "monthlyPayment": 270
+            }
+          ],
+          "check": {
+            "expenses": 11600,
+            "liabilityPayments": 270,
+            "totalExpenses": 11870,
+            "freeCash": 4130,
+            "freeCashSharePct": 34.8,
+            "rank0FreeCashSharePct": 34.9,
+            "deltaPp": -0.2,
+            "taxExact": {
+              "incomeTax": 1772,
+              "nationalInsuranceAndHealth": 1339,
+              "total": 3110
+            },
+            "taxPctOfSalary": 19.4
+          }
+        }
+      ]
+    },
+    "lawyer": {
+      "title0": "עורך/ת דין",
+      "sources": "GLawBAL salary survey (first half 2026, via search): year-1 associates 8,000-17,000 by firm size, year-2 up to 18,500 at mega firms, senior at a mega firm about 35,000 from year 6-8. Rank 1-2 are mid-range of those; rank 3 (salaried partner, 33,000) is an ESTIMATE. Partly verified.",
+      "rank0": {
+        "salary": 14500,
+        "totalExpenses": 12050,
+        "freeCash": 2450,
+        "freeCashSharePct": 20.3,
+        "taxLine": 2400,
+        "taxExactTotal": 2628
+      },
+      "ranks": [
+        {
+          "rank": 1,
+          "title": "עורך/ת דין מנוסה",
+          "titleEn": "Experienced associate (about 3-4 years)",
+          "salary": 19000,
+          "savings": 18000,
+          "perChild": 800,
+          "expenses": [
+            {
+              "id": "tax",
+              "label": "מסים וביטוח לאומי",
+              "amount": 4100
+            },
+            {
+              "id": "housing",
+              "label": "שכר דירה",
+              "amount": 6000
+            },
+            {
+              "id": "food",
+              "label": "סופר ואוכל",
+              "amount": 1900
+            },
+            {
+              "id": "transport",
+              "label": "תחבורה וחניה",
+              "amount": 1100
+            },
+            {
+              "id": "other",
+              "label": "חליפות ושונות",
+              "amount": 1400
+            }
+          ],
+          "liabilities": [
+            {
+              "id": "car",
+              "label": "הלוואת רכב",
+              "debt": "car",
+              "principal": 52000,
+              "monthlyPayment": 1040
+            },
+            {
+              "id": "student",
+              "label": "הלוואת לימודים",
+              "debt": "student",
+              "principal": 25000,
+              "monthlyPayment": 250
+            }
+          ],
+          "check": {
+            "expenses": 14500,
+            "liabilityPayments": 1290,
+            "totalExpenses": 15790,
+            "freeCash": 3210,
+            "freeCashSharePct": 20.3,
+            "rank0FreeCashSharePct": 20.3,
+            "deltaPp": -0.0,
+            "taxExact": {
+              "incomeTax": 2372,
+              "nationalInsuranceAndHealth": 1704,
+              "total": 4075
+            },
+            "taxPctOfSalary": 21.6
+          }
+        },
+        {
+          "rank": 2,
+          "title": "עורך/ת דין בכיר/ה",
+          "titleEn": "Senior associate (about 5-7 years)",
+          "salary": 25000,
+          "savings": 23000,
+          "perChild": 1050,
+          "expenses": [
+            {
+              "id": "tax",
+              "label": "מסים וביטוח לאומי",
+              "amount": 6650
+            },
+            {
+              "id": "housing",
+              "label": "שכר דירה",
+              "amount": 7100
+            },
+            {
+              "id": "food",
+              "label": "סופר ואוכל",
+              "amount": 2100
+            },
+            {
+              "id": "transport",
+              "label": "תחבורה וחניה",
+              "amount": 1200
+            },
+            {
+              "id": "other",
+              "label": "חליפות ושונות",
+              "amount": 2300
+            }
+          ],
+          "liabilities": [
+            {
+              "id": "car",
+              "label": "הלוואת רכב",
+              "debt": "car",
+              "principal": 61000,
+              "monthlyPayment": 1220
+            },
+            {
+              "id": "student",
+              "label": "הלוואת לימודים",
+              "debt": "student",
+              "principal": 25000,
+              "monthlyPayment": 250
+            }
+          ],
+          "check": {
+            "expenses": 19350,
+            "liabilityPayments": 1470,
+            "totalExpenses": 20820,
+            "freeCash": 4180,
+            "freeCashSharePct": 20.1,
+            "rank0FreeCashSharePct": 20.3,
+            "deltaPp": -0.3,
+            "taxExact": {
+              "incomeTax": 4232,
+              "nationalInsuranceAndHealth": 2434,
+              "total": 6665
+            },
+            "taxPctOfSalary": 26.6
+          }
+        },
+        {
+          "rank": 3,
+          "title": "שותף/ה במשרד",
+          "titleEn": "Salaried (non-equity) partner",
+          "salary": 33000,
+          "savings": 28000,
+          "perChild": 1350,
+          "expenses": [
+            {
+              "id": "tax",
+              "label": "מסים וביטוח לאומי",
+              "amount": 10450
+            },
+            {
+              "id": "housing",
+              "label": "שכר דירה",
+              "amount": 8400
+            },
+            {
+              "id": "food",
+              "label": "סופר ואוכל",
+              "amount": 2400
+            },
+            {
+              "id": "transport",
+              "label": "תחבורה וחניה",
+              "amount": 1500
+            },
+            {
+              "id": "other",
+              "label": "חליפות ושונות",
+              "amount": 3000
+            }
+          ],
+          "liabilities": [
+            {
+              "id": "car",
+              "label": "הלוואת רכב",
+              "debt": "car",
+              "principal": 71000,
+              "monthlyPayment": 1420
+            },
+            {
+              "id": "student",
+              "label": "הלוואת לימודים",
+              "debt": "student",
+              "principal": 25000,
+              "monthlyPayment": 250
+            }
+          ],
+          "check": {
+            "expenses": 25750,
+            "liabilityPayments": 1670,
+            "totalExpenses": 27420,
+            "freeCash": 5580,
+            "freeCashSharePct": 20.4,
+            "rank0FreeCashSharePct": 20.3,
+            "deltaPp": 0.0,
+            "taxExact": {
+              "incomeTax": 7028,
+              "nationalInsuranceAndHealth": 3408,
+              "total": 10435
+            },
+            "taxPctOfSalary": 31.7
+          }
+        }
+      ]
+    }
+  }
+}

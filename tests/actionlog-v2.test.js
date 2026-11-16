@@ -15,9 +15,9 @@ const seal = (body) => { const c = crc32(Uint8Array.from(body)); return toBase64
 const asFormat1 = (text) => { const b = [...fromBase64Url(text)].slice(0, -4); b[2] = 1; return seal(b); };
 
 describe('action log format 2', () => {
-  it('writes format 2', () => {
-    expect(FORMAT_VERSION).toBe(2);
-    expect(fromBase64Url(encodeActionLog(log))[2]).toBe(2);
+  it('writes the current format (3 since 0.5.0: the rank and the promotion flag)', () => {
+    expect(FORMAT_VERSION).toBe(3);
+    expect(fromBase64Url(encodeActionLog(log))[2]).toBe(3);
   });
   it('round-trips the challenge flag and the display name; no extra fields when absent', () => {
     expect(decodeActionLog(encodeActionLog(log))).toEqual(log);
@@ -71,7 +71,7 @@ describe('action log format 2', () => {
     const text = encodeActionLog(log);
     const b = [...fromBase64Url(text)]; b[5] ^= 4;
     expect(() => decodeActionLog(toBase64Url(Uint8Array.from(b)))).toThrow(expect.objectContaining({ code: 'CRC' }));
-    const f3 = [...fromBase64Url(text)].slice(0, -4); f3[2] = 3;
+    const f3 = [...fromBase64Url(text)].slice(0, -4); f3[2] = 4; // a format from the future
     expect(() => decodeActionLog(seal(f3))).toThrow(expect.objectContaining({ code: 'VERSION' }));
     expect(() => decodeActionLog('a')).toThrow(expect.objectContaining({ code: 'FORMAT' }));
   });

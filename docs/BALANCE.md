@@ -224,3 +224,90 @@ main table. The chosen bands put all three reckless bots back in the 15-35% band
   the bankruptcy rates are unchanged. Not changed here; the full-mode bands can be recalibrated if the owner asks.
 - **Sensible family play:** within noise (mean 24.6 vs 24.5).
 - **v1 games (old saves):** they keep `DEAL_TIERS` untouched (tests/rng.test.js).
+
+## 0.5.0 career: ranks and the in-game promotion (2026-11-11), `npm run simulate -- --rankTable --games=300`
+
+New in 0.5.0: every profession has ranks 1-3 (higher salary, higher expenses, a bigger freedom target; `src/data/professions.he.json`), and every
+new normal game has one in-game promotion (once, on the first payday on or after a seed-keyed turn 5-9). Both are measured here with the
+rules as they ship (`promotion` on). `--promotion=off` measures the 0.5.1 game; `--rank=N` plays every game at rank N.
+
+**The problem (finance, docs/v050/ranks-numbers.json).** The salaries and expenses of a rank grow, so the win target (passive income above all
+expenses) grows with them, but the deal cards keep their size: programmer, lawyer and engineer ranks 2-3 took 44 to 111 median turns.
+
+**The fix: a deal scale per rank (`dealScale`).** The prices, down payments and monthly money of NEW deals are multiplied by the rank's scale
+(`priceFactor`, engine.js; the deal tier filter reads the scaled flow). The scale of a rank is its own `dealScale` in the JSON, else
+`RANK_DEAL_SCALE_FACTOR` (1.3) x salary ratio, rounded to 0.05 (config.js). The target is the owner's: each rank's median within +3 turns of the
+same profession at rank 0, family and full. Every other rule is untouched (cards, loans, stocks, expense cards).
+
+What was tried (300 games, sensible bot; the loss rates are overBorrow / alwaysBuy at ranks 2-3):
+
+| scale (x salary ratio) | sensible median vs rank 0 | reckless bots lost (family / junior) |
+|---|---|---|
+| 0.8 | +1 to +2 | overBorrow 40 / 46%: out of band |
+| 0.9 | +1 to +2 | 36 / 40% |
+| 1.0 | +1 to +3 | 36 / 40% |
+| 1.2 | +1 | 33 / 37% |
+| **1.3 (chosen)** | **+0 to +3** | **31 to 35 / 33 to 36%** |
+| 1.35 | +1 to +2 | 30 to 34 / 32 to 33% |
+
+A smaller scale makes the deals small beside the target, so reckless bots buy many small deals on loans and go under more often; a larger one
+slows a profession whose start cash is small. Three professions needed their own values (JSON-only edits, which is what a rank's `dealScale` is
+for): cook x1.0 (1.2 / 1.55 / 2.05; cook is the fastest profession, 18 turns, and drifted +4 at 1.3), police x1.15 (1.6 / 2.1 / 2.45) and nurse x1.15 (1.5 / 1.9 / 2.35).
+
+### Sensible bot, median / p90 turns to win, % lost (300 games per cell, rank 0 | 1 | 2 | 3)
+
+| profession | family | full | junior |
+|---|---|---|---|
+| teacher | 22/31 · 22/33 · 23/33 · 24/35 | 25/35 · 26/41 · 27/44 · 28/46 | 22/32 · 22/32 · 22/34 · 23/35 |
+| engineer | 22/32 · 22/33 · 24/36 · 24/36 | 26/37 · 26/38 · 27/39 · 27/39 | 24/31 · 23/33 · 24/34 · 24/34 |
+| driver | 23/33 · 25/34 · 25/34 · 25/35 | 27/39 · 28/42 · 28/44 · 29/45 | 24/33 · 25/34 · 25/37 · 25/37 |
+| nurse | 20/28 · 20/28 · 20/29 · 21/31 | 22/34 · 23/35 · 23/36 · 24/38 | 20/29 · 20/30 · 20/30 · 21/30 |
+| programmer | 24/34 · 24/36 · 25/37 · 26/38 | 28/41 · 27/39 · 28/41 · 29/43 | 24/33 · 24/34 · 25/35 · 26/37 |
+| police | 20/30 · 20/30 · 21/32 · 22/32 | 22/34 · 24/38 · 24/38 · 25/40 | 20/29 · 21/30 · 21/30 · 21/32 |
+| cook | 18/29 · 19/29 · 19/30 · 20/30 | 21/33 · 21/34 · 22/36 · 22/37 | 18/28 · 19/29 · 20/30 · 20/30 |
+| lawyer | 23/33 · 22/33 · 24/34 · 24/34 | 26/41 · 26/37 · 26/39 · 27/41 | 24/33 · 23/33 · 24/33 · 24/34 |
+
+Every cell is 0% lost. The largest drift from rank 0 is +3 (teacher full rank 3, police full rank 3, programmer family rank 3), so every rank is
+inside the target.
+
+### All bots by rank, median / p90, % lost (300 games per cell, professions rotated; rank 0 | 1 | 2 | 3)
+
+| mode | bot | rank 0 | rank 1 | rank 2 | rank 3 |
+|---|---|---|---|---|---|
+| family | sensible | 22 / 32, 0% | 22 / 33, 0% | 23 / 34, 0% | 23 / 35, 0% |
+| family | cautious | 27 / 38, 0% | 28 / 38, 0% | 29 / 40, 0% | 29 / 40, 0% |
+| family | alwaysBuy | 27 / 44, **26%** | 26 / 41, **25%** | 27 / 42, **26%** | 28 / 47, **26%** |
+| family | overBorrow | 28 / 52, **32%** | 28 / 44, **31%** | 29 / 44, **31%** | 30 / 52, **35%** |
+| family | overBorrowLite | 27 / 46, **28%** | 26 / 43, **26%** | 28 / 43, **27%** | 29 / 48, **28%** |
+| full | sensible | 24 / 37, 0% | 26 / 39, 0% | 26 / 40, 0% | 27 / 42, 0% |
+| full | cautious | 31 / 48, 0% | 32 / 49, 0% | 33 / 52, 0% | 33 / 52, 0% |
+| full | alwaysBuy | 30 / 80, 17% | 31 / 85, 10% | 32 / 78, 15% | 33 / 81, 13% |
+| full | overBorrow | 32 / 87, 35% | 35 / 101, 29% | 34 / 87, 32% | 36 / 90, 27% |
+| full | overBorrowLite | 35 / 108, 26% | 33 / 90, 22% | 32 / 92, 28% | 34 / 100, 24% |
+| junior | sensible | 22 / 31, 0% | 22 / 34, 0% | 23 / 35, 0% | 23 / 35, 0% |
+| junior | cautious | 27 / 39, 0% | 29 / 41, 0% | 29 / 41, 0% | 29 / 40, 0% |
+| junior | alwaysBuy | 26 / 50, **27%** | 26 / 44, **23%** | 27 / 42, **25%** | 28 / 44, **27%** |
+| junior | overBorrow | 28 / 51, **32%** | 28 / 48, **30%** | 29 / 46, **35%** | 29 / 49, **36%** |
+| junior | overBorrowLite | 27 / 54, **30%** | 27 / 45, **25%** | 28 / 43, **26%** | 28 / 46, **27%** |
+
+The reckless family and junior bots stay in the 15-35% band at every rank, with two cells at its edge: overBorrow, the extreme bot, at 36% in
+junior rank 3 and 35% in family rank 3 and junior rank 2. The bots answer the promotion card: the reckless ones upgrade, the others keep.
+
+### The promotion at rank 0, 0.5.1 (`--promotion=off`) against 0.5.0 (`on`), 300 games
+
+| mode | bot | promotion off | promotion on |
+|---|---|---|---|
+| family | sensible | 23 / 36, 0% | **22 / 32, 0%** |
+| family | cautious | 32 / 47, 2% | 27 / 38, 0% |
+| family | alwaysBuy | 25 / 41, 27% | 27 / 44, 26% |
+| family | overBorrow | 28 / 46, 31% | 28 / 52, 32% |
+| full | sensible | 27 / 43, 0% | **24 / 37, 0%** |
+| full | cautious | 37 / 58, 2% | 31 / 48, 0% |
+| full | alwaysBuy | 29 / 74, 16% | 30 / 80, 17% |
+| full | overBorrow | 31 / 75, 34% | 32 / 87, 35% |
+| junior | sensible | 24 / 35, 0% | 22 / 31, 0% |
+| junior | alwaysBuy / overBorrow / overBorrowLite lost | 25 / 35 / 26% | 27 / 32 / 30% |
+
+A kept raise is free cash, so careful play wins 2 to 6 turns sooner (the sensible medians now sit at 22 family / 24 full, inside the 15-25
+turn promise; cautious play drops from 32-37 to 27-31). An upgrade adds an expense: the reckless bots take it and lose as often as before.
+There is no cash perk (decision 2026-11-11), so the card is a lesson, not a prize.

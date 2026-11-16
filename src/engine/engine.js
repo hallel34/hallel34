@@ -8,6 +8,8 @@ import {
   BOARD, SCHEMA_VERSION, MAX_KIDS, CHARITY_PCT, CHARITY_TURNS, LOAN_STEP,
   MAX_STOCK_QTY, PAYDAY_MONTHS, INFLATION_PRICE_ROUND, TIMED_EFFECT_KINDS, INFLATION_FLOW_ROUND, INFLATION_EXPENSE_ROUND,
   MILESTONES, TAX_AUDIT_PICKS, TAX_AUDIT_POINTS, JUNIOR_ROUND, JUNIOR_PRICE_ROUND, JUNIOR_LOAN_STEP,
+  MAX_RANK, PROMOTION_RAISE_PCT, PROMOTION_UPGRADE_SHARE, PROMOTION_ROUND, PROMOTION_FROM_TURN, PROMOTION_TURN_SPAN, PROMOTION_EXPENSE_ID,
+  RANK_DEAL_SCALE_EXPONENT, RANK_DEAL_SCALE_FACTOR, RANK_DEAL_SCALE_ROUND,
 } from './config.js';
 import { validateData } from './validate.js';
 import { cardView } from './card-view.js';
@@ -18,7 +20,7 @@ import {
 } from './selectors.js';
 import { emptyLearn, recordDecision, buyRecord, passRecord, loanRating, isDeal } from './learn.js';
 import { dailyDie, dailyPick, DAILY_TURN_CAP, dailyRngVersion } from './daily.js';
-import { RNG_V1, RNG_V2, RNG_VERSION, V2_DRAW_SCHEME, v2Die, v2RerollDie, v2AuditPick, v2DeckOrder, v2DeckCycle, stableStringify } from './rng.js';
+import { RNG_V1, RNG_V2, RNG_VERSION, V2_DRAW_SCHEME, v2Die, v2RerollDie, v2AuditPick, v2DeckOrder, v2DeckCycle, stableStringify, keyedInt } from './rng.js';
 import { recordGuess, dealMetrics } from './learn.js';
 import { renovationLevel, renovationLevelsFor, RENOVATION_STYLES } from './renovation.js';
 
@@ -84,6 +86,25 @@ function juniorProfession(p) {
   const r = (x) => roundTo(x, JUNIOR_ROUND);
   return { ...p, salary: r(p.salary), perChild: r(p.perChild), expenses: p.expenses.map((e) => ({ ...e, amount: r(e.amount) })) };
 }
+
+/** The deal scale of a rank above 0: the rank's own `dealScale`, else RANK_DEAL_SCALE_FACTOR x (rank salary / base salary) ^ RANK_DEAL_SCALE_EXPONENT, rounded. */
+export function rankDealScale(base, rank) {
+  if (Number.isFinite(rank?.dealScale)) return rank.dealScale;
+  const raw = RANK_DEAL_SCALE_FACTOR * (rank.salary / base.salary) ** RANK_DEAL_SCALE_EXPONENT;
+  return Math.max(1, Number((Math.round(raw / RANK_DEAL_SCALE_ROUND) * RANK_DEAL_SCALE_ROUND).toFixed(2)));
+}
+
+/**
+ * The promotion offer for a salary: { raise, upgradeCost } in whole PROMOTION_ROUND steps. The raise is PROMOTION_RAISE_PCT of the
+ * salary; 'upgrade' turns PROMOTION_UPGRADE_SHARE of it into a monthly expense (never all of it: something always stays).
+ */
+export function promotionTerms(salary) {
+  const raise = Math.max(2 * PROMOTION_ROUND, roundTo(salary * PROMOTION_RAISE_PCT, PROMOTION_ROUND));
+  const upgradeCost = Math.min(raise - PROMOTION_ROUND, Math.max(PROMOTION_ROUND, roundTo(raise * PROMOTION_UPGRADE_SHARE, PROMOTION_ROUND)));
+  return { raise, upgradeCost };
+}
+/** The first turn on which a payday can bring the promotion: keyed by the seed only (rngVersion 2), so every player on a seed gets it on the same turn. */
+export const promotionTurn = (seed) => PROMOTION_FROM_TURN + keyedInt(seed, 'promotion', 0, 0, PROMOTION_TURN_SPAN);
 
 /**
  * A card a junior game never deals: the cheap-loan card (half a coin a month) and a decision card with an amount that is not
@@ -291,7 +312,7 @@ export function createEngine(data, { validate = true, drawScheme = V2_DRAW_SCHEM
     const exp = totalExpenses(d);
     if (!exp) return true;
     const tier = dealTiersOf(d)[dealTierIndex(d)];
-    const ratio = card.monthlyCashFlow / exp;
+    const ratio = (card.monthlyCashFlow * (d.dealScale ?? 1)) / exp; // a ranked game's deals are dealt scaled (priceFactor)
     return ratio >= tier.min && ratio <= tier.max;
   }
 
@@ -323,13 +344,21 @@ export function createEngine(data, { validate = true, drawScheme = V2_DRAW_SCHEM
   }
 
   // ---------- setup ----------
-  function newGame({ mode = 'full', professionId, seed = 1, daily = null, junior = false, rngVersion = null, challenge = false } = {}) {
+  function newGame({ mode = 'full', professionId, seed = 1, daily = null, junior = false, rngVersion = null, challenge = false, rank = 0, promotion = false } = {}) {
     if (mode !== 'family' && mode !== 'full') fail(`unknown mode ${mode}`);
+    if (!Number.isInteger(rank) || rank < 0 || rank > MAX_RANK) fail(`unknown rank ${rank}`);
+    if (daily && (rank > 0 || promotion)) fail('the daily challenge is always rank 0 and has no promotion');
+    if (promotion && rngVersion === RNG_V1) fail('the promotion needs rngVersion 2');
     if (junior && (mode !== 'family' || daily)) fail('a junior game is a family game (and never the daily challenge)');
     if (challenge && daily) fail('a friend challenge is never the daily challenge');
-    const raw = professionById.get(professionId ?? data.professions[0].id);
-    if (!raw) fail(`unknown profession ${professionId}`);
+    const base = professionById.get(professionId ?? data.professions[0].id);
+    if (!base) fail(`unknown profession ${professionId}`);
+    const rankData = rank > 0 ? base.ranks?.[rank - 1] : null;
+    if (rank > 0 && !rankData) fail(`profession ${base.id} has no rank ${rank}`);
+    // a rank above 0 plays on the rank's own figures (salary, savings, expenses, debts); its title and deal scale ride along
+    const raw = rankData ? { ...base, ...rankData, id: base.id, title: base.title } : base;
     const profession = junior ? juniorProfession(raw) : raw;
+    const dealScale = rankData ? rankDealScale(base, rankData) : 1;
     // a new normal game is rngVersion 2; the daily challenge follows its date (DAILY_RNG_V2_FROM); 1 only on request (tests)
     const version = rngVersion ?? (daily ? dailyRngVersion(daily.date) : RNG_VERSION);
     if (version !== RNG_V1 && version !== RNG_V2) fail(`unknown rng version ${version}`);
@@ -342,6 +371,7 @@ export function createEngine(data, { validate = true, drawScheme = V2_DRAW_SCHEM
       profession: clone({
         id: profession.id, title: profession.title, salary: profession.salary,
         perChild: profession.perChild, expenses: profession.expenses,
+        ...(rankData ? { rankTitle: rankData.title } : {}),
       }),
       cash: junior ? roundTo(profession.savings, JUNIOR_ROUND) : profession.savings,
       assets: [],
@@ -374,6 +404,11 @@ export function createEngine(data, { validate = true, drawScheme = V2_DRAW_SCHEM
       log: [], // schema 9: every dispatched action, in order (replay / action-log links)
     };
     if (junior) d.junior = true; // 'צעירים' round rules (schema 6)
+    // 0.5.0 career: the rank (absent = 0), its deal scale (absent = 1) and the in-game promotion (absent = none). Optional fields, so a
+    // game without them hashes exactly as before and an old save needs only the version stamp (schema 9 -> 10).
+    if (rank > 0) d.rank = rank;
+    if (dealScale !== 1) d.dealScale = dealScale;
+    if (promotion) d.promotion = { status: 'waiting', at: promotionTurn(seed) };
     // 0.5.1 friend challenge (owner 2026-11-03, docs/RNG.md §4): charity gives no bonus die and no reroll can be armed, so both
     // players on the seed stay on the same squares. Optional field: no schema change (old saves simply have no challenge).
     if (challenge) d.challenge = true;
@@ -437,6 +472,11 @@ export function createEngine(data, { validate = true, drawScheme = V2_DRAW_SCHEM
       d.phase = 'mustPay';
       return;
     }
+    if (!d.pending && d.promotion?.status === 'due') {
+      d.promotion = { ...d.promotion, status: 'offered', ...promotionTerms(d.profession.salary) };
+      d.pending = { kind: 'promotion', raise: d.promotion.raise, upgradeCost: d.promotion.upgradeCost };
+      d.events.push({ type: 'promotionOffered', raise: d.promotion.raise, upgradeCost: d.promotion.upgradeCost });
+    }
     d.phase = d.pending ? 'decision' : 'roll';
     if (d.daily && d.phase === 'roll' && d.turn >= d.daily.turnCap) {
       // the day's last turn is resolved and there is no freedom yet: the challenge ends here (not a bankruptcy)
@@ -468,6 +508,8 @@ export function createEngine(data, { validate = true, drawScheme = V2_DRAW_SCHEM
     d.stats.paydays += 1;
     d.stats.interestPaid = (d.stats.interestPaid ?? 0) + interest;
     d.events.push({ type: 'payday', amount, monthly, months: PAYDAY_MONTHS, interest });
+    // 0.5.0: the in-game promotion is due on the first payday on or after its keyed turn; it is offered once nothing else is open (settle)
+    if (d.promotion?.status === 'waiting' && d.turn >= d.promotion.at) d.promotion.status = 'due';
   }
 
   /**
@@ -941,6 +983,25 @@ export function createEngine(data, { validate = true, drawScheme = V2_DRAW_SCHEM
     return d;
   }
 
+  // ---------- the in-game promotion (0.5.0): 'keep' or 'upgrade', once per game ----------
+  function answerPromotion(state, choice) {
+    const d = begin(state);
+    requirePending(d, 'promotion');
+    const { raise, upgradeCost } = d.pending;
+    const upgrade = choice === 'upgrade';
+    d.profession.salary += raise;
+    if (upgrade) d.profession.expenses.push({ id: PROMOTION_EXPENSE_ID, label: PROMOTION_EXPENSE_ID, amount: upgradeCost });
+    d.promotion = { ...d.promotion, status: upgrade ? 'upgraded' : 'kept', turn: d.turn, raise, upgradeCost: upgrade ? upgradeCost : 0 };
+    // the learn record: the lifestyle lesson. 'green' = the whole raise stayed free cash (the achievement 'promo-keep')
+    recordDecision(d, { kind: 'promotion', choice, raise, upgradeCost: upgrade ? upgradeCost : 0, green: !upgrade });
+    d.events.push({ type: 'promotion', choice, raise, upgradeCost: upgrade ? upgradeCost : 0 });
+    d.pending = null;
+    settle(d);
+    return d;
+  }
+  const promotionKeep = (state) => answerPromotion(state, 'keep');
+  const promotionUpgrade = (state) => answerPromotion(state, 'upgrade');
+
   // ---------- charity ----------
   function donate(state) {
     const d = begin(state);
@@ -1093,6 +1154,8 @@ export function createEngine(data, { validate = true, drawScheme = V2_DRAW_SCHEM
     auctionWin: { fields: ['card', 'price'], run: (s, a) => auctionWinAction(s, a) },
     acceptOffer: { fields: [], run: (s) => acceptOffer(s) },
     declineOffer: { fields: [], run: (s) => declineOffer(s) },
+    promotionKeep: { fields: [], run: (s) => promotionKeep(s) },
+    promotionUpgrade: { fields: [], run: (s) => promotionUpgrade(s) },
     donate: { fields: [], run: (s) => donate(s) },
     declineCharity: { fields: [], run: (s) => declineCharity(s) },
     takeLoan: { fields: ['amount'], run: (s, a) => takeLoan(s, a.amount) },
@@ -1158,7 +1221,7 @@ export function createEngine(data, { validate = true, drawScheme = V2_DRAW_SCHEM
   }
 
   const api = {
-    data, newGame, debugForce, forfeit, roll, armReroll, buy, pass, chooseDeal, renovate, auctionWin, acceptOffer, declineOffer, donate,
+    data, newGame, debugForce, forfeit, roll, armReroll, buy, pass, chooseDeal, renovate, auctionWin, acceptOffer, declineOffer, donate, promotionKeep, promotionUpgrade,
     declineCharity, takeLoan, repayLoan, sellAsset, decide, decisionOptions, answerAudit, dispatch, replay, ACTION_TYPES,
   };
   // 0.5.1: engine.verifyResult(log) is attached by engine/index.js (and by the lazy challenge flow in the app), so the verifier

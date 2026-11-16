@@ -2,7 +2,9 @@
 // (brand art, never the character), tagline, mode pick, daily row, primary CTA, resume. The first-launch greeting
 // "היי, אני מקסי!" lives in the board's corner guide (play.js), never on home next to the logo.
 import { h, html } from '../dom.js';
-import { t } from '../../i18n/index.js';
+import { t, tp } from '../../i18n/index.js';
+import { CAREER_DEADLINE_WEEKDAY } from '../../engine/config.js';
+import { professionBust, hasProfessionFox } from '../professions.js';
 import { dayKey } from '../../daily/calendar.js';
 import { nextChallengeText, streakText, outcomeText, cardTitleText } from '../daily-format.js';
 import { debugEnabled } from '../debug.js';
@@ -30,13 +32,36 @@ const resumeInfo = (m) => (isMultiplayer(m)
     : t('menu.resumeInfo', { turn: currentState(m).turn, profession: currentState(m).profession.title })));
 
 
+/** The sentence of the warning state: "ותק: נשארו 3 ימים". */
+const chipSentence = (view) => t('career.seniority.chipWarn', { days: tp('career.plural.daysLeft', view.days, { day: t(`career.weekday.${CAREER_DEADLINE_WEEKDAY}`) }) });
+
+/**
+ * The home career chip (spec section 2): a 48px button with the profile's favourite fox head; at 360px and wider a pill with a label
+ * (the amber day count in the warning state), under 360 the avatar alone with a small badge. Junior: the name only, never a loss word.
+ */
+function chipEl({ profile, view, junior }, onClick) {
+  const label = junior ? profile.name : view.state === 'warn' ? tp('career.plural.daysShort', view.days) : view.state === 'bonus' ? t('career.seniority.chipBonus') : t('career.seniority.label');
+  // the day count on the compact avatar is generated content (data-n + CSS), not text: axe compares the button's visible TEXT with its name,
+  // and the number is already in the name as a word ("יומיים", "היום האחרון") (QA 0.5.0 P2-4)
+  const badge = junior ? null : view.state === 'warn' ? '' : view.state === 'kept' ? icon('check', { size: 12, width: 3.4 }) : null;
+  const aria = junior ? `${t('profile.current', { name: profile.name })}. ${t('career.seniority.textJunior')}`
+    // the visible text is always part of the name (WCAG 2.5.3): the warning leads with its short day count, the bonus state names itself
+    : `${t('profile.current', { name: profile.name })}. ${view.state === 'warn' ? `${label}. ${chipSentence(view)}` : view.state === 'bonus' ? t('career.seniority.bonusText') : view.state === 'kept' ? t('career.seniority.chipKept') : t('career.seniority.chipOpen')}`;
+  return h('button', {
+    type: 'button', class: `career-chip glass is-${junior ? 'waiting' : view.state}`, 'data-action': 'profile', 'data-career-state': junior ? 'waiting' : view.state, 'aria-label': aria, onClick,
+  },
+  professionBust(profile.fox && hasProfessionFox(profile.fox) ? profile.fox : 'teacher'),
+  h('span', { class: 'career-chip-label' }, label),
+  badge !== null ? h('span', { class: 'career-chip-badge', 'aria-hidden': 'true', 'data-n': view.state === 'warn' ? String(view.days) : null }, badge) : null);
+}
+
 const SKY = `<svg class="sky" aria-hidden="true" focusable="false" viewBox="0 0 360 800" preserveAspectRatio="xMidYMax slice">
 <g class="stars" fill="#fff"><circle cx="34" cy="64" r="1.6" opacity=".9"/><circle cx="100" cy="38" r="1.1" opacity=".7"/><circle class="tw" cx="160" cy="88" r="1.8" opacity=".8"/><circle cx="236" cy="50" r="1.3" opacity=".9"/><circle class="tw tw2" cx="310" cy="82" r="1.7" opacity=".7"/><circle cx="334" cy="34" r="1.2" opacity=".8"/><circle class="tw tw3" cx="70" cy="140" r="1.2" opacity=".6"/><circle cx="288" cy="138" r="1.4" opacity=".6"/></g>
 <g class="skyline" opacity=".95"><rect x="0" y="690" width="32" height="110"/><rect x="36" y="660" width="24" height="140"/><rect x="64" y="704" width="38" height="96"/><rect x="106" y="642" width="28" height="158"/><rect x="138" y="696" width="34" height="104"/><rect x="176" y="676" width="22" height="124"/><rect x="202" y="708" width="40" height="92"/><rect x="246" y="650" width="26" height="150"/><rect x="276" y="700" width="36" height="100"/><rect x="316" y="668" width="44" height="132"/></g>
 <g class="windows" opacity=".9"><rect x="42" y="672" width="4" height="5"/><rect x="48" y="686" width="4" height="5"/><rect x="112" y="656" width="4" height="5"/><rect x="120" y="674" width="4" height="5"/><rect x="252" y="664" width="4" height="5"/><rect x="258" y="682" width="4" height="5"/><rect x="326" y="682" width="4" height="5"/><rect x="340" y="700" width="4" height="5"/></g>
 </svg>`;
 
-export function createStart({ save, mode: initialMode, gamesPlayed = 0, daily = null, onPlay, onResume, onMode, onDaily, onDailyReset, onRefresh, onMission, challengeSave = null, onChallengeResume = null, onBoard = null }) {
+export function createStart({ save, mode: initialMode, gamesPlayed = 0, daily = null, onPlay, onResume, onMode, onDaily, onDailyReset, onRefresh, onMission, challengeSave = null, onChallengeResume = null, onBoard = null, career = null, onProfile = null }) {
   let mode = initialMode;
   setLearnMode(mode);
   let alive = true;
@@ -55,11 +80,13 @@ export function createStart({ save, mode: initialMode, gamesPlayed = 0, daily = 
   };
 
   const boardBtn = () => { const b = iconButton('familyBoard', t('challenge.board.title'), () => { haptic('tap'); onBoard(); }, 'icon-btn-glass'); b.dataset.action = 'family-board'; return b; };
+  // 0.5.0: with a profile, its chip takes the games chip's slot (the count moves into the profile; both stay at 390px and wider)
+  const careerChip = career?.profile && onProfile ? chipEl(career, onProfile) : null;
   const topbar = h('div', { class: 'topbar' },
-    gamesPlayed > 0
+    careerChip ?? (gamesPlayed > 0
       ? h('div', { class: 'games-chip glass' }, h('img', { src: coinUrl, alt: '', width: 22, height: 22 }),
         h('span', null, gamesPlayed === 1 ? t('menu.gamesPlayedOne') : t('menu.gamesPlayed', { n: gamesPlayed })))
-      : h('span'),
+      : h('span')),
     h('div', { class: 'topbar-actions' },
       iconButton('book', t('settings.dictionary'), () => { setLearnMode(mode); openDictionary(); }, 'icon-btn-glass'),
       iconButton('help', t('menu.howTo'), () => openHowTo({ mode }), 'icon-btn-glass'),
@@ -76,7 +103,10 @@ export function createStart({ save, mode: initialMode, gamesPlayed = 0, daily = 
   const title = h('h1', { class: 'wordmark brand' }, logo, h('span', { class: 'vh' }, t('app.title')));
   const tagline = h('p', { class: 'tagline' }, t('app.tagline'));
 
-  const hero = h('div', { class: 'start-hero' }, title, tagline);
+  // the seniority sentence ("ותק: נשארו 3 ימים"): one line in the hero's slack, at heights of 700px and above (the chip carries it below)
+  const warnLine = career?.view?.state === 'warn' && !career.junior && globalThis.innerHeight >= 700
+    ? h('p', { class: 'career-warn-line', 'data-career-warn': '' }, icon('seniorityDue', { size: 16, width: 2 }), h('span', null, chipSentence(career.view))) : null;
+  const hero = h('div', { class: 'start-hero' }, title, tagline, warnLine);
 
   // ---- daily challenge card (v2.5): gold secondary card under the mode cards ----
   // daily = { date, status: 'new' | 'playing' | 'done', entry, streak: streakView() }

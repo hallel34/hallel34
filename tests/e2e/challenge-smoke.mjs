@@ -86,11 +86,14 @@ function decide(policy) {
       if (kind === 'opportunity' && card.dataset.kind === 'choice' && btn('choose-a')) return { click: `${L} [data-action="choose-a"]` };
       if (kind === 'opportunity' && card.dataset.guess === 'ask') return { click: `${L} [data-action="guess-skip"]` };
       if (kind === 'opportunity') {
-        const good = policy === 'eager' ? card.dataset.kind !== 'stock' : card.dataset.kind !== 'stock' && Number(card.dataset.payback) <= 130 && cash - Number(card.dataset.cost) >= expenses * 0.5;
+        const good = policy === 'eager' ? card.dataset.kind !== 'stock' : card.dataset.kind !== 'stock' && Number(card.dataset.payback) <= 96 && cash - Number(card.dataset.cost) >= expenses * 0.5;
         return { click: `${L} [data-action="${card.dataset.afford === 'true' && good && btn('buy') ? 'buy' : 'pass'}"]` };
       }
       if (kind === 'expense') for (const a of ['pay', 'loan', 'sell']) if (btn(a)) return { click: `${L} [data-action="${a}"]` };
       if (kind === 'charity') return { click: `${L} [data-action="skip"]` };
+      // 0.5.0: the promotion: the eager player upgrades, the others keep (so the two games decide differently)
+      // keyed by the card's identity (data-promotion), never by a bare action name
+      if (card.dataset.promotion) return { click: `${L} [data-promotion] [data-action="${policy === 'eager' ? 'promotion-upgrade' : 'promotion-keep'}"]`, promotion: policy === 'eager' ? 'upgraded' : 'kept' };
       if (kind === 'market' && btn('accept') && policy === 'buyer') return { click: `${L} [data-action="accept"]` };
       const opt = q('.btn-option:not([disabled])', top);
       if (opt) return { clickEl: true };
@@ -108,23 +111,34 @@ function decide(policy) {
   if (q('[data-action="roll"]:not([disabled])')) return { click: '[data-action="roll"]' };
   return { wait: true };
 }
+/**
+ * decide() and the click in ONE page task: the card that was judged is the card that is clicked, so a card that closes while the next one
+ * opens can never receive the other card's click; nothing is forced (a disabled button does nothing and the loop looks again).
+ */
+const STEP = `(policy) => {
+  const decide = ${decide.toString()};
+  const d = decide(policy);
+  if (d.click) { const el = document.querySelector(d.click); d.clicked = !!el && !el.disabled; if (d.clicked) el.click(); }
+  else if (d.clickEl) {
+    const layers = [...document.querySelectorAll('#modal-root .layer')].filter((l) => !l.hasAttribute('data-closing'));
+    const els = [...(layers[layers.length - 1]?.querySelectorAll('.btn-option:not([disabled])') ?? [])];
+    d.clicked = els.length > 0; if (d.clicked) els[els.length - 1].click();
+  } else if (d.reroll) {
+    const el = document.querySelector('[data-action="roll"]:not([disabled])'); d.clicked = !!el; if (el) el.click();
+  }
+  return d;
+}`;
+const STEP_FN = new Function(`return ${STEP}`)(); // a real function, so page.evaluate calls it with the argument
 async function playToEnd(page, policy, budgetMs = Number(process.env.SMOKE_GAME_MS || 300000)) {
   const deadline = Date.now() + budgetMs;
   let rolls = 0;
   let rerollSeen = false;
   while (Date.now() < deadline) {
-    const d = await page.evaluate(decide, policy);
+    const d = await page.evaluate(STEP_FN, policy);
     if (d.done) return { done: d.done, rolls, rerollSeen };
     if (d.reroll) rerollSeen = true;
-    if (d.clickEl) await page.locator('#modal-root .layer:last-child .btn-option:not([disabled])').last().click({ timeout: 3000, force: true }).catch(() => {});
-    else if (d.click) {
-      if (d.click === '[data-action="roll"]') rolls += 1;
-      await page.locator(d.click).first().click({ timeout: 3000, force: true }).catch(() => {});
-      await page.waitForTimeout(15);
-    } else if (d.reroll) {
-      await page.locator('[data-action="roll"]:not([disabled])').first().click({ timeout: 3000 }).catch(() => {});
-      rolls += 1;
-    } else await page.waitForTimeout(40);
+    if (d.clicked && (d.click === '[data-action="roll"]' || d.reroll)) rolls += 1;
+    await page.waitForTimeout(d.clicked ? 15 : 40);
   }
   const last = await page.evaluate(() => ({ screen: document.querySelector('[data-screen]')?.dataset.screen, layer: document.querySelector('#modal-root .layer:last-child')?.innerHTML.slice(0, 600) }));
   console.log(`timeout state: ${JSON.stringify(last)}`);
@@ -384,6 +398,19 @@ async function main() {
   check(await K.locator('[data-ch-name]').count() === 0, 'junior creator: no name field');
   check(!(await K.locator('[data-ch-preview]').innerText()).includes('₪'), 'junior creator: the message has no shekel sign');
   await ctxK.close();
+
+  // ================= a ranked link (0.5.0): both friends play the same rank, with the promotion rule =================
+  const rankedLink = encodeActionLog({ rngVersion: 2, seed: 909, config: { mode: 'family', professionId: 'teacher', rank: 2, promotion: true }, actions: [], name: 'דנה' });
+  check(decodeActionLog(rankedLink).config.rank === 2 && decodeActionLog(rankedLink).config.promotion === true, 'the ranked link carries the rank and the promotion rule');
+  const ctxR = await newCtx(browser);
+  const R = await open(ctxR, { path: `#c=${rankedLink}`, waitFor: '[data-screen="challenge"]' });
+  await R.locator('[data-action="ch-play"]').click();
+  await R.waitForSelector('section[data-screen="board"]');
+  const rankedSave = JSON.parse(await ls(R, 'challengeSave'));
+  const rs = rankedSave.players[0].state;
+  check(rs.rank === 2 && rs.challenge === true && rs.promotion?.status === 'waiting' && rs.profession.salary === 14500 && rs.dealScale > 1, `the receiver plays the link's rank under challenge rules (rank ${rs.rank}, salary ${rs.profession.salary}, scale ${rs.dealScale})`);
+  check(rankedSave.challenge.key.endsWith('|r2|p'), `the challenge key names the rank and the promotion rule (${rankedSave.challenge.key})`);
+  await ctxR.close();
 
   // ================= 320x568 layout =================
   const ctxS = await newCtx(browser, { w: 320, h: 568 });

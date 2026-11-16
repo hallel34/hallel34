@@ -63,6 +63,7 @@ export function legalMoves(engine, s, rnd, { passed = null } = {}) {
     }
     case 'charity': if (s.cash >= p.cost) moves.push({ type: 'donate' }); moves.push({ type: 'declineCharity' }); break;
     case 'offer': moves.push({ type: 'acceptOffer' }, { type: 'declineOffer' }); break;
+    case 'promotion': moves.push({ type: 'promotionKeep' }, { type: 'promotionUpgrade' }); break; // v0.5.0: the in-game promotion card
     case 'taxAudit': moves.push({ type: 'answerAudit', ...(rnd() < 0.7 ? { questionId: `q${Math.floor(rnd() * 9)}`, correct: rnd() < 0.6 } : {}) }); break;
     case 'expense':
     case 'shortfall': {

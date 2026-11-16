@@ -132,6 +132,18 @@ for _rows,T,split,tint in ((dark,dict(bg='#0F172A',surface='#182238',s2='#212D48
               ('0.5.1 HUD chip border / surface (non-text)',T['bstrong'],T['surface'],3),('0.5.1 compare winner --income / surface-2',T['income'],T['s2'],4.5),
               ('0.5.1 compare label --text-muted / surface-2',T['muted'],T['s2'],4.5),('0.5.1 end marker --income / bg',T['income'],T['bg'],4.5)]
 bad=0; md='--md' in sys.argv
+# 0.5.0 career (docs/v050/design/career-spec.md section 11; the designer's script has all 62 pairs): the career orange, the XP bar, the warning
+for _rows,T,car,fill,ctint,amber in ((dark,dict(bg='#0F172A',surface='#182238',s2='#212D48',text='#F5F7FC',muted='#A9B5D0',bstrong='#8A97B8'),'#F59A5B','#E8702A',(.14,'#F59A5B'),('#FFD27A','#F6C453',.16)),
+                                     (light,dict(bg='#FBF3E1',surface='#FFFFFF',s2='#FFF9EC',text='#0F172A',muted='#3F4C78',bstrong='#6F7899'),'#A84E0B','#C2571A',(.10,'#A84E0B'),('#6E4200','#F2B53A',.30))):
+    ct=_mix(ctint[1],ctint[0],T['surface'])
+    for sn in ('bg','surface','s2'): _rows.append((f'0.5.0 --career text / {sn}',car,T[sn],4.5))
+    _rows += [('0.5.0 --career on --career-tint',car,ct,4.5),('0.5.0 --text on --career-tint',T['text'],ct,4.5),('0.5.0 XP bar fill / surface (non-text)',fill,T['surface'],3),
+              ('0.5.0 XP bar fill / surface-2 (non-text)',fill,T['s2'],3),('0.5.0 --career ring / surface (non-text)',car,T['surface'],3),
+              ('0.5.0 warning chip text',amber[0],_mix(amber[1],amber[2],T['surface']),4.5),('0.5.0 warning sentence / bg',amber[0],T['bg'],4.5),
+              ('0.5.0 locked label --text-muted / bg',T['muted'],T['bg'],4.5),('0.5.0 dashed ring --border-strong / surface (non-text)',T['bstrong'],T['surface'],3)]
+# the cream promotion card (both themes): keep #0B6B43, spend edges #B42318 (full) / #6E4200 (family), on white
+dark += [('0.5.0 promotion keep bar / white (non-text)','#0B6B43','#FFFFFF',3),('0.5.0 promotion spend edge full / white (non-text)','#B42318','#FFFFFF',3),
+         ('0.5.0 promotion spend edge family / white (non-text)','#6E4200','#FFFFFF',3),('0.5.0 card muted on white','#46527E','#FFFFFF',4.5)]
 for name,rows in (('DARK',dark),('LIGHT',light)):
     print(f'\n### {name}' if md else f'== {name} =='); 
     if md: print('| Pair | Ratio | Need | Pass |\n|---|---|---|---|')

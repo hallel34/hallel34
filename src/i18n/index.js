@@ -53,7 +53,13 @@ export const rawString = (key, loc = locale) => {
 
 // QA 0.5.1 P2-3: groups a production build loads on demand (vite.config.js lazyStringsPlugin cuts them out of the locale bundle
 // and marks them in `__lazy`). Dev and tests never cut anything, so ensureStrings() is then a no-op.
-const LAZY = { challenge: () => import('virtual:i18n-lazy/challenge') };
+const LAZY = {
+  challenge: () => import('virtual:i18n-lazy/challenge'),
+  career: () => import('virtual:i18n-lazy/career'),
+  profile: () => import('virtual:i18n-lazy/profile'),
+  achievement: () => import('virtual:i18n-lazy/achievement'),
+  promotion: () => import('virtual:i18n-lazy/promotion'),
+};
 let lazyFamily = {}; // the family-layer lines of the lazy groups (they join the override layer whenever it is on)
 const merge = (into, from) => {
   for (const [k, v] of Object.entries(from)) {
@@ -62,6 +68,8 @@ const merge = (into, from) => {
   }
   return into;
 };
+/** The groups of the 0.5.0 career screens: one call loads them all (in parallel). */
+export const ensureCareerStrings = () => Promise.all(['career', 'profile', 'achievement', 'promotion'].map(ensureStrings));
 /** Loads a lazy string group (once) before a screen that shows it. Resolves at once when it is already there. */
 export async function ensureStrings(group) {
   const he = bundles[FALLBACK];

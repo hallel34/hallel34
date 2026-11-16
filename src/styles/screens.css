@@ -506,3 +506,48 @@
 .ch-resume-text { display: flex; flex-direction: column; flex: 1 1 auto; min-inline-size: 0; line-height: 1.2; }
 .ch-resume-info { font-size: .8125rem; font-weight: 500; color: var(--text-muted); }
 .ch-resume > .icon-dir { flex: none; }
+
+/* ---- 0.5.0 career on home and on the profession pick (docs/v050/design/career-spec.md sections 1-2) ---- */
+.career-chip { position: relative; display: inline-flex; align-items: center; gap: 4px; block-size: 48px; min-inline-size: 48px; max-inline-size: 112px; padding-inline: 6px 8px; border-radius: 24px; border: 1px solid var(--border); color: var(--text); font: inherit; font-size: .75rem; font-weight: 700; cursor: pointer; touch-action: manipulation; }
+@media (min-width: 390px) { .career-chip { max-inline-size: 120px; } }
+.career-chip .prof-bust, .career-chip img { inline-size: 36px; block-size: 36px; border-radius: 50%; flex: none; }
+.career-chip-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-inline-size: 0; }
+.career-chip.is-open .career-chip-label, .career-chip.is-bonus .career-chip-label { color: var(--text-muted); }
+.career-chip.is-warn .career-chip-label { padding: 3px 6px; border-radius: 14px; background: var(--amber-fill); color: var(--amber-ink); }
+.career-chip-badge { display: none; position: absolute; inset-block-start: 0; inset-inline-end: 0; inline-size: 20px; block-size: 20px; border-radius: 50%; place-items: center; font-size: .6875rem; font-weight: 800; background: var(--surface); border: 1px solid var(--border-strong); }
+.career-chip-badge[data-n]::before { content: attr(data-n); }
+.career-chip.is-warn .career-chip-badge { background: var(--amber-fill); color: var(--amber-ink); border-color: var(--amber-ink); }
+@media (max-width: 359px) {
+  .career-chip { padding: 0; inline-size: 48px; max-inline-size: 48px; justify-content: center; border-color: transparent; background: transparent; }
+  .career-chip-label { display: none; }
+  .career-chip-badge { display: grid; }
+}
+.career-warn-line { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 8px 0 0; font-size: .8125rem; font-weight: 700; color: var(--amber-ink); }
+
+/* pick card: the rank row and the XP bar */
+.pick-rank { display: flex; align-items: center; justify-content: center; gap: 4px; min-inline-size: 0; font-size: .75rem; font-weight: 700; color: var(--text); }
+.pick-rank .icon { color: var(--career); flex: none; }
+.pick-rank span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.xp { display: block; block-size: 4px; border-radius: 2px; background: var(--meter-track); overflow: hidden; }
+.xp > i { display: block; block-size: 100%; inline-size: var(--xp, 0%); background: var(--career-fill); border-radius: inherit; }
+.xp.lg { block-size: 8px; border-radius: 4px; }
+.pick-xp { inline-size: 86%; margin: 4px auto 0; }
+.pick-promo-strip { display: flex; align-items: center; gap: 6px; margin: 0 0 8px; font-size: .8125rem; font-weight: 500; color: var(--text-muted); }
+.pick-promo-strip .icon { color: var(--career); flex: none; }
+.pick-promo-strip b { color: var(--text); font-weight: 700; }
+.pick-promo-x2 { position: absolute; inset-block-start: 8px; inset-inline-start: 8px; display: inline-flex; align-items: center; gap: 2px; block-size: 22px; padding-inline: 6px; border-radius: 11px; background: var(--surface); border: 1px solid var(--career); color: var(--career); font-size: .6875rem; font-weight: 700; }
+.prof-card.is-promo { box-shadow: inset 0 0 0 1px var(--career); }
+.rank-block { display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 16px; background: var(--surface-2); border: 1px solid var(--border); margin-block-end: 12px; }
+.rank-block-head { display: flex; justify-content: space-between; gap: 8px; font-size: .9375rem; font-weight: 700; }
+.rank-block-head span:last-child { font-size: .8125rem; font-weight: 500; color: var(--text-muted); }
+.rank-chips { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; border: 0; padding: 0; margin: 0; }
+.rank-chip { position: relative; display: grid; place-items: center; align-content: center; gap: 2px; min-block-size: 56px; border-radius: 14px; border: 1.5px solid var(--btn-secondary-border); font-size: .75rem; font-weight: 700; cursor: pointer; }
+.rank-chip .icon { color: var(--career); }
+.rank-chip:has(input:checked) { background: var(--surface); border: 2px solid var(--sel-ring); }
+.rank-chip:has(input:focus-visible) { outline: 3px solid var(--focus-ring); outline-offset: 2px; }
+.rank-chip.is-locked { border: 1.5px dashed var(--border-strong); color: var(--text-muted); cursor: default; }
+.rank-chip.is-locked .icon { color: var(--text-muted); }
+.rank-chip input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: inherit; }
+.rank-note { margin: 0; font-size: .8125rem; color: var(--text-muted); }
+@media (max-height: 600px), (max-width: 340px) { .rank-chip { min-block-size: 52px; } }
+.screen-pick .prof-card { position: relative; }

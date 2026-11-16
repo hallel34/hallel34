@@ -184,6 +184,11 @@
 .pe-op { font-size: 1rem; color: var(--card-muted); padding-block-end: 1px; }
 .debt-after { margin: 0; font-size: .8125rem; line-height: 1.35; color: var(--card-muted); }
 .debt-after .money { font-weight: var(--fw-money); color: #55508A; }
+.debt-ledger { display: grid; gap: 2px; }
+.dl-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; min-inline-size: 0; }
+.dl-label { min-inline-size: 0; overflow-wrap: anywhere; }
+.dl-value { font-weight: var(--fw-money); color: #55508A; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.dl-total { margin-block-start: 2px; padding-block-start: 3px; border-block-start: 1px solid var(--card-border, rgba(0,0,0,.12)); font-weight: var(--fw-bold); }
 .metrics { display: flex; flex-wrap: wrap; gap: 6px 22px; align-items: flex-end; }
 .metric { display: flex; flex-direction: column; gap: 0; min-inline-size: 0; }
 .metric-label { font-size: .75rem; color: var(--card-muted); line-height: 1.2; }

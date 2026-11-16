@@ -475,3 +475,15 @@ button, [role="button"] { touch-action: manipulation; min-block-size: var(--tap-
   --split-tint: rgb(26 98 179 / .10);
   --verified-tint: rgb(11 107 67 / .10);     /* --verified (#0B6B43) 5.7 */
 }
+
+/* 0.5.0 career (docs/v050/design/career-spec.md section 9; contrast: docs/v050/design/contrast-v050.py, 62 pairs pass) */
+:root {
+  --career: #F59A5B;                         /* rank glyphs, "+XP" text, x2 marker, kicker: 8.2 bg, 7.3 surface, 6.3 surface-2 */
+  --career-fill: #E8702A;                    /* the XP bar fill (non-text): 3.8 on its track on surface */
+  --career-tint: rgb(245 154 91 / .14);      /* x2 pill, promo banner, played day, earned medal (text on it: --career 5.7, --text 11.5) */
+}
+:root[data-theme="light"] {
+  --career: #A84E0B;                         /* 5.1 bg, 5.6 surface */
+  --career-fill: #C2571A;                    /* 3.4 on its track on white */
+  --career-tint: rgb(168 78 11 / .10);       /* --career on it 4.8 */
+}

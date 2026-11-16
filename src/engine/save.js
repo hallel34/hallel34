@@ -89,6 +89,16 @@ const migrations = {
       ? m.players.map((p) => (p?.state ? { ...p, state: { ...p.state, schemaVersion: 9, rngVersion: p.state.rngVersion ?? 1 } } : p))
       : m.players,
   }),
+
+  // 9 -> 10 (v0.5.0 career): a state may carry `rank`, `dealScale` and `promotion`; a save from before has none, which means rank 0
+  // and no promotion, so the game plays on exactly as it did. Only the version moves.
+  9: (m) => ({
+    ...m,
+    schemaVersion: 10,
+    players: Array.isArray(m.players)
+      ? m.players.map((p) => (p?.state ? { ...p, state: { ...p.state, schemaVersion: 10 } } : p))
+      : m.players,
+  }),
 };
 
 export function serialize(match) {

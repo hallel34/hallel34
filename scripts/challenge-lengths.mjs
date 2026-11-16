@@ -1,5 +1,5 @@
 // 0.5.1: the length of a challenge URL with its hash (median / p95 / max), the way the UI sends it: a whole game played like a
-// player (the 'עסקה טובה?' guess on every deal, the deal choice examined), charity declined (a comparable link), and the longest
+// player (the 'עסקה טובה?' guess on every deal, the deal choice examined), the promotion answered by the bot, charity declined (a comparable link), and the longest
 // display name (16 Hebrew letters = 32 bytes). The base is a PR-preview URL, longer than production.
 // node scripts/challenge-lengths.mjs [--seeds=500] [--base=https://hallel34.github.io/hallel34/pr-preview/pr-99/]
 import { readFileSync } from 'node:fs';
@@ -23,7 +23,8 @@ for (const mode of ['family', 'full']) {
     const rows = [];
     for (let i = 0; i < SEEDS; i++) {
       const seed = 200003 + i * 7919;
-      let s = engine.newGame({ mode, professionId: data.professions[i % data.professions.length].id, seed, challenge: kind === 'reply' });
+      // 0.5.0: every game has the in-game promotion and a career rank 0-3 (a ranked link carries the rank in the flags byte: no extra length)
+      let s = engine.newGame({ mode, professionId: data.professions[i % data.professions.length].id, seed, challenge: kind === 'reply', rank: i % 4, promotion: true });
       for (let g = 0; s.status === 'playing' && g < 6000; g++) {
         const p = s.pending;
         if (p?.kind === 'charity') { s = engine.dispatch(s, { type: 'declineCharity' }); continue; }

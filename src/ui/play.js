@@ -63,6 +63,7 @@ import { yearsPhrase, fillSlots } from '../learn/slots.js';
 import coinUrl from '../assets/coin.svg?url';
 import pawnUrl from '../assets/pawn.svg?url';
 import { challengeChip } from './challenge/hud-chip.js';
+import { ensureCareerStrings } from '../i18n/index.js';
 
 // v4 stage (docs/v4/design/board-spec.md section 5): the HOME skyline (start.js SKY: 10 buildings, 8 windows, no stars) as one
 // inline SVG behind the board plate's lower half and the fox strip (viewBox 0 640 360 160, meet, so % maps exactly). Two windows
@@ -719,6 +720,8 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     // One player (or the last one standing): the turn closes silently and the roll button returns, no hand-over.
     if ((!multi || lastPlayerStanding(match)) && canEndTurn(match) && state.status === 'playing') {
       match = endTurn(match); store.save(match); state = currentState(match); refreshHud();
+      // a short game ends after its last round (owner 2026-11-15): endTurn has just said so, so there is no roll button for a 13th turn
+      if (match.status !== 'playing') { finishIfOver(); return; } // the roll button stays disabled during the short pause before the end screen
     }
     if (multi && state.status === 'playing' && canEndTurn(match) && !lastPlayerStanding(match)) { handOver(); return; }
     setBusy(false);
@@ -907,7 +910,7 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
 
   let priorPrices = {};
   async function turn() {
-    if (busy || destroyed || state.phase !== 'roll' || state.status !== 'playing') return;
+    if (busy || destroyed || state.phase !== 'roll' || state.status !== 'playing' || match.status !== 'playing') return;
     setBusy(true, 'rolling');
     releaseUnshownHint();
     hints.drop('h-roll'); // the roll hint belongs to the moment before the first roll
@@ -1144,6 +1147,8 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     flow.newTurn(); // the old fox note goes away: it belongs to the player who just finished
     match = endTurn(match);
     store.save(match);
+    // the same rule in hot-seat: when the last player's last round closes the match, go to the end screen instead of handing the phone on
+    if (match.status !== 'playing') { handingOver = false; busy = false; await finishIfOver(); return; }
     switchPlayer();
     handingOver = false;
     await handoverAndRoll({ recap, extra });
@@ -1341,6 +1346,17 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
           const slots = foxSlotsText(before, state);
           const pick = nextDecisionLine(decisionFoxVariants(p.card, r.option, state.mode), (v) => fillSlots(v, slots)); // per device
           if (pick) flow.notes.push({ kind: 'feedback', group: 'decision', pose: 'think', tone: 'neutral', plain: pick.text, body: feedbackNodes(pick.line, slots) });
+        }
+      } else if (p.kind === 'promotion') {
+        // 0.5.0: the in-game promotion (a decision card, lazy chunk with its strings): keep the lifestyle or upgrade it
+        await ensureCareerStrings();
+        const { promotionModal, promotionLines } = await import('./career/promotion.js');
+        r = await promotionModal(state);
+        if (!r) break; // closed by debug force
+        if (apply((s) => engine.dispatch(s, { type: r.action === 'upgrade' ? 'promotionUpgrade' : 'promotionKeep' }))) {
+          const lines = promotionLines(r.action, state);
+          pushLog(lines.log);
+          flow.notes.push({ kind: 'feedback', group: 'promotion', pose: 'think', tone: 'neutral', plain: lines.body.textContent ?? '', body: lines.body });
         }
       } else if (p.kind === 'taxAudit') {
         // v4 stage 4: the tax-audit quiz; knowledge points only (the engine never moves money here)

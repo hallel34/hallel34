@@ -14,7 +14,13 @@ export const loanStep = (s) => (s?.junior ? JUNIOR_LOAN_STEP : LOAN_STEP);
 
 // ---- inflation and timed effects (v3 phase 3) ----
 /** Price factor of NEW deals: PRICE_INFLATION_PER_LAP ^ lap; the daily challenge always 1 (same prices for everyone). */
-export const priceFactor = (s) => (s.daily ? DAILY_INFLATION_FACTOR : PRICE_INFLATION_PER_LAP ** (s.lap ?? 0));
+export const priceFactor = (s) => (s.daily ? DAILY_INFLATION_FACTOR : PRICE_INFLATION_PER_LAP ** (s.lap ?? 0) * (s.dealScale ?? 1));
+/** The career rank a game was started at (0-3; a state without the field, e.g. an old save, is rank 0). */
+export const rankOf = (s) => s?.rank ?? 0;
+/** The in-game promotion record, or null (a game created without `promotion: true` has none). */
+export const promotionOf = (s) => s?.promotion ?? null;
+/** True once the player chose 'upgrade' on the promotion card: a cosmetic accessory for the fox, never money. */
+export const hasFoxAccessory = (s) => s?.promotion?.status === 'upgraded';
 /** Factor of unexpected-expense cards (1 while EXPENSE_INFLATION_PER_LAP is 1). */
 export const expenseFactor = (s) => (s.daily ? DAILY_INFLATION_FACTOR : EXPENSE_INFLATION_PER_LAP ** (s.lap ?? 0));
 /** The running timed effect of a kind ('propertyValue' | 'cheapLoan' | 'rentChange'), or null. */
@@ -118,6 +124,18 @@ export function purchasePlan(s, cost) {
   const status = need === 0 ? 'ok' : need <= loanRoom ? 'loan' : 'blocked';
   const step = loanStep(s);
   return { cost, need, loanRoom, status, loanAmount: need === 0 ? 0 : Math.ceil(need / step) * step };
+}
+
+/**
+ * The debt a deal card projects, as parts that add up: today's debts (the financial report's total: starting debts, the loans of assets already
+ * owned, bank loans) + the deal's own loan (mortgage / business loan) + the bank loan the purchase will open when cash is short. That loan is
+ * plan.loanAmount (the need rounded up to the loan step: the smallest loan the dialog offers), never the bare need (live QA F6).
+ */
+export function projectedDebt(s, card, plan = purchasePlan(s, card.downPayment)) {
+  const now = balanceSheet(s).liabilitiesTotal;
+  const deal = card.mortgage ?? 0;
+  const bank = plan.status === 'loan' ? plan.loanAmount : 0;
+  return { now, deal, bank, total: now + deal + bank };
 }
 
 /**

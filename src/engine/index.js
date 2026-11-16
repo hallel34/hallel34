@@ -6,7 +6,7 @@ export function createEngine(...args) {
   engine.verifyResult = (log) => verifyLog(engine, log);
   return engine;
 }
-export { juniorSkips, rngVersionOf, DECKS, DEAL_TIERS, DEAL_TIERS_V2, dealTiersOf, dealTierIndex, EngineError, emptyTaxAudit, PASS_OPTION, isFreeOption, decisionCanPass } from './engine.js';
+export { promotionTerms, promotionTurn, rankDealScale, juniorSkips, rngVersionOf, DECKS, DEAL_TIERS, DEAL_TIERS_V2, dealTiersOf, dealTierIndex, EngineError, emptyTaxAudit, PASS_OPTION, isFreeOption, decisionCanPass } from './engine.js';
 export * from './selectors.js';
 export * from './config.js';
 export { serialize, deserialize } from './save.js';

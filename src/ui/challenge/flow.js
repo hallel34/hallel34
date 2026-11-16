@@ -2,6 +2,7 @@
 // family board, the share sheets). One lazy chunk with the strings (QA 0.5.1 P2-3): home never loads it, so the engine's
 // verifier and the action-log codec stay out of the main bundle too. `ctx` carries the shell's own navigation.
 import { ensureStrings } from '../../i18n/index.js';
+import { ensureRanks } from '../ranks.js';
 import { toast } from '../fx.js';
 import { setCoinScale } from '../format.js';
 import { setLearnMode } from '../../learn/context.js';
@@ -19,11 +20,15 @@ import { setJuniorView, viewerAge, viewerIsJunior, ct, linkUrl, shareMessage } f
  * @param ctx { engine, mount, goStart, goPlay, goPlayers, store, countGame, loadChallengeSave }
  * @returns { routeLink(hash), end(match), board(), openCreate(match), ready() }
  */
+/** The part of a link's config a stored challenge keeps (its identity: seed + these). */
+const storedConfig = (c) => ({ mode: c.mode, professionId: c.professionId, ...(c.junior ? { junior: true } : {}), ...(c.rank > 0 ? { rank: c.rank } : {}), ...(c.promotion ? { promotion: true } : {}) });
+
 export function createChallengeFlow(ctx) {
   const { engine, mount, goStart, goPlay, goPlayers, store, countGame, loadChallengeSave } = ctx;
   engine.verifyResult ??= (x) => verifyResult(engine, x); // the main-bundle engine has no verifier until this chunk loads
   const chStore = { load: () => loadChallenges(), save: (st) => saveChallenges(st) };
-  const challengeStrings = () => ensureStrings('challenge').catch((err) => console.error(err));
+  // a ranked link replays and plays with its rank's figures: the rank data loads with the strings (0.5.0)
+  const challengeStrings = () => Promise.all([ensureStrings('challenge'), ensureRanks(engine)]).catch((err) => console.error(err));
   const professionTitle = (id) => engine.data.professions.find((p) => p.id === id)?.title ?? '';
   const verify = (x) => verifyResult(engine, x);
 
@@ -82,7 +87,7 @@ export function createChallengeFlow(ctx) {
     const old = findEntry(st, 'received', r.key);
     const keepMine = old?.them?.link === r.text;
     chStore.save(upsertEntry(st, 'received', r.key, {
-      seed: log.seed, config: { mode: log.config.mode, professionId: log.config.professionId, ...(log.config.junior ? { junior: true } : {}) },
+      seed: log.seed, config: storedConfig(log.config),
       at: now, them: { link: r.text, name: log.name ?? '', result: summaryOf(r.them), at: old?.them?.link === r.text ? old.them.at : now, fresh: r.fresh },
       ...(keepMine ? {} : { me: null }),
     }));
@@ -97,7 +102,8 @@ export function createChallengeFlow(ctx) {
     const v = r.them;
     const m = newMatch(engine, {
       mode: cfg.mode, seed: log.seed, junior: !!cfg.junior,
-      players: [{ name: '', professionId: cfg.professionId, age: viewerAge() }],
+      players: [{ name: '', professionId: cfg.professionId, age: viewerAge(), rank: cfg.rank ?? 0 }], // a ranked link: both friends play the same rank
+      promotion: !!cfg.promotion,
       challenge: {
         log: r.text, name: log.name ?? '', key: r.key, fresh: !!r.fresh,
         target: v.ok && !r.fresh ? { status: v.status, turns: v.turns, freedomPct: v.freedomPct } : null,
@@ -127,7 +133,7 @@ export function createChallengeFlow(ctx) {
     const now = Date.now();
     const st = chStore.load();
     chStore.save(upsertEntry(st, 'received', m.challenge.key, {
-      seed: s.seed, config: { mode: s.mode, professionId: s.profession.id, ...(s.junior ? { junior: true } : {}) }, at: now,
+      seed: s.seed, config: storedConfig(configOf(s)), at: now,
       me: { link: mine, result: summaryOf(me), at: now },
       them: { link: m.challenge.log, name: m.challenge.name ?? '', result: summaryOf(them), at: findEntry(st, 'received', m.challenge.key)?.them?.at ?? now, fresh: !!m.challenge.fresh },
     }));
@@ -217,7 +223,7 @@ export function createChallengeFlow(ctx) {
         onSend: (name, built) => {
           const now = Date.now();
           chStore.save(upsertEntry(chStore.load(), 'sent', challengeKey({ seed: s.seed, config }), {
-            seed: s.seed, config: { mode: s.mode, professionId: s.profession.id, ...(s.junior ? { junior: true } : {}) }, at: now,
+            seed: s.seed, config: storedConfig(configOf(s)), at: now,
             me: { link: full, sentLink: built.link, name, result: summaryOf(me), at: now, fresh: kind === 'fresh' },
           }));
         },

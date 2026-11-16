@@ -270,6 +270,35 @@ Tests: `tests/challenge-engine.test.js`, `tests/actionlog-v2.test.js`, `tests/ch
 after `npm run build` (two browsers, the same dice, compare, reply, tampered and junior links, 360x800 and 320x568; set `AXE_PATH` for
 the accessibility checks).
 
+## Career, ranks and the in-game promotion (0.5.0, client only)
+
+- **Ranks.** Every profession has ranks 1-3 above the base profession (`ranks` in `src/data/professions.he.json`: title, salary, savings,
+  itemized expenses, starting debts, an optional `dealScale`). A rank is a harder start, not an easier one. `engine.newGame({ rank })` plays it;
+  the deal scale (`priceFactor`) keeps the game at about the same length (docs/BALANCE.md, "0.5.0 career"). Adding a rank is a JSON edit
+  (validated in `src/engine/validate.js`).
+- **The promotion.** `newGame({ promotion: true })` (every new normal game): once per game, on the first payday on or after a turn keyed by the
+  seed, a raise of 12% of the salary. `promotionKeep`: the whole raise is free cash. `promotionUpgrade`: 80% of it becomes a monthly expense
+  (the id `lifestyle`) and the fox gets an accessory; there is no cash perk. The daily and the practice missions never have a rank or a promotion.
+- **Links and saves.** Action log format 3 carries the rank (flags bits 5-6) and the promotion flag (bit 7); formats 1 and 2 still decode as
+  rank 0 without the promotion. A friend challenge link carries both, so both players play the same rank. Save schema 10 (a 0.5.1 save loads as
+  rank 0, no promotion).
+- **The career store** (`src/career/`, device store `passivo.career`, schema-versioned, corrupt data starts over): up to 4 profiles (name, age band,
+  favourite fox), XP and rank per profession, the 16 achievements (`achievements.he.json`: conditions as pure functions over the final state and
+  a replay of its log), and weekly seniority (a finished normal one-player game keeps the week, Sunday to Saturday; the deadline is Friday and Saturday
+  is a bonus day that counts for the same week but is never required; a full week without one resets the progress, a second in a row drops every
+  profession ONE rank, and after that nothing more is lost until a game is finished: the profile carries a `dropped` flag). The week is the
+  device's civil date (no clock reads, so daylight saving cannot shift it). The daily challenge does not give XP or seniority yet (open decision).
+  A profile aged up to 10 (or with no age) never loses anything. Rules the owner may still change are single values in
+  `src/engine/config.js`: `CAREER_PROTECTED_AGE`, `CAREER_WARN_FROM_WEEKDAY`, `CAREER_DEADLINE_WEEKDAY` (5 = Friday), the XP numbers.
+- **Load.** Home carries only the chip (`src/career/lite.js`). The screens, strings, rank data and logic are lazy chunks
+  (`src/ui/career/`, the `career`, `profile`, `achievement` and `promotion` string groups, `virtual:ranks`).
+- **Add a rank to a profession:** add an entry to its `ranks` list. **Add an achievement:** add it to `src/career/achievements.he.json` and its
+  check to `src/career/achievements.js`.
+
+Tests: `tests/career-engine.test.js`, `tests/career.test.js`, `tests/career-config.test.js`, and `npm run smoke:career` after `npm run build`
+(promotion, profile, rank-up, the clock moved to show the warning, the reset, the drop and a junior profile; 360x800 and 320x568).
+`node scripts/simulate.js --rankTable` prints the balance per profession and rank.
+
 ## Debug helpers
 
 Open the app with `?debug=1` (for example `/?debug=1&seed=11`) to get two dev-only buttons on the board

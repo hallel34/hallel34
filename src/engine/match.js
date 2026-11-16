@@ -39,11 +39,12 @@ export const seesCoins = (m, player) => !!m?.junior && cleanAge(player?.age) ===
 
 /**
  * @param engine createEngine(...) result
+ * @param promotion v0.5.0: every seat's game has the in-game promotion (never with `daily`); a seat's `rank` above 0 is refused with `daily`.
  * @param rngVersion null = the engine default (2; the daily follows its date); 1 only for tests / measurements.
- * @param players [{ name?, professionId, age?, bot? }] 1-4 entries; an empty name means "use the default label" (UI side).
+ * @param players [{ name?, professionId, age?, bot?, rank? }] 1-4 entries; `rank` (0-3, v0.5.0 career) is the rank that seat plays at; an empty name means "use the default label" (UI side).
  *   `bot` (a BOTS policy name) marks a seat the device plays itself (schema 7).
  */
-export function newMatch(engine, { mode = 'full', players, seed = 1, daily = null, roundCap = null, rngVersion = null, challenge = null, junior: juniorRule = null } = {}) {
+export function newMatch(engine, { mode = 'full', players, seed = 1, daily = null, roundCap = null, rngVersion = null, challenge = null, junior: juniorRule = null, promotion = false } = {}) {
   if (!Array.isArray(players) || players.length < MIN_PLAYERS || players.length > MAX_PLAYERS) {
     fail(`a match needs ${MIN_PLAYERS}-${MAX_PLAYERS} players`);
   }
@@ -62,14 +63,16 @@ export function newMatch(engine, { mode = 'full', players, seed = 1, daily = nul
     ...(junior ? { junior: true } : {}), // schema 6: a 'צעירים' game (round rules for everyone)
     // 0.5.1: { log (the received link text), name, key, fresh } — optional, so no schema change; its own save slot
     ...(challenge ? { challenge: { ...challenge } } : {}),
+    ...(promotion ? { promotion: true } : {}), // v0.5.0: the seats' games have the in-game promotion (rematch keeps it)
     players: players.map((p, i) => ({
       id: `p${i + 1}`,
       name: names[i],
       color: i + 1, // 1-4: token colour and number badge
       professionId: p.professionId,
+      ...(p.rank > 0 ? { rank: p.rank } : {}), // v0.5.0: the career rank this seat plays at (absent = 0)
       age: daily ? null : cleanAge(p.age), // schema 6
       bot: typeof p.bot === 'string' && p.bot ? p.bot : null, // schema 7: a seat the device plays itself
-      state: engine.newGame({ mode, professionId: p.professionId, seed: seed + i * SEED_STEP, ...(daily ? { daily } : {}), ...(junior ? { junior: true } : {}), ...(rngVersion ? { rngVersion } : {}), ...(challenge ? { challenge: true } : {}) }),
+      state: engine.newGame({ mode, professionId: p.professionId, seed: seed + i * SEED_STEP, ...(daily ? { daily } : {}), ...(junior ? { junior: true } : {}), ...(rngVersion ? { rngVersion } : {}), ...(challenge ? { challenge: true } : {}), ...(p.rank > 0 ? { rank: p.rank } : {}), ...(promotion ? { promotion: true } : {}) }),
     })),
     currentIndex: 0,
     turns: 0, // completed turns across all players
@@ -188,7 +191,8 @@ export function standings(m) {
 export function rematch(engine, m, seed) {
   return newMatch(engine, {
     mode: m.mode, seed, roundCap: m.roundCap ?? null,
-    players: m.players.map((p) => ({ name: p.name, professionId: p.professionId, age: p.age ?? null })),
+    players: m.players.map((p) => ({ name: p.name, professionId: p.professionId, age: p.age ?? null, rank: p.rank ?? 0 })),
+    promotion: !!m.promotion,
   });
 }
 

@@ -24,7 +24,7 @@ export function greenText(g) {
  * @param opts     { seed, theme: index into the conversation order }. The concept count is THIS player's in THIS game
  *                 (state.learn.concepts), never the device-wide set: a hot-seat opponent's or an earlier game's concepts are not theirs.
  */
-export function reportView(state, { seed = 0, theme = 0 } = {}) {
+export function reportView(state, { seed = 0, theme = 0, shortFinish = false } = {}) {
   const { report, guess } = learnContent();
   const data = buildReport(state);
   const mode = state.mode;
@@ -105,7 +105,7 @@ export function reportView(state, { seed = 0, theme = 0 } = {}) {
   };
 
   // the end-of-game fox line (win / lose group of feedback.json), rotated by the seed
-  const endReq = feedbackForEnd(state);
+  const endReq = feedbackForEnd(state, { shortFinish });
   const fox = renderFeedback(learnContent().feedback, endReq, { mode, seed, counter: 0 });
   const extraReq = feedbackForWinExtra(state);
   const extra = extraReq ? renderFeedback(learnContent().feedback, extraReq, { mode, seed, counter: 0 }) : null;

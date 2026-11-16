@@ -23,7 +23,7 @@ export const GROUP_SLOTS = {
   'market.sold': ['title', 'amount', 'over'], 'market.kept': ['title', 'monthly'],
   'market.priceUp': ['symbol', 'price'], 'market.priceDown': ['symbol', 'price'],
   'market.cashGood': ['amount'], 'market.cashBad': ['amount'],
-  win: ['passive', 'expenses'], lose: ['passive', 'expenses'], 'end.neutral': ['passive', 'expenses'],
+  win: ['passive', 'expenses'], lose: ['passive', 'expenses'], 'end.neutral': ['passive', 'expenses'], 'end.rounds': ['passive', 'expenses'],
   'win.fastPayback': [], 'win.diversified': [], 'win.noBankLoan': [],
 };
 
@@ -151,10 +151,11 @@ export function feedbackForEvent(ev, state, { priorPrice = null } = {}) {
 /**
  * Feedback line of the end screens. 'win' only for a player who reached financial freedom, 'lose' only for a player who is
  * actually out of the game; a player who did not win but is still in (the round ended because someone else won) gets the
- * neutral 'end.neutral' line, which never says the cash ran out.
+ * neutral 'end.neutral' line, which never says the cash ran out. That "someone else won" line is only true at a table where someone
+ * did reach freedom. A short game that ended on the round limit (solo or hot-seat, `shortFinish`) is nobody's freedom: 'end.rounds' (live QA F4).
  */
-export const feedbackForEnd = (state) => req(
-  state.status === 'won' ? 'win' : state.status === 'lost' ? 'lose' : 'end.neutral',
+export const feedbackForEnd = (state, { shortFinish = false } = {}) => req(
+  state.status === 'won' ? 'win' : state.status === 'lost' ? 'lose' : shortFinish ? 'end.rounds' : 'end.neutral',
   { passive: moneyText(passiveIncome(state)), expenses: moneyText(totalExpenses(state)) },
 );
 

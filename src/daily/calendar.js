@@ -41,3 +41,15 @@ export function countdownParts(ms) {
   const totalMin = Math.max(1, Math.ceil(ms / 60000));
   return { hours: Math.floor(totalMin / 60), minutes: totalMin % 60 };
 }
+
+// ---- weeks (0.5.0 career seniority): Sunday to Saturday, local calendar dates, the same pure day maths as above ----
+/** Day of the week of a date key: 0 = Sunday ... 6 = Saturday (1970-01-01 was a Thursday). */
+export const weekDay = (key) => (((dayNumber(key) + 4) % 7) + 7) % 7;
+/** The week a date key falls in, as a whole number (weeks since the Sunday before 1970-01-01). A week starts on Sunday. */
+export const weekNumber = (key) => Math.floor((dayNumber(key) + 4) / 7);
+/** The Sunday that starts week `n`, as a date key. */
+export const weekStartKey = (n) => addDays('1970-01-01', n * 7 - 4);
+/** The Saturday that ends week `n`, as a date key. */
+export const weekEndKey = (n) => addDays(weekStartKey(n), 6);
+/** Days left in the week including today: Sunday 7 ... Saturday 1. `deadlineDay` (0-6) counts to that weekday instead of Saturday (min 1). */
+export const daysLeftInWeek = (key, deadlineDay = 6) => Math.max(1, deadlineDay - weekDay(key) + 1);

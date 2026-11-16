@@ -1,0 +1,84 @@
+{
+ "currentIndex": 0,
+ "after": [
+  {
+   "turn": 12,
+   "dice": [
+    3,
+    2
+   ],
+   "position": 11,
+   "cash": 225810,
+   "assets": [
+    "opp-biz-003"
+   ],
+   "status": "playing"
+  },
+  {
+   "turn": 13,
+   "dice": [
+    6,
+    3
+   ],
+   "position": 20,
+   "cash": 271650,
+   "assets": [
+    "opp-biz-003"
+   ],
+   "status": "playing"
+  },
+  {
+   "turn": 14,
+   "dice": [
+    1,
+    5
+   ],
+   "position": 2,
+   "cash": 314490,
+   "assets": [
+    "opp-biz-003"
+   ],
+   "status": "playing"
+  },
+  {
+   "turn": 15,
+   "dice": [
+    4
+   ],
+   "position": 6,
+   "cash": 359100,
+   "assets": [
+    "opp-biz-003"
+   ],
+   "status": "playing"
+  },
+  {
+   "turn": 16,
+   "dice": [
+    4,
+    4
+   ],
+   "position": 14,
+   "cash": 152940,
+   "assets": [
+    "opp-biz-003",
+    "opp-apt-014"
+   ],
+   "status": "playing"
+  },
+  {
+   "turn": 17,
+   "dice": [
+    4,
+    6
+   ],
+   "position": 0,
+   "cash": 256260,
+   "assets": [
+    "opp-biz-003",
+    "opp-apt-014"
+   ],
+   "status": "playing"
+  }
+ ]
+}

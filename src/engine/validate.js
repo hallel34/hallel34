@@ -1,5 +1,5 @@
 // Schema validation for professions and cards. Fails loudly.
-import { BASE_DEBT_RATES, TIMED_EFFECT_KINDS, TIMED_EFFECT_MAX_TURNS, TIMED_EFFECT_MAX_PCT, LOAN_PAYMENT_RATE, LOAN_STEP } from './config.js';
+import { BASE_DEBT_RATES, TIMED_EFFECT_KINDS, TIMED_EFFECT_MAX_TURNS, TIMED_EFFECT_MAX_PCT, LOAN_PAYMENT_RATE, LOAN_STEP, MAX_RANK } from './config.js';
 import { CATEGORY_IDS, CATEGORY_TYPES } from '../data/categories.js';
 const MODES = ['family', 'full'];
 const DECKS = ['opportunity', 'expense', 'market'];
@@ -72,6 +72,57 @@ function decisionErrors(c, w) {
 const isNum = (x) => typeof x === 'number' && Number.isFinite(x);
 const isStr = (x) => typeof x === 'string' && x.length > 0;
 
+/** The figures every profession and every rank of it carries: salary, savings, perChild, itemized expenses, starting debts. */
+function figureErrors(p, w) {
+  const errors = [];
+  for (const k of ['salary', 'savings', 'perChild']) {
+    if (!isNum(p[k]) || p[k] < 0) errors.push(`${w}: ${k}`);
+  }
+  if (!Array.isArray(p.expenses) || !p.expenses.length) errors.push(`${w}: expenses`);
+  else p.expenses.forEach((e) => {
+    if (!isStr(e.id) || !isStr(e.label) || !isNum(e.amount)) errors.push(`${w}: bad expense ${e?.id}`);
+  });
+  if (!Array.isArray(p.liabilities)) errors.push(`${w}: liabilities`);
+  else p.liabilities.forEach((l) => {
+    if (!isStr(l.id) || !isStr(l.label) || !isNum(l.principal) || !isNum(l.monthlyPayment)) {
+      errors.push(`${w}: bad liability ${l?.id}`);
+    } else if (l.debt !== undefined) {
+      // One consistent model for starting debts: payment = principal x rate of its kind (rounded to 10).
+      const rate = BASE_DEBT_RATES[l.debt];
+      if (rate === undefined) errors.push(`${w}: liability ${l.id} has unknown debt kind ${l.debt}`);
+      else if (l.monthlyPayment !== Math.round((l.principal * rate) / 10) * 10) {
+        errors.push(`${w}: liability ${l.id} payment must be ${Math.round((l.principal * rate) / 10) * 10} (${l.debt} rate)`);
+      }
+    }
+  });
+  return errors;
+}
+
+/**
+ * v0.5.0 career: `ranks` is an optional list of the ranks above 0 (rank 1 first, up to MAX_RANK), each with its own title and the
+ * same figures as the profession (salary, savings, perChild, expenses, liabilities), a higher salary than the rank before it,
+ * and an optional `dealScale` (the factor on new deals' size, 1 or more). Adding a rank is a JSON edit.
+ */
+function rankErrors(p, w) {
+  const errors = [];
+  if (p.ranks === undefined) return errors;
+  if (!Array.isArray(p.ranks)) return [`${w}: ranks must be a list`];
+  if (p.ranks.length > MAX_RANK) errors.push(`${w}: at most ${MAX_RANK} ranks above 0`);
+  const baseExpenseIds = (p.expenses ?? []).map((e) => e.id);
+  let before = p.salary;
+  p.ranks.forEach((r, i) => {
+    const rw = `${w} rank ${i + 1}`;
+    if (r?.rank !== i + 1) errors.push(`${rw}: rank must be ${i + 1} (ranks in order, no gaps)`);
+    if (!isStr(r?.title)) errors.push(`${rw}: title`);
+    errors.push(...figureErrors(r ?? {}, rw));
+    if (isNum(r?.salary) && isNum(before) && r.salary <= before) errors.push(`${rw}: salary must be above the rank before it`);
+    if (isNum(r?.salary)) before = r.salary;
+    if (Array.isArray(r?.expenses) && baseExpenseIds.some((id) => !r.expenses.some((e) => e.id === id))) errors.push(`${rw}: expenses must keep the ids of rank 0`);
+    if (r?.dealScale !== undefined && !(isNum(r.dealScale) && r.dealScale >= 1 && r.dealScale <= 20)) errors.push(`${rw}: dealScale must be a number from 1 to 20`);
+  });
+  return errors;
+}
+
 export function validateProfessions(list) {
   const errors = [];
   const ids = new Set();
@@ -82,26 +133,8 @@ export function validateProfessions(list) {
     if (ids.has(p.id)) errors.push(`${w}: duplicate id`);
     ids.add(p.id);
     if (!isStr(p.title)) errors.push(`${w}: title`);
-    for (const k of ['salary', 'savings', 'perChild']) {
-      if (!isNum(p[k]) || p[k] < 0) errors.push(`${w}: ${k}`);
-    }
-    if (!Array.isArray(p.expenses) || !p.expenses.length) errors.push(`${w}: expenses`);
-    else p.expenses.forEach((e) => {
-      if (!isStr(e.id) || !isStr(e.label) || !isNum(e.amount)) errors.push(`${w}: bad expense ${e?.id}`);
-    });
-    if (!Array.isArray(p.liabilities)) errors.push(`${w}: liabilities`);
-    else p.liabilities.forEach((l) => {
-      if (!isStr(l.id) || !isStr(l.label) || !isNum(l.principal) || !isNum(l.monthlyPayment)) {
-        errors.push(`${w}: bad liability ${l?.id}`);
-      } else if (l.debt !== undefined) {
-        // One consistent model for starting debts: payment = principal x rate of its kind (rounded to 10).
-        const rate = BASE_DEBT_RATES[l.debt];
-        if (rate === undefined) errors.push(`${w}: liability ${l.id} has unknown debt kind ${l.debt}`);
-        else if (l.monthlyPayment !== Math.round((l.principal * rate) / 10) * 10) {
-          errors.push(`${w}: liability ${l.id} payment must be ${Math.round((l.principal * rate) / 10) * 10} (${l.debt} rate)`);
-        }
-      }
-    });
+    errors.push(...figureErrors(p, w));
+    errors.push(...rankErrors(p, w));
   }
   return errors;
 }

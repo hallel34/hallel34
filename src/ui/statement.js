@@ -107,7 +107,9 @@ export function openStatement({ getState, ops, title = t('statement.title') }) {
       row(lab('statement.passiveIncome'), money(st.passiveIncome, { sign: st.passiveIncome > 0 }), 'income'),
       row(t('statement.totalIncome'), money(st.totalIncome), 'total')));
 
-    const expenseRows = st.expenseItems.flatMap((e) => (e.id === 'tax' && full ? taxRow(e, s) ?? [row(e.label, money(e.amount))] : [row(e.label, money(e.amount))]));
+    // 0.5.0: the expense an 'upgrade' promotion adds is stored under the id 'lifestyle' (its label is a key): its name comes from the strings
+    const nameOf = (e) => (e.id === 'lifestyle' ? t(coinScale() ? 'promotion.statement.upgradeJunior' : 'promotion.statement.upgrade') : e.label);
+    const expenseRows = st.expenseItems.flatMap((e) => (e.id === 'tax' && full ? taxRow(e, s) ?? [row(nameOf(e), money(e.amount))] : [row(nameOf(e), money(e.amount))]));
     if (st.kids) expenseRows.push(row(t('statement.children', { n: st.kids }), money(st.childExpenses)));
     if (st.loanPayments) expenseRows.push(row(t('statement.loans'), money(st.loanPayments)));
     body.append(section(t('statement.expenses'), 'expense', ...expenseRows, row(t('statement.totalExpenses'), money(st.totalExpenses), 'total')));
