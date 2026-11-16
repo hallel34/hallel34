@@ -150,12 +150,13 @@
     "howTo": "איך משחקים",
     "gamesPlayed": "{n} משחקים",
     "gamesPlayedOne": "משחק אחד",
-    "missionsProgress": "{done} מתוך {total} תורגלו",
+    "missionsProgress": "תרגלתם {done} מתוך {total}",
     "more": "עוד",
-    "moreAria": "עוד: המילון של מקסי וטבלת המשפחה",
+    "moreAria": "עוד: המילון של מקסי וטבלת המשפחה של השבוע",
     "moreAriaNoBoard": "עוד: המילון של מקסי",
     "moreMenuTitle": "עוד",
-    "gamesFinished": "משחקים שהסתיימו: {n}",
+    "gamesFinishedOne": "סיימתם משחק אחד",
+    "gamesFinished": "סיימתם {n} משחקים",
     "gamesFinishedNone": "עדיין לא סיימתם משחק"
   },
   "fox": {
@@ -1397,7 +1398,8 @@
       "empty": "הדרגות שתגיעו אליהן יופיעו כאן, ויישארו כאן.",
       "aria": "דרגות שכבר הגעתם אליהן"
     },
-    "gamesFinished": "משחקים שהסתיימו: {n}",
+    "gamesFinishedOne": "סיימתם משחק אחד",
+    "gamesFinished": "סיימתם {n} משחקים",
     "toAchievements": "להישגים",
     "edit": "עריכה",
     "save": "שמירה",

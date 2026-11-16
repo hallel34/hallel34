@@ -1,5 +1,5 @@
-// The itemised 'סיכום שנתיים' card (spec section 3, art.md section 3): salary, money that works, expenses -> what is left a month
-// x 24 = the amount that reaches the cash. Shown at EVERY summary, in every mode; blocking but quick (tap anywhere to go on),
+// The itemised 'סיכום שנתי' card (spec section 3, art.md section 3): salary, money that works, expenses -> what is left a month
+// x 12 months = the amount that reaches the cash. Shown at EVERY summary, in every mode; blocking but quick (tap anywhere to go on),
 // and its one-line form goes into the log. The figures come from summaryFigures() = the engine's own payday numbers.
 import { h } from './dom.js';
 import { t } from '../i18n/index.js';
