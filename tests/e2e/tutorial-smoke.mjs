@@ -140,7 +140,7 @@ async function main() {
   await noHScroll(page, 'family board (first game)');
   await tapTargets(page, 'family board (first game)');
   const hud = await page.evaluate(() => ({
-    chip: document.querySelector('.flow-chip')?.textContent.replace(/\s+/g, ' ').trim(), goal: document.querySelector('.goal-line:not([hidden])')?.textContent, free: document.querySelector('.free-line:not([hidden])')?.textContent,
+    chip: document.querySelector('.flow-chip')?.textContent.replace(/\s+/g, ' ').trim(), goal: document.querySelector('.goal-line:not([hidden])')?.textContent, free: document.querySelector('.free-line:not([hidden])')?.textContent ?? null, line: document.querySelector('.hud-progress')?.textContent.replace(/\s+/g, ' ').trim(),
     chipH: document.querySelector('.flow-chip')?.getBoundingClientRect().height, expense: getComputedStyle(document.querySelector('.flow-chip')).color,
   }));
   check(/נשאר בחודש/.test(hud.chip) && /₪/.test(hud.chip), `family HUD chip reads "נשאר בחודש +₪X" (${hud.chip})`);
@@ -150,7 +150,9 @@ async function main() {
   check(H > 640 ? /שהכסף שעובד בשבילכם יהיה גדול מההוצאות/.test(hud.goal ?? '') : true, 'tall screens: the full goal sentence');
   check(H > 640 || H <= 600 || /כסף שעובד מעל ההוצאות/.test(hud.goal ?? ''), 'at 640 the short goal line');
   check(H > 600 || /המטרה: מעל ההוצאות/.test(hud.goal ?? ''), 'at <= 600 the minimal one-liner');
-  check(/עוד ₪[\d,]+ ועוד קצת בחודש לחופש/.test(hud.free ?? ''), `"עוד ₪X ועוד קצת בחודש לחופש" under the meter: winning needs strictly more (${hud.free})`);
+  // phase B: the repeated "עוד ₪X ועוד קצת..." line is gone; ONE integrated line sits under the bar, and the percent never reads 100% before the win
+  check(hud.free === null, 'the repeated "עוד ₪X ועוד קצת" line is removed from the HUD');
+  check(/^כסף שעובד ₪0 מתוך הוצאות ₪[\d,]+ \(0%\)$/.test(hud.line ?? ''), `one integrated progress line under the bar (${hud.line})`);
   await shot(page, 'board-first-game');
   await axe(page, 'family board with hint');
 

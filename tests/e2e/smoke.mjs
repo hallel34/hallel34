@@ -1474,10 +1474,11 @@ async function testJunior(browser) {
   await page.waitForSelector('[data-screen="board"]');
   await page.waitForTimeout(600);
   await juniorScan(page, '#app', '.hud .cash-num', 'board and HUD');
-  const hud = await page.evaluate(() => ({ text: document.querySelector('.hud')?.innerText ?? '', coins: document.querySelectorAll('.hud .money.is-coins').length, cash: document.querySelector('.hud .cash-num')?.textContent ?? '', die: document.querySelectorAll('.btn-roll img, .btn-roll .btn-die').length }));
+  const hud = await page.evaluate(() => ({ text: document.querySelector('.hud')?.innerText ?? '', coins: document.querySelectorAll('.hud .money.is-coins').length, cash: document.querySelector('.hud .cash-num')?.textContent ?? '', die: document.querySelectorAll('.btn-roll img, .btn-roll .btn-die').length, glyph: document.querySelectorAll('.btn-roll svg.roll-die').length }));
   check(hud.coins > 0 && !/₪/.test(hud.text), `junior HUD: coins, no ₪ (${hud.text.replace(/\s+/g, ' ').slice(0, 90)})`);
   check(/^\d{1,3}\s*מטבעות$/.test(hud.cash.trim()), `junior HUD cash: a coin number of at most 3 digits (${hud.cash.trim()})`);
-  check(hud.die === 0, 'the roll button has no die icon (the plaza die stays)');
+  // phase B reverses the 2026-10-26 'no die icon' rule: the button carries ONE static cube glyph (an svg, never an img / animated face)
+  check(hud.die === 0 && hud.glyph === 1, 'the roll button has one static die glyph (svg) and no die image');
   await page.screenshot({ path: `${OUT}/junior-board.png` });
   // the rest of the run plays at 320x568 (QA r18: the "× 12" row and the one HUD coin are checked on the smallest screen)
   await page.setViewportSize({ width: 320, height: 568 });

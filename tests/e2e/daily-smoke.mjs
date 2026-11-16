@@ -321,7 +321,7 @@ async function main() {
     const ctx = await newCtx(browser, { w: 360, h: 800 });
     const page = await open(ctx);
     await page.evaluate(() => navigator.serviceWorker?.ready);
-    await page.waitForTimeout(800);
+    await page.waitForTimeout(3000); // 800 ms was too short on a loaded host: offline start failed at 800 ms and passed from 2.5 s (clean 2af50a7 too)
     await ctx.setOffline(true); // the daily needs no network: start it offline
     await page.locator('[data-action="daily"]').click();
     await page.waitForSelector('[data-screen="board"]');
