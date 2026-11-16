@@ -458,6 +458,9 @@
 .money .cur { font-size: .6em; font-weight: var(--fw-medium); margin-inline-end: .12em; }
 .icon-dir { }
 [dir="rtl"] .icon-dir { transform: scaleX(-1); }
+/* forward progress (Start, daily chevron): the raw '<' glyph in RTL (progress runs right to left), mirrored to '>' in LTR; Back keeps .icon-dir alone */
+[dir="rtl"] .icon-dir.icon-fwd { transform: none; }
+[dir="ltr"] .icon-dir.icon-fwd { transform: scaleX(-1); }
 button, [role="button"] { touch-action: manipulation; min-block-size: var(--tap-min); min-inline-size: var(--tap-min); }
 :focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 2px; }
 
@@ -486,4 +489,137 @@ button, [role="button"] { touch-action: manipulation; min-block-size: var(--tap-
   --career: #A84E0B;                         /* 5.1 bg, 5.6 surface */
   --career-fill: #C2571A;                    /* 3.4 on its track on white */
   --career-tint: rgb(168 78 11 / .10);       /* --career on it 4.8 */
+}
+
+/* ==== MaxiFox redesign phase A (2026-11-16): owner palette + shared token layer, merged from docs/redesign/tokens.proposed.css.
+   Placed LAST so the palette values win; every existing token name keeps working (aliases). The light theme blocks above keep their own values. ==== */
+
+:root {
+  /* ---- 1. Brief palette (raw) ---- */
+  --mf-bg: #0B1224;          /* primary background */
+  --mf-bg-2: #111B32;        /* secondary background: HUD, sheets, bands */
+  --mf-card: #1B2945;        /* card */
+  --mf-elev: #243450;        /* elevated: popover, pressed, selected fill base */
+  --mf-gold: #F5B936;        /* primary gold: the primary action, milestones, selected border */
+  --mf-gold-2: #D9A441;      /* secondary gold: edges, icons on dark, 2nd-level accents */
+  --mf-gold-hi: #FFD479;     /* highlight stop of the gold (focus ring, wordmark top) */
+  --mf-gold-ink: #2A1700;    /* text on gold: 9.7:1 on --mf-gold, 7.6:1 on --mf-gold-2 */
+  --mf-text: #F7F8FC;        /* 17.6 bg, 13.6 card, 11.8 elev */
+  --mf-text-2: #A9B5CC;      /* 9.0 bg, 7.0 card, 6.0 elev */
+  --mf-success: #48C99A;     /* 9.0 bg, 7.0 card, 6.0 elev */
+  --mf-danger: #E87979;      /* 6.6 bg, 5.1 card, 4.4 elev (!) -> text on elev uses --mf-danger-strong */
+  --mf-danger-strong: #EE8686; /* 5.0 on elev: danger TEXT on --mf-elev or on a danger tint */
+  --mf-border: rgb(255 255 255 / .12);
+  --mf-border-ctl: rgb(255 255 255 / .36); /* boundary of a control that has no text-only identity: 3.0:1 on card */
+  --mf-fox: #E8702A;         /* fox orange: avatar ring, illustration accents only (never text on cards) */
+
+  /* ---- 2. Semantic mapping onto the EXISTING token names (dark = default) ---- */
+  --bg: var(--mf-bg);
+  --bg-2: var(--mf-bg-2);                   /* NEW name */
+  --surface: var(--mf-card);
+  --surface-2: var(--mf-elev);
+  --surface-sunken: #080E1C;
+  --text: var(--mf-text);
+  --text-muted: var(--mf-text-2);
+  --border: var(--mf-border);
+  --border-strong: var(--mf-border-ctl);
+  --focus-ring: var(--mf-gold-hi);
+  --income: var(--mf-success);
+  --income-fill: var(--mf-success);
+  --expense: var(--mf-danger);
+  --negative: var(--mf-danger);
+  --asset: var(--mf-gold);
+  --passive: #35D6B0;                       /* signature meter colour (existing teal); the meter is the ONLY place it appears */
+  --c-gold-400: var(--mf-gold);
+  --c-gold-500: var(--mf-gold-2);
+  --c-gold-ink: var(--mf-gold-ink);
+  --ring-current: var(--mf-gold);
+
+  /* ---- 3. Brand lockup ---- */
+  --font-display: "Rubik", "Heebo", system-ui, sans-serif;   /* Rubik is the only bundled family (weights 400/500/700/900, hebrew+latin) */
+  --wordmark-grad: linear-gradient(180deg, #FFE39A 0%, #F5B936 48%, #D9A441 100%);
+  --wordmark-fx: drop-shadow(0 2px 0 #0B1224) drop-shadow(0 8px 16px rgb(0 0 0 / .45));
+
+  /* ---- 4. Type scale (px at 16 root). Floor is 12px: the old 11px compact sizes are retired ---- */
+  --fs-caption: .75rem;     /* 12 / 16: labels under numbers, chips */
+  --fs-label: .8125rem;     /* 13 / 18: HUD progress line, card descriptions */
+  --fs-body: 1rem;          /* 16 / 24 */
+  --fs-title: 1.125rem;     /* 18 / 24 / 700: card names */
+  --fs-h2: 1.25rem;         /* 20 / 26 / 700 */
+  --fs-h1: 1.75rem;         /* 28 / 34 / 900: screen titles */
+  --fs-wordmark: 2.75rem;   /* 44 / 1 / 900: home wordmark (40 at <= 340px wide) */
+  --fs-money-hud: 2rem;     /* 32 / 36 / 900: HUD cash (28 at <= 340px; fitText stays the last resort) */
+  --fs-money-key: 1.375rem; /* 22 (existing) */
+  --fs-money-row: 1rem;     /* 16 (existing) */
+  --fw-money: 900;
+
+  /* ---- 5. Spacing (4pt) and layout ---- */
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 20px; --sp-6: 24px; --sp-8: 32px; --sp-10: 40px; --sp-12: 48px;
+  --gutter: 16px;                           /* screen side padding (8px for the board plate, which has its own pad) */
+  --tap: 48px;                              /* hit area, always */
+  --tap-visual: 40px;                       /* visual diameter of a round icon button (the other 8px are hit area) */
+  --icon-sm: 16px; --icon-md: 20px; --icon-lg: 24px; --icon-xl: 32px;   /* all 24-grid, stroke 2.4 at <=24, 2 at 32 */
+
+  /* ---- 6. Radii ---- */
+  --r-sm: 8px; --r-md: 14px; --r-card: 18px; --r-sheet: 24px; --r-pill: 999px;   /* control / card / sheet top corners */
+
+  /* ---- 7. Elevation: 0 flat, 1 card, 2 raised (HUD, pressed-out), 3 popover/sheet, 4 modal. Light from above, 1px top highlight ---- */
+  --elev-0: none;
+  --elev-1: inset 0 1px 0 rgb(255 255 255 / .05), 0 1px 2px rgb(0 0 0 / .30), 0 4px 12px rgb(0 0 0 / .22);
+  --elev-2: inset 0 1px 0 rgb(255 255 255 / .07), 0 2px 4px rgb(0 0 0 / .30), 0 10px 24px rgb(0 0 0 / .34);
+  --elev-3: 0 0 0 1px var(--mf-border), 0 16px 40px rgb(0 0 0 / .50);
+  --elev-4: 0 0 0 1px var(--mf-border), 0 24px 56px rgb(0 0 0 / .60);
+  --elev-cta: inset 0 1px 0 rgb(255 255 255 / .45), 0 3px 0 #B8841A, 0 10px 22px rgb(245 185 54 / .22);   /* the primary gold button */
+  --elev-cta-pressed: inset 0 2px 4px rgb(0 0 0 / .18), 0 1px 0 #B8841A;
+
+  /* ---- 8. Z-index (existing scale kept; two names added) ---- */
+  --z-board: 1; --z-pawn: 5; --z-hud: 10; --z-fox: 12; --z-sheet: 20; --z-modal: 30; --z-toast: 40; --z-fx: 50;
+
+  /* ---- 9. Focus ring: 3px gold-hi, 2px offset; on cream surfaces the ring turns navy (existing --focus-ring-card) ---- */
+  --focus-width: 3px; --focus-offset: 2px;
+
+  /* ---- 10. Motion (existing durations kept; reduced motion collapses them already) ---- */
+  --dur-press: 120ms; --dur-fast: 180ms; --dur-base: 250ms; --dur-slow: 400ms; --dur-sheet: 320ms;
+  --ease-out: cubic-bezier(.16, 1, .3, 1); --ease-in: cubic-bezier(.7, 0, .84, 0);
+
+  /* ---- 11. Board scale (see spec 5.3) ---- */
+  --die-idle: 38px;                         /* was 54 (-30%); the roll animation scales the wrapper up via transform only */
+  --pawn-w: 26px;                           /* pawn is NOT shrunk with the 15% piece reduction: player visibility wins */
+
+  /* ---- 12. Annual summary paper (brief 13H) ---- */
+  --paper: #EFE6D5;                         /* warm cream; 14.4:1 with navy ink #0F172A */
+  --paper-2: #E7DCC6;                       /* rows / divider fill */
+  --paper-ink: #0F172A;
+  --paper-muted: #3F4B73;                   /* 6.9:1 on --paper (replaces #46527E, 6.1:1) */
+  --paper-income: #0B6B43;                  /* 5.3:1 */
+  --paper-negative: #B42318;                /* 5.3:1 */
+  --paper-frame: var(--mf-card);            /* the dark 8px frame around the paper */
+}
+
+/* Light theme: only the values that must change; everything else keeps the existing light block in tokens.css.
+   (The brief does not ask for a new light palette: keep the shipped one and re-check --mf-* aliases are not used directly in components.) */
+:root[data-theme="light"] {
+  --paper: #EFE6D5; --paper-frame: #1B2945;
+}
+
+/* ---- Component tokens used by the concept boards (documented in spec.md section 2) ---- */
+:root {
+  --btn-h: 56px;                            /* primary / roll */
+  --btn-h-sm: 48px;                         /* secondary */
+  --hud-pad: 8px;
+  --hud-row: 44px;
+}
+
+/* phase A additions */
+:root {
+  --danger-text: var(--mf-danger-strong);   /* danger TEXT on elevated surfaces and danger tints (#E87979 is 4.4:1 on --surface-2: fails AA) */
+  --sel-gold: var(--mf-gold);               /* selected-card border + check badge (Family/Full cards, previewed profession) */
+  --sel-gold-ink: var(--mf-gold-ink);
+  --pocket-bg: rgb(72 201 154 / .10);       /* "left in pocket" summary strip: subtle tint, no border */
+}
+:root[data-theme="light"] {
+  --danger-text: var(--expense-ink);
+  --sel-gold: #8A5200;                      /* gold text/border on the light surfaces keeps the shipped dark amber (AA) */
+  --sel-gold-ink: #FFFFFF;
+  --pocket-bg: rgb(11 107 67 / .09);
 }
