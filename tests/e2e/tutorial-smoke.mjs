@@ -265,7 +265,7 @@ async function main() {
     await page.waitForSelector('.home-sheet');
     await page.locator('[data-action="home-confirm"]').click();
     await page.waitForSelector('[data-screen="start"]');
-    await page.locator('.topbar .icon-btn').nth(1).click(); // help
+    await page.locator('.topbar [data-action="help"]').click(); // help
     await page.waitForSelector('[data-howto="kid"]');
     await page.waitForTimeout(400);
     check(await page.locator('[data-action="howto-story"]').count() === 1 && await page.locator('.howto li').count() === 5, 'family how-to: story row, dictionary row and five short rules');
@@ -286,7 +286,7 @@ async function main() {
     await page.waitForSelector('.layer-story', { state: 'detached' });
     await page.keyboard.press('Escape');
     // dictionary shows the kid name with the real term underneath
-    await page.locator('.topbar .icon-btn').first().click();
+    await page.locator('.topbar [data-action="more"]').click(); await page.locator('.more-row[data-action="dictionary"]').click();
     await page.waitForSelector('.dict-item');
     const dict = await page.locator('.dict-list').innerText();
     check(/כסף שעובד בשבילכם/.test(dict) && /המילה המקצועית: הכנסה פסיבית/.test(dict), 'dictionary (family): kid name with the real term underneath');
@@ -294,7 +294,7 @@ async function main() {
     await axe(page, 'dictionary family');
     await page.keyboard.press('Escape');
     // settings: family rows
-    await page.locator('.topbar .icon-btn').last().click();
+    await page.locator('.topbar [data-action="settings"]').click();
     await page.waitForSelector('[data-action="replay-story"]');
     await page.waitForTimeout(300);
     check(await page.locator('[data-action="replay-hints"]').count() === 1 && await page.locator('#pref-helpOn').count() === 1, 'settings (family): help switch, replay story, replay hints');

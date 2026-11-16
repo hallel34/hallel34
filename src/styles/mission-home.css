@@ -1,9 +1,23 @@
 /* The missions' entry on the home screen (eager: the start screen shows it). The mission screens' own sheet, mission.css,
    is a lazy chunk (ui/mission-styles.js) so it never blocks the home screen's first paint. */
 .mission-entry { white-space: normal; text-align: start; }
+/* redesign phase A: a quiet panel (no gold: the one gold surface on home is Start). Progress is the REAL count of practiced missions. */
+.mission-panel { display: flex; align-items: center; gap: 12px; inline-size: 100%; min-block-size: 56px; padding: 8px 14px; border-radius: var(--r-card); color: var(--text); font: inherit;
+  background: var(--bg-2); border: 1px solid var(--border); box-shadow: var(--elev-1); transition: transform var(--dur-press) var(--ease-out); }
+.mission-panel:active { transform: scale(.985); }
+.mission-panel .m-text { flex: 1; min-inline-size: 0; display: flex; flex-direction: column; gap: 2px; }
+.mission-panel .m-title { font-size: .9375rem; font-weight: var(--fw-bold); line-height: 1.2; }
+.mission-panel .m-sub { font-size: var(--fs-caption); line-height: 1.3; color: var(--text-muted); }
+.mission-panel .m-progress { display: flex; align-items: center; gap: 8px; }
+.mission-panel .m-steps { display: flex; gap: 5px; flex: none; }
+/* done = filled gold with a dark centre mark, open = hollow ring: the shape differs, colour is not the only cue (and the count is text) */
+.m-steps i { display: block; inline-size: 9px; block-size: 9px; border-radius: 50%; border: 2px solid var(--text-muted); box-sizing: border-box; }
+.m-steps i.is-done { border-color: var(--sel-gold); background: var(--sel-gold); }
+.mission-panel .m-go { flex: none; color: var(--text-muted); display: grid; }
 .mission-home-badge { text-align: center; font-size: max(14px, .875rem); margin: 0; }
 @media (max-height: 700px) {
   /* Added mission controls must not squeeze the logo over the navigation. */
-  .screen-start:has(.mission-entry) { block-size: auto; }
-  .screen-start:has(.mission-entry) .start-hero { min-block-size: 176px; padding-block: 0; }
+  .screen-start:has(.mission-entry) { block-size: auto; min-block-size: 100dvh; }
+  .screen-start:has(.mission-entry) .start-hero { min-block-size: 132px; padding-block: 0; }
+  .mission-panel { min-block-size: 48px; padding-block: 4px; }
 }

@@ -149,7 +149,14 @@
     "settings": "הגדרות",
     "howTo": "איך משחקים",
     "gamesPlayed": "{n} משחקים",
-    "gamesPlayedOne": "משחק אחד"
+    "gamesPlayedOne": "משחק אחד",
+    "missionsProgress": "{done} מתוך {total} תורגלו",
+    "more": "עוד",
+    "moreAria": "עוד: המילון של מקסי וטבלת המשפחה",
+    "moreAriaNoBoard": "עוד: המילון של מקסי",
+    "moreMenuTitle": "עוד",
+    "gamesFinished": "משחקים שהסתיימו: {n}",
+    "gamesFinishedNone": "עדיין לא סיימתם משחק"
   },
   "fox": {
     "lastMessage": "מקסי: הודעה אחרונה",
@@ -193,7 +200,8 @@
     "cardLeft": "נשאר",
     "cardLeftPocket": "נשאר בכיס {amount}",
     "cardSalary": "שכר",
-    "subtitleFox": "השועל שלכם מתלבש בהתאם"
+    "subtitleFox": "השועל שלכם מתלבש בהתאם",
+    "previewing": "בתצוגה מקדימה"
   },
   "game": {
     "roll": "הטילו קובייה",
