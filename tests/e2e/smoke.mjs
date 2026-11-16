@@ -744,7 +744,7 @@ async function testExplainers(page) {
   await page.evaluate(() => { localStorage.removeItem('passivo.learn.seen'); });
   await page.reload();
   await page.waitForSelector('[data-screen="start"]');
-  await page.locator('.topbar .icon-btn').last().click();
+  await page.locator('.topbar [data-action="settings"]').click();
   await page.waitForSelector('.layer-dialog');
   check(await page.locator('#pref-explain').isChecked(), 'L1: settings has "הסברים של מקסי" on by default');
   const guessDefault = await page.locator('#pref-guess').isChecked();
@@ -780,7 +780,7 @@ async function testDictionary(page) {
   await page.goto(`${URL_BASE}?seed=3`);
   await page.waitForSelector('[data-screen="start"]');
   await page.locator(`[data-mode="${MODE}"]`).click();
-  await page.locator('.topbar .icon-btn').first().click(); // menu entry
+  await page.locator('.topbar [data-action="more"]').click(); await page.locator('.more-row[data-action="dictionary"]').click(); // menu entry
   await page.waitForSelector('.dict-sheet .dict-list');
   await page.waitForTimeout(350);
   const want = MODE === 'full' ? 15 : 12;
@@ -804,7 +804,7 @@ async function testDictionary(page) {
   await page.keyboard.press('Escape');
   await page.waitForSelector('.dict-sheet', { state: 'detached' });
   // from settings
-  await page.locator('.topbar .icon-btn').last().click();
+  await page.locator('.topbar [data-action="settings"]').click();
   await page.waitForSelector('.layer-dialog');
   await page.locator('[data-action="dictionary"]').click();
   await page.waitForSelector('.dict-sheet .dict-list');
@@ -1792,9 +1792,10 @@ async function main() {
   // "היי, אני מקסי!" moved to the board's corner guide, so the flag is still unset on home.
   check(await page.locator('.screen-start img.fox').count() === 0, 'home shows no fox character pose (the logo only)');
   check(await page.evaluate(() => localStorage.getItem('passivo.seenIntro')) === null, 'the greeting flag is not used up on home');
-  const h1 = await page.evaluate(() => ({ n: document.querySelectorAll('h1').length, text: document.querySelector('h1')?.textContent.trim(), wm: !!document.querySelector('h1 img[src*="maxifox-logo-alpha"]'), w: Math.round(document.querySelector('h1 img')?.getBoundingClientRect().width ?? 0) }));
-  // the logo is sized to the screen height by design (200 at 800, smaller on short screens): visible and >= 120px (its minimum size)
-  check(h1.n === 1 && h1.text === 'MaxiFox' && h1.wm && h1.w >= 120 && h1.w <= 200, `start has one accessible h1 "MaxiFox" with the logo, visible and >= 120px (${JSON.stringify(h1)})`);
+  // redesign phase A: the wordmark is the h1's live text; the fox emblem (the top of the approved logo) is the decorative image above it
+  const h1 = await page.evaluate(() => ({ n: document.querySelectorAll('h1').length, text: document.querySelector('h1')?.textContent.trim(), wm: !!document.querySelector('.emblem img.brand-emblem[src*="maxifox-emblem"]'), w: Math.round(document.querySelector('.emblem img')?.getBoundingClientRect().width ?? 0), fs: parseFloat(getComputedStyle(document.querySelector('h1')).fontSize) }));
+  // the emblem is sized to the screen height by design (clamp(112px, 25dvh, 212px)): visible and >= 112px (its minimum size)
+  check(h1.n === 1 && h1.text === 'MaxiFox' && h1.wm && h1.w >= 112 && h1.w <= 212 && h1.fs >= 40, `start has one accessible h1 "MaxiFox" (live text) with the fox emblem, visible and >= 112px (${JSON.stringify(h1)})`);
   const mouseHome = await page.evaluate(() => /mouse|עכבר/i.test(document.documentElement.outerHTML));
   check(!mouseHome, 'no mouse mascot anywhere in the DOM on start'); // restored from foxChecks(page, 'start') (QA round 14)
   await page.screenshot({ path: `${OUT}/01-start.png` });
@@ -1808,7 +1809,7 @@ async function main() {
   check(fontOk, 'Rubik (self-hosted) loaded for Hebrew');
 
   // settings dialog
-  await page.locator('.topbar .icon-btn').last().click();
+  await page.locator('.topbar [data-action="settings"]').click();
   await page.waitForSelector('.layer-dialog');
   await page.waitForTimeout(300);
   await tapTargets(page, 'settings');
@@ -1970,7 +1971,7 @@ async function main() {
   await testDictionary(page);
 
   // light theme + start screen
-  await page.locator('.topbar .icon-btn').last().click();
+  await page.locator('.topbar [data-action="settings"]').click();
   await page.waitForSelector('.layer-dialog');
   await page.locator('[data-theme-opt="light"]').click();
   await page.keyboard.press('Escape');

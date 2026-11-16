@@ -114,7 +114,11 @@
 .sc-cta { position: sticky; inset-block-end: 0; padding-block: 4px 6px; background: var(--paper); margin-inline: -16px; padding-inline: 16px; }
 .sc-cta .btn { inline-size: 100%; min-block-size: var(--tap-min); font-size: 1.1875rem; }
 .summary-card .hint-strip { cursor: default; }
-@media (max-height: 600px) { .summary-card { padding-block-start: 8px; gap: 3px; } .sc-row { min-block-size: 30px; } .sc-title { display: none; } }
+/* short phones (360x640 with the first-time hint strip): the paper compacts so the strip never slides under the sticky button */
+@media (max-height: 700px) {
+  .summary-card { padding-block-start: 8px; gap: 3px; } .sc-row { min-block-size: 30px; } .sc-title { display: none; }
+  .sc-eq { padding-block: 5px; } .sc-cash { gap: 3px; } .sc-bal { padding-block: 3px; } .sc-big { font-size: 1.375rem; }
+}
 
 /* ===== Hand-over sheet: recap ===== */
 .handoff-recap { inline-size: 100%; display: flex; flex-direction: column; gap: 2px; padding: 8px 12px; border-radius: 16px; text-align: start; background: var(--glass-chip); border: 1px solid var(--glass-border); font-size: .875rem; line-height: 1.35; }
