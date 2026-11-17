@@ -42,13 +42,21 @@ const PATHS = {
   achievementEarned: '<circle cx="12" cy="9.5" r="6"/><path d="M8.6 14.6L7 21l5-2.6 5 2.6-1.6-6.4"/><path d="M9.5 9.6l1.8 1.8 3.2-3.5"/>',
   achievementLocked: '<rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/><path d="M12 14.5v2"/>',
   bank: '<path d="M3 10l9-6 9 6M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20h18"/>',
+  // redesign phase A: the home 'more' menu button (2x2 grid), the Family mode (house with a heart-free roof: reuses the opportunity house) and Full mode (bars)
+  // redesign phase B: the roll button's static die glyph: a plain cube outline, no pips, so it can never show (or disagree with) a roll result
+  die: '<path d="M12 3l7.5 4.2v9.6L12 21l-7.5-4.2V7.2z"/><path d="M4.5 7.2L12 11.4l7.5-4.2M12 11.4V21"/>',
+  grid: '<rect x="4" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.8"/>',
 };
 
-export function icon(name, { size = 24, width = 2.4, cls = '' } = {}) {
+/**
+ * `arrow` is drawn as a left-pointing chevron and `.icon-dir` mirrors it in RTL, so by default it reads as BACK ('>' in Hebrew).
+ * Pass `fwd: true` (class `icon-fwd`) for FORWARD progress: in Hebrew it stays '<' (the reading direction is right to left), in LTR it is '>'.
+ */
+export function icon(name, { size = 24, width = 2.4, cls = '', fwd = false } = {}) {
   const el = html(
     `<svg aria-hidden="true" focusable="false" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${width}" stroke-linecap="round" stroke-linejoin="round">${PATHS[name] || ''}</svg>`,
   );
-  const classes = `icon${cls ? ` ${cls}` : ''}${name === 'arrow' ? ' icon-dir' : ''}`;
+  const classes = `icon${cls ? ` ${cls}` : ''}${name === 'arrow' ? ` icon-dir${fwd ? ' icon-fwd' : ''}` : ''}`;
   el.setAttribute('class', classes);
   return el;
 }

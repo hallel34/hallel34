@@ -1,4 +1,5 @@
 import { chromium } from 'playwright';
+import { launchOptions } from './env.mjs';
 import { spawn } from 'node:child_process';
 import assert from 'node:assert/strict';
 const base=process.env.DEMO_URL||'http://localhost:4180/business-demo.html';
@@ -6,7 +7,7 @@ const server=process.env.DEMO_URL?null:spawn(process.execPath,['node_modules/vit
 let browser;
 try {
 for(let i=0;i<50;i++){try{if((await fetch(base)).ok)break;}catch{}await new Promise(r=>setTimeout(r,100));}
-browser=await chromium.launch({headless:true,args:['--no-sandbox'],...(process.env.CHROMIUM_PATH?{executablePath:process.env.CHROMIUM_PATH}:{})});
+browser=await chromium.launch(launchOptions({args:['--no-sandbox']}));
 for(const width of [320,393,480])for(const style of ['terrace','takeaway']){
  const page=await browser.newPage({viewport:{width,height:755},reducedMotion:'reduce'});const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.addInitScript(()=>{localStorage.setItem('passivo.qa-demo-sentinel','unchanged');});

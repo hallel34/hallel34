@@ -140,7 +140,7 @@ async function main() {
   await noHScroll(page, 'family board (first game)');
   await tapTargets(page, 'family board (first game)');
   const hud = await page.evaluate(() => ({
-    chip: document.querySelector('.flow-chip')?.textContent.replace(/\s+/g, ' ').trim(), goal: document.querySelector('.goal-line:not([hidden])')?.textContent, free: document.querySelector('.free-line:not([hidden])')?.textContent,
+    chip: document.querySelector('.flow-chip')?.textContent.replace(/\s+/g, ' ').trim(), goal: document.querySelector('.goal-line:not([hidden])')?.textContent, free: document.querySelector('.free-line:not([hidden])')?.textContent ?? null, line: document.querySelector('.hud-progress')?.textContent.replace(/\s+/g, ' ').trim(),
     chipH: document.querySelector('.flow-chip')?.getBoundingClientRect().height, expense: getComputedStyle(document.querySelector('.flow-chip')).color,
   }));
   check(/נשאר בחודש/.test(hud.chip) && /₪/.test(hud.chip), `family HUD chip reads "נשאר בחודש +₪X" (${hud.chip})`);
@@ -150,7 +150,9 @@ async function main() {
   check(H > 640 ? /שהכסף שעובד בשבילכם יהיה גדול מההוצאות/.test(hud.goal ?? '') : true, 'tall screens: the full goal sentence');
   check(H > 640 || H <= 600 || /כסף שעובד מעל ההוצאות/.test(hud.goal ?? ''), 'at 640 the short goal line');
   check(H > 600 || /המטרה: מעל ההוצאות/.test(hud.goal ?? ''), 'at <= 600 the minimal one-liner');
-  check(/עוד ₪[\d,]+ ועוד קצת בחודש לחופש/.test(hud.free ?? ''), `"עוד ₪X ועוד קצת בחודש לחופש" under the meter: winning needs strictly more (${hud.free})`);
+  // phase B: the repeated "עוד ₪X ועוד קצת..." line is gone; ONE integrated line sits under the bar, and the percent never reads 100% before the win
+  check(hud.free === null, 'the repeated "עוד ₪X ועוד קצת" line is removed from the HUD');
+  check(/^כסף שעובד ₪0 מתוך הוצאות ₪[\d,]+ \(0%\)$/.test(hud.line ?? ''), `one integrated progress line under the bar (${hud.line})`);
   await shot(page, 'board-first-game');
   await axe(page, 'family board with hint');
 
@@ -265,7 +267,7 @@ async function main() {
     await page.waitForSelector('.home-sheet');
     await page.locator('[data-action="home-confirm"]').click();
     await page.waitForSelector('[data-screen="start"]');
-    await page.locator('.topbar .icon-btn').nth(1).click(); // help
+    await page.locator('.topbar [data-action="help"]').click(); // help
     await page.waitForSelector('[data-howto="kid"]');
     await page.waitForTimeout(400);
     check(await page.locator('[data-action="howto-story"]').count() === 1 && await page.locator('.howto li').count() === 5, 'family how-to: story row, dictionary row and five short rules');
@@ -286,7 +288,7 @@ async function main() {
     await page.waitForSelector('.layer-story', { state: 'detached' });
     await page.keyboard.press('Escape');
     // dictionary shows the kid name with the real term underneath
-    await page.locator('.topbar .icon-btn').first().click();
+    await page.locator('.topbar [data-action="more"]').click(); await page.locator('.more-row[data-action="dictionary"]').click();
     await page.waitForSelector('.dict-item');
     const dict = await page.locator('.dict-list').innerText();
     check(/כסף שעובד בשבילכם/.test(dict) && /המילה המקצועית: הכנסה פסיבית/.test(dict), 'dictionary (family): kid name with the real term underneath');
@@ -294,7 +296,7 @@ async function main() {
     await axe(page, 'dictionary family');
     await page.keyboard.press('Escape');
     // settings: family rows
-    await page.locator('.topbar .icon-btn').last().click();
+    await page.locator('.topbar [data-action="settings"]').click();
     await page.waitForSelector('[data-action="replay-story"]');
     await page.waitForTimeout(300);
     check(await page.locator('[data-action="replay-hints"]').count() === 1 && await page.locator('#pref-helpOn').count() === 1, 'settings (family): help switch, replay story, replay hints');

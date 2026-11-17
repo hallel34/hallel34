@@ -688,7 +688,7 @@ async function testExplainers(page) {
     if (layerOpen) {
       const btn = page.locator('#modal-root .layer:last-child [data-action="guess-bad"], #modal-root .layer:last-child [data-action="pass"], #modal-root .layer:last-child [data-action="ok"], #modal-root .layer:last-child [data-action="pay"], #modal-root .layer:last-child [data-action="skip"], #modal-root .layer:last-child [data-action="loan"], #modal-root .layer:last-child [data-action="take"], #modal-root .layer:last-child [data-action="decline"], #modal-root .layer:last-child [data-action="summary-ok"]').first();
       if (await btn.count()) await btn.click().catch(() => {});
-      await page.waitForTimeout(250);
+      await page.waitForTimeout(700); // 250 raced the note: it waits for the layer to leave and retries every 400 ms, and a roll in between pushes it to a later turn
       continue;
     }
     note = await page.locator('.note-explain').count() ? true : null;
@@ -744,7 +744,7 @@ async function testExplainers(page) {
   await page.evaluate(() => { localStorage.removeItem('passivo.learn.seen'); });
   await page.reload();
   await page.waitForSelector('[data-screen="start"]');
-  await page.locator('.topbar .icon-btn').last().click();
+  await page.locator('.topbar [data-action="settings"]').click();
   await page.waitForSelector('.layer-dialog');
   check(await page.locator('#pref-explain').isChecked(), 'L1: settings has "הסברים של מקסי" on by default');
   const guessDefault = await page.locator('#pref-guess').isChecked();
@@ -780,7 +780,7 @@ async function testDictionary(page) {
   await page.goto(`${URL_BASE}?seed=3`);
   await page.waitForSelector('[data-screen="start"]');
   await page.locator(`[data-mode="${MODE}"]`).click();
-  await page.locator('.topbar .icon-btn').first().click(); // menu entry
+  await page.locator('.topbar [data-action="more"]').click(); await page.locator('.more-row[data-action="dictionary"]').click(); // menu entry
   await page.waitForSelector('.dict-sheet .dict-list');
   await page.waitForTimeout(350);
   const want = MODE === 'full' ? 15 : 12;
@@ -804,7 +804,7 @@ async function testDictionary(page) {
   await page.keyboard.press('Escape');
   await page.waitForSelector('.dict-sheet', { state: 'detached' });
   // from settings
-  await page.locator('.topbar .icon-btn').last().click();
+  await page.locator('.topbar [data-action="settings"]').click();
   await page.waitForSelector('.layer-dialog');
   await page.locator('[data-action="dictionary"]').click();
   await page.waitForSelector('.dict-sheet .dict-list');
@@ -1474,10 +1474,11 @@ async function testJunior(browser) {
   await page.waitForSelector('[data-screen="board"]');
   await page.waitForTimeout(600);
   await juniorScan(page, '#app', '.hud .cash-num', 'board and HUD');
-  const hud = await page.evaluate(() => ({ text: document.querySelector('.hud')?.innerText ?? '', coins: document.querySelectorAll('.hud .money.is-coins').length, cash: document.querySelector('.hud .cash-num')?.textContent ?? '', die: document.querySelectorAll('.btn-roll img, .btn-roll .btn-die').length }));
+  const hud = await page.evaluate(() => ({ text: document.querySelector('.hud')?.innerText ?? '', coins: document.querySelectorAll('.hud .money.is-coins').length, cash: document.querySelector('.hud .cash-num')?.textContent ?? '', die: document.querySelectorAll('.btn-roll img, .btn-roll .btn-die').length, glyph: document.querySelectorAll('.btn-roll svg.roll-die').length }));
   check(hud.coins > 0 && !/₪/.test(hud.text), `junior HUD: coins, no ₪ (${hud.text.replace(/\s+/g, ' ').slice(0, 90)})`);
   check(/^\d{1,3}\s*מטבעות$/.test(hud.cash.trim()), `junior HUD cash: a coin number of at most 3 digits (${hud.cash.trim()})`);
-  check(hud.die === 0, 'the roll button has no die icon (the plaza die stays)');
+  // phase B reverses the 2026-10-26 'no die icon' rule: the button carries ONE static cube glyph (an svg, never an img / animated face)
+  check(hud.die === 0 && hud.glyph === 1, 'the roll button has one static die glyph (svg) and no die image');
   await page.screenshot({ path: `${OUT}/junior-board.png` });
   // the rest of the run plays at 320x568 (QA r18: the "× 12" row and the one HUD coin are checked on the smallest screen)
   await page.setViewportSize({ width: 320, height: 568 });
@@ -1792,9 +1793,10 @@ async function main() {
   // "היי, אני מקסי!" moved to the board's corner guide, so the flag is still unset on home.
   check(await page.locator('.screen-start img.fox').count() === 0, 'home shows no fox character pose (the logo only)');
   check(await page.evaluate(() => localStorage.getItem('passivo.seenIntro')) === null, 'the greeting flag is not used up on home');
-  const h1 = await page.evaluate(() => ({ n: document.querySelectorAll('h1').length, text: document.querySelector('h1')?.textContent.trim(), wm: !!document.querySelector('h1 img[src*="maxifox-logo-alpha"]'), w: Math.round(document.querySelector('h1 img')?.getBoundingClientRect().width ?? 0) }));
-  // the logo is sized to the screen height by design (200 at 800, smaller on short screens): visible and >= 120px (its minimum size)
-  check(h1.n === 1 && h1.text === 'MaxiFox' && h1.wm && h1.w >= 120 && h1.w <= 200, `start has one accessible h1 "MaxiFox" with the logo, visible and >= 120px (${JSON.stringify(h1)})`);
+  // redesign phase A: the wordmark is the h1's live text; the fox emblem (the top of the approved logo) is the decorative image above it
+  const h1 = await page.evaluate(() => ({ n: document.querySelectorAll('h1').length, text: document.querySelector('h1')?.textContent.trim(), wm: !!document.querySelector('.emblem img.brand-emblem[src*="maxifox-emblem"]'), w: Math.round(document.querySelector('.emblem img')?.getBoundingClientRect().width ?? 0), fs: parseFloat(getComputedStyle(document.querySelector('h1')).fontSize) }));
+  // the emblem is sized to the screen height by design (clamp(112px, 25dvh, 212px)): visible and >= 112px (its minimum size)
+  check(h1.n === 1 && h1.text === 'MaxiFox' && h1.wm && h1.w >= 112 && h1.w <= 212 && h1.fs >= 40, `start has one accessible h1 "MaxiFox" (live text) with the fox emblem, visible and >= 112px (${JSON.stringify(h1)})`);
   const mouseHome = await page.evaluate(() => /mouse|עכבר/i.test(document.documentElement.outerHTML));
   check(!mouseHome, 'no mouse mascot anywhere in the DOM on start'); // restored from foxChecks(page, 'start') (QA round 14)
   await page.screenshot({ path: `${OUT}/01-start.png` });
@@ -1808,7 +1810,7 @@ async function main() {
   check(fontOk, 'Rubik (self-hosted) loaded for Hebrew');
 
   // settings dialog
-  await page.locator('.topbar .icon-btn').last().click();
+  await page.locator('.topbar [data-action="settings"]').click();
   await page.waitForSelector('.layer-dialog');
   await page.waitForTimeout(300);
   await tapTargets(page, 'settings');
@@ -1970,7 +1972,7 @@ async function main() {
   await testDictionary(page);
 
   // light theme + start screen
-  await page.locator('.topbar .icon-btn').last().click();
+  await page.locator('.topbar [data-action="settings"]').click();
   await page.waitForSelector('.layer-dialog');
   await page.locator('[data-theme-opt="light"]').click();
   await page.keyboard.press('Escape');

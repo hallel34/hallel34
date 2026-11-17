@@ -179,7 +179,7 @@ function tileMesh(color) {
   return g;
 }
 
-const PIECE_SCALE = 0.56;
+const PIECE_SCALE = 0.476; // phase B: 0.56 x 0.85 (pieces 15% smaller); regenerate with BOARD_CROP=216,275,1149,1155 so the crop and BOARD_GEO stay identical
 const tileAt = {};
 BOARD.forEach((sq, i) => {
   const [col, row] = ringPos(i);

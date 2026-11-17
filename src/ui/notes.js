@@ -268,6 +268,12 @@ export function createNotes({ zone, onActive, onDismiss, onShown }) {
     get current() { return current?.el ?? null; },
     get currentItem() { return current?.item ?? null; },
     get hasLast() { return !!last; },
+    /** True when a tap on the fox would show something (reopen() would not return false): the guide's small dot follows it. No new tips. */
+    get canReopen() {
+      if (!last || destroyed) return false;
+      if (current && !(current.item === last || current.item.source === last) && current.item.kind === 'explain') return false;
+      return true;
+    },
     destroy() {
       destroyed = true; clearTimeout(retry); offLayers(); document.removeEventListener('visibilitychange', onVisibility);
       if (current) { clearTimeout(current.timer); current.el.remove(); current = null; }
