@@ -108,3 +108,37 @@ Method: my own unseeded games in a real browser (random dice, my own driver, not
 1. Rounds-over end screen says "13 תורות" while the headline and share text say 12 rounds (the turn counter is one past the cap).
 2. A solo share text reads "שיחקנו" (plural) for a one-player game.
 3. The coffee-cart hint says "חסרים לכם ₪22,760" while the ledger shows a ₪23,000 bank loan; the rounding to 1,000 is not mentioned there.
+
+---
+
+# Round 5 (head 2af50a7) — verdict GREEN: P0 0, P1 0, P2 0 new
+
+Method: my own unseeded games in a real browser (random dice, my own driver) plus the full gate. Gated items (rounds-over XP/career block, home career entry, daily XP) were not counted as bugs.
+
+## Verified by playing
+1. **Short games end after round 12.**
+   - Solo family short: exactly 12 rolls, end screen "12 תורות". Solo full short: 12 rolls, "12 תורות". A 13th roll never happened (my driver clicks any enabled roll button, so one would have shown as 13).
+   - Hot-seat 2-player short: 24 rolls (12 each), both rows "12 תורות", ends cleanly with the winner screen, no extra roll.
+   - Standard (non-short) family game: real win on turn 36, "חופש כלכלי!", profile prompt, credited (ranks/XP/achievements), relaunch chip. Unaffected.
+   - Not played: a real win exactly on turn 12 (not reproducible with real dice). It is covered by `tests/live-qa.test.js` only; not verified in a browser.
+2. **Solo share text** on the rounds-over screen: "שיחקתי 12 סיבובים ב-MaxiFox. כסף שעובד: ₪0, הוצאות: ₪8,210" (family) and "שיחקתי 12 סיבובים … הכנסה פסיבית: ₪0, הוצאות: ₪7,760" (full). Singular in both.
+3. **Coffee cart (opp-biz-002), hint vs ledger**, at 360x800 and 320x568, no clipping or horizontal scroll:
+   - cash 57,240: hint "חסרים לכם ₪22,760. הבנק נותן הלוואה רק בכפולות של ₪1,000, ולכן תיפתח הלוואה של ₪23,000." Ledger 23,000 + 80,000 + 23,000 = 126,000.
+   - cash 62,640: hint "חסרים לכם ₪17,360 … הלוואה של ₪18,000." Ledger 23,000 + 80,000 + 18,000 = 121,000.
+   - need already a multiple of 1,000 (cash 9,000, need 71,000): old wording "חסרים לכם ₪71,000. הלחיצה על קנו תפתח הלוואה בסכום הנכון"; ledger 23,000 + 80,000 + 71,000 = 174,000.
+   - The other coffee cart (dec-001): card data untouched (no change under `src/data/cards.he.json`; the diff is hint text and flow only).
+4. **No regression F1-F6 and verified-working list:**
+   - My scan of 105 screens (8 professions x modes x with/without profile, sheets, HUD, profile): 0 "null"/"undefined"/"NaN".
+   - Rounds-over headline "נגמרו הסיבובים", `data-freedom=false`; solo recap "נגמרו הסיבובים, ועוד לא הגעתם לחופש כלכלי: ₪0 בחודש … ₪7,310 הוצאות".
+   - Yield/roi glossary and debt ledger unchanged from round 4 (no diff in those files this round).
+   - Payday on first roll "₪1,490 × 12 חודשים = ₪17,880 (9,000 to 26,880)".
+   - Promotion cards/log amounts correct in the live runs (the 8-9 promotion cards per run answered keep without error; the career and challenge smokes check keep and upgrade text).
+   - Save and resume after reload restored cash 26,880.
+   - No console errors in any of my runs.
+
+## Gate
+- vitest 976/976, build OK.
+- `npm run smoke:live` x3: 3/3 pass.
+- Smokes pass: smoke (family), SMOKE_MODE=full, SMOKE_H=640, career, challenge, players-seats, daily, tutorial, round11, round12, business-demo, payday-pass, first-asset mission, short missions. (My first smoke chain was cut by the usage limit after the live runs; I re-ran all smokes from scratch and report that second run.)
+- contrast-check.py exit 0; designer script 62 pairs, 0 failing.
+- Lighthouse mobile home x3: performance 0.94 / 0.91 / 0.94, accessibility 1.0.
