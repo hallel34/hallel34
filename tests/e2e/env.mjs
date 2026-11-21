@@ -1,11 +1,16 @@
 // Shared environment helpers for the smokes that did not have their own (mission, missions, business demo).
 // The pre-installed Chromium lives in different folders per host; `channel: 'chromium'` needs a Playwright-managed download, which a worktree
 // or a sandbox may not have. Order: CHROMIUM_PATH, then the known pre-installed paths, else Playwright's default.
-import { existsSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
 import { spawn } from 'node:child_process';
 
-export const chromiumExe = () => process.env.CHROMIUM_PATH
-  || ['/opt/pw-browsers/chromium-1194/chrome-linux/chrome', '/opt/pw-browsers/chromium/chrome-linux/chrome'].find(existsSync);
+const preinstalled = () => {
+  try {
+    return readdirSync('/opt/pw-browsers').filter((d) => /^chromium(-\d+)?$/.test(d)).sort().reverse()
+      .flatMap((d) => [`/opt/pw-browsers/${d}/chrome-linux/chrome`, `/opt/pw-browsers/${d}/chrome-linux64/chrome`]).find(existsSync);
+  } catch { return undefined; }
+};
+export const chromiumExe = () => process.env.CHROMIUM_PATH || preinstalled();
 
 /** Playwright launch options: the executable when one is found, else the managed Chromium channel. */
 export const launchOptions = (extra = {}) => ({ headless: true, ...extra, ...(chromiumExe() ? { executablePath: chromiumExe() } : { channel: 'chromium' }) });

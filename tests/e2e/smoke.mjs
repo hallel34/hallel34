@@ -1317,6 +1317,48 @@ async function testHudCash(browser) {
   }
 }
 
+/**
+ * HUD cash on a slow device (redesign CI fix): the amount is fitted by fitText, which measures once the board is laid out. On a loaded runner
+ * the web fonts arrive late, glyph advances are not exactly linear in the font size, and a later change can widen the text without changing its
+ * box; the old single-shot fit then left the number wider than its box (CI: 11 failed checks). Here the CPU is throttled 6x, every .woff2 is
+ * delayed 700 ms, the check waits for the fonts and asserts the amount fits; then the text is made wider on purpose (letter-spacing, the box
+ * does not change) and must be fitted again.
+ */
+async function testHudCashSlow(browser) {
+  const engine = learnEngine();
+  for (const [w, hgt] of [[320, 568], [390, 844]]) {
+    const ctx = await browser.newContext({ viewport: { width: w, height: hgt }, deviceScaleFactor: 2, locale: 'he-IL', reducedMotion: 'reduce' });
+    await ctx.route(/\.woff2/, async (r) => { await new Promise((x) => { setTimeout(x, 700); }); r.continue(); });
+    const page = await ctx.newPage();
+    const cdp = await ctx.newCDPSession(page);
+    await cdp.send('Emulation.setCPUThrottlingRate', { rate: 6 });
+    await page.goto(`${URL_BASE}?seed=3`);
+    await page.evaluate(() => { localStorage.setItem('passivo.seenIntro', '1'); localStorage.setItem('passivo.tutorial', JSON.stringify({ storyDone: true, helpOn: false, hintsSeen: {}, quizDone: true })); });
+    for (const cash of [1234560, -99999]) {
+      let m = newMatch(engine, { mode: MODE, seed: 5, players: [{ name: 'דנה', professionId: 'lawyer' }] });
+      m = act(m, (st) => ({ ...st, cash }));
+      await page.evaluate((json) => localStorage.setItem('passivo.save', json), serialize(m));
+      await page.goto(`${URL_BASE}?seed=3`);
+      await page.locator('[data-action="resume"]').click();
+      await page.waitForSelector('[data-screen="board"]');
+      await page.evaluate(() => document.fonts.ready);
+      const measure = () => page.evaluate(() => {
+        const wrap = document.querySelector('.hud .cash-wrap'); const num = wrap.querySelector('.cash-num');
+        const a = wrap.getBoundingClientRect(); const b = num.getBoundingClientRect();
+        return { inside: b.left >= a.left - 0.5 && b.right <= a.right + 0.5, font: getComputedStyle(num).fontSize };
+      });
+      await page.waitForTimeout(900);
+      const r = await measure();
+      check(r.inside, `slow device (6x CPU, fonts +700 ms): HUD cash ${cash} fits at ${w}x${hgt} (${JSON.stringify(r)})`);
+      await page.addStyleTag({ content: '.hud .cash-num { letter-spacing: .05em; }' });
+      await page.waitForTimeout(900);
+      const r2 = await measure();
+      check(r2.inside, `slow device: HUD cash ${cash} is fitted again after its text widened at ${w}x${hgt} (${JSON.stringify(r2)})`);
+    }
+    await ctx.close();
+  }
+}
+
 /** QA round 14 P2-3: a milestone reached by a choice still celebrates when the player rolls at once. */
 async function testMilestoneFastRoll(browser) {
   const engine = learnEngine();
@@ -1965,7 +2007,7 @@ async function main() {
     await page.waitForSelector('[data-screen="start"]');
     check(await page.locator('[data-action="resume"]').count() === 0, 'no resume button after a finished game');
   }
-  if (PLAYERS === 1) { await testBuyStates(page); await testLegacySave(page); await testHudCash(browser); await testMilestoneFastRoll(browser); await testNotesAtSizes(browser); if (MODE === 'family') await testJunior(browser); }
+  if (PLAYERS === 1) { await testBuyStates(page); await testLegacySave(page); await testHudCash(browser); await testHudCashSlow(browser); await testMilestoneFastRoll(browser); await testNotesAtSizes(browser); if (MODE === 'family') await testJunior(browser); }
   await testRound5(page);
   await testPhaseA(page);
   if (PLAYERS === 1) { await testGuessFlow(page); await testExplainers(page); }

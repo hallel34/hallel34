@@ -11,18 +11,38 @@ import { countUp, haptic, shake, pulse } from './fx.js';
  */
 export function fitText(el, { minScale = 0.6, box = null } = {}) {
   // box: when el is an inline-block inside a clipped container, the container's width is the room available
+  const fits = () => (box ? el.offsetWidth <= box.clientWidth + 0.25 : el.scrollWidth <= el.clientWidth + 0.25);
   const fit = () => {
     if (!el.isConnected) return;
     el.style.fontSize = '';
     const avail = box ? box.clientWidth : el.clientWidth;
     const need = box ? el.offsetWidth : el.scrollWidth;
-    if (avail > 0 && need > avail) {
-      const base = parseFloat(getComputedStyle(el).fontSize);
-      el.style.fontSize = `${Math.max(base * minScale, Math.floor(base * (avail / need) * 100) / 100)}px`;
+    if (!(avail > 0 && need > avail)) return;
+    const base = parseFloat(getComputedStyle(el).fontSize);
+    const min = base * minScale;
+    let size = Math.max(min, Math.floor(base * (avail / need) * 100) / 100);
+    el.style.fontSize = `${size}px`;
+    // The linear estimate is not exact: glyph advances are rounded on hinted / non-subpixel renderers (CI runners, some desktops), so what
+    // was measured at the base size can be a little narrower than what really renders at the new size. Re-measure the REAL result and step
+    // down until it fits (bounded: at most 12 steps, never below the floor).
+    for (let i = 0; i < 12 && size > min && !fits(); i++) {
+      size = Math.max(min, Math.floor(size * 0.98 * 100) / 100);
+      el.style.fontSize = `${size}px`;
     }
   };
-  if (typeof ResizeObserver !== 'undefined') { const ro = new ResizeObserver(fit); ro.observe(box ?? el); }
+  // Re-fit on EVERYTHING that can change the text's width or the room: the box, the text itself (an inline element reports no size, so the
+  // HUD makes the amount inline-block), a content change, a late web-font swap (fallback metrics are measured first on a slow device),
+  // a window resize / rotation.
+  if (typeof ResizeObserver !== 'undefined') { const ro = new ResizeObserver(fit); ro.observe(box ?? el); if (box) ro.observe(el); }
   if (typeof MutationObserver !== 'undefined') new MutationObserver(fit).observe(el, { childList: true, subtree: true, characterData: true });
+  let seen = false; // listeners on window / fonts are dropped once the element has been mounted and removed again (no leak per dialog)
+  const off = () => { fonts?.removeEventListener?.('loadingdone', again); removeEventListener('resize', again); removeEventListener('orientationchange', again); };
+  function again() { if (el.isConnected) { seen = true; fit(); } else if (seen) off(); }
+  const fonts = globalThis.document?.fonts;
+  fonts?.ready?.then(again);
+  fonts?.addEventListener?.('loadingdone', again);
+  addEventListener('resize', again);
+  addEventListener('orientationchange', again);
   requestAnimationFrame(fit);
   return el;
 }

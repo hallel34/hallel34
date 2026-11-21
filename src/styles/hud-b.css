@@ -66,3 +66,6 @@
 @media (min-height: 780px) {
   .screen-board.board-full .play-dock .fox-strip { min-block-size: 92px; }
 }
+
+/* the HUD amount is inline-block so a ResizeObserver sees its width change (a late font swap, a content change) and fitText re-fits */
+.screen-board.board-full .hud .cash-num { display: inline-block; }
