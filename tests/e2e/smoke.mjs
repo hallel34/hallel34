@@ -1359,6 +1359,31 @@ async function testHudCashSlow(browser) {
   }
 }
 
+/** Phase C: landscape phone and desktop use the two-column composition: the roll button is inside the viewport, the board is large, nothing scrolls sideways. */
+async function testWideLayout(browser) {
+  const engine = learnEngine();
+  for (const [w, hgt, minBoard] of [[844, 390, 340], [1280, 800, 600]]) {
+    const ctx = await browser.newContext({ viewport: { width: w, height: hgt }, deviceScaleFactor: 1, locale: 'he-IL', reducedMotion: 'reduce' });
+    const page = await ctx.newPage();
+    await page.goto(`${URL_BASE}?seed=3`);
+    await page.evaluate(() => { localStorage.setItem('passivo.seenIntro', '1'); localStorage.setItem('passivo.tutorial', JSON.stringify({ storyDone: true, helpOn: false, hintsSeen: {}, quizDone: true })); });
+    const home = await page.evaluate(() => ({ cta: document.querySelector('[data-action="start"]').getBoundingClientRect().bottom, sw: document.documentElement.scrollWidth }));
+    check(home.cta <= hgt + 0.5 && home.sw <= w, `wide ${w}x${hgt}: home Start is inside the viewport, no sideways scroll (${JSON.stringify(home)})`);
+    await page.evaluate((json) => localStorage.setItem('passivo.save', json), serialize(newMatch(engine, { mode: MODE, seed: 5, players: [{ name: 'דנה', professionId: 'teacher' }] })));
+    await page.goto(`${URL_BASE}?seed=3`);
+    await page.locator('[data-action="resume"]').click();
+    await page.waitForSelector('[data-screen="board"]');
+    await page.waitForTimeout(800);
+    const r = await page.evaluate(() => {
+      const q = (x) => document.querySelector(x).getBoundingClientRect();
+      return { layout: document.querySelector('.screen-board').dataset.layout, roll: q('.btn-roll').bottom, board: Math.round(q('.board').width), hudRight: q('.hud').right, boardLeft: q('.board').left, boardRight: q('.board').right, hudLeft: q('.hud').left, sw: document.documentElement.scrollWidth };
+    });
+    const apart = r.boardRight <= r.hudLeft + 1 || r.hudRight <= r.boardLeft + 1;
+    check(r.layout === 'wide' && r.roll <= hgt + 0.5 && r.board >= minBoard && apart && r.sw <= w, `wide ${w}x${hgt}: board beside the panel, roll in view (${JSON.stringify(r)})`);
+    await ctx.close();
+  }
+}
+
 /** QA round 14 P2-3: a milestone reached by a choice still celebrates when the player rolls at once. */
 async function testMilestoneFastRoll(browser) {
   const engine = learnEngine();
@@ -2007,7 +2032,7 @@ async function main() {
     await page.waitForSelector('[data-screen="start"]');
     check(await page.locator('[data-action="resume"]').count() === 0, 'no resume button after a finished game');
   }
-  if (PLAYERS === 1) { await testBuyStates(page); await testLegacySave(page); await testHudCash(browser); await testHudCashSlow(browser); await testMilestoneFastRoll(browser); await testNotesAtSizes(browser); if (MODE === 'family') await testJunior(browser); }
+  if (PLAYERS === 1) { await testBuyStates(page); await testLegacySave(page); await testHudCash(browser); await testHudCashSlow(browser); await testWideLayout(browser); await testMilestoneFastRoll(browser); await testNotesAtSizes(browser); if (MODE === 'family') await testJunior(browser); }
   await testRound5(page);
   await testPhaseA(page);
   if (PLAYERS === 1) { await testGuessFlow(page); await testExplainers(page); }

@@ -1,0 +1,28 @@
+/* ===== Phase C: modals, settings, reports, glossary (docs/redesign/phase-c-plan.md). Loaded last of the eager sheets. Logical properties only; no letter-spacing;
+   no justified text; no new motion. ===== */
+/* one surface per layer */
+.dialog { border-radius: var(--r-sheet); box-shadow: var(--elev-4); border-color: var(--border); }
+.sheet { border-start-start-radius: var(--r-sheet); border-start-end-radius: var(--r-sheet); box-shadow: var(--elev-3); border-color: var(--border); }
+.dialog-title, .sheet h2:not(.sc-title) { font-size: var(--fs-h2); font-weight: var(--fw-bold); line-height: 1.3; text-align: start; }
+.dialog, .sheet, .howto, .setting-help, .dict-item-short, .dict-hint { text-align: start; hyphens: none; text-wrap: pretty; }
+.st-title { letter-spacing: 0; }
+
+/* settings + how-to: flat rows on hairlines, the toggles are the only coloured thing */
+.settings-dialog .setting-item, .settings-dialog > .setting-row, .settings-dialog .setting-block { padding-block: 6px; border-block-end: 1px solid var(--border); }
+.settings-dialog .setting-item:last-of-type { border-block-end: 0; }
+.switch-input:checked + .switch { background: var(--income-fill); }
+.howto { gap: var(--sp-3); padding-inline-start: 1.25em; }
+.howto li::marker { color: var(--text-muted); font-weight: var(--fw-bold); }
+.howto-note { border-radius: var(--r-md); }
+
+/* glossary: a flat list, not a stack of boxes; "new" is a quiet outline tag */
+.dict-list { gap: 0; }
+.dict-item { background: transparent; border: 0; border-block-end: 1px solid var(--border); border-radius: 0; padding: 12px 4px; min-block-size: 64px; }
+.dict-list > li:last-child .dict-item, .dict-item:last-child { border-block-end: 0; }
+.dict-item:active { background: var(--glass-bg); transform: none; }
+.dict-new { background: transparent; color: var(--sel-gold); box-shadow: inset 0 0 0 1px var(--sel-gold); border-radius: var(--r-pill); }
+.dict-item-term { font-weight: var(--fw-bold); }
+
+/* reports (statement): sections on hairlines, no glass box per block; the cash and the monthly flow stay the loud numbers */
+.st-hero, .nw { background: transparent; border: 0; border-radius: 0; border-block-end: 1px solid var(--border); padding-inline: 0; }
+.st-section { padding-block: 4px; }
