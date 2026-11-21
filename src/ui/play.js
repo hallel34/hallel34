@@ -50,6 +50,7 @@ import { taxAuditModal as rawTaxAuditModal, countCorrect } from './tax-audit.js'
 import { feedbackNodes } from './learn-flow.js';
 import { learnContent } from '../learn/content.js';
 import { createFamilyHud, GOAL_MIN_HEIGHT } from './hud-family.js';
+import { isWideLayout, wideScenePanel, wideSceneRoom } from './layout-wide.js';
 import {
   tut, hintDef, fillNodes, leftWords, showRing, hintStrip, hintMoreAllowed,
 } from './hint-ui.js';
@@ -481,6 +482,19 @@ export function createPlay({ engine, match: initialMatch, nav, store: rawStore, 
     el.dataset.hud = hudMode;
     if (changed) refreshHud(); // the goal caption form follows the bar
     if (f.cell < 50) el.dataset.small = ''; else delete el.dataset.small;
+    // phase C: landscape / desktop = two columns. The HUD and the dock (fox tip, roll) form a side panel; the board takes the full height and
+    // the rest of the width. Only the scene width changes: BOARD_GEO, anchors and cell order are untouched.
+    const wide = isWideLayout(innerWidth, H);
+    el.dataset.layout = wide ? 'wide' : 'tall';
+    if (wide) {
+      const panel = wideScenePanel(innerWidth);
+      const sceneWide = Math.max(240, Math.min(wideSceneRoom(innerWidth, panel), (H - safeT - safeB - 8) * BOARD_GEO.aspect));
+      el.style.setProperty('--panel-w', `${panel}px`);
+      el.style.setProperty('--scene-w', `${sceneWide}px`);
+      el.style.setProperty('--scene-ratio', String(BOARD_GEO.aspect));
+      if (f.cell < 50) delete el.dataset.small;
+      return;
+    }
     const dockH = Math.max(dock.offsetHeight || 0, H < 700 ? 124 : 152);
     const room = Math.max(190, H - safeT - safeB - Math.max(hud.offsetHeight, H < 700 ? 108 : 120) - dockH - 24);
     const sceneW = Math.min(Math.min(innerWidth, 480) - 16, room * BOARD_GEO.aspect);

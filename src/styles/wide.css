@@ -1,0 +1,30 @@
+/* ===== Phase C: landscape and desktop composition (docs/redesign/phase-c-plan.md). Loaded after hud-b.css in the board bundle; the home part is in
+   screens.css under the same query. Logical properties only; no letter-spacing; motion untouched. ===== */
+@media (min-width: 720px) and (min-aspect-ratio: 23/20) {
+  #app:has(.screen-board), #app:has(.screen-start), #app:has(.screen-pick) { max-inline-size: 1180px; }
+  #app { box-shadow: none; }
+
+  /* ---- board: side panel (HUD, then the dock pinned to the bottom) + the board ---- */
+  .screen-board.board-full[data-layout="wide"] {
+    display: grid; grid-template-columns: var(--panel-w, 380px) minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr);
+    grid-template-areas: "hud board" "dock board"; column-gap: 16px; row-gap: 12px; align-content: stretch;
+    padding: max(12px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  }
+  .screen-board.board-full[data-layout="wide"] > .hud { grid-area: hud; align-self: start; }
+  .screen-board.board-full[data-layout="wide"] > .board { grid-area: board; align-self: center; justify-self: center; margin: 0; }
+  .screen-board.board-full[data-layout="wide"] > .play-dock { grid-area: dock; align-self: end; flex: none; block-size: auto; min-block-size: 0; }
+  /* the dock keeps its phone rules (roll 56px, fox strip with the tip bubble) but the short-height compaction does not apply to a wide window */
+  .screen-board.board-full[data-layout="wide"] .play-dock .fox-strip { min-block-size: 96px; --fox-guide: 72px; }
+  .screen-board.board-full[data-layout="wide"] .play-dock:has(.note-panel) { flex-basis: auto; }
+  .screen-board.board-full[data-layout="wide"] .board-center .here-line { display: flex; }
+  .screen-board.board-full[data-layout="wide"] .board-center .board-status { font-size: .875rem; }
+  .screen-board.board-full[data-layout="wide"] .board-center .dice { --die: 38px; --die-half: 19px; }
+  .screen-board.board-full[data-layout="wide"] .btn-roll { min-block-size: 56px; }
+}
+
+/* a tall desktop window: the roll button sits right under the HUD (one reading group, nothing stranded at the bottom); a short landscape phone keeps
+   it at the bottom corner, where the thumb is */
+@media (min-width: 720px) and (min-aspect-ratio: 23/20) and (min-height: 620px) {
+  .screen-board.board-full[data-layout="wide"] { grid-template-rows: auto auto minmax(0, 1fr); grid-template-areas: "hud board" "dock board" ". board"; }
+  .screen-board.board-full[data-layout="wide"] > .play-dock { align-self: start; }
+}

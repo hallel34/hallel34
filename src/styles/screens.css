@@ -600,3 +600,26 @@
 .rank-note { margin: 0; font-size: .8125rem; color: var(--text-muted); }
 @media (max-height: 600px), (max-width: 340px) { .rank-chip { min-block-size: 52px; } }
 .screen-pick .prof-card { position: relative; }
+
+/* ===== Phase C (eager part): landscape / desktop composition of home and the picker; the board's part is wide.css (board bundle) ===== */
+@media (min-width: 720px) and (min-aspect-ratio: 23/20) {
+  #app:has(.screen-board), #app:has(.screen-start), #app:has(.screen-pick) { max-inline-size: 1180px; }
+  #app { box-shadow: none; }
+
+  /* ---- home: the hero on one side, the choices on the other; Start stays reachable (sticky) ---- */
+  .screen-start {
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(360px, 460px); grid-template-rows: auto minmax(0, 1fr);
+    grid-template-areas: "top top" "hero bottom"; column-gap: 48px; row-gap: 8px; align-items: center;
+    block-size: auto; min-block-size: 100dvh; padding-inline: max(24px, env(safe-area-inset-left)) max(24px, env(safe-area-inset-right));
+  }
+  .screen-start > .topbar { grid-area: top; align-self: start; }
+  .screen-start > .start-hero { grid-area: hero; }
+  .screen-start > .start-bottom { grid-area: bottom; align-self: center; }
+  .screen-start .emblem { inline-size: clamp(150px, 42dvh, 300px); }
+  .screen-start .tagline { display: block; }
+  .screen-start .start-bottom > .btn-primary { position: sticky; inset-block-end: 8px; z-index: 2; }
+  .screen-start .mode-card { min-block-size: 92px; padding-block: 12px; }
+
+  /* ---- profession picker: four columns ---- */
+  .screen-pick .prof-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
