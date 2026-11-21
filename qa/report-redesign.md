@@ -53,3 +53,34 @@ A real win or game over in the redesign build (the HUD percent near 99-100% is c
 - **P2-C4**: deal card `.stat-tile` labels report scrollWidth 124 > clientWidth 115 (dotted term underline); not visibly clipped, same at every size, likely pre-existing.
 - **P2-C5**: during modal enter animation (about 300ms) buttons measure 47.x px; settled they are 48.
 - Not tested: real-device OS text scaling, a seeded win/loss in wide mode (repo smokes only), the armed reroll label (covered by the P1-C1 re-test).
+
+---
+
+# Phase C re-test on e20bc7b (dock budget fix): GREEN
+
+**Verdict: GREEN (P0 0, P1 0, P2 3 open).** P1-C1 is fixed. Tested on a clean checkout of origin e20bc7b with QA's own scripts (the shared worktree has parallel edits). Evidence: `qa/screens/phase-c-retest/`.
+
+## P1-C1 re-test (QA's own matrix)
+Full and family mode, dark and light, reroll tokens 0 and 1, real turns played (12 steps each, a reroll armed on some rolls, notes and explainers shown), checked after every step and again right after each click (mid-animation): roll width, roll bottom <= viewport, label scrollWidth, roll vs hint-row overlap, horizontal and vertical document scroll, board width >= 200, dock bottom <= viewport.
+
+| viewport | roll width | roll bottom (token 0 / token 1) | board with token 1 | result |
+|---|---|---|---|---|
+| 360x667 | 344 | 654 / 600 | 323x305 | pass |
+| 360x720 | 344 | 699 / 645 | 344x324 | pass |
+| 360x640 | 344 | 627 / 573 | 295x278 | pass |
+| 320x568 | 304 | 555 / 501 | 219x207 | pass |
+| 390x700 | 374 | 687 / 633 | 335x316 | pass |
+| 360x800 | 344 | 779 / 725 | 344x324 | pass |
+
+48 of 48 combinations (24 dark, 24 light) pass: zero overlap, zero label cut, no scroll in either axis, the hint row now stacked under the full-width roll button and wrapping. Tallest dock states met: a two-to-three-line note plus the hint row gives a 192-199px dock at 360x667 / 360x720 (explainer notes up to 123px high); the roll button and the dock stay inside the viewport and the board shrinks to 295-323px (219px at 320x568 with a token held, small but playable).
+- **Owner turn-7 state**: set up cash 59,060 and a reroll token at 360x667 with guesses on and played 40 steps over three seeds; the exact "הניחוש הנכון השתלם" discount bubble did not come up (needs a correct guess on a specific deal), but the same two-line feedback and explainer notes with the hint row did, on cash values 17,300 to 130,080, and the roll sat at y 544-600 of 667 with the hint at 606-654 and the dock bottom at 659. The owner's cut-off cannot recur in that geometry. Not an exact replay of the owner's save.
+- **Hot-seat with tokens**: not independently exercised: after a turn the handoff sheet covers the dock, and in my run the hint row never showed behind it (0 of 24 steps at four sizes). The single-player dock is the same component.
+
+## New finding
+- **P2-C6: portrait is not strictly unchanged.** The dock now has a content-sized `min-block-size` (136 / 152 / 161 / 192px) so even without a token it is taller than before. Measured no-token portrait: 320x568 board 276x260 -> 263x248 (-5%); 360x800 roll button bottom 788 -> 779 and board top 231 -> 227; 390x844 roll 832 -> 823; 768x1024 roll 1012 -> 1003. Aspect and cell order unchanged; no overflow; all still comfortably playable. Flagging against the "portrait gate unchanged" criterion; severity P2 (the roll button is slightly higher, the 320x568 board a little smaller).
+
+## Gate (e20bc7b)
+vitest 978/978 (52 files); build OK; every smoke exit 0 with AXE_PATH on a dedicated SMOKE_PORT (smoke family, full, 640, daily, challenge, career, players-seats, tutorial, r11, r12, business-demo, payday-pass, first-asset mission, short missions, live); six contrast scripts exit 0; Lighthouse home mobile 3 runs: performance 0.91 / 0.91 / 0.91, accessibility 1.00 x3, LCP 3.5s, CLS 0 (thin but passing, as in the earlier rounds).
+
+## Open P2 after this round
+P2-C2 (tall desktop empty space), P2-C3 (ratio boundary switch), P2-C6 (dock taller in portrait, above). The earlier P2-C4 / C5 are notes, not defects.
