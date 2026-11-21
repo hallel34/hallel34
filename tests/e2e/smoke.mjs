@@ -1384,6 +1384,44 @@ async function testWideLayout(browser) {
   }
 }
 
+/**
+ * Dock budget (owner report from a real phone, PR #21 preview): with a reroll token the hint row "גלגול שוב ..." and the fox tip are both in the dock. It used to
+ * share a row with the roll button (the long label ran over the gold button) and the dock had a fixed height, so on 360x667 the roll button fell below the screen.
+ * Assert, for the phone sizes with a browser bar and in both themes: the roll button AND the hint row are fully inside the viewport, the button keeps its width, its
+ * label is not cut, the two do not overlap, the screen does not scroll in either axis.
+ */
+async function testDockBudget(browser) {
+  const engine = learnEngine();
+  for (const theme of ['dark', 'light']) {
+    for (const [w, hgt] of [[360, 667], [360, 720], [360, 640], [320, 568], [390, 700]]) {
+      const ctx = await browser.newContext({ viewport: { width: w, height: hgt }, deviceScaleFactor: 1, locale: 'he-IL', reducedMotion: 'reduce' });
+      const page = await ctx.newPage();
+      await page.addInitScript((t) => {
+        localStorage.setItem('passivo.seenIntro', '1'); localStorage.setItem('passivo.tutorial', JSON.stringify({ storyDone: true, helpOn: false, quizDone: true }));
+        if (t === 'light') localStorage.setItem('passivo.prefs', JSON.stringify({ theme: 'light' }));
+      }, theme);
+      let m = newMatch(engine, { mode: 'family', seed: 7, players: [{ name: 'דנה', professionId: 'teacher' }] });
+      m = act(m, (st) => ({ ...st, rerollTokens: 1 }));
+      await page.goto(`${URL_BASE}?seed=3`);
+      await page.evaluate((json) => localStorage.setItem('passivo.save', json), serialize(m));
+      await page.goto(`${URL_BASE}?seed=3`);
+      await page.locator('[data-action="resume"]').click();
+      await page.waitForSelector('[data-screen="board"]');
+      await page.waitForSelector('[data-action="reroll"]:not([hidden])');
+      await page.waitForTimeout(2200); // the fox tip shows after the first roll hint window
+      const r = await page.evaluate(() => {
+        const q = (sel) => { const e = document.querySelector(sel); if (!e || e.hidden) return null; const b = e.getBoundingClientRect(); return { t: b.top, b: b.bottom, l: b.left, r: b.right }; };
+        const roll = document.querySelector('.btn-roll'); const sc = document.querySelector('.screen-board');
+        return { roll: q('.btn-roll'), re: q('[data-action="reroll"]'), cut: roll.scrollWidth > roll.clientWidth + 1, sw: document.documentElement.scrollWidth, over: sc.scrollHeight > sc.clientHeight + 1, tip: !!document.querySelector('.fox-strip .note, .fox-strip .status-chip:not([hidden])') };
+      });
+      const apart = r.roll && r.re && (r.re.b <= r.roll.t + 0.5 || r.re.t >= r.roll.b - 0.5 || r.re.r <= r.roll.l + 0.5 || r.re.l >= r.roll.r - 0.5);
+      check(!!r.roll && !!r.re && r.roll.b <= hgt + 0.5 && r.re.b <= hgt + 0.5 && r.roll.r - r.roll.l >= 200 && !r.cut && apart && r.sw <= w && !r.over,
+        `dock budget ${theme} ${w}x${hgt}: roll button and reroll hint row fully in view, not overlapping, label uncut (${JSON.stringify(r)})`);
+      await ctx.close();
+    }
+  }
+}
+
 /** QA round 14 P2-3: a milestone reached by a choice still celebrates when the player rolls at once. */
 async function testMilestoneFastRoll(browser) {
   const engine = learnEngine();
@@ -2032,7 +2070,7 @@ async function main() {
     await page.waitForSelector('[data-screen="start"]');
     check(await page.locator('[data-action="resume"]').count() === 0, 'no resume button after a finished game');
   }
-  if (PLAYERS === 1) { await testBuyStates(page); await testLegacySave(page); await testHudCash(browser); await testHudCashSlow(browser); await testWideLayout(browser); await testMilestoneFastRoll(browser); await testNotesAtSizes(browser); if (MODE === 'family') await testJunior(browser); }
+  if (PLAYERS === 1) { await testBuyStates(page); await testLegacySave(page); await testHudCash(browser); await testHudCashSlow(browser); await testWideLayout(browser); await testDockBudget(browser); await testMilestoneFastRoll(browser); await testNotesAtSizes(browser); if (MODE === 'family') await testJunior(browser); }
   await testRound5(page);
   await testPhaseA(page);
   if (PLAYERS === 1) { await testGuessFlow(page); await testExplainers(page); }

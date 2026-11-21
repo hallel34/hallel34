@@ -69,3 +69,15 @@
 
 /* the HUD amount is inline-block so a ResizeObserver sees its width change (a late font swap, a content change) and fitText re-fits */
 .screen-board.board-full .hud .cash-num { display: inline-block; }
+
+/* ===== Dock budget fix (owner report, real phone 360x667, reroll hint row + fox tip) =====
+   1) .board-actions was a ROW (screens.css) so the reroll hint row and the roll button shared one line: the long reroll label (nowrap) ran over the
+      gold button and squeezed it to ~48px. It is a column now: the hint row on top (it may wrap), the roll button full width below it.
+   2) The dock had a FIXED height (flex-basis 152/136/192) while its content grew (strip + hint row + roll): the overflow pushed the roll button below the
+      screen. The dock now sizes to its content (never below the old basis) and sizeBoard() already shrinks the board by the dock's real height. */
+.screen-board.board-full .board-actions { flex-direction: column; align-items: stretch; gap: 6px; }
+.screen-board.board-full .board-actions .btn-reroll { inline-size: 100%; min-block-size: 48px; white-space: normal; line-height: 1.2; text-align: center; padding-block: 6px; font-size: .875rem; }
+.screen-board.board-full .board-actions .btn-roll { inline-size: 100%; flex: none; }
+.screen-board.board-full .play-dock { flex: 0 0 auto; min-block-size: 152px; }
+@media (max-height: 699px) { .screen-board.board-full .play-dock { min-block-size: 136px; } }
+.screen-board.board-full .play-dock:has(.note-panel) { min-block-size: 192px; }
