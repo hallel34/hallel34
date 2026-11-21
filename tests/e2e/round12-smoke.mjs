@@ -317,7 +317,7 @@ async function kidHowTo(browser, theme) {
   await page.waitForSelector('.home-sheet');
   await page.locator('[data-action="home-confirm"]').click();
   await page.waitForSelector('[data-screen="start"]');
-  await page.locator('.topbar .icon-btn').nth(1).click();
+  await page.locator('.topbar [data-action="help"]').click();
   await page.waitForSelector('[data-howto="kid"]');
   await sleep(400);
   const r = await page.evaluate(() => ({ note: document.querySelector('[data-howto="note"]')?.textContent ?? '', daily: !!document.querySelector('[data-howto="daily"]'), all: document.querySelector('[data-howto="kid"]').innerText }));

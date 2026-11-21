@@ -1,0 +1,86 @@
+# MaxiFox redesign (phases A + B): independent QA
+
+Round 1 on aa3c131: RED (P0 0, P1 2, P2 8). Delta round on 424bccf: **GREEN (P0 0, P1 0, P2 3 open)**. (Saved by the CEO from the QA hand-back, 2026-11-17.) Evidence screenshots were kept untracked in `qa/screens/redesign-qa/`.
+
+## Delta round on 424bccf: GREEN
+- **P1-1 FIXED:** the home missions panel in light theme (dark text on dark fill, 1.04:1) is now cream (`--bg-2` #FFF9EC) and readable; axe clean at 360x800 and 320x568; `smoke:daily` passes with axe.
+- **P1-2 FIXED:** the challenge verified badge (4.39:1) pins `--verified` to #5FE0AE in dark (4.84:1); `smoke:challenge` passes with axe.
+- **Gate:** vitest 976/976; build OK; smokes with AXE_PATH: smoke (family 800, full, 640), daily (3000 ms wait kept), challenge, career, players-seats, tutorial, round11, round12, business-demo, payday-pass, live, first-asset mission, short missions (the three that failed to launch Chromium now work through `tests/e2e/env.mjs`); contrast scripts exit 0 (v050: 62 pairs, 0 failing; light rows included).
+- **Axe sweep:** 56 screen/theme/size combinations (14 screens x dark/light x 360x800 / 320x568): 0 violations.
+- **Light-theme inspection:** missions panel, mode/daily/CTA cards, wordmark, picker, preview sheet, annual summary, end screen and board hold up. Pre-existing, not redesign: the rounds-over fox image is an opaque dark square on the light end screen (identical on 2af50a7).
+- **Annual equation:** `₪1,490 × 12 חודשים = +₪17,880` on one line at 320, 360, 390 and 430; no overflow; type 18/15 px at 320 and 20/16 px at 360 (small but legible at 320).
+- **Lighthouse home (mobile), accessibility 1.0 every run:** redesign 0.90, 0.92, 0.90, 0.90, 0.90 (LCP 3.2-3.5 s, CLS 0, TBT 20-30 ms), old 2af50a7 on the same machine 0.93, 0.91, 0.91. The redesign is about 0.02 below the old build and passes 0.90 only by rounding: treat it as thin.
+- **Splash:** splash and home both use the emblem, the old logo is never requested, no layout shift; the splash emblem jumps about 150 px into place when home mounts (P3).
+- **P2-2 (explainer wait 700 ms):** QA's own real-game loop (5 trials per cell) fails on the old build at least as often as on the redesign with either wait; the 700 ms wait does not hide a regression. Residual risk: the explainer loop is a weak test on both builds.
+- **Open P2s:** (1) Lighthouse performance 0.90 vs 0.91-0.93 on the old build; (2) splash-to-home emblem jump (P3); (3) first-visit offline window (pre-existing, `docs/redesign/known-issues.md`): both builds fail an offline start within about 0.8 s of first load and pass from about 1.5 s; cause not found.
+- **Not re-tested in the delta:** the tall-phone fox strip change, a real win or game over, the fox dot.
+
+## Round 1 (aa3c131): summary
+- **P1:** light-theme missions panel (1.04:1) and challenge verified badge (4.39:1): both fixed in the delta.
+- **P2:** annual equation wrapped at 360/320 (fixed); `SMOKE_MODE=full` explainer loop failed 2 of 2 with the 250 ms wait on the redesign only (judged a weak/racy test, see P2-2); offline-start window is pre-existing (also on 2af50a7); landscape 844x390 (roll button below the fold, board 201x190) and desktop 1280x800 (464 px phone column) are known-open for phase C; tall phones had about 90 px spare height under the board (modest gain now); HUD box 142 -> 145 px but the chip and "?" now live inside it, upper region 248 -> 221 px (-11%) at 360x800, board grows 259x244 -> 276x260 (+7%) at 320x568; 200% root-font zoom clips the fox bubble text (old build worse) and slightly the cash wrap and flow chip (not addressed); 7-digit cash at 320x568 shrinks to about 69 px wide, long names wrap to two lines and never truncate.
+- **PASS (manual, unseeded):** home routes, 'עוד' menu (glossary, family board), truthful games count with a zero state, missions panel with real data, left-pointing forward chevrons, picker Back upper-right 48x48 with the real action, separate salary/expenses lines, flat pocket strip, gold border + check only on the open preview, signed amounts intact via bdi, annual summary (cream paper, before/after, left arrow, bdi isolation), HUD one progress line and the percent never 100% before a win, round badge only with a cap (1/12..12/12, none when unlimited), '?' in the toolbar, long names / 7-digit / negative cash, hot-seat handover shows the right player every turn, roll button static glyph and no double roll (triple click added one roll), 12-round short game ends with exactly 12 rolls and an honest end ('נגמרו הסיבובים', solo 'שיחקתי'), hot-seat short game 24 rolls, pawns aligned to logical cells over 30 real-dice checks, pieces visibly about 15% smaller, fox tip never covers the board or roll, save/resume of a full-mode nurse game saved on 2af50a7 (turn 3, cash 76,880, schema 10) played on to turn 5, 0 console errors, reduced motion, no horizontal scroll and no target under 48 px at 320x568, 360x640, 360x800, 390x844, 430x932, 844x390 and 1280x800.
+
+## Not tested, honest limits
+A real win or game over in the redesign build (the HUD percent near 99-100% is code-read only); the negative annual-summary variant; the fox dot attribute (code read only); full-mode 2-player and junior (coins) screens on the redesign (repo smokes only); end screens, career block and challenge compare (repo smokes, not pixel-inspected); real OS text scaling (a root font-size approximation was used); board-piece scale judged by screenshot, not measured in raster pixels (the developer verified BOARD_GEO byte-identical with cmp); the seeded loan hint at cash 62,640 and 57,240 was replayed on 2af50a7, not on the redesign.
+
+---
+
+# Phase C (landscape / desktop two-column, surfaces) on 1e9c58d: independent QA
+
+**Verdict: RED (P0 0, P1 1, P2 4).** The P1 is the owner-reported reroll row / roll button overlap (reproduced below). Everything in the phase C scope itself passes. A re-test of the developer's fix is pending (nothing newer than 1e9c58d was on origin when this was written). Evidence: `qa/screens/phase-c/` (reroll, tip and rotation shots; the wide/landscape and surface screenshots QA captured were lost when the shared worktree was cleaned by the parallel fix work, the developer's `docs/redesign/after-c/` set shows the same screens).
+
+## P1-C1: reroll-token row squeezes the roll button to 48px and overlaps it (owner-reported, real phone)
+- Screen: board, full mode, `rerollTokens >= 1` and a roll due ("גלגול שוב (N אסימונים): הפעילו לפני ההטלה").
+- Steps: start a full-mode game, give the save 1 (or 3) reroll tokens (QA edited `rerollTokens` in `passivo.save` and resumed; in play the tokens come from charity), open the board at 360x667.
+- Expected: the roll button keeps its full width and label and sits in view; the reroll toggle never overlaps it.
+- Actual: `.board-actions` puts the reroll toggle and the roll button in one row. The toggle takes about 284px and the gold roll button shrinks to **48x56** (x 304-352); its label "הטילו קובייה" overflows and runs under the toggle text. Measured (tokens=1): 360x667 roll 304-352 / reroll 8-292, row top 598; 360x720 same, top 643; 360x800 same, top 732; 390x700 roll 334-382 / reroll 8-322; 320x568 roll 264-312 / reroll 8-252. At 360x640 the row stacks and the roll is full width (also 390x700, 320x568 when a note is up with tokens=3). So the bug appears whenever the toggle text still fits beside a 48px button, which is the common phone range. With the fox tip up the dock is 124-152px tall; on the owner's device the browser bars shrink the viewport and the row falls at or below the visible bottom, matching the two photos. In my headless runs the roll bottom stayed inside the viewport (654 of 667), so the overlap/squeeze half reproduces exactly and the "cut off" half only with the owner's chrome.
+- Screenshots: `qa/screens/phase-c/reroll-360x667.png`, `reroll-360x720.png`, `reroll-360x640.png`, `reroll-320x568.png`, `reroll-390x700.png`, `reroll-360x800.png`; with the tip: `reroll-tip-*.png`.
+- Why earlier checks missed it: (1) no smoke or QA run ever holds a reroll token (the row is `hidden` unless `rerollTokens > 0`; seeded games, the 12-round short game and the bots never reach it), so no screenshot or metric contained the row; (2) the checks asked whether the roll button is in view and at least 48px, and a 48x56 roll button passes both; (3) viewport sweeps never had the toggle present.
+- Pre-existing from v0.4, not a phase C regression, but present on this branch. Severity P1.
+- Re-test after the fix: seeded token state at 360x667, 360x720, 360x640, 320x568, 390x700, 360x800, tip visible and not, armed and not armed: roll width >= 200px, no box overlap, roll bottom <= viewport.
+
+## Scope results (all re-run by QA)
+1. **Wide/landscape** (>=720px, ratio >=1.15): home, players, picker, picker sheet and game at 844x390 (touch), 1280x800, 1024x768, dark and light: no horizontal scroll, no target under 48px once animations settle, Start in view on home, roll in view on the game (844x390 roll y 317-373 of 390; 1280x800 y 273-329; 1024x768 y 273-329), `data-layout=wide`. Board geometry unchanged: aspect 1.060 at every size, cell order and pawn tiles correct (380x358 / 728x687 / 623x588). Hot-seat 3 players at 844x390 and 4 players (full) at 1024x768 played 40-190 steps: multi-token discs 1-4 visible and aligned, handoff sheet fine, 0 console errors. Rotation by viewport resize over 16 sizes (844x390, 390x844, 1280x800, 768x1024, 1024x768, 720x600, 719x600, 1000x870, 1000x869, 1200x1000, 1440x1600, 1920x1080, 320x568 and back): the CSS media query and `data-layout` agree every time (720 / 1.15 boundary included), roll and board always in view, no scroll, cash fits.
+2. **Portrait unchanged**: 320x568, 360x800, 390x844, 768x1024 (and 360x640/667/720/700): `data-layout=tall`, board 276x260 / 344x324 / 374x353 / 464x438 as before, roll in view, no overflow.
+3. **Surfaces** (settings, how-to, glossary and item, monthly report, deal card; dark and light; 390x844, 1280x800, 844x390): no overflow, no target under 48px, no letter-spacing or justified text (only the Latin stock ticker keeps 0.96px, acceptable), axe 0 violations on all captures, 0 console errors. Desktop layers stay phone-width centred (448-480px): acceptable, they read as dialogs over the dimmed app. The report and deal card scroll at 844x390 and the buy/skip buttons stay in the viewport.
+4. **Contrast and typography**: glossary "new" tag light #8A5200 on white 6.39:1 (cream 6.09:1), dark #F5B936 8.3:1: pass. RTL: forward chevrons point left, side panel on the inline-start side. Money in bdi. Reduced motion covered by the repo smokes (pass).
+5. **Gate**: vitest 978/978 (52 files); build OK; smoke family 800, full, 640; daily; challenge; career; players-seats; tutorial; r11; r12; business-demo; payday-pass; first-asset mission; short missions; live: all pass with AXE_PATH on a dedicated SMOKE_PORT (live failed once while other jobs ran in parallel and passed alone, "all checks passed"). Contrast scripts: six exit 0 (v050 62 pairs and v051 45 pairs, 0 failing). Lighthouse home mobile, 3 runs: performance 0.93 / 0.91 / 0.91, accessibility 1.00 x3, LCP 3.3-3.5s, CLS 0. There is no wide-layout smoke in the QA run of this list beyond what the developer added in smoke.mjs.
+6. **Fox tip in the wide panel**: it does appear (the "היי, אני מקסי!" intro bubble by about 1.5s on 844x390 and 1280x800; feedback and explainer notes after turns: 20 notes in a 1280x800 game, 48 at 844x390, 66 at 1024x768). None overlapped the board, HUD or roll; all inside the viewport. Touch landscape (844x390, mobile + touch) and tablet portrait (768x1024): clean.
+
+## P2 and notes
+- **P2-C2**: tall desktop (1440x1600, ratio below 1.15) is a 464px phone column with about 575px empty above the board; 1280x800 has about 450px empty under the side panel. Acceptable for v1.
+- **P2-C3**: hard layout switch at the ratio boundary (1000x870 tall, 464px board; 1000x869 wide, 608px board): expected from a media query.
+- **P2-C4**: deal card `.stat-tile` labels report scrollWidth 124 > clientWidth 115 (dotted term underline); not visibly clipped, same at every size, likely pre-existing.
+- **P2-C5**: during modal enter animation (about 300ms) buttons measure 47.x px; settled they are 48.
+- Not tested: real-device OS text scaling, a seeded win/loss in wide mode (repo smokes only), the armed reroll label (covered by the P1-C1 re-test).
+
+---
+
+# Phase C re-test on e20bc7b (dock budget fix): GREEN
+
+**Verdict: GREEN (P0 0, P1 0, P2 3 open).** P1-C1 is fixed. Tested on a clean checkout of origin e20bc7b with QA's own scripts (the shared worktree has parallel edits). Evidence: `qa/screens/phase-c-retest/`.
+
+## P1-C1 re-test (QA's own matrix)
+Full and family mode, dark and light, reroll tokens 0 and 1, real turns played (12 steps each, a reroll armed on some rolls, notes and explainers shown), checked after every step and again right after each click (mid-animation): roll width, roll bottom <= viewport, label scrollWidth, roll vs hint-row overlap, horizontal and vertical document scroll, board width >= 200, dock bottom <= viewport.
+
+| viewport | roll width | roll bottom (token 0 / token 1) | board with token 1 | result |
+|---|---|---|---|---|
+| 360x667 | 344 | 654 / 600 | 323x305 | pass |
+| 360x720 | 344 | 699 / 645 | 344x324 | pass |
+| 360x640 | 344 | 627 / 573 | 295x278 | pass |
+| 320x568 | 304 | 555 / 501 | 219x207 | pass |
+| 390x700 | 374 | 687 / 633 | 335x316 | pass |
+| 360x800 | 344 | 779 / 725 | 344x324 | pass |
+
+48 of 48 combinations (24 dark, 24 light) pass: zero overlap, zero label cut, no scroll in either axis, the hint row now stacked under the full-width roll button and wrapping. Tallest dock states met: a two-to-three-line note plus the hint row gives a 192-199px dock at 360x667 / 360x720 (explainer notes up to 123px high); the roll button and the dock stay inside the viewport and the board shrinks to 295-323px (219px at 320x568 with a token held, small but playable).
+- **Owner turn-7 state**: set up cash 59,060 and a reroll token at 360x667 with guesses on and played 40 steps over three seeds; the exact "הניחוש הנכון השתלם" discount bubble did not come up (needs a correct guess on a specific deal), but the same two-line feedback and explainer notes with the hint row did, on cash values 17,300 to 130,080, and the roll sat at y 544-600 of 667 with the hint at 606-654 and the dock bottom at 659. The owner's cut-off cannot recur in that geometry. Not an exact replay of the owner's save.
+- **Hot-seat with tokens**: not independently exercised: after a turn the handoff sheet covers the dock, and in my run the hint row never showed behind it (0 of 24 steps at four sizes). The single-player dock is the same component.
+
+## New finding
+- **P2-C6: portrait is not strictly unchanged.** The dock now has a content-sized `min-block-size` (136 / 152 / 161 / 192px) so even without a token it is taller than before. Measured no-token portrait: 320x568 board 276x260 -> 263x248 (-5%); 360x800 roll button bottom 788 -> 779 and board top 231 -> 227; 390x844 roll 832 -> 823; 768x1024 roll 1012 -> 1003. Aspect and cell order unchanged; no overflow; all still comfortably playable. Flagging against the "portrait gate unchanged" criterion; severity P2 (the roll button is slightly higher, the 320x568 board a little smaller).
+
+## Gate (e20bc7b)
+vitest 978/978 (52 files); build OK; every smoke exit 0 with AXE_PATH on a dedicated SMOKE_PORT (smoke family, full, 640, daily, challenge, career, players-seats, tutorial, r11, r12, business-demo, payday-pass, first-asset mission, short missions, live); six contrast scripts exit 0; Lighthouse home mobile 3 runs: performance 0.91 / 0.91 / 0.91, accessibility 1.00 x3, LCP 3.5s, CLS 0 (thin but passing, as in the earlier rounds).
+
+## Open P2 after this round
+P2-C2 (tall desktop empty space), P2-C3 (ratio boundary switch), P2-C6 (dock taller in portrait, above). The earlier P2-C4 / C5 are notes, not defects.

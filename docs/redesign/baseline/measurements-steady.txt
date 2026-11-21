@@ -1,0 +1,4 @@
+390x844 HUD 142 region 198 board 353 x 374 gap 57
+360x800 HUD 142 region 198 board 324 x 344 gap 50
+360x640 HUD 113 region 169 board 315 x 334 gap 8
+320x568 HUD 112 region 168 board 244 x 259 gap 8

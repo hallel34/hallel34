@@ -688,7 +688,7 @@ async function testExplainers(page) {
     if (layerOpen) {
       const btn = page.locator('#modal-root .layer:last-child [data-action="guess-bad"], #modal-root .layer:last-child [data-action="pass"], #modal-root .layer:last-child [data-action="ok"], #modal-root .layer:last-child [data-action="pay"], #modal-root .layer:last-child [data-action="skip"], #modal-root .layer:last-child [data-action="loan"], #modal-root .layer:last-child [data-action="take"], #modal-root .layer:last-child [data-action="decline"], #modal-root .layer:last-child [data-action="summary-ok"]').first();
       if (await btn.count()) await btn.click().catch(() => {});
-      await page.waitForTimeout(250);
+      await page.waitForTimeout(700); // 250 raced the note: it waits for the layer to leave and retries every 400 ms, and a roll in between pushes it to a later turn
       continue;
     }
     note = await page.locator('.note-explain').count() ? true : null;
@@ -744,7 +744,7 @@ async function testExplainers(page) {
   await page.evaluate(() => { localStorage.removeItem('passivo.learn.seen'); });
   await page.reload();
   await page.waitForSelector('[data-screen="start"]');
-  await page.locator('.topbar .icon-btn').last().click();
+  await page.locator('.topbar [data-action="settings"]').click();
   await page.waitForSelector('.layer-dialog');
   check(await page.locator('#pref-explain').isChecked(), 'L1: settings has "הסברים של מקסי" on by default');
   const guessDefault = await page.locator('#pref-guess').isChecked();
@@ -780,7 +780,7 @@ async function testDictionary(page) {
   await page.goto(`${URL_BASE}?seed=3`);
   await page.waitForSelector('[data-screen="start"]');
   await page.locator(`[data-mode="${MODE}"]`).click();
-  await page.locator('.topbar .icon-btn').first().click(); // menu entry
+  await page.locator('.topbar [data-action="more"]').click(); await page.locator('.more-row[data-action="dictionary"]').click(); // menu entry
   await page.waitForSelector('.dict-sheet .dict-list');
   await page.waitForTimeout(350);
   const want = MODE === 'full' ? 15 : 12;
@@ -804,7 +804,7 @@ async function testDictionary(page) {
   await page.keyboard.press('Escape');
   await page.waitForSelector('.dict-sheet', { state: 'detached' });
   // from settings
-  await page.locator('.topbar .icon-btn').last().click();
+  await page.locator('.topbar [data-action="settings"]').click();
   await page.waitForSelector('.layer-dialog');
   await page.locator('[data-action="dictionary"]').click();
   await page.waitForSelector('.dict-sheet .dict-list');
@@ -1317,6 +1317,111 @@ async function testHudCash(browser) {
   }
 }
 
+/**
+ * HUD cash on a slow device (redesign CI fix): the amount is fitted by fitText, which measures once the board is laid out. On a loaded runner
+ * the web fonts arrive late, glyph advances are not exactly linear in the font size, and a later change can widen the text without changing its
+ * box; the old single-shot fit then left the number wider than its box (CI: 11 failed checks). Here the CPU is throttled 6x, every .woff2 is
+ * delayed 700 ms, the check waits for the fonts and asserts the amount fits; then the text is made wider on purpose (letter-spacing, the box
+ * does not change) and must be fitted again.
+ */
+async function testHudCashSlow(browser) {
+  const engine = learnEngine();
+  for (const [w, hgt] of [[320, 568], [390, 844]]) {
+    const ctx = await browser.newContext({ viewport: { width: w, height: hgt }, deviceScaleFactor: 2, locale: 'he-IL', reducedMotion: 'reduce' });
+    await ctx.route(/\.woff2/, async (r) => { await new Promise((x) => { setTimeout(x, 700); }); r.continue(); });
+    const page = await ctx.newPage();
+    const cdp = await ctx.newCDPSession(page);
+    await cdp.send('Emulation.setCPUThrottlingRate', { rate: 6 });
+    await page.goto(`${URL_BASE}?seed=3`);
+    await page.evaluate(() => { localStorage.setItem('passivo.seenIntro', '1'); localStorage.setItem('passivo.tutorial', JSON.stringify({ storyDone: true, helpOn: false, hintsSeen: {}, quizDone: true })); });
+    for (const cash of [1234560, -99999]) {
+      let m = newMatch(engine, { mode: MODE, seed: 5, players: [{ name: 'דנה', professionId: 'lawyer' }] });
+      m = act(m, (st) => ({ ...st, cash }));
+      await page.evaluate((json) => localStorage.setItem('passivo.save', json), serialize(m));
+      await page.goto(`${URL_BASE}?seed=3`);
+      await page.locator('[data-action="resume"]').click();
+      await page.waitForSelector('[data-screen="board"]');
+      await page.evaluate(() => document.fonts.ready);
+      const measure = () => page.evaluate(() => {
+        const wrap = document.querySelector('.hud .cash-wrap'); const num = wrap.querySelector('.cash-num');
+        const a = wrap.getBoundingClientRect(); const b = num.getBoundingClientRect();
+        return { inside: b.left >= a.left - 0.5 && b.right <= a.right + 0.5, font: getComputedStyle(num).fontSize };
+      });
+      await page.waitForTimeout(900);
+      const r = await measure();
+      check(r.inside, `slow device (6x CPU, fonts +700 ms): HUD cash ${cash} fits at ${w}x${hgt} (${JSON.stringify(r)})`);
+      await page.addStyleTag({ content: '.hud .cash-num { letter-spacing: .05em; }' });
+      await page.waitForTimeout(900);
+      const r2 = await measure();
+      check(r2.inside, `slow device: HUD cash ${cash} is fitted again after its text widened at ${w}x${hgt} (${JSON.stringify(r2)})`);
+    }
+    await ctx.close();
+  }
+}
+
+/** Phase C: landscape phone and desktop use the two-column composition: the roll button is inside the viewport, the board is large, nothing scrolls sideways. */
+async function testWideLayout(browser) {
+  const engine = learnEngine();
+  for (const [w, hgt, minBoard] of [[844, 390, 340], [1280, 800, 600]]) {
+    const ctx = await browser.newContext({ viewport: { width: w, height: hgt }, deviceScaleFactor: 1, locale: 'he-IL', reducedMotion: 'reduce' });
+    const page = await ctx.newPage();
+    await page.goto(`${URL_BASE}?seed=3`);
+    await page.evaluate(() => { localStorage.setItem('passivo.seenIntro', '1'); localStorage.setItem('passivo.tutorial', JSON.stringify({ storyDone: true, helpOn: false, hintsSeen: {}, quizDone: true })); });
+    const home = await page.evaluate(() => ({ cta: document.querySelector('[data-action="start"]').getBoundingClientRect().bottom, sw: document.documentElement.scrollWidth }));
+    check(home.cta <= hgt + 0.5 && home.sw <= w, `wide ${w}x${hgt}: home Start is inside the viewport, no sideways scroll (${JSON.stringify(home)})`);
+    await page.evaluate((json) => localStorage.setItem('passivo.save', json), serialize(newMatch(engine, { mode: MODE, seed: 5, players: [{ name: 'דנה', professionId: 'teacher' }] })));
+    await page.goto(`${URL_BASE}?seed=3`);
+    await page.locator('[data-action="resume"]').click();
+    await page.waitForSelector('[data-screen="board"]');
+    await page.waitForTimeout(800);
+    const r = await page.evaluate(() => {
+      const q = (x) => document.querySelector(x).getBoundingClientRect();
+      return { layout: document.querySelector('.screen-board').dataset.layout, roll: q('.btn-roll').bottom, board: Math.round(q('.board').width), hudRight: q('.hud').right, boardLeft: q('.board').left, boardRight: q('.board').right, hudLeft: q('.hud').left, sw: document.documentElement.scrollWidth };
+    });
+    const apart = r.boardRight <= r.hudLeft + 1 || r.hudRight <= r.boardLeft + 1;
+    check(r.layout === 'wide' && r.roll <= hgt + 0.5 && r.board >= minBoard && apart && r.sw <= w, `wide ${w}x${hgt}: board beside the panel, roll in view (${JSON.stringify(r)})`);
+    await ctx.close();
+  }
+}
+
+/**
+ * Dock budget (owner report from a real phone, PR #21 preview): with a reroll token the hint row "גלגול שוב ..." and the fox tip are both in the dock. It used to
+ * share a row with the roll button (the long label ran over the gold button) and the dock had a fixed height, so on 360x667 the roll button fell below the screen.
+ * Assert, for the phone sizes with a browser bar and in both themes: the roll button AND the hint row are fully inside the viewport, the button keeps its width, its
+ * label is not cut, the two do not overlap, the screen does not scroll in either axis.
+ */
+async function testDockBudget(browser) {
+  const engine = learnEngine();
+  for (const theme of ['dark', 'light']) {
+    for (const [w, hgt] of [[360, 667], [360, 720], [360, 640], [320, 568], [390, 700]]) {
+      const ctx = await browser.newContext({ viewport: { width: w, height: hgt }, deviceScaleFactor: 1, locale: 'he-IL', reducedMotion: 'reduce' });
+      const page = await ctx.newPage();
+      await page.addInitScript((t) => {
+        localStorage.setItem('passivo.seenIntro', '1'); localStorage.setItem('passivo.tutorial', JSON.stringify({ storyDone: true, helpOn: false, quizDone: true }));
+        if (t === 'light') localStorage.setItem('passivo.prefs', JSON.stringify({ theme: 'light' }));
+      }, theme);
+      let m = newMatch(engine, { mode: 'family', seed: 7, players: [{ name: 'דנה', professionId: 'teacher' }] });
+      m = act(m, (st) => ({ ...st, rerollTokens: 1 }));
+      await page.goto(`${URL_BASE}?seed=3`);
+      await page.evaluate((json) => localStorage.setItem('passivo.save', json), serialize(m));
+      await page.goto(`${URL_BASE}?seed=3`);
+      await page.locator('[data-action="resume"]').click();
+      await page.waitForSelector('[data-screen="board"]');
+      await page.waitForSelector('[data-action="reroll"]:not([hidden])');
+      await page.waitForTimeout(2200); // the fox tip shows after the first roll hint window
+      const r = await page.evaluate(() => {
+        const q = (sel) => { const e = document.querySelector(sel); if (!e || e.hidden) return null; const b = e.getBoundingClientRect(); return { t: b.top, b: b.bottom, l: b.left, r: b.right }; };
+        const roll = document.querySelector('.btn-roll'); const sc = document.querySelector('.screen-board');
+        return { roll: q('.btn-roll'), re: q('[data-action="reroll"]'), cut: roll.scrollWidth > roll.clientWidth + 1, sw: document.documentElement.scrollWidth, over: sc.scrollHeight > sc.clientHeight + 1, tip: !!document.querySelector('.fox-strip .note, .fox-strip .status-chip:not([hidden])') };
+      });
+      const apart = r.roll && r.re && (r.re.b <= r.roll.t + 0.5 || r.re.t >= r.roll.b - 0.5 || r.re.r <= r.roll.l + 0.5 || r.re.l >= r.roll.r - 0.5);
+      check(!!r.roll && !!r.re && r.roll.b <= hgt + 0.5 && r.re.b <= hgt + 0.5 && r.roll.r - r.roll.l >= 200 && !r.cut && apart && r.sw <= w && !r.over,
+        `dock budget ${theme} ${w}x${hgt}: roll button and reroll hint row fully in view, not overlapping, label uncut (${JSON.stringify(r)})`);
+      await ctx.close();
+    }
+  }
+}
+
 /** QA round 14 P2-3: a milestone reached by a choice still celebrates when the player rolls at once. */
 async function testMilestoneFastRoll(browser) {
   const engine = learnEngine();
@@ -1474,10 +1579,11 @@ async function testJunior(browser) {
   await page.waitForSelector('[data-screen="board"]');
   await page.waitForTimeout(600);
   await juniorScan(page, '#app', '.hud .cash-num', 'board and HUD');
-  const hud = await page.evaluate(() => ({ text: document.querySelector('.hud')?.innerText ?? '', coins: document.querySelectorAll('.hud .money.is-coins').length, cash: document.querySelector('.hud .cash-num')?.textContent ?? '', die: document.querySelectorAll('.btn-roll img, .btn-roll .btn-die').length }));
+  const hud = await page.evaluate(() => ({ text: document.querySelector('.hud')?.innerText ?? '', coins: document.querySelectorAll('.hud .money.is-coins').length, cash: document.querySelector('.hud .cash-num')?.textContent ?? '', die: document.querySelectorAll('.btn-roll img, .btn-roll .btn-die').length, glyph: document.querySelectorAll('.btn-roll svg.roll-die').length }));
   check(hud.coins > 0 && !/₪/.test(hud.text), `junior HUD: coins, no ₪ (${hud.text.replace(/\s+/g, ' ').slice(0, 90)})`);
   check(/^\d{1,3}\s*מטבעות$/.test(hud.cash.trim()), `junior HUD cash: a coin number of at most 3 digits (${hud.cash.trim()})`);
-  check(hud.die === 0, 'the roll button has no die icon (the plaza die stays)');
+  // phase B reverses the 2026-10-26 'no die icon' rule: the button carries ONE static cube glyph (an svg, never an img / animated face)
+  check(hud.die === 0 && hud.glyph === 1, 'the roll button has one static die glyph (svg) and no die image');
   await page.screenshot({ path: `${OUT}/junior-board.png` });
   // the rest of the run plays at 320x568 (QA r18: the "× 12" row and the one HUD coin are checked on the smallest screen)
   await page.setViewportSize({ width: 320, height: 568 });
@@ -1792,9 +1898,10 @@ async function main() {
   // "היי, אני מקסי!" moved to the board's corner guide, so the flag is still unset on home.
   check(await page.locator('.screen-start img.fox').count() === 0, 'home shows no fox character pose (the logo only)');
   check(await page.evaluate(() => localStorage.getItem('passivo.seenIntro')) === null, 'the greeting flag is not used up on home');
-  const h1 = await page.evaluate(() => ({ n: document.querySelectorAll('h1').length, text: document.querySelector('h1')?.textContent.trim(), wm: !!document.querySelector('h1 img[src*="maxifox-logo-alpha"]'), w: Math.round(document.querySelector('h1 img')?.getBoundingClientRect().width ?? 0) }));
-  // the logo is sized to the screen height by design (200 at 800, smaller on short screens): visible and >= 120px (its minimum size)
-  check(h1.n === 1 && h1.text === 'MaxiFox' && h1.wm && h1.w >= 120 && h1.w <= 200, `start has one accessible h1 "MaxiFox" with the logo, visible and >= 120px (${JSON.stringify(h1)})`);
+  // redesign phase A: the wordmark is the h1's live text; the fox emblem (the top of the approved logo) is the decorative image above it
+  const h1 = await page.evaluate(() => ({ n: document.querySelectorAll('h1').length, text: document.querySelector('h1')?.textContent.trim(), wm: !!document.querySelector('.emblem img.brand-emblem[src*="maxifox-emblem"]'), w: Math.round(document.querySelector('.emblem img')?.getBoundingClientRect().width ?? 0), fs: parseFloat(getComputedStyle(document.querySelector('h1')).fontSize) }));
+  // the emblem is sized to the screen height by design (clamp(112px, 25dvh, 212px)): visible and >= 112px (its minimum size)
+  check(h1.n === 1 && h1.text === 'MaxiFox' && h1.wm && h1.w >= 112 && h1.w <= 212 && h1.fs >= 40, `start has one accessible h1 "MaxiFox" (live text) with the fox emblem, visible and >= 112px (${JSON.stringify(h1)})`);
   const mouseHome = await page.evaluate(() => /mouse|עכבר/i.test(document.documentElement.outerHTML));
   check(!mouseHome, 'no mouse mascot anywhere in the DOM on start'); // restored from foxChecks(page, 'start') (QA round 14)
   await page.screenshot({ path: `${OUT}/01-start.png` });
@@ -1808,7 +1915,7 @@ async function main() {
   check(fontOk, 'Rubik (self-hosted) loaded for Hebrew');
 
   // settings dialog
-  await page.locator('.topbar .icon-btn').last().click();
+  await page.locator('.topbar [data-action="settings"]').click();
   await page.waitForSelector('.layer-dialog');
   await page.waitForTimeout(300);
   await tapTargets(page, 'settings');
@@ -1963,14 +2070,14 @@ async function main() {
     await page.waitForSelector('[data-screen="start"]');
     check(await page.locator('[data-action="resume"]').count() === 0, 'no resume button after a finished game');
   }
-  if (PLAYERS === 1) { await testBuyStates(page); await testLegacySave(page); await testHudCash(browser); await testMilestoneFastRoll(browser); await testNotesAtSizes(browser); if (MODE === 'family') await testJunior(browser); }
+  if (PLAYERS === 1) { await testBuyStates(page); await testLegacySave(page); await testHudCash(browser); await testHudCashSlow(browser); await testWideLayout(browser); await testDockBudget(browser); await testMilestoneFastRoll(browser); await testNotesAtSizes(browser); if (MODE === 'family') await testJunior(browser); }
   await testRound5(page);
   await testPhaseA(page);
   if (PLAYERS === 1) { await testGuessFlow(page); await testExplainers(page); }
   await testDictionary(page);
 
   // light theme + start screen
-  await page.locator('.topbar .icon-btn').last().click();
+  await page.locator('.topbar [data-action="settings"]').click();
   await page.waitForSelector('.layer-dialog');
   await page.locator('[data-theme-opt="light"]').click();
   await page.keyboard.press('Escape');

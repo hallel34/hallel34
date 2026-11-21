@@ -37,7 +37,7 @@ import { newFirstAsset, firstAssetPurchase, continueFirstAsset, FIRST_ASSET_ID }
 import { createFirstAsset } from './screens/first-asset.js';
 import { FIRST_ASSET_BADGE } from '../engine/first-asset.js';
 import { hasBadge } from '../learn/store.js';
-import { isShortMission, practiceSlot, newShortMission, continueShortMission, validShortMission, REPAY_MISSION } from '../engine/short-missions.js';
+import { isShortMission, practiceSlot, newShortMission, continueShortMission, validShortMission, REPAY_MISSION, SHORT_MISSIONS } from '../engine/short-missions.js';
 import { SLOT_MISSION } from '../services/match-store.js';
 import { completedShortMissions } from '../services/mission-progress.js';
 import { createMissions } from './screens/missions.js';
@@ -240,6 +240,12 @@ export function createApp(host) {
   const gamesPlayed = () => Math.max(0, parseInt(readRaw('gamesPlayed') || '0', 10) || 0);
   const countGame = () => writeRaw('gamesPlayed', String(gamesPlayed() + 1));
 
+  /** The home missions panel: how many of the missions have been practiced (the missions screen's own list: the short missions plus the first-asset badge). */
+  const missionProgress = () => ({
+    done: completedShortMissions().length + (hasBadge(FIRST_ASSET_BADGE) ? 1 : 0),
+    total: SHORT_MISSIONS.length + 1,
+  });
+
   function goStart() {
     setCoinScale(false);
     const chSave = loadChallengeSave();
@@ -256,6 +262,7 @@ export function createApp(host) {
       gamesPlayed: gamesPlayed(),
       daily: dailyInfo(),
       onMission: goMissions,
+      missionProgress: missionProgress(),
       onDaily: () => goDaily(),
       onDailyReset: () => { resetDay(dayKey()); goStart(); },
       onRefresh: () => goStart(),

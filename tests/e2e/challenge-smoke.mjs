@@ -208,7 +208,10 @@ async function main() {
   // ================= game A (the creator), 360x800 =================
   const ctxA = await newCtx(browser);
   const A = await open(ctxA, { path: '?seed=4242', waitFor: '[data-screen="start"]' });
-  check(await A.locator('[data-action="family-board"]').count() === 1, 'home has the family board icon');
+  await A.locator('.topbar [data-action="more"]').click();
+  check(await A.locator('.more-row[data-action="family-board"]').count() === 1, 'home has the family board entry (in the more menu)');
+  await A.keyboard.press('Escape');
+  await A.waitForSelector('.more-sheet', { state: 'detached' });
   await layout(A, 'home-360x800');
   await A.locator('.mode-card[data-mode="family"]').click();
   await A.locator('[data-action="start"]').click();
@@ -429,7 +432,8 @@ async function main() {
   await S.goto(URL_BASE);
   await S.waitForSelector('[data-screen="start"]');
   await layout(S, 'home-320x568');
-  await S.locator('[data-action="family-board"]').click();
+  await S.locator('.topbar [data-action="more"]').click();
+  await S.locator('.more-row[data-action="family-board"]').click();
   await S.waitForSelector('[data-screen="family-board"]');
   await layout(S, 'board-320x568');
   await S.locator('[data-board-row]').first().click();

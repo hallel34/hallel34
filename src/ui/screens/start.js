@@ -17,9 +17,9 @@ import { setLearnMode } from '../../learn/context.js';
 import { haptic, animate, cssMs } from '../fx.js';
 import { motionOK } from '../prefs.js';
 import { currentState, isMultiplayer } from '../../engine/index.js';
-import logo1x from '../../assets/brand/maxifox-logo-alpha-1x.webp';
-import logo2x from '../../assets/brand/maxifox-logo-alpha-2x.webp';
-import coinUrl from '../../assets/coin-small.svg?url';
+import emblem1x from '../../assets/brand/maxifox-emblem-1x.webp';
+import emblem2x from '../../assets/brand/maxifox-emblem-2x.webp';
+import { openHomeMore, moreAriaLabel } from './home-more.js';
 import { hasBadge } from '../../learn/store.js';
 import { FIRST_ASSET_BADGE } from '../../engine/first-asset.js';
 
@@ -61,52 +61,56 @@ const SKY = `<svg class="sky" aria-hidden="true" focusable="false" viewBox="0 0 
 <g class="windows" opacity=".9"><rect x="42" y="672" width="4" height="5"/><rect x="48" y="686" width="4" height="5"/><rect x="112" y="656" width="4" height="5"/><rect x="120" y="674" width="4" height="5"/><rect x="252" y="664" width="4" height="5"/><rect x="258" y="682" width="4" height="5"/><rect x="326" y="682" width="4" height="5"/><rect x="340" y="700" width="4" height="5"/></g>
 </svg>`;
 
-export function createStart({ save, mode: initialMode, gamesPlayed = 0, daily = null, onPlay, onResume, onMode, onDaily, onDailyReset, onRefresh, onMission, challengeSave = null, onChallengeResume = null, onBoard = null, career = null, onProfile = null }) {
+export function createStart({ save, mode: initialMode, gamesPlayed = 0, daily = null, onPlay, onResume, onMode, onDaily, onDailyReset, onRefresh, onMission, missionProgress = null, challengeSave = null, onChallengeResume = null, onBoard = null, career = null, onProfile = null }) {
   let mode = initialMode;
   setLearnMode(mode);
   let alive = true;
   let dailyTimer = 0;
 
-  const modeBtn = (id, name, desc) => {
+  const modeBtn = (id, name, desc, glyph) => {
     const b = h('button', {
       type: 'button', class: 'mode-card', 'data-mode': id, 'aria-pressed': String(mode === id),
       onClick: () => {
         mode = id; setLearnMode(id); haptic('tap'); onMode?.(id);
         b.parentElement.querySelectorAll('.mode-card').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
       },
-    }, h('span', { class: 'mode-name' }, name), h('span', { class: 'mode-desc' }, desc),
-    h('span', { class: 'mode-check', 'aria-hidden': 'true' }, icon('check', { size: 16, width: 3.4 })));
+    }, h('span', { class: 'mode-head' }, h('span', { class: 'mode-ico', 'aria-hidden': 'true' }, icon(glyph, { size: 22, width: 2.2 })), h('span', { class: 'mode-name' }, name)),
+    h('span', { class: 'mode-desc' }, desc),
+    // the selected state is never colour only: a gold border, a gold icon tile AND this check badge (plus aria-pressed)
+    h('span', { class: 'mode-check', 'aria-hidden': 'true' }, icon('check', { size: 14, width: 3.4 })));
     return b;
   };
 
-  const boardBtn = () => { const b = iconButton('familyBoard', t('challenge.board.title'), () => { haptic('tap'); onBoard(); }, 'icon-btn-glass'); b.dataset.action = 'family-board'; return b; };
-  // 0.5.0: with a profile, its chip takes the games chip's slot (the count moves into the profile; both stay at 390px and wider)
+  // 0.5.0: with a profile, its chip takes the games chip's slot. Redesign phase A: the games count is no longer a chip: it is a badge on the
+  // 'עוד' button (only when > 0 and there is no career chip) and a row of the 'עוד' sheet, which also holds the glossary and the family board.
   const careerChip = career?.profile && onProfile ? chipEl(career, onProfile) : null;
-  const topbar = h('div', { class: 'topbar' },
-    careerChip ?? (gamesPlayed > 0
-      ? h('div', { class: 'games-chip glass' }, h('img', { src: coinUrl, alt: '', width: 22, height: 22 }),
-        h('span', null, gamesPlayed === 1 ? t('menu.gamesPlayedOne') : t('menu.gamesPlayed', { n: gamesPlayed })))
-      : h('span')),
+  const moreBtn = h('button', {
+    type: 'button', class: 'more-btn', 'data-action': 'more', 'aria-haspopup': 'dialog', 'aria-label': moreAriaLabel({ hasBoard: !!onBoard, gamesPlayed }),
+    onClick: () => { haptic('tap'); setLearnMode(mode); openHomeMore({ gamesPlayed, onDictionary: () => openDictionary(), onBoard }); },
+  }, icon('grid', { size: 20, width: 2.2 }), h('span', { class: 'more-text' }, t('menu.more')),
+  gamesPlayed > 0 && !careerChip ? h('span', { class: 'more-badge', 'aria-hidden': 'true', 'data-count': String(gamesPlayed) }, String(gamesPlayed)) : null);
+  const topbar = h('header', { class: 'topbar' },
     h('div', { class: 'topbar-actions' },
-      iconButton('book', t('settings.dictionary'), () => { setLearnMode(mode); openDictionary(); }, 'icon-btn-glass'),
-      iconButton('help', t('menu.howTo'), () => openHowTo({ mode }), 'icon-btn-glass'),
-      // 0.5.1: the weekly family board (inline SVG; the screen and its store load only on tap, spec §6.1). It sits before settings,
-      // so the dictionary (first), help (second) and settings (last) keep their places
-      onBoard ? boardBtn() : null,
-      iconButton('gear', t('menu.settings'), () => openSettings({ version: __APP_VERSION__, mode }), 'icon-btn-glass')));
+      iconButton('gear', t('menu.settings'), () => openSettings({ version: __APP_VERSION__, mode }), 'icon-btn-glass top-btn'),
+      iconButton('help', t('menu.howTo'), () => openHowTo({ mode }), 'icon-btn-glass top-btn')),
+    careerChip,
+    moreBtn);
+  topbar.querySelectorAll('.top-btn')[0].dataset.action = 'settings';
+  topbar.querySelectorAll('.top-btn')[1].dataset.action = 'help';
 
-  // h1 keeps the accessible name 'MaxiFox' (he.json app.title); the logo art itself is decorative (alt="").
+  // The fox emblem is the top of the approved logo (src/assets/brand, cropped, no new art); the wordmark is live text (Rubik 900, rounded),
+  // so the h1 is the visible brand name and the image is decoration.
   const logo = h('img', {
-    class: 'brand-logo', src: logo1x, srcset: `${logo1x} 1x, ${logo2x} 2x`, alt: '', width: 200, height: 218,
+    class: 'brand-logo brand-emblem', src: emblem1x, srcset: `${emblem1x} 1x, ${emblem2x} 2x`, alt: '', width: 240, height: 208,
     decoding: 'async', fetchpriority: 'high', draggable: 'false',
   });
-  const title = h('h1', { class: 'wordmark brand' }, logo, h('span', { class: 'vh' }, t('app.title')));
+  const title = h('h1', { class: 'wordmark brand' }, h('bdi', { dir: 'ltr', class: 'wordmark-text' }, t('app.title')));
   const tagline = h('p', { class: 'tagline' }, t('app.tagline'));
 
   // the seniority sentence ("ותק: נשארו 3 ימים"): one line in the hero's slack, at heights of 700px and above (the chip carries it below)
   const warnLine = career?.view?.state === 'warn' && !career.junior && globalThis.innerHeight >= 700
     ? h('p', { class: 'career-warn-line', 'data-career-warn': '' }, icon('seniorityDue', { size: 16, width: 2 }), h('span', null, chipSentence(career.view))) : null;
-  const hero = h('div', { class: 'start-hero' }, title, tagline, warnLine);
+  const hero = h('div', { class: 'start-hero' }, h('div', { class: 'emblem' }, logo), title, tagline, warnLine);
 
   // ---- daily challenge card (v2.5): gold secondary card under the mode cards ----
   // daily = { date, status: 'new' | 'playing' | 'done', entry, streak: streakView() }
@@ -123,7 +127,7 @@ export function createStart({ save, mode: initialMode, gamesPlayed = 0, daily = 
       h('span', { class: 'daily-line daily-status' }, status),
       dailyNext,
       streak ? h('span', { class: 'daily-line daily-streak' }, streak) : null),
-    h('span', { class: 'daily-go', 'aria-hidden': 'true' }, icon('arrow', { size: 22, width: 3 })));
+    h('span', { class: 'daily-go', 'aria-hidden': 'true' }, icon('arrow', { size: 22, width: 3, fwd: true })));
   })() : null;
   const dailyReset = daily && debugEnabled() && daily.status !== 'new'
     ? h('button', { type: 'button', class: 'debug-btn daily-reset', 'data-action': 'daily-reset', onClick: () => onDailyReset?.() }, t('daily.debugReset')) : null;
@@ -134,19 +138,26 @@ export function createStart({ save, mode: initialMode, gamesPlayed = 0, daily = 
   },
   h('span', { class: 'ch-resume-icon', 'aria-hidden': 'true' }, icon('challenge', { size: 22, width: 2 })),
   h('span', { class: 'ch-resume-text' }, h('span', null, t('challenge.resume')), h('span', { class: 'ch-resume-info' }, t('challenge.resumeInfo', { turn: challengeSave.turn }))),
-  icon('arrow', { size: 22, width: 3 })) : null;
+  icon('arrow', { size: 22, width: 3, fwd: true })) : null;
+
+  // quick missions: the entry text and the REAL count of practiced missions (the same list the missions screen marks 'practiced'); no reward, no streak
+  const missionPanel = onMission ? h('button', { type: 'button', class: 'mission-entry mission-panel', 'data-action': 'missions', onClick: () => { haptic('tap'); onMission(); } },
+    h('span', { class: 'm-text' },
+      h('span', { class: 'm-title' }, t('missions.entry')),
+      missionProgress ? h('span', { class: 'm-progress' },
+        h('span', { class: 'm-sub', 'data-mission-done': String(missionProgress.done) }, t('menu.missionsProgress', { done: missionProgress.done, total: missionProgress.total })),
+        h('span', { class: 'm-steps', 'aria-hidden': 'true' }, Array.from({ length: missionProgress.total }, (_, i) => h('i', { class: i < missionProgress.done ? 'is-done' : '' })))) : null),
+    h('span', { class: 'm-go', 'aria-hidden': 'true' }, icon('arrow', { size: 20, width: 3, fwd: true }))) : null;
 
   const bottom = h('div', { class: 'start-bottom' },
     h('div', { class: 'mode-grid', role: 'group', 'aria-label': t('menu.chooseMode') },
-      modeBtn('family', t('menu.modeFamily'), t('menu.modeFamilyDesc')),
-      modeBtn('full', t('menu.modeFull'), t('menu.modeFullDesc'))),
+      modeBtn('family', t('menu.modeFamily'), t('menu.modeFamilyDesc'), 'opportunity'),
+      modeBtn('full', t('menu.modeFull'), t('menu.modeFullDesc'), 'market')),
     dailyCard, dailyReset,
     challengeRow,
-    onMission && !(challengeRow && globalThis.innerHeight < 700) ? button(t('missions.entry'), {
-      variant: 'secondary', cls: 'mission-entry', 'data-action': 'missions', onClick: onMission,
-    }) : null,
+    onMission && !(challengeRow && globalThis.innerHeight < 700) ? missionPanel : null,
     hasBadge(FIRST_ASSET_BADGE) ? h('p', { class: 'mission-home-badge' }, t('mission.badge')) : null,
-    button([t('menu.start'), icon('arrow', { size: 24, width: 3 })], { variant: 'primary', size: 'lg', 'data-action': 'start', onClick: () => onPlay(mode) }),
+    button([t('menu.start'), icon('arrow', { size: 24, width: 3, fwd: true })], { variant: 'primary', size: 'lg', 'data-action': 'start', onClick: () => onPlay(mode) }),
     save ? button(`${t('menu.resume')} · ${resumeInfo(save)}`, { variant: 'secondary', 'data-action': 'resume', onClick: () => onResume() }) : null);
 
   const el = h('section', { class: 'screen screen-start', 'data-screen': 'start' }, html(SKY), topbar, hero, bottom);

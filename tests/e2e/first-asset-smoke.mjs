@@ -1,20 +1,20 @@
 // Against Vite dev/preview or a deployed PR: MISSION_URL=... npm run smoke:mission.
 import { chromium } from 'playwright';
+import { launchOptions, previewServer } from './env.mjs';
 import assert from 'node:assert/strict';
 import { mkdirSync, readFileSync } from 'node:fs';
 import { createEngine, newMatch, serialize } from '../../src/engine/index.js';
 import { dayKey } from '../../src/daily/calendar.js';
 
-const base = process.env.MISSION_URL || 'http://127.0.0.1:5173/';
+const preview = await previewServer({ url: process.env.MISSION_URL || '' }); // no MISSION_URL: serves dist on SMOKE_PORT (default 4190)
+const base = preview.url;
 const readData = (name) => JSON.parse(readFileSync(new URL(`../../src/data/${name}.he.json`, import.meta.url), 'utf8'));
 const engine = createEngine({ professions: readData('professions'), cards: readData('cards') });
 const normalSave = serialize(newMatch(engine, { mode: 'full', seed: 100, players: [{ professionId: 'engineer' }] }));
 const dailySave = serialize(newMatch(engine, { mode: 'family', seed: 101, players: [{ professionId: 'teacher' }], daily: { date: dayKey() } /* today: the app drops an earlier day's daily save */ }));
 const out = 'test-results/first-asset';
 mkdirSync(out, { recursive: true });
-const browser = await chromium.launch({
-  headless: true, ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : { channel: 'chromium' }),
-});
+const browser = await chromium.launch(launchOptions());
 const errors = [];
 const checkFit = async (page) => {
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, 'no horizontal overflow');
@@ -156,4 +156,4 @@ try {
   console.log('PASS blocked storage: honest error, explicit unsaved exit and freeplay');
   assert.deepEqual(errors, [], 'no JS errors');
   console.log('FIRST ASSET SMOKE PASSED');
-} finally { await browser.close(); }
+} finally { await browser.close(); preview.stop(); }

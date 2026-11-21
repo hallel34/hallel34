@@ -9,46 +9,90 @@
 .sky .tw2 { animation-delay: -1.2s; }
 .sky .tw3 { animation-delay: -2.4s; }
 @keyframes twinkle { 0%, 100% { opacity: .35; } 50% { opacity: 1; } }
-.topbar { display: flex; justify-content: space-between; align-items: center; }
-.topbar-actions { display: flex; gap: 8px; }
-.games-chip { display: flex; align-items: center; gap: 8px; block-size: 44px; padding-inline: 14px; border-radius: 22px; font-weight: var(--fw-bold); font-size: .9375rem; }
-.start-hero { flex: 1; min-block-size: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding-block-start: 6px; }
-/* MaxiFox logo (fox-usage.md "Logo vs character"): 200px wide at 360/390, 132 at 320x568; clear space X = 1/6 of the width.
-   Brand art: no glow, no outline, no tap reaction; aspect kept (240 x 261). */
-.wordmark { margin: 0; line-height: 0; }
-.brand-logo { --logo-w: 200px; inline-size: var(--logo-w); block-size: auto; aspect-ratio: 240 / 261; margin-block: calc(var(--logo-w) / 6 - 16px) calc(var(--logo-w) / 6 - 26px); }
+/* ---- Home header (redesign phase A): settings + help at the inline-start, the career chip (when a profile exists), 'עוד' at the inline-end ---- */
+.topbar { display: flex; align-items: center; gap: var(--sp-2); min-block-size: var(--tap); }
+.topbar-actions { display: flex; gap: 0; }
+/* 48px hit area, 40px visual disc (spec section 4): the disc is drawn by ::before so the hit area stays whole */
+.top-btn { position: relative; border: 0; background: none; color: var(--text); }
+.top-btn::before { content: ""; position: absolute; inset: 4px; border-radius: 50%; background: var(--glass-bg); border: 1px solid var(--glass-border); box-shadow: var(--elev-1); transition: transform var(--dur-press) var(--ease-out), background-color var(--dur-press); }
+.top-btn > svg { position: relative; inline-size: 22px; block-size: 22px; }
+.top-btn:active { transform: none; background: none; }
+.top-btn:active::before { transform: scale(.94); background: var(--glass-chip); }
+.more-btn { position: relative; margin-inline-start: auto; display: inline-flex; align-items: center; gap: var(--sp-2); block-size: var(--tap); min-inline-size: var(--tap); padding-inline: 14px 12px; border: 0; background: none; color: var(--text); font: inherit; font-size: .875rem; font-weight: var(--fw-bold); }
+.more-btn::before { content: ""; position: absolute; inset-block: 4px; inset-inline: 0; border-radius: var(--r-pill); background: var(--glass-bg); border: 1px solid var(--glass-border); box-shadow: var(--elev-1); transition: transform var(--dur-press) var(--ease-out); }
+.more-btn:active::before { transform: scale(.96); }
+.more-btn > * { position: relative; }
+.more-btn > svg { color: var(--sel-gold); }
+/* the games-finished count: a gold dot on the button, only when > 0 (a new player has no badge); the number is also in the aria-label and the sheet */
+.more-badge { display: grid; place-items: center; min-inline-size: 22px; block-size: 22px; padding-inline: 5px; border-radius: 11px; background: var(--sel-gold); color: var(--sel-gold-ink); font-size: .75rem; font-weight: var(--fw-black); font-variant-numeric: tabular-nums; }
+.more-btn:focus-visible, .top-btn:focus-visible { outline-offset: -2px; }
+
+/* ---- Hero: the fox emblem (the top of the approved logo) over a gold glow, the live wordmark overlapping its collar ---- */
+.start-hero { flex: 1; min-block-size: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding-block-start: 4px; }
+.emblem { position: relative; inline-size: clamp(112px, 25dvh, 212px); aspect-ratio: 480 / 416; display: grid; place-items: center; flex: none; }
+.emblem::before { content: ""; position: absolute; inset: -34%; background: radial-gradient(closest-side, rgb(245 185 54 / .26), rgb(245 185 54 / .07) 55%, rgb(245 185 54 / 0)); z-index: -1; pointer-events: none; }
+:root[data-theme="light"] .emblem::before { background: radial-gradient(closest-side, rgb(227 160 32 / .30), rgb(227 160 32 / 0)); }
+.brand-logo { inline-size: 100%; block-size: 100%; object-fit: contain; filter: drop-shadow(0 10px 18px rgb(0 0 0 / .45)); }
+.wordmark { position: relative; margin: clamp(-30px, -3.5dvh, -16px) 0 0; line-height: 1; font-size: var(--fs-wordmark); font-weight: 900; letter-spacing: -.01em; font-family: var(--font-display); filter: var(--wordmark-fx); }
+.wordmark-text { display: inline-block; padding-inline: 4px; unicode-bidi: isolate; background: var(--wordmark-grad); -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent; }
+:root[data-theme="light"] .wordmark-text { background: none; -webkit-text-fill-color: currentColor; color: #8A5200; }
 .title {
   margin: 14px 0 0; font-size: clamp(2.5rem, 7.2dvh, 3.5rem); line-height: 1; font-weight: var(--fw-black); letter-spacing: -1px;
   background: var(--title-grad); -webkit-background-clip: text; background-clip: text; color: transparent;
   filter: var(--title-shadow); padding-inline: 4px;
 }
-.tagline { margin: 7px 8px 0; font-size: 1.0625rem; line-height: 1.4; font-weight: var(--fw-medium); color: var(--text-soft); max-inline-size: 22em; }
-.start-bottom { display: flex; flex-direction: column; gap: 12px; }
-.mode-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.tagline { margin: 10px 8px 0; font-size: .9375rem; line-height: 1.45; font-weight: var(--fw-medium); color: var(--text-soft); max-inline-size: 22em; }
+@media (max-width: 340px) { :root { --fs-wordmark: 2.5rem; } }
+
+/* ---- Mode cards: icon tile + name + description; selected = 2px gold border + gold icon tile + check badge (never colour only) ---- */
+.start-bottom { display: flex; flex-direction: column; gap: 10px; position: relative; z-index: 1; }
+.mode-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .mode-card {
-  position: relative; min-block-size: 72px; padding: 10px 12px; border-radius: 20px; text-align: start;
-  display: flex; flex-direction: column; gap: 2px;
-  border: 1px solid var(--border); background-color: var(--surface); color: var(--text);
-  transition: background-color var(--dur-fast), box-shadow var(--dur-fast);
+  position: relative; min-block-size: 92px; padding: 12px; border-radius: var(--r-card); text-align: start;
+  display: flex; flex-direction: column; gap: 8px;
+  border: 1px solid var(--border); background-color: var(--surface); color: var(--text); box-shadow: var(--elev-1);
+  transition: transform var(--dur-press) var(--ease-out), border-color var(--dur-fast), background-color var(--dur-fast);
 }
-/* selected = surface-2 + a 2px white ring + the check disc; never gold, no scale */
-.mode-card[aria-pressed="true"] { background-color: var(--surface-2); box-shadow: 0 0 0 2px var(--sel-ring); border-color: transparent; }
-.mode-name { font-size: 1.0625rem; font-weight: 800; }
-.mode-desc { font-size: 0.8125rem; color: var(--text-muted); }
-.mode-check { position: absolute; inset-block-start: 8px; inset-inline-end: 8px; inline-size: 24px; block-size: 24px; border-radius: 50%; background: var(--sel-ring); color: var(--bg); display: none; place-items: center; }
+.mode-card:active { transform: scale(.97); }
+.mode-head { display: flex; align-items: center; gap: 10px; min-inline-size: 0; }
+.mode-ico { flex: none; inline-size: 36px; block-size: 36px; border-radius: 12px; display: grid; place-items: center; background: var(--glass-chip); color: var(--text-muted); }
+.mode-name { font-size: var(--fs-title); font-weight: var(--fw-bold); line-height: 1.2; }
+.mode-desc { font-size: var(--fs-label); line-height: 1.35; color: var(--text-muted); }
+.mode-card[aria-pressed="true"] { border: 2px solid var(--sel-gold); padding: 11px; background-color: var(--surface-2); box-shadow: var(--elev-1), 0 0 0 4px color-mix(in srgb, var(--sel-gold) 14%, transparent); }
+.mode-card[aria-pressed="true"] .mode-ico { background: var(--sel-gold); color: var(--sel-gold-ink); }
+.mode-check { position: absolute; inset-block-start: -8px; inset-inline-end: -6px; inline-size: 24px; block-size: 24px; border-radius: 50%; background: var(--sel-gold); color: var(--sel-gold-ink); border: 2px solid var(--bg); box-shadow: 0 2px 6px rgb(0 0 0 / .45); display: none; place-items: center; }
 .mode-card[aria-pressed="true"] .mode-check { display: grid; }
-.start-bottom > .btn-primary { inline-size: 100%; }
+.start-bottom > .btn-primary { inline-size: 100%; min-block-size: var(--btn-h); border-radius: var(--r-card); font-size: 1.25rem; font-weight: var(--fw-black); color: var(--c-gold-ink); background-image: linear-gradient(180deg, rgb(255 255 255 / .24), rgb(255 255 255 / 0) 62%); box-shadow: var(--elev-cta); transition: transform var(--dur-press) var(--ease-out), box-shadow var(--dur-press); }
+.start-bottom > .btn-primary:active { transform: translateY(2px) scale(.985); box-shadow: var(--elev-cta-pressed); }
+.start-bottom > .btn-primary > .icon { transition: transform var(--dur-fast) var(--ease-out); }
+.start-bottom > .btn-primary:active > .icon { transform: translateX(-4px); }
 .start-bottom > .btn-secondary { inline-size: 100%; font-size: 1rem; }
+/* short screens: the hero gives way first, the cards stay whole and readable */
 @media (max-height: 700px) {
   .screen-start { padding-block-end: max(14px, env(safe-area-inset-bottom)); gap: 4px; }
   .start-hero { padding-block-start: 0; }
-  .brand-logo { --logo-w: clamp(132px, 26dvh, 200px); }
-  .tagline { font-size: .9375rem; margin-block-start: 2px; }
+  .tagline { display: none; }
   .start-bottom { gap: 8px; }
-  .mode-card { min-block-size: 60px; padding-block: 6px; }
+  .mode-card { min-block-size: 0; gap: 4px; padding-block: 8px; }
+  .mode-card[aria-pressed="true"] { padding-block: 7px; }
+  .mode-ico { inline-size: 32px; block-size: 32px; }
   .mode-desc { font-size: .75rem; }
-  .btn-lg { min-block-size: var(--tap-min); }
+  .start-bottom > .btn-primary { min-block-size: var(--tap-min); }
 }
+@media (max-width: 340px) { .mode-desc { font-size: .75rem; } .mode-name { font-size: 1rem; } }
+
+/* ---- The 'עוד' sheet ---- */
+.more-sheet { min-block-size: 0; padding-block-end: max(var(--sp-4), env(safe-area-inset-bottom)); }
+.more-title { margin: 0; padding-inline: var(--sp-5); font-size: var(--fs-h2); font-weight: var(--fw-bold); }
+.more-list { list-style: none; margin: 0; padding: var(--sp-3) var(--sp-4) var(--sp-2); display: flex; flex-direction: column; gap: var(--sp-2); }
+.more-row, .more-info { display: flex; align-items: center; gap: var(--sp-3); inline-size: 100%; min-block-size: 56px; padding: 8px 12px; border-radius: var(--r-md); text-align: start; color: var(--text); background: var(--surface-2); border: 1px solid var(--border); font: inherit; font-weight: var(--fw-bold); }
+.more-row:active { transform: scale(.98); }
+.more-ico { flex: none; inline-size: 36px; block-size: 36px; border-radius: 12px; display: grid; place-items: center; background: var(--glass-chip); color: var(--sel-gold); }
+.more-label { flex: 1; min-inline-size: 0; }
+.more-go { flex: none; color: var(--text-muted); }
+/* information only (no history screen exists): flat, no chevron, quieter than the two destinations */
+.more-info { background: transparent; border-style: dashed; font-weight: var(--fw-medium); color: var(--text-muted); }
+.more-info.has-count { color: var(--text); font-weight: var(--fw-bold); }
 
 /* ===== Profession pick ===== */
 .screen-pick { background: var(--grad-night); gap: var(--sp-4); }
@@ -96,24 +140,28 @@
 .prof-well.is-glyph { align-items: center; color: var(--text); }
 .prof-well.is-glyph > svg { inline-size: 56px; block-size: 56px; }
 .screen-pick .prof-name { margin-block-start: 6px; font-size: 1.25rem; font-weight: 900; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-inline-size: 100%; }
-.screen-pick .prof-rows { gap: 0; align-items: center; }
-.screen-pick .prof-row { justify-content: center; align-items: baseline; gap: 5px; }
-.screen-pick .prof-row-label { font-size: .9375rem; font-weight: var(--fw-medium); color: var(--text-muted); }
+.screen-pick .prof-rows { gap: 2px; align-items: stretch; padding-inline: 4px; }
+/* salary and expenses: two labelled lines, the label at the inline-start, the amount (its own LTR isolate) at the inline-end; no bullet between them */
+.screen-pick .prof-row { justify-content: space-between; align-items: baseline; gap: 8px; }
+.screen-pick .prof-row-label { font-size: .875rem; font-weight: var(--fw-medium); color: var(--text-muted); }
 .screen-pick .prof-row .money, .screen-pick .prof-row--salary .money { font-size: 1rem; font-weight: 900; color: var(--text); font-variant-numeric: tabular-nums; }
-.screen-pick .prof-sep { color: var(--text-muted); font-size: .875rem; }
 .prof-pocket {
-  display: flex; align-items: center; justify-content: center; gap: .3em; /* a flex gap: the space before the amount never collapses */
-  inline-size: 100%; box-sizing: border-box; min-block-size: 32px; padding: 0 10px; margin-block-start: 6px; border-radius: 16px;
-  font-size: .9375rem; font-weight: var(--fw-bold); color: var(--income); white-space: nowrap;
-  background: color-mix(in srgb, var(--income) 14%, var(--surface)); border: 1.5px solid color-mix(in srgb, var(--income) 60%, transparent);
+  display: flex; align-items: center; justify-content: space-between; gap: .3em; /* a flex gap: the space before the amount never collapses */
+  inline-size: 100%; box-sizing: border-box; min-block-size: 32px; padding: 0 8px; margin-block-start: 6px; border-radius: var(--r-sm);
+  font-size: .875rem; font-weight: var(--fw-medium); color: var(--income); white-space: nowrap;
+  background: var(--pocket-bg); border: 0; box-shadow: none; /* a summary strip, not a control: flat, square-ish, no border, no shadow */
 }
 .prof-pocket .money { font-weight: 900; color: inherit; font-variant-numeric: tabular-nums; }
-:root[data-theme="light"] .prof-pocket { color: var(--income-ink); background: color-mix(in srgb, var(--income) 12%, var(--surface)); }
-.prof-pocket.is-neg { color: var(--negative); background: color-mix(in srgb, var(--negative) 14%, var(--surface)); border-color: color-mix(in srgb, var(--negative) 55%, transparent); }
+:root[data-theme="light"] .prof-pocket { color: var(--income-ink); }
+.prof-pocket.is-neg { color: var(--danger-text); background: color-mix(in srgb, var(--negative) 12%, transparent); }
+/* the card whose preview sheet is open (aria-pressed): 2px gold border + a check badge; the preview is not a choice, "יוצאים לדרך" commits */
+.prof-check { position: absolute; inset-block-start: 8px; inset-inline-end: 8px; inline-size: 24px; block-size: 24px; border-radius: 50%; background: var(--sel-gold); color: var(--sel-gold-ink); display: none; place-items: center; box-shadow: 0 2px 6px rgb(0 0 0 / .45); z-index: 2; }
+.screen-pick .prof-card[aria-pressed="true"] { border-color: var(--sel-gold); box-shadow: inset 0 0 0 1px var(--sel-gold), 0 6px 16px rgb(0 0 0 / .18); }
+.screen-pick .prof-card[aria-pressed="true"] .prof-check { display: grid; }
 @media (max-width: 359px) {
   .prof-well { block-size: 108px; } .prof-well .prof-fox { block-size: 108px; }
   .screen-pick .prof-name { font-size: 1.0625rem; } .screen-pick .prof-row .money { font-size: .875rem; } .screen-pick .prof-row-label { font-size: .8125rem; }
-  .prof-pocket { font-size: .8125rem; padding-inline: 6px; }
+  .prof-pocket { font-size: .75rem; padding-inline: 5px; gap: .2em; }
 }
 .pick-fox { flex: none; display: flex; align-items: flex-end; inline-size: 104px; block-size: 120px; margin-block: -8px -12px; }
 .pick-fox .prof-fox { inline-size: 104px; block-size: 120px; object-fit: contain; }
@@ -407,24 +455,25 @@
 
 /* ===== Daily challenge (v2.5) ===== */
 .daily-card {
-  position: relative; display: flex; align-items: center; gap: 12px; inline-size: 100%; min-block-size: 64px; padding: 8px 14px; border-radius: 20px; text-align: start;
-  border: 1px solid var(--border); background-color: var(--surface); color: var(--text); touch-action: manipulation;
-  transition: background-color var(--dur-press);
+  position: relative; overflow: hidden; display: flex; align-items: center; gap: 12px; inline-size: 100%; min-block-size: 64px; padding: 10px 14px; border-radius: var(--r-card); text-align: start;
+  border: 1px solid var(--border); background-color: var(--surface); color: var(--text); touch-action: manipulation; box-shadow: var(--elev-1);
+  transition: transform var(--dur-press) var(--ease-out), background-color var(--dur-press);
 }
-.daily-card:active { background-color: var(--surface-2); }
-.daily-icon { flex: none; inline-size: 40px; block-size: 40px; border-radius: 50%; display: grid; place-items: center; background-color: var(--surface-2); color: var(--text); }
-.daily-text { flex: 1; min-inline-size: 0; display: flex; flex-direction: column; gap: 1px; }
-.daily-title { font-size: .9375rem; font-weight: var(--fw-bold); line-height: 1.2; }
-.daily-line { font-size: .8125rem; line-height: 1.25; color: var(--text-muted); overflow-wrap: anywhere; }
-.daily-status { font-weight: var(--fw-bold); color: var(--text-muted); }
+/* the gold start-edge bar marks the day's challenge as the important card (decoration only: status is the text) */
+.daily-card::after { content: ""; position: absolute; inset-block: 0; inset-inline-start: 0; inline-size: 4px; background: var(--sel-gold); }
+.daily-card:active { transform: scale(.985); background-color: var(--surface-2); }
+.daily-icon { flex: none; inline-size: 40px; block-size: 40px; border-radius: 50%; display: grid; place-items: center; color: var(--sel-gold); background: color-mix(in srgb, var(--sel-gold) 12%, transparent); border: 1.5px solid color-mix(in srgb, var(--sel-gold) 55%, transparent); }
+.daily-text { flex: 1; min-inline-size: 0; display: flex; flex-direction: column; gap: 2px; }
+.daily-title { font-size: 1rem; font-weight: var(--fw-bold); line-height: 1.2; }
+.daily-line { font-size: var(--fs-label); line-height: 1.3; color: var(--text-muted); overflow-wrap: anywhere; }
+.daily-status { font-weight: var(--fw-medium); color: var(--text-muted); }
 .daily-go { flex: none; color: var(--text-muted); display: grid; }
-.daily-card[data-status="done"] .daily-icon { color: var(--income); }
+.daily-card[data-status="done"] .daily-icon { color: var(--income); background: var(--pocket-bg); border-color: color-mix(in srgb, var(--income) 55%, transparent); }
 .daily-reset { align-self: center; min-block-size: 48px; }
 @media (max-height: 700px) {
-  .daily-card { min-block-size: 52px; padding-block: 6px; gap: 10px; }
-  .daily-icon { inline-size: 32px; block-size: 32px; }
+  .daily-card { min-block-size: 56px; padding-block: 6px; gap: 10px; }
+  .daily-icon { inline-size: 34px; block-size: 34px; }
   .daily-line { font-size: .75rem; }
-  .daily-title { font-size: 1rem; }
 }
 
 .screen-daily { gap: var(--sp-3); padding-block-end: max(20px, env(safe-area-inset-bottom)); block-size: 100dvh; min-block-size: 0; }
@@ -551,3 +600,26 @@
 .rank-note { margin: 0; font-size: .8125rem; color: var(--text-muted); }
 @media (max-height: 600px), (max-width: 340px) { .rank-chip { min-block-size: 52px; } }
 .screen-pick .prof-card { position: relative; }
+
+/* ===== Phase C (eager part): landscape / desktop composition of home and the picker; the board's part is wide.css (board bundle) ===== */
+@media (min-width: 720px) and (min-aspect-ratio: 23/20) {
+  #app:has(.screen-board), #app:has(.screen-start), #app:has(.screen-pick) { max-inline-size: 1180px; }
+  #app { box-shadow: none; }
+
+  /* ---- home: the hero on one side, the choices on the other; Start stays reachable (sticky) ---- */
+  .screen-start {
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(360px, 460px); grid-template-rows: auto minmax(0, 1fr);
+    grid-template-areas: "top top" "hero bottom"; column-gap: 48px; row-gap: 8px; align-items: center;
+    block-size: auto; min-block-size: 100dvh; padding-inline: max(24px, env(safe-area-inset-left)) max(24px, env(safe-area-inset-right));
+  }
+  .screen-start > .topbar { grid-area: top; align-self: start; }
+  .screen-start > .start-hero { grid-area: hero; }
+  .screen-start > .start-bottom { grid-area: bottom; align-self: center; }
+  .screen-start .emblem { inline-size: clamp(150px, 42dvh, 300px); }
+  .screen-start .tagline { display: block; }
+  .screen-start .start-bottom > .btn-primary { position: sticky; inset-block-end: 8px; z-index: 2; }
+  .screen-start .mode-card { min-block-size: 92px; padding-block: 12px; }
+
+  /* ---- profession picker: four columns ---- */
+  .screen-pick .prof-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
