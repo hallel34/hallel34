@@ -157,7 +157,13 @@
     "moreMenuTitle": "עוד",
     "gamesFinishedOne": "סיימתם משחק אחד",
     "gamesFinished": "סיימתם {n} משחקים",
-    "gamesFinishedNone": "עדיין לא סיימתם משחק"
+    "gamesFinishedNone": "עדיין לא סיימתם משחק",
+    "overwriteTitle": "למחוק את המשחק השמור?",
+    "overwriteText": "יש לכם משחק באמצע ({details}). אם תתחילו משחק חדש, הוא יימחק ואי אפשר יהיה להחזיר אותו.",
+    "overwriteConfirm": "למחוק ולהתחיל חדש",
+    "overwriteKeep": "להשאיר את המשחק השמור",
+    "overwriteMode": "מצב {mode}",
+    "overwriteUnknown": "משחק מגרסה חדשה יותר של האפליקציה"
   },
   "fox": {
     "lastMessage": "מקסי: הודעה אחרונה",

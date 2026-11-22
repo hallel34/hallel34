@@ -23,7 +23,7 @@ import { openHomeMore, moreAriaLabel } from './home-more.js';
 import { hasBadge } from '../../learn/store.js';
 import { FIRST_ASSET_BADGE } from '../../engine/first-asset.js';
 
-const resumeInfo = (m) => (isMultiplayer(m)
+export const resumeInfo = (m) => (isMultiplayer(m)
   ? (Math.max(...m.players.map((p) => p.state.turn)) < 1
     ? t('menu.resumeInfoFresh', { n: m.players.length })
     : t('menu.resumeInfoMulti', { n: m.players.length, turn: Math.max(...m.players.map((p) => p.state.turn)) }))
