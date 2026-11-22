@@ -1,6 +1,8 @@
 # QA report - PR21 review fixes (branch maxifox-pr21-fixes, head 940b983, base 06e7e15)
 
-Status: **RED** (zero P0, one P1, three P2). GREEN needs zero P0 and zero P1.
+**Current verdict (re-test on 45461c5): GREEN** (zero P0, zero P1; two P2 notes). The first round on 940b983 was RED (1 P1). The original findings are kept below; the re-test section is at the end.
+
+First round: RED (zero P0, one P1, three P2). GREEN needs zero P0 and zero P1.
 
 Tested head 940b983 in a fresh worktree (/home/user/maxifox-pr21-fixes-qa), baseline 06e7e15 in /home/user/maxifox-pr21-base-qa. Probes: `qa/pr21-qa.mjs` (92 browser checks, 91 pass, the 1 failure is the P1 below), `qa/pr21-dbl.mjs`, `qa/pr21-tip.mjs`, `qa/pr21-loanfuzz.mjs`. Screenshots: `qa/screens/pr21/`.
 
@@ -57,3 +59,39 @@ No calculation change (`src/engine` untouched). `tests/loan-cap-bounds.test.js` 
 
 ## Still not covered
 Real-phone persistence, installability audit beyond manifest/sw presence, junior and daily loan-cap fuzz, hot-seat with 3-4 players in the dialog.
+
+
+---
+
+# Re-test on 45461c5 (developer fixes for the P1 and two P2s)
+
+Fresh worktree at 45461c5 (`/home/user/maxifox-pr21-fixes-qa2`). Diff 940b983..45461c5 touches only `overwrite-sheet.js`, `save-guard.js`, three lines in `app.js`, one new he.json key (`menu.overwriteUnknown`), tests, and two docs screenshots. No engine, balance, formula or visual change. Probes: `qa/pr21-dbl2.mjs`, `qa/pr21-qa2.mjs`, `qa/pr21-hist.mjs`; screenshots `qa/screens/pr21b/`.
+
+## Verdict: GREEN
+
+## P1 (stray second tap erases the save): FIXED
+- `qa/pr21-dbl2.mjs`: 170 stray second-tap cases. Gaps 0, 30, 60, 100, 150, 300, 600, 899, 901, 1200 ms; viewports 390x844, 360x640, 360x720, 430x932, 320x568; touch and mouse; dark and light; also a 2-player table (stray tap on the last seat's "go"). Result: `passivo.save` byte-identical in all 170. The second tap always lands on `overwrite-keep` (the gold button now sits at the old "go" position). Within the first 900 ms both buttons are really `disabled` (confirmed: `disabled=true,true` 100 ms after opening); a stray tap after the window closes the sheet as keep.
+- Deliberate confirm: an early tap (right after opening) on "למחוק ולהתחיל חדש" is ignored (dialog stays open, save kept); once armed a deliberate click confirms and the new game starts, with mouse and touch.
+- Slow device, CPU throttle 6x: still protects (early tap ignored) and still allows a deliberate tap (armed about 1.0 s after the tap on the wall clock, no stuck-disabled state, no errors).
+- Order and RTL: destructive "למחוק ולהתחיל חדש" (secondary) above, "להשאיר את המשחק השמור" (primary, gold) below, 48px each, no clipping, no horizontal scroll, sheet inside the viewport, direction rtl, at 360x800, 390x844, 430x932, 1280x800, 320x568 in dark and light. Screenshot: `qa/screens/pr21b/dialog-390x844-dark.png`.
+- Focus and axe: focus ends on "keep" after arming; axe wcag2a/2aa: 0 violations in all 10 combinations; 0 console errors.
+
+## P2 Back: FIXED
+- Escape, scrim and Back all close the sheet as keep: save identical, back on the pick screen, `storyDone` stays false. A second dialog then closed by Back again works the same. After confirming and pressing Back on the board: no errors, board's own behaviour unchanged.
+
+## P2 newer-schema save: FIXED
+- Asks (generic line "משחק מגרסה חדשה יותר של האפליקציה") for an integer `schemaVersion` above the build's with a non-empty `players` array (999 and 11), save kept on cancel. Silent (no dialog, no errors): empty players, no players key, float version, string version, garbage, v1, `{}`, `null`, array, empty string. 12/12 as specified.
+
+## Remaining P2 notes (not blocking)
+1. History: after the dialog is dismissed, `holdBack` leaves one harmless history entry (documented in history.js), so the first Back press on the pick screen does nothing visible; the second leaves the page (`qa/pr21-hist.mjs`). Same pattern as the story. Nothing is lost.
+2. Wording of the newer-schema line reads slightly stiff inside the sentence: "יש לכם משחק באמצע (משחק מגרסה חדשה יותר של האפליקציה)". Suggest "משחק שנשמר בגרסה חדשה יותר". Also, during the first 900 ms the focus is not on a button (a disabled button cannot hold it; it moves to "keep" when armed). Both cosmetic.
+3. Unchanged from round 1: expense-loan limit not tied to the expense amount (product question, no change by design).
+
+## Full gate on 45461c5
+- vitest: 55 files, 1044 tests pass (one more than before: the new save-guard case). Build OK.
+- All 14 smokes exit 0 (smoke, tutorial, daily, r11, r12, business, payday, mission, missions, players, challenge, career, live, save). smoke:save now includes (k) double tap 60/200/400/800 ms, (l) Back = keep, (m) newer-schema ask, plus (a)-(j), all PASS. Ran with `CHROMIUM_PATH` and `AXE_PATH` set and dedicated ports.
+- `python3 scripts/contrast-check.py`: exit 0.
+- Lighthouse mobile home, 360x800, default throttling, x3: Performance 0.91 / 0.92 / 0.93, Accessibility 1.00, Best practices 1.00, SEO 1.00.
+- Scope audit: only the files listed above changed in src; earlier dock/reroll and fitText checks still pass inside `smoke`.
+
+Not covered: a real phone (touch latency, real Back gesture), 3-4 player hot-seat dialog wording, an installability audit beyond manifest and service worker presence.
