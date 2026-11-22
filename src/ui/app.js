@@ -15,6 +15,7 @@ import { readRaw, writeRaw, remove } from '../services/storage.js';
 import { createMatchStore } from '../services/match-store.js';
 import { createStart, resumeInfo } from './screens/start.js';
 import { needsOverwriteConfirm } from '../services/save-guard.js';
+import { slotOf, SLOT_NORMAL } from '../services/match-store.js';
 import { overwriteSaveSheet } from './overwrite-sheet.js';
 import { createPick } from './screens/pick.js';
 import { createPlayers } from './screens/players.js';
@@ -327,21 +328,34 @@ export function createApp(host) {
     }) });
   }
 
-  async function startNew() {
-    // PR21 review, task 1: starting a new normal game replaces the single normal save. Ask first, but only when that save is a game in progress.
+  let startingNew = false;
+  /** True when it is fine to write a new normal game: no game in progress in the normal slot, or the player agreed to erase it. */
+  async function confirmReplaceSave() {
     const existing = loadSave();
-    if (needsOverwriteConfirm(existing)) {
+    if (!needsOverwriteConfirm(existing)) return true;
+    let details = '';
+    try { // a malformed or old save must never break the dialog: every part is optional
       const one = currentState(existing);
-      const details = [existing.mode === 'full' ? t('menu.modeFull') : t('menu.modeFamily'),
-        ...(isMultiplayer(existing) ? [resumeInfo(existing)] : [one.profession.title, one.turn > 0 ? t('game.turn', { turn: one.turn }) : null])].filter(Boolean).join(' · ');
-      if (!(await overwriteSaveSheet({ details }))) {
-        // keep: back to the last person's profession pick (the saved game is untouched); bot seats pick nothing
+      details = [t('menu.overwriteMode', { mode: existing.mode === 'full' ? t('menu.modeFull') : t('menu.modeFamily') }),
+        ...(isMultiplayer(existing) ? [resumeInfo(existing)] : [one?.profession?.title, one?.turn > 0 ? t('game.turn', { turn: one.turn }) : null])].filter(Boolean).join(' · ');
+    } catch (err) { console.warn(err); }
+    return overwriteSaveSheet({ details });
+  }
+
+  async function startNew() {
+    if (startingNew) return; // a double tap on "go" while the dialog is open must not stack a second start
+    startingNew = true;
+    try {
+      // PR21 review, task 1: starting a new normal game replaces the single normal save. Ask first, but only when that save is a game in progress.
+      if (!(await confirmReplaceSave())) {
+        // keep: back to the last person's profession pick (the saved game is untouched); bot seats pick nothing. Nothing was started, so the
+        // first-game story and its flag are untouched too.
         let j = setup.count - 1;
         while (j >= 0 && setup.bots?.[j]) j--;
         if (j < 0) goPlayers(); else goPick(j);
         return;
       }
-    }
+    } finally { startingNew = false; }
     const seed = nextSeed();
     setup.professionIds = setup.professionIds.map((id, i) => (setup.bots?.[i] ? botProfessionId(seed, i, professionIds) : id));
     const m = newMatch(engine, {
@@ -382,6 +396,9 @@ export function createApp(host) {
     if (m.mission?.id === FIRST_ASSET_ID || isShortMission(m.mission?.id)) {
       next = { ...next, mission: { id: m.mission.id, stage: 'freeplay' } };
     }
+    // The finished game's slot was cleared by goWin / goOver, and the daily / challenge end screens never reach here, so the normal slot is empty at this
+    // point. If something else wrote a game in progress meanwhile (another tab), erasing it needs the same consent.
+    if (slotOf(next) === SLOT_NORMAL && !(await confirmReplaceSave())) return;
     goPlay(next, { fresh: true });
   }
 

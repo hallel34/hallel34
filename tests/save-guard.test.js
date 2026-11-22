@@ -29,3 +29,11 @@ describe('needsOverwriteConfirm', () => {
     expect(needsOverwriteConfirm(act(mk(), (s) => s))).toBe(true);
   });
 });
+
+describe('why the end-screen "play again" path needs no warning', () => {
+  it('a rematch is always a NORMAL-slot match, so again() is only reachable from normal games (goWin/goOver return early for daily and challenge, and clear the normal slot first)', async () => {
+    const { rematch } = await import('../src/engine/index.js');
+    expect(slotOf(rematch(engine, mk({ daily: { date: '2026-11-22' } }), 5))).toBe(SLOT_NORMAL);
+    expect(needsOverwriteConfirm(rematch(engine, mk(), 5))).toBe(true); // a fresh rematch IS a game in progress: it must never replace another one silently
+  });
+});

@@ -158,10 +158,11 @@
     "gamesFinishedOne": "סיימתם משחק אחד",
     "gamesFinished": "סיימתם {n} משחקים",
     "gamesFinishedNone": "עדיין לא סיימתם משחק",
-    "overwriteTitle": "להתחיל משחק חדש?",
-    "overwriteText": "יש משחק שמור ({details}). אם תתחילו משחק חדש, המשחק השמור יימחק ולא ניתן יהיה להחזיר אותו.",
-    "overwriteConfirm": "מחקו והתחילו משחק חדש",
-    "overwriteKeep": "השאירו את המשחק השמור"
+    "overwriteTitle": "למחוק את המשחק השמור?",
+    "overwriteText": "יש לכם משחק באמצע ({details}). אם תתחילו משחק חדש, הוא יימחק ואי אפשר יהיה להחזיר אותו.",
+    "overwriteConfirm": "למחוק ולהתחיל חדש",
+    "overwriteKeep": "להשאיר את המשחק השמור",
+    "overwriteMode": "מצב {mode}"
   },
   "fox": {
     "lastMessage": "מקסי: הודעה אחרונה",
