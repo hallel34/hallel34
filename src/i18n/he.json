@@ -162,7 +162,8 @@
     "overwriteText": "יש לכם משחק באמצע ({details}). אם תתחילו משחק חדש, הוא יימחק ואי אפשר יהיה להחזיר אותו.",
     "overwriteConfirm": "למחוק ולהתחיל חדש",
     "overwriteKeep": "להשאיר את המשחק השמור",
-    "overwriteMode": "מצב {mode}"
+    "overwriteMode": "מצב {mode}",
+    "overwriteUnknown": "משחק מגרסה חדשה יותר של האפליקציה"
   },
   "fox": {
     "lastMessage": "מקסי: הודעה אחרונה",

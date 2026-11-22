@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { createEngine, newMatch, act } from '../src/engine/index.js';
-import { needsOverwriteConfirm } from '../src/services/save-guard.js';
+import { needsOverwriteConfirm, isUnreadableNewerSave } from '../src/services/save-guard.js';
 import { slotOf, SLOT_NORMAL, SLOT_DAILY, SLOT_CHALLENGE, SLOT_MISSION } from '../src/services/match-store.js';
 
 const read = (p) => JSON.parse(readFileSync(new URL(`../src/data/${p}`, import.meta.url), 'utf8'));
@@ -35,5 +35,14 @@ describe('why the end-screen "play again" path needs no warning', () => {
     const { rematch } = await import('../src/engine/index.js');
     expect(slotOf(rematch(engine, mk({ daily: { date: '2026-11-22' } }), 5))).toBe(SLOT_NORMAL);
     expect(needsOverwriteConfirm(rematch(engine, mk(), 5))).toBe(true); // a fresh rematch IS a game in progress: it must never replace another one silently
+  });
+});
+
+describe('isUnreadableNewerSave', () => {
+  it('only a recognisable save of a newer schema counts; garbage, {}, v1 shells and empty players stay silent', () => {
+    expect(isUnreadableNewerSave(JSON.stringify({ schemaVersion: 999, players: [{}] }))).toBe(true);
+    for (const bad of [null, '', '{not json', '{}', JSON.stringify({ schemaVersion: 1 }), JSON.stringify({ schemaVersion: 999, players: [] }), JSON.stringify({ schemaVersion: '999', players: [{}] }), '5']) {
+      expect(isUnreadableNewerSave(bad)).toBe(false);
+    }
   });
 });

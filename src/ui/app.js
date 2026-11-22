@@ -14,7 +14,7 @@ import { loadData } from '../data/index.js';
 import { readRaw, writeRaw, remove } from '../services/storage.js';
 import { createMatchStore } from '../services/match-store.js';
 import { createStart, resumeInfo } from './screens/start.js';
-import { needsOverwriteConfirm } from '../services/save-guard.js';
+import { needsOverwriteConfirm, isUnreadableNewerSave } from '../services/save-guard.js';
 import { slotOf, SLOT_NORMAL } from '../services/match-store.js';
 import { overwriteSaveSheet } from './overwrite-sheet.js';
 import { createPick } from './screens/pick.js';
@@ -332,6 +332,8 @@ export function createApp(host) {
   /** True when it is fine to write a new normal game: no game in progress in the normal slot, or the player agreed to erase it. */
   async function confirmReplaceSave() {
     const existing = loadSave();
+    // a save from a NEWER app version cannot be read here, but it is still somebody's game: ask, with a generic line (garbage / v1 / {} stay silent)
+    if (!existing && isUnreadableNewerSave(readRaw('save'))) return overwriteSaveSheet({ details: t('menu.overwriteUnknown') });
     if (!needsOverwriteConfirm(existing)) return true;
     let details = '';
     try { // a malformed or old save must never break the dialog: every part is optional

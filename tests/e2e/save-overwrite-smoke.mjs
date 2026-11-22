@@ -25,8 +25,8 @@ const SHOTS = process.env.SHOTS; if (SHOTS) mkdirSync(SHOTS, { recursive: true }
 const server = await previewServer({ url: process.env.SMOKE_URL || '', port: Number(process.env.SMOKE_PORT || 4195) });
 const browser = await chromium.launch(launchOptions());
 const ls = (page, k) => page.evaluate((key) => localStorage.getItem(`passivo.${key}`), k);
-async function open(storage, { w = 390, h = 844 } = {}) {
-  const ctx = await browser.newContext({ viewport: { width: w, height: h }, locale: 'he-IL' });
+async function open(storage, { w = 390, h = 844, touch = false } = {}) {
+  const ctx = await browser.newContext({ viewport: { width: w, height: h }, locale: 'he-IL', ...(touch ? { hasTouch: true } : {}) });
   const page = await ctx.newPage();
   const errors = []; page.on('pageerror', (e) => errors.push(String(e)));
   await page.addInitScript((s) => { if (!sessionStorage.__seeded) { sessionStorage.__seeded = '1'; for (const [k, v] of Object.entries(s)) localStorage.setItem(`passivo.${k}`, v); } }, { ...SKIP, ...storage });
@@ -53,12 +53,15 @@ try {
   const text = await dialog(page).innerText();
   assert.match(text, /יימחק/, 'the dialog says the saved game will be erased');
   assert.ok(text.includes('מלא') && text.includes('מהנדס'), 'it names the saved game (mode and profession)');
+  await page.waitForSelector('[data-action="overwrite-keep"]:not([disabled])'); // the buttons are inert for a moment after the sheet appears
   assert.equal(await page.evaluate(() => document.activeElement?.getAttribute('data-action')), 'overwrite-keep', 'the safe choice (keep) has the focus');
   assert.ok(text.includes('מצב מלא'), 'the mode reads "מצב מלא", not a bare "מלא"');
   assert.equal(await page.locator('[data-action="overwrite-keep"]').evaluate((e) => e.classList.contains('btn-primary')), true, 'keep is the primary button');
   assert.equal(await page.locator('[data-action="overwrite-confirm"]').evaluate((e) => e.classList.contains('btn-secondary')), true, 'erasing is the secondary button');
+  const ys = await page.evaluate(() => ['overwrite-confirm', 'overwrite-keep'].map((a) => document.querySelector(`[data-action="${a}"]`).getBoundingClientRect().top));
+  assert.ok(ys[0] < ys[1], 'the destructive button is ABOVE the safe one (the safe one sits where the previous screen\'s CTA was)');
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'no sideways scroll');
-  if (SHOTS) { await page.waitForTimeout(700); await page.screenshot({ path: `${SHOTS}/save-dialog-390x844.png` }); }
+  if (SHOTS) { await page.waitForSelector('[data-action="overwrite-keep"]:not([disabled])'); await page.waitForTimeout(300); await page.screenshot({ path: `${SHOTS}/save-dialog-390x844.png` }); }
   console.log('PASS (a) destructive replacement shows the dialog');
 
   // (b) keep: the save is byte-identical, we are back on the pick, resume still works
@@ -112,6 +115,47 @@ try {
   assert.equal(await dialog(page).count(), 0);
   console.log('PASS (f) no save: no dialog'); await ctx.close();
 
+  // (k) P1 data loss: a second tap on the profession sheet's "go" button 60-800 ms after the first must NEVER confirm the erase (touch, 390x844)
+  for (const gap of [60, 200, 400, 800]) {
+    ({ ctx, page } = await open({ save: fullSave, mode: 'full' }, { touch: true }));
+    await page.locator('.mode-card[data-mode="family"]').click(); await page.locator('[data-action="start"]').click(); await page.locator('[data-action="players-next"]').click();
+    await page.waitForSelector('[data-screen="pick"]'); await page.locator('[data-prof="teacher"]').click(); await page.waitForTimeout(600);
+    const box = await page.locator('[data-action="go"]').boundingBox(); const x = box.x + box.width / 2; const y = box.y + box.height / 2;
+    await page.touchscreen.tap(x, y); await page.waitForTimeout(gap); await page.touchscreen.tap(x, y); await page.waitForTimeout(1500);
+    assert.equal(await ls(page, 'save'), fullSave, `a double tap with a ${gap} ms gap never erases the save`);
+    assert.equal(await page.locator('[data-screen="board"]').count(), 0, `no new game started after a ${gap} ms double tap`);
+    assert.deepEqual(page.errors, []); await ctx.close();
+  }
+  // and a deliberate tap after the delay still works
+  ({ ctx, page } = await open({ save: fullSave, mode: 'full' }, { touch: true }));
+  await startFamilyTeacher(page); await dialog(page).waitFor();
+  await page.waitForSelector('[data-action="overwrite-confirm"]:not([disabled])');
+  const cb = await page.locator('[data-action="overwrite-confirm"]').boundingBox();
+  await page.touchscreen.tap(cb.x + cb.width / 2, cb.y + cb.height / 2);
+  await page.waitForSelector('[data-screen="board"]');
+  assert.equal(deserialize(await ls(page, 'save')).mode, 'family', 'a deliberate tap after the delay confirms');
+  console.log('PASS (k) double tap 60/200/400/800 ms never erases; a deliberate tap works'); await ctx.close();
+
+  // (l) the system Back button dismisses the sheet as keep
+  ({ ctx, page } = await open({ save: fullSave, mode: 'full' }));
+  await startFamilyTeacher(page); await dialog(page).waitFor();
+  await page.evaluate(() => history.back());
+  await page.waitForSelector('.overwrite-sheet', { state: 'detached' });
+  assert.equal(await ls(page, 'save'), fullSave, 'Back keeps the saved game');
+  console.log('PASS (l) Back = keep'); await ctx.close();
+
+  // (m) a save from a NEWER app version cannot be read but is still a game in progress: ask (generic line); keep leaves it byte for byte
+  const newer = JSON.stringify({ schemaVersion: 999, kind: 'match', players: [{ id: 'p1' }], mode: 'family' });
+  ({ ctx, page } = await open({ save: newer }));
+  await startFamilyTeacher(page); await dialog(page).waitFor();
+  assert.ok((await dialog(page).innerText()).includes('גרסה חדשה'), 'a generic "newer version" details line');
+  await page.locator('[data-action="overwrite-keep"]').click();
+  assert.equal(await ls(page, 'save'), newer, 'keep leaves the unreadable newer save untouched');
+  await page.locator('[data-prof="teacher"]').click(); await page.locator('[data-action="go"]').click(); await dialog(page).waitFor();
+  await page.locator('[data-action="overwrite-confirm"]').click();
+  await page.waitForSelector('[data-screen="board"]'); assert.notEqual(await ls(page, 'save'), newer);
+  console.log('PASS (m) newer-schema save asks'); await ctx.close();
+
   // (g) cancelling must not mark the first-game story as done (the story would run before the new game; a cancelled start never reaches it)
   ({ ctx, page } = await open({ save: fullSave, mode: 'full', ...NO_STORY }));
   await startFamilyTeacher(page); await dialog(page).waitFor();
@@ -124,7 +168,7 @@ try {
   // (h) a double tap on confirm acts once: one new game, no errors
   ({ ctx, page } = await open({ save: fullSave, mode: 'full' }));
   await startFamilyTeacher(page); await dialog(page).waitFor();
-  await page.waitForTimeout(600); // the sheet has finished sliding in
+  await page.waitForSelector('[data-action="overwrite-confirm"]:not([disabled])'); // the buttons arm after a moment
   await page.locator('[data-action="overwrite-confirm"]').dblclick({ force: true });
   await page.waitForSelector('[data-screen="board"]');
   assert.equal(deserialize(await ls(page, 'save')).mode, 'family');
@@ -163,7 +207,7 @@ try {
   // desktop screenshot of the dialog
   if (SHOTS) {
     ({ ctx, page } = await open({ save: fullSave, mode: 'full' }, { w: 1280, h: 800 }));
-    await startFamilyTeacher(page); await dialog(page).waitFor(); await page.waitForTimeout(900);
+    await startFamilyTeacher(page); await dialog(page).waitFor(); await page.waitForSelector('[data-action="overwrite-keep"]:not([disabled])'); await page.waitForTimeout(300);
     await page.screenshot({ path: `${SHOTS}/save-dialog-1280x800.png` }); await ctx.close();
   }
   console.log('SAVE OVERWRITE SMOKE PASSED');
