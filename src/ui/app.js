@@ -13,7 +13,9 @@ import { createEngine } from '../engine/engine.js';
 import { loadData } from '../data/index.js';
 import { readRaw, writeRaw, remove } from '../services/storage.js';
 import { createMatchStore } from '../services/match-store.js';
-import { createStart } from './screens/start.js';
+import { createStart, resumeInfo } from './screens/start.js';
+import { needsOverwriteConfirm } from '../services/save-guard.js';
+import { overwriteSaveSheet } from './overwrite-sheet.js';
 import { createPick } from './screens/pick.js';
 import { createPlayers } from './screens/players.js';
 import { playerName } from './players.js';
@@ -326,6 +328,20 @@ export function createApp(host) {
   }
 
   async function startNew() {
+    // PR21 review, task 1: starting a new normal game replaces the single normal save. Ask first, but only when that save is a game in progress.
+    const existing = loadSave();
+    if (needsOverwriteConfirm(existing)) {
+      const one = currentState(existing);
+      const details = [existing.mode === 'full' ? t('menu.modeFull') : t('menu.modeFamily'),
+        ...(isMultiplayer(existing) ? [resumeInfo(existing)] : [one.profession.title, one.turn > 0 ? t('game.turn', { turn: one.turn }) : null])].filter(Boolean).join(' · ');
+      if (!(await overwriteSaveSheet({ details }))) {
+        // keep: back to the last person's profession pick (the saved game is untouched); bot seats pick nothing
+        let j = setup.count - 1;
+        while (j >= 0 && setup.bots?.[j]) j--;
+        if (j < 0) goPlayers(); else goPick(j);
+        return;
+      }
+    }
     const seed = nextSeed();
     setup.professionIds = setup.professionIds.map((id, i) => (setup.bots?.[i] ? botProfessionId(seed, i, professionIds) : id));
     const m = newMatch(engine, {

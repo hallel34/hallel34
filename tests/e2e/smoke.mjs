@@ -1422,6 +1422,29 @@ async function testDockBudget(browser) {
   }
 }
 
+/** PR21 review, task 2: the fox tip bubble has no horizontal scrollbar (its speech tail used to be scrollable overflow of an overflow:auto box). */
+async function testTipBubbleNoHScroll(browser) {
+  const engine = learnEngine();
+  for (const [w, hgt] of [[360, 800], [390, 844], [430, 932], [1280, 800]]) {
+    const ctx = await browser.newContext({ viewport: { width: w, height: hgt }, deviceScaleFactor: 1, locale: 'he-IL', reducedMotion: 'reduce' });
+    const page = await ctx.newPage();
+    await page.goto(`${URL_BASE}?seed=3`);
+    await page.evaluate(() => { localStorage.setItem('passivo.seenIntro', '1'); localStorage.setItem('passivo.tutorial', JSON.stringify({ storyDone: true, helpOn: false, quizDone: true })); });
+    await page.evaluate((json) => localStorage.setItem('passivo.save', json), serialize(newMatch(engine, { mode: 'family', seed: 7, players: [{ name: 'דנה', professionId: 'teacher' }] })));
+    await page.goto(`${URL_BASE}?seed=3`);
+    await page.locator('[data-action="resume"]').click();
+    await page.waitForSelector('.fox-strip .note-bubble', { timeout: 15000 });
+    await page.waitForTimeout(600);
+    const longest = 'הקלף הראשון מסוג דירה או עסק במשחק. הסיור מתחיל מיד בפתיחת הקלף, בלי חלון \'עסקה טובה?\' (הניחוש מתחיל בקלף). ' .repeat(2);
+    for (const txt of [null, longest]) {
+      if (txt) await page.evaluate((x) => { document.querySelector('.fox-strip .note-text').textContent = x; }, txt);
+      const r = await page.evaluate(() => [...document.querySelectorAll('.fox-strip .note-bubble, .fox-strip .note-main, .fox-strip .note-text')].filter((e) => e.scrollWidth > e.clientWidth + 0.5 && ['auto', 'scroll'].includes(getComputedStyle(e).overflowX)).map((e) => e.className));
+      check(r.length === 0, `tip bubble ${txt ? '(very long text) ' : ''}has no horizontal scrollbar at ${w}x${hgt} (${JSON.stringify(r)})`);
+    }
+    await ctx.close();
+  }
+}
+
 /** QA round 14 P2-3: a milestone reached by a choice still celebrates when the player rolls at once. */
 async function testMilestoneFastRoll(browser) {
   const engine = learnEngine();
@@ -2070,7 +2093,7 @@ async function main() {
     await page.waitForSelector('[data-screen="start"]');
     check(await page.locator('[data-action="resume"]').count() === 0, 'no resume button after a finished game');
   }
-  if (PLAYERS === 1) { await testBuyStates(page); await testLegacySave(page); await testHudCash(browser); await testHudCashSlow(browser); await testWideLayout(browser); await testDockBudget(browser); await testMilestoneFastRoll(browser); await testNotesAtSizes(browser); if (MODE === 'family') await testJunior(browser); }
+  if (PLAYERS === 1) { await testBuyStates(page); await testLegacySave(page); await testHudCash(browser); await testHudCashSlow(browser); await testWideLayout(browser); await testDockBudget(browser); await testTipBubbleNoHScroll(browser); await testMilestoneFastRoll(browser); await testNotesAtSizes(browser); if (MODE === 'family') await testJunior(browser); }
   await testRound5(page);
   await testPhaseA(page);
   if (PLAYERS === 1) { await testGuessFlow(page); await testExplainers(page); }

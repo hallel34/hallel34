@@ -81,3 +81,10 @@
 .screen-board.board-full .play-dock { flex: 0 0 auto; min-block-size: 152px; }
 @media (max-height: 699px) { .screen-board.board-full .play-dock { min-block-size: 136px; } }
 .screen-board.board-full .play-dock:has(.note-panel) { min-block-size: 192px; }
+
+/* ===== PR21 review, task 2: no horizontal scrollbar in the fox tip bubble =====
+   Cause (confirmed on a real render): the bubble is `overflow:auto` and its speech-bubble tail (::after, 7px outside the box) is scrollable overflow, so
+   scrollWidth - clientWidth = 10px at every width and a horizontal scrollbar can appear on every tip. The tail has always been clipped by that overflow;
+   to keep the look exactly as it is, the horizontal axis is now clipped explicitly (no scrollbar) and the vertical axis keeps `auto` for very long text.
+   Colours, shape, text and the fox's place are unchanged. */
+.screen-board.board-full .fox-strip .fox-bubble:not(.note-explain) .note-bubble { overflow-x: hidden; }

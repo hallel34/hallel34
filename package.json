@@ -23,7 +23,8 @@
     "smoke:players": "node tests/e2e/players-seats-smoke.mjs",
     "smoke:challenge": "node tests/e2e/challenge-smoke.mjs",
     "smoke:career": "node tests/e2e/career-smoke.mjs",
-    "smoke:live": "node tests/e2e/live-smoke.mjs"
+    "smoke:live": "node tests/e2e/live-smoke.mjs",
+    "smoke:save": "node tests/e2e/save-overwrite-smoke.mjs"
   },
   "devDependencies": {
     "playwright": "^1.56.1",
